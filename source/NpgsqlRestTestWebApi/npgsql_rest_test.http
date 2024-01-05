@@ -1,0 +1,42 @@
+@host=http://localhost:5000
+
+// function public.case_overloads()
+// returns void
+POST {{host}}/api/case-overloads/
+
+###
+
+// function public.case_overloads(
+//     _i integer
+// )
+// returns void
+POST {{host}}/api/case-overloads/
+content-type: application/json
+
+{
+    "_i": 1
+}
+
+###
+
+// function public.case_overloads(
+//     _i integer,
+//     _t text
+// )
+// returns void
+POST {{host}}/api/case-overloads/
+content-type: application/json
+
+{
+    "_i": 1,
+    "_t": "ABC"
+}
+
+###
+
+// function public.case_returns_void_no_params()
+// returns void
+POST {{host}}/api/case-returns-void-no-params/
+
+###
+

@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishAot>false</PublishAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="testcases.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="testcases.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="NpgsqlRestTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
+  </ItemGroup>
+
+</Project>
