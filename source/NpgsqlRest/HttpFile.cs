@@ -227,7 +227,12 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         {
             return GetArray(GetSubstring(), GetSubstring(), GetSubstring());
         }
-        
+
+        if (type.IsJson)
+        {
+            return "{}";
+        }
+
         return GetSubstring();
     }
 

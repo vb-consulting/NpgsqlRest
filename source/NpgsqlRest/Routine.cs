@@ -1,8 +1,4 @@
-﻿// Ignore Spelling: Npgsql, Middleware, Schemas, Oid
-
-using System.Security.Cryptography.Xml;
-
-namespace NpgsqlRest;
+﻿namespace NpgsqlRest;
 
 public enum RoutineType { Other, Function, Procedure }
 public enum Language { Other, Plpgsql, Sql }
@@ -38,7 +34,8 @@ public class Routine(
     string definition,
     TypeDescriptor[] paramTypeDescriptor,
     bool isVoid,
-    string expression)
+    string expression,
+    TypeDescriptor[] returnTypeDescriptor)
 {
     public RoutineType Type { get; } = type;
     public string TypeInfo { get; } = typeInfo;
@@ -68,4 +65,5 @@ public class Routine(
     public TypeDescriptor[] ParamTypeDescriptor { get; } = paramTypeDescriptor;
     public bool IsVoid { get; } = isVoid;
     public string Expression { get; } = expression;
+    public TypeDescriptor[] ReturnTypeDescriptor { get; } = returnTypeDescriptor;
 }

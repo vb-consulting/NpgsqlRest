@@ -3,11 +3,14 @@ using Npgsql;
 
 namespace NpgsqlRest;
 
+public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
+public enum EndpointParameters { QueryString, BodyJson }
+
 /// <summary>
 /// Options for the NpgsqlRest middleware.
 /// </summary>
 public class NpgsqlRestOptions(
-    string connectionString,
+    string? connectionString,
     string? customRoutineCommand = null,
     string? schemaSimilarTo = null,
     string? schemaNotSimilarTo = null,
@@ -27,13 +30,26 @@ public class NpgsqlRestOptions(
     LogLevel logLevel = LogLevel.Information,
     Func<string?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? queryStringParameterParserCallback = null,
     Func<JsonNode?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? jsonBodyParameterParserCallback = null,
-    bool logConnectionNoticeEvents = true)
+    bool logConnectionNoticeEvents = true,
+    int? commandTimeout = null,
+    bool logParameterMismatchWarnings = true,
+    Method? defaultHttpMethod = null,
+    EndpointParameters? defaultParameters = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
     /// </summary>
-    /// <param name="connectionString"></param>
-    public NpgsqlRestOptions(string connectionString) : this(connectionString, null)
+    /// <param name="connectionString">PostgreSQL connection string</param>
+    public NpgsqlRestOptions(string? connectionString) : this(connectionString, null)
+    {
+    }
+
+    /// <summary>
+    /// Options for the NpgsqlRest middleware.
+    /// Connection string is set to null: 
+    /// It either has to be set trough ConnectionString property or ConnectionFromServiceProvider has to be set to true.
+    /// </summary>
+    public NpgsqlRestOptions() : this(null)
     {
     }
 
@@ -41,7 +57,7 @@ public class NpgsqlRestOptions(
     /// The connection string to the database. 
     /// Note: must run as superuser or have select permissions on information_schema.routines, information_schema.parameters, pg_catalog.pg_proc, pg_catalog.pg_description, pg_catalog.pg_namespace
     /// </summary>
-    public string ConnectionString { get; set; } = connectionString;
+    public string? ConnectionString { get; set; } = connectionString;
     /// <summary>
     /// When not null, this is a command to use to get the routines.
     /// Note: If you need to replace a default query from RoutineQuery.cs module, for example with security definer function, set this property to a custom command.
@@ -102,7 +118,9 @@ public class NpgsqlRestOptions(
     /// </summary>
     public Func<Routine, NpgsqlRestOptions, RoutineEndpointMeta, RoutineEndpointMeta?>? EndpointMetaCallback { get; set; } = endpointMetaCallback;
     /// <summary>
-    /// Method that converts names for parameters and return fields. By default it is a lower camel case.
+    /// Method that converts names for parameters and return fields. 
+    /// By default it is a lower camel case.
+    /// Use NameConverter = name => name to preserve original names.
     /// </summary>
     public Func<string?, string?> NameConverter { get; set; } = nameConverter ?? Defaults.CamelCaseNameConverter;
     /// <summary>
@@ -129,4 +147,23 @@ public class NpgsqlRestOptions(
     /// Set to true to log connection notice events.
     /// </summary>
     public bool LogConnectionNoticeEvents { get; set; } = logConnectionNoticeEvents;
+    /// <summary>
+    /// Sets the wait time (in seconds) before terminating the attempt  to execute a command and generating an error.
+    /// Default value is 30 seconds.
+    /// </summary>
+    public int? CommandTimeout { get; set; } = commandTimeout;
+    /// <summary>
+    /// Set to true to log parameter mismatch warnings. These mismatches occur regularly when using functions with parameter overloads with different types.
+    /// </summary>
+    public bool LogParameterMismatchWarnings { get; set; } = logParameterMismatchWarnings;
+    /// <summary>
+    /// Default HTTP method for all endpoints. 
+    /// NULL is default behavior: if function name contains "get", it is GET, otherwise POST.
+    /// </summary>
+    public Method? DefaultHttpMethod { get; set; } = defaultHttpMethod;
+    /// <summary>
+    /// Default parameter position Query String or JSON Body.
+    /// NULL is default behavior: if endpoint is not POST, use Query String, otherwise JSON Body.
+    /// </summary>
+    public EndpointParameters? DefaultParameters { get; set; } = defaultParameters;
 }

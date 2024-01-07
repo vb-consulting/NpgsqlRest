@@ -17,26 +17,26 @@ internal static class Logging
         var severity = args.Notice.Severity;
         var msg = $"{args.Notice.Where}:{Environment.NewLine}{args.Notice.MessageText}{Environment.NewLine}";
 
-        if (severity.StartsWith(info) || severity.StartsWith(notice) || severity.StartsWith(log))
+        if (string.Equals(info, severity, StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(log, severity, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(notice, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogInfo(ref logger, ref options, msg);
         }
-        else if (severity.StartsWith(warning))
+        else if (string.Equals(warning, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogWarning(ref logger, ref options, msg);
         }
-        else if (severity.StartsWith(debug))
+        else if (string.Equals(debug, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogDebug(ref logger, ref options, msg);
         }
-        else if (severity.StartsWith(error) || severity.StartsWith(panic))
+        else if (string.Equals(error, severity, StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(panic, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogError(ref logger, ref options, msg);
         }
-        else
-        {
-            LogTrace(ref logger, ref options, msg);
-        }
+        LogTrace(ref logger, ref options, msg);
     }
 
     public static void LogInfo(ref ILogger? logger, ref NpgsqlRestOptions options, string? message, params object?[] args)

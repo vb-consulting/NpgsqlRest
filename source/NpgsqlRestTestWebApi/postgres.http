@@ -1,0 +1,65 @@
+@host=http://localhost:5000
+
+// function public.case_return_int(
+//     _i integer
+// )
+// returns integer
+POST {{host}}/api/case-return-int/
+content-type: application/json
+
+{
+    "i": 1
+}
+
+###
+
+// function public.case_return_json(
+//     _json json
+// )
+// returns json
+POST {{host}}/api/case-return-json/
+content-type: application/json
+
+{
+    "json": {}
+}
+
+###
+
+// function public.case_return_setof_int()
+// returns setof integer
+POST {{host}}/api/case-return-setof-int/
+
+###
+
+// function public.case_return_setof_json()
+// returns setof json
+POST {{host}}/api/case-return-setof-json/
+
+###
+
+// function public.case_return_setof_text()
+// returns setof text
+POST {{host}}/api/case-return-setof-text/
+
+###
+
+// function public.case_return_text(
+//     _t text
+// )
+// returns text
+POST {{host}}/api/case-return-text/
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// function public.case_void()
+// returns void
+POST {{host}}/api/case-void/
+
+###
+

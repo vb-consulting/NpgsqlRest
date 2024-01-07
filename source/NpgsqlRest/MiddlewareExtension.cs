@@ -1,12 +1,13 @@
 ﻿using System.Collections.Frozen;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+using System.Data;
 using System.Net;
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Npgsql;
+using static NpgsqlRest.Logging;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace NpgsqlRest;
 
@@ -35,118 +36,128 @@ public static class NpgsqlRestMiddlewareExtensions
             JsonObject? jsonObj = null;
             foreach (var (routine, meta) in dict[context.Request.Path])
             {
-                if (!string.Equals(context.Request.Method, meta.HttpMethod.Method, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(context.Request.Method, meta.HttpMethod.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
                 NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in gc we trust
-                if (meta.Parameters == EndpointParameters.QueryString)
+                if (routine.ParamCount > 0)
                 {
-                    if (context.Request.Query.Count != meta.ParamNames.Length)
+                    if (meta.Parameters == EndpointParameters.QueryString)
                     {
-                        continue;
-                    }
-                    for (var i = 0; i < meta.ParamNames.Length; i++)
-                    {
-                        var p = meta.ParamNames[i];
-                        if (context.Request.Query.TryGetValue(p, out var qsValue))
+                        if (context.Request.Query.Count != meta.ParamNames.Length)
                         {
-                            var value = qsValue.FirstOrDefault();
-                            if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
+                            continue;
+                        }
+                        for (var i = 0; i < routine.ParamCount; i++)
+                        {
+                            var p = meta.ParamNames[i];
+                            if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
-                                parameters[i] = paramater;
+                                var value = qsValue.FirstOrDefault();
+                                if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
+                                {
+                                    parameters[i] = paramater;
+                                }
+                                else
+                                {
+                                    // parameters don't match, continuing to another overload
+                                    if (options.LogParameterMismatchWarnings)
+                                    {
+                                        LogWarning(
+                                            ref logger,
+                                            ref options,
+                                            "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
+                                            routine.ParamTypeDescriptor[0].DbType,
+                                            value,
+                                            context.Request.Path);
+                                    }
+                                    continue;
+                                }
                             }
                             else
                             {
-                                Logging.LogWarning(
-                                    ref logger, 
-                                    ref options,
-                                    "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2}.",
-                                    routine.ParamTypeDescriptor[0].DbType,
-                                    value,
-                                    context.Request.Path);
                                 continue;
                             }
                         }
-                        else
-                        {
-                            continue;
-                        }
                     }
-                }
-                else
-                {
-                    if (jsonObj is null)
+                    else
                     {
-                        string body;
-                        context.Request.EnableBuffering();
-                        context.Request.Body.Position = 0;
-                        using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
+                        if (jsonObj is null)
                         {
-                            body = await reader.ReadToEndAsync();
-                        }
-
-                        if (string.IsNullOrEmpty(body))
-                        {
-                            continue;
-                        }
-
-                        JsonNode node;
-                        try
-                        {
-                            node = JsonNode.Parse(body);
-                        }
-                        catch (JsonException)
-                        {
-                            Logging.LogWarning(ref logger, ref options, "Could not parse json body {0}, skipping path {1}.",body, context.Request.Path);
-                            continue;
-                        }
-                        try
-                        {
-                            jsonObj = node?.AsObject();
-                        }
-                        catch (InvalidOperationException)
-                        {
-                            Logging.LogWarning(ref logger, ref options, "Could not parse json body {0}, skipping path {1}.", body, context.Request.Path);
-                            continue;
-                        }
-                    }
-
-                    if (jsonObj?.Count != meta.ParamNames.Length)
-                    {
-                        continue;
-                    }
-
-                    for (var i = 0; i < meta.ParamNames.Length; i++)
-                    {
-                        var p = meta.ParamNames[i];
-                        if (jsonObj.ContainsKey(p))
-                        {
-                            var value = jsonObj[p];
-                            if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
+                            string body;
+                            context.Request.EnableBuffering();
+                            context.Request.Body.Position = 0;
+                            using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
                             {
-                                parameters[i] = paramater;
+                                body = await reader.ReadToEndAsync();
+                            }
+
+                            if (string.IsNullOrEmpty(body))
+                            {
+                                continue;
+                            }
+
+                            JsonNode node;
+                            try
+                            {
+                                node = JsonNode.Parse(body);
+                            }
+                            catch (JsonException)
+                            {
+                                LogWarning(ref logger, ref options, "Could not parse json body {0}, skipping path {1}.", body, context.Request.Path);
+                                continue;
+                            }
+                            try
+                            {
+                                jsonObj = node?.AsObject();
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                LogWarning(ref logger, ref options, "Could not parse json body {0}, skipping path {1}.", body, context.Request.Path);
+                                continue;
+                            }
+                        }
+
+                        if (jsonObj?.Count != meta.ParamNames.Length)
+                        {
+                            continue;
+                        }
+
+                        for (var i = 0; i < meta.ParamNames.Length; i++)
+                        {
+                            var p = meta.ParamNames[i];
+                            if (jsonObj.ContainsKey(p))
+                            {
+                                var value = jsonObj[p];
+                                if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
+                                {
+                                    parameters[i] = paramater;
+                                }
+                                else
+                                {
+                                    // parameters don't match, continuing to another overload
+                                    if (options.LogParameterMismatchWarnings)
+                                    {
+                                        LogWarning(
+                                            ref logger,
+                                            ref options,
+                                            "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
+                                            routine.ParamTypeDescriptor[0].DbType,
+                                            value,
+                                            context.Request.Path);
+                                    }
+                                    continue;
+                                }
                             }
                             else
                             {
-                                Logging.LogWarning(
-                                    ref logger,
-                                    ref options,
-                                    "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2}.",
-                                    routine.ParamTypeDescriptor[0].DbType,
-                                    value,
-                                    context.Request.Path);
                                 continue;
                             }
                         }
-                        else
-                        {
-                            continue;
-                        }
                     }
                 }
-
                 //parameters parsed
                     
                 if (meta.RequiresAuthorization && context.User?.Identity?.IsAuthenticated is false)
@@ -179,18 +190,22 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         connection.Notice += (sender, args) =>
                         {
-                            Logging.LogConnectionNotice(ref logger, ref options, ref args);
+                            LogConnectionNotice(ref logger, ref options, ref args);
                         };
                     }
-                    
+
+                    if (connection.State != ConnectionState.Open)
                     {
                         await connection.OpenAsync();
                     }
 
-                    await connection.OpenAsync();
                     await using var command = connection.CreateCommand();
                     command.Parameters.AddRange(parameters);
                     command.CommandText = routine.Expression;
+                    if (meta.CommandTimeout.HasValue)
+                    {
+                        command.CommandTimeout = meta.CommandTimeout.Value;
+                    }
                     if (routine.IsVoid)
                     {
                         await command.ExecuteNonQueryAsync();
@@ -200,15 +215,106 @@ public static class NpgsqlRestMiddlewareExtensions
                     else
                     {
                         command.AllResultTypesAreUnknown = true;
-                        //...
-                        context.Response.StatusCode = (int)HttpStatusCode.OK;
-                        await context.Response.CompleteAsync();
-                    }
+                        using var reader = await command.ExecuteReaderAsync();
+                        if (routine.ReturnsRecord == false)
+                        {
+                            if (await reader.ReadAsync())
+                            {
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                                string value = reader.GetValue(0) as string;
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 
-                    //command.CommandText = string.Concat("select ", routine.Name, "()");
-                    //await command.ExecuteNonQueryAsync();
-                    //context.Response.StatusCode = (int)HttpStatusCode.OK;
-                    //await context.Response.CompleteAsync();
+                                if (meta.ResponseContentType is not null)
+                                {
+                                    context.Response.ContentType = meta.ResponseContentType;
+                                }
+                                else if (routine.ReturnTypeDescriptor[0].IsJson)
+                                {
+                                    context.Response.ContentType = Application.Json;
+                                }
+                                else
+                                {
+                                    context.Response.ContentType = Text.Plain;
+                                }
+                                if (meta.ResponseHeaders.Count > 0)
+                                {
+                                    foreach (var (headerKey, headerValue) in meta.ResponseHeaders)
+                                    {
+                                        context.Response.Headers.Append(headerKey, headerValue);
+                                    }
+                                }
+                                context.Response.StatusCode = (int)HttpStatusCode.OK;
+#pragma warning disable CS8604 // Possible null reference argument.
+                                await context.Response.WriteAsync(value);
+#pragma warning restore CS8604 // Possible null reference argument.
+                                await context.Response.CompleteAsync();
+                            }
+                            else
+                            {
+                                LogError(ref logger, ref options, "Could not read a value from expression \"{0}\" mapped to {1} {2} ", routine.Expression, context.Request.Method, context.Request.Path);
+                                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                                await context.Response.CompleteAsync();
+                            }
+                        }
+                        else
+                        {
+                            if (meta.ResponseContentType is not null)
+                            {
+                                context.Response.ContentType = meta.ResponseContentType;
+                            }
+                            else 
+                            {
+                                context.Response.ContentType = Application.Json;
+                            }
+                            if (meta.ResponseHeaders.Count > 0)
+                            {
+                                foreach (var (headerKey, headerValue) in meta.ResponseHeaders)
+                                {
+                                    context.Response.Headers.Append(headerKey, headerValue);
+                                }
+                            }
+                            context.Response.StatusCode = (int)HttpStatusCode.OK;
+                            await context.Response.WriteAsync("[");
+                            bool first = true;
+                            while (await reader.ReadAsync())
+                            {
+                                if (!first)
+                                {
+                                    await context.Response.WriteAsync(",");
+                                }
+                                else
+                                {
+                                    first = false;
+                                }
+                                string[] values = new string[routine.ReturnRecordCount];
+                                reader.GetValues(values);
+                                for (var i = 0; i < routine.ReturnRecordCount; i++)
+                                {
+                                    string value = values[i];
+                                    if (routine.ReturnsUnnamedSet == false)
+                                    {
+                                        await context.Response.WriteAsync(string.Concat("\"", meta.ReturnRecordNames[i], "\":"));
+                                    }
+                                    var descriptor = routine.ReturnTypeDescriptor[i];
+                                    if ((object)value == DBNull.Value)
+                                    {
+                                        await context.Response.WriteAsync("null");
+                                    }
+                                    else if (descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson)
+                                    {
+                                        await context.Response.WriteAsync(value);
+                                    }
+                                    else
+                                    {
+                                        await context.Response.WriteAsync(string.Concat("\"", value, "\""));
+                                    }
+                                }
+                            }
+                            await context.Response.WriteAsync("]");
+
+                            await context.Response.CompleteAsync();
+                        }
+                    }
                 }
                 finally
                 {
@@ -257,7 +363,7 @@ public static class NpgsqlRestMiddlewareExtensions
             dict[meta.Url] = list;
 
             httpFile.HandleEntry(routine, meta);
-            Logging.LogInfo(ref logger, ref options, "Created endpoint {0} {1}", meta.HttpMethod.Method, meta.Url);
+            LogInfo(ref logger, ref options, "Created endpoint {0} {1}", meta.HttpMethod.ToString(), meta.Url);
         }
         httpFile.FinalizeHttpFile();
         return dict

@@ -4,13 +4,19 @@ internal static partial class Defaults
 {
     internal static RoutineEndpointMeta? DefaultMetaBuilder(Routine routine, NpgsqlRestOptions options, string url)
     {
-        var isPost = routine.Name.Contains("post", StringComparison.OrdinalIgnoreCase);
+        var hasGet = routine.Name.Contains("get", StringComparison.OrdinalIgnoreCase);
+        var method = hasGet ? Method.GET : Method.POST;
+        var parameters = method == Method.GET ? EndpointParameters.QueryString : EndpointParameters.BodyJson;
+        string[] returnRecordNames = routine.ReturnRecordNames.Select(s => options.NameConverter(s) ?? "").ToArray();
+        string[] paramNames = routine.ParamNames.Select(s => options.NameConverter(s) ?? "").ToArray();
         return new(
                 url: url,
-                method: isPost ? HttpMethod.Post : HttpMethod.Get,
-                parameters: isPost ? EndpointParameters.BodyJson : EndpointParameters.QueryString,
+                method: method,
+                parameters: parameters,
                 requiresAuthorization: options.RequiresAuthorization,
-                returnRecordNames: routine.ReturnRecordNames.Select(s => options.NameConverter(s)).ToArray(),
-                paramNames: routine.ParamNames.Select(s => options.NameConverter(s)).ToArray());
+                returnRecordNames: returnRecordNames,
+                paramNames: paramNames,
+                commandTimeout: options.CommandTimeout,
+                responseContentType: null);
     }
 }

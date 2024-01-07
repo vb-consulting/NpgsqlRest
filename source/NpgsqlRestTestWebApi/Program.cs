@@ -13,21 +13,10 @@ var connectionString = Database.Init(builder.Configuration.GetConnectionString("
 var app = builder.Build();
 app.Urls.Add("http://localhost:5000");
 
-
-app.UseNpgsqlRest(new NpgsqlRestOptions(connectionString)
+app.UseNpgsqlRest(new()
 {
-    //ConnectionFromServiceProvider = true,
-    //SchemaSimilarTo = "public",
-    NameConverter = name => name,
-    HttpFileOptions = new(true) { Overwrite = true },
-    EndpointMetaCallback = (routine, options, meta) =>
-    {
-        meta.HttpMethod = HttpMethod.Post;
-        meta.Parameters = EndpointParameters.BodyJson;
-        return meta;
-    },
+    ConnectionString = connectionString,
+    HttpFileOptions = new(true) { Overwrite = true, FileNamePattern = "postgres" },
 });
-
-app.MapGet("/test", () => "Hello World!");
 
 app.Run();

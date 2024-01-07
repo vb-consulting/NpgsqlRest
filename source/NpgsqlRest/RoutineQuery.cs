@@ -145,61 +145,81 @@ from cte";
         using NpgsqlDataReader reader = command.ExecuteReader();
         while (reader.Read())
         {
-            var type = reader.Get<string>(0);
-            var language = reader.Get<string>(5);
-            var paramTypes = reader.Get<string[]>(21);
-            var returnType = reader.Get<string>(14);
-            var name = reader.Get<string>(2);
-            var paramCount = reader.Get<int>(19);
-            var paramNames = reader.Get<string[]>(20);
+            var type = reader.Get<string>("type");
+            var language = reader.Get<string>("language");
+            var paramTypes = reader.Get<string[]>("param_types");
+            var returnType = reader.Get<string>("return_type");
+            var name = reader.Get<string>("name");
+            var paramCount = reader.Get<int>("param_count");
+            var paramNames = reader.Get<string[]>("param_names");
             var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
-            var schema = reader.Get<string>(1);
+            var schema = reader.Get<string>("schema");
+            var returnsRecord = reader.Get<bool>("returns_record");
+            var returnsUnnamedSet = reader.Get<bool>("returns_unnamed_set");
             var expression = string.Concat(
-                isVoid ? "select " : string.Concat("select ", string.Join(", ", paramNames), " "),
+                isVoid || (returnsRecord == false && returnsRecord == false) ? "select " : string.Concat("select ", string.Join(", ", paramNames), " "),
                 schema,
                 ".",
                 name,
                 "(",
                 string.Join(", ", Enumerable.Range(1, paramCount).Select(i => $"${i}")), 
                 ")");
+            var returnRecordTypes = reader.Get<string[]>("return_record_types");
+            TypeDescriptor[] returnTypeDescriptor;
+            if (isVoid)
+            {
+                returnTypeDescriptor = [];
+            }
+            else
+            {
+                if (returnsRecord == false)
+                {
+                    returnTypeDescriptor = [new TypeDescriptor(returnType)];
+                }
+                else
+                {
+                    returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
+                }
+            }
             yield return new Routine(
                 type: type.GetEnum<RoutineType>(),
                 typeInfo: type,
                 schema: schema,
                 name: name,
-                oid: reader.Get<string>(3),
-                signature: reader.Get<string>(4),
+                oid: reader.Get<string>("oid"),
+                signature: reader.Get<string>("signature"),
                 language: language.GetEnum<Language>(),
                 languageInfo: language,
-                comment: reader.Get<string>(6),
-                securityType: reader.GetEnum<SecurityType>(7),
-                isStrict: reader.Get<bool>(8),
-                cost: reader.Get<decimal>(9),
-                rows: reader.Get<decimal>(10),
-                parallelOption: reader.GetEnum<ParallelOption>(11),
-                volatilityOption: reader.GetEnum<VolatilityOption>(12),
-                returnsRecord: reader.Get<bool>(13),
+                comment: reader.Get<string>("comment"),
+                securityType: reader.GetEnum<SecurityType>("security_type"),
+                isStrict: reader.Get<bool>("is_strict"),
+                cost: reader.Get<decimal>("cost_num"),
+                rows: reader.Get<decimal>("rows_num"),
+                parallelOption: reader.GetEnum<ParallelOption>("parallel_option"),
+                volatilityOption: reader.GetEnum<VolatilityOption>("volatility_option"),
+                returnsRecord: returnsRecord,
                 returnType: returnType,
-                returnRecordCount: reader.Get<int>(15),
-                returnRecordNames: reader.Get<string[]>(16),
-                returnRecordTypes: reader.Get<string[]>(17),
-                returnsUnnamedSet: reader.Get<bool>(18),
+                returnRecordCount: reader.Get<int>("return_record_count"),
+                returnRecordNames: reader.Get<string[]>("return_record_names"),
+                returnRecordTypes: returnRecordTypes,
+                returnsUnnamedSet: returnsUnnamedSet,
                 paramCount: paramCount,
                 paramNames: paramNames,
                 paramTypes: paramTypes,
-                definition: reader.Get<string>(22),
+                definition: reader.Get<string>("definition"),
                 paramTypeDescriptor: paramTypes.Select(x => new TypeDescriptor(x)).ToArray(),
                 isVoid: isVoid,
-                expression: expression);
+                expression: expression,
+                returnTypeDescriptor: returnTypeDescriptor);
         }
     }
 }
 
 internal static class Extensions
 {
-    internal static T Get<T>(this NpgsqlDataReader reader, int ordinal)
+    internal static T Get<T>(this NpgsqlDataReader reader, string name)
     {
-        var value = reader[ordinal];
+        var value = reader[name];
         if (value == DBNull.Value)
         {
             return default!;
@@ -207,9 +227,9 @@ internal static class Extensions
         return (T)value;
     }
     
-    internal static T GetEnum<T>(this NpgsqlDataReader reader, int ordinal) where T : struct
+    internal static T GetEnum<T>(this NpgsqlDataReader reader, string name) where T : struct
     {
-        return reader.Get<string?>(ordinal).GetEnum<T>();
+        return reader.Get<string?>(name).GetEnum<T>();
     }
 
     internal static T GetEnum<T>(this string? value) where T : struct
