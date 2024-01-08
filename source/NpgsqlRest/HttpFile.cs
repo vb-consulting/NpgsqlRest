@@ -258,7 +258,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
     private static string GetName(NpgsqlRestOptions options)
     {
         return new NpgsqlConnectionStringBuilder(options.ConnectionString).Database ??
-            options.ConnectionString.Split(";").Where(s => s.StartsWith("Database=")).FirstOrDefault()?.Split("=")?.Last() ??
+            options?.ConnectionString?.Split(";").Where(s => s.StartsWith("Database=")).FirstOrDefault()?.Split("=")?.Last() ??
             "npgsql";
     }
 }

@@ -7,6 +7,9 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+
+    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NpgsqlRestTestWebApi\NpgsqlRestTestWebApi.csproj" />
+    <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
   </ItemGroup>
 
 </Project>

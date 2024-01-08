@@ -5,24 +5,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <PublishAot>false</PublishAot>
+    <PublishAot>true</PublishAot>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="testcases.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="testcases.sql">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="NpgsqlRestTests" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\NpgsqlRestTests\NpgsqlRestTests.csproj" />
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
   </ItemGroup>
 

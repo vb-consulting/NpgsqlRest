@@ -102,7 +102,9 @@ public static class NpgsqlRestMiddlewareExtensions
                             JsonNode node;
                             try
                             {
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                                 node = JsonNode.Parse(body);
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                             }
                             catch (JsonException)
                             {
@@ -164,7 +166,6 @@ public static class NpgsqlRestMiddlewareExtensions
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     await context.Response.CompleteAsync();
-                    await next(context);
                     return;
                 }
 
@@ -211,6 +212,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         await command.ExecuteNonQueryAsync();
                         context.Response.StatusCode = (int)HttpStatusCode.NoContent;
                         await context.Response.CompleteAsync();
+                        return;
                     }
                     else
                     {
@@ -248,12 +250,14 @@ public static class NpgsqlRestMiddlewareExtensions
                                 await context.Response.WriteAsync(value);
 #pragma warning restore CS8604 // Possible null reference argument.
                                 await context.Response.CompleteAsync();
+                                return;
                             }
                             else
                             {
                                 LogError(ref logger, ref options, "Could not read a value from expression \"{0}\" mapped to {1} {2} ", routine.Expression, context.Request.Method, context.Request.Path);
                                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                                 await context.Response.CompleteAsync();
+                                return;
                             }
                         }
                         else
@@ -311,8 +315,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                             }
                             await context.Response.WriteAsync("]");
-
                             await context.Response.CompleteAsync();
+                            return;
                         }
                     }
                 }
