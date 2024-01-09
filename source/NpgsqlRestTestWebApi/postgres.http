@@ -426,3 +426,122 @@ POST {{host}}/api/case-void/
 
 ###
 
+// function public.case_get_int(
+//     _i integer
+// )
+// returns integer
+GET {{host}}/api/case-get-int/?i=1
+
+###
+
+// function public.case_return_bool_array()
+// returns boolean[]
+POST {{host}}/api/case-return-bool-array/
+
+###
+
+// function public.case_return_int(
+//     _i integer
+// )
+// returns integer
+POST {{host}}/api/case-return-int/
+content-type: application/json
+
+{
+    "i": 1
+}
+
+###
+
+// function public.case_return_int_array()
+// returns integer[]
+POST {{host}}/api/case-return-int-array/
+
+###
+
+// function public.case_return_json(
+//     _json json
+// )
+// returns json
+POST {{host}}/api/case-return-json/
+content-type: application/json
+
+{
+    "json": {}
+}
+
+###
+
+// function public.case_return_setof_bool()
+// returns setof boolean
+POST {{host}}/api/case-return-setof-bool/
+
+###
+
+// function public.case_return_setof_bool_array()
+// returns setof boolean[]
+POST {{host}}/api/case-return-setof-bool-array/
+
+###
+
+// function public.case_return_setof_int()
+// returns setof integer
+POST {{host}}/api/case-return-setof-int/
+
+###
+
+// function public.case_return_setof_int_array()
+// returns setof integer[]
+POST {{host}}/api/case-return-setof-int-array/
+
+###
+
+// function public.case_return_setof_json()
+// returns setof json
+POST {{host}}/api/case-return-setof-json/
+
+###
+
+// function public.case_return_setof_text()
+// returns setof text
+POST {{host}}/api/case-return-setof-text/
+
+###
+
+// function public.case_return_setof_text_array()
+// returns setof text[]
+POST {{host}}/api/case-return-setof-text-array/
+
+###
+
+// function public.case_return_text(
+//     _t text
+// )
+// returns text
+POST {{host}}/api/case-return-text/
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// function public.case_return_text_array()
+// returns text[]
+POST {{host}}/api/case-return-text-array/
+
+###
+
+// function public.case_void()
+// returns void
+POST {{host}}/api/case-void/
+
+###
+
+// function public.hello_world()
+// returns text
+POST {{host}}/api/hello-world/
+
+###
+

@@ -5,6 +5,13 @@ public static partial class Database
     public static void ReturnTextTests()
     {
         script.Append(@"
+create function hello_world() 
+returns text 
+language sql
+as $$
+select 'Hello World'
+$$;
+
 create function case_return_text(_t text) 
 returns text 
 language plpgsql
@@ -22,6 +29,17 @@ $$;
 [Collection("TestFixture")]
 public class ReturnTextTests(TestFixture test)
 {
+    [Fact]
+    public async Task Test_HelloWordl()
+    {
+        using var result = await test.Client.PostAsync("/api/hello-world/", null);
+
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().Be("Hello World");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task Test_CaseReturnText()
     {
