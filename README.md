@@ -20,7 +20,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-```http
+```
 @host=http://localhost:5000
 
 // function public.hello_world()
