@@ -22,7 +22,7 @@ public static class NpgsqlRestMiddlewareExtensions
         {
             logger = app.Logger;
         }
-        
+
         var dict = BuildDictionary(builder, options, logger);
         var serviceProvider = builder.ApplicationServices;
 
@@ -136,7 +136,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             continue;
                         }
-                        
+
                         int setCount = 0;
                         for (var i = 0; i < meta.ParamNames.Length; i++)
                         {
@@ -237,15 +237,13 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             if (await reader.ReadAsync())
                             {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                                string value = reader.GetValue(0) as string;
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-
+                                string? value = reader.GetValue(0) as string;
+                                TypeDescriptor descriptor = routine.ReturnTypeDescriptor[0];
                                 if (meta.ResponseContentType is not null)
                                 {
                                     context.Response.ContentType = meta.ResponseContentType;
                                 }
-                                else if (routine.ReturnTypeDescriptor[0].IsJson)
+                                else if (descriptor.IsJson || descriptor.IsArray)
                                 {
                                     context.Response.ContentType = Application.Json;
                                 }
@@ -261,9 +259,15 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                 }
                                 context.Response.StatusCode = (int)HttpStatusCode.OK;
-#pragma warning disable CS8604 // Possible null reference argument.
-                                await context.Response.WriteAsync(value);
-#pragma warning restore CS8604 // Possible null reference argument.
+
+                                if (descriptor.IsArray && value is not null)
+                                {
+                                    value = PgArrayToJsonArray(ref value, ref descriptor);
+                                }
+                                if (value is not null)
+                                {
+                                    await context.Response.WriteAsync(value);
+                                }
                                 await context.Response.CompleteAsync();
                                 return;
                             }
@@ -281,7 +285,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 context.Response.ContentType = meta.ResponseContentType;
                             }
-                            else 
+                            else
                             {
                                 context.Response.ContentType = Application.Json;
                             }
@@ -319,9 +323,32 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         await context.Response.WriteAsync("null");
                                     }
-                                    else if (descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson)
+                                    else if (descriptor.IsArray && value is not null)
                                     {
+                                        value = PgArrayToJsonArray(ref value, ref descriptor);
                                         await context.Response.WriteAsync(value);
+                                    }
+                                    else if ((descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson) && value is not null)
+                                    {
+                                        if (descriptor.IsBoolean)
+                                        {
+                                            if (string.Equals(value, "t", StringComparison.Ordinal))
+                                            {
+                                                await context.Response.WriteAsync("true");
+                                            }
+                                            else if (string.Equals(value, "f", StringComparison.Ordinal))
+                                            {
+                                                await context.Response.WriteAsync("false");
+                                            }
+                                            else
+                                            {
+                                                await context.Response.WriteAsync(value);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            await context.Response.WriteAsync(value);
+                                        }
                                     }
                                     else
                                     {
@@ -348,6 +375,71 @@ public static class NpgsqlRestMiddlewareExtensions
         });
 
         return builder;
+    }
+
+    public static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3 || value[0] != '{' || value[^1] != '}')
+        {
+            return value;
+        }
+
+        var result = new StringBuilder("[");
+        var current = new StringBuilder();
+        var quoted = !(descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson);
+        bool insideQuotes = false;
+
+        ReadOnlySpan<char> span = value.AsSpan();
+        for (int i = 1; i < span.Length; i++)
+        {
+            char currentChar = span[i];
+
+            if (currentChar == '"' && span[i - 1] != '\\')
+            {
+                insideQuotes = !insideQuotes;
+            }
+            else if ((currentChar == ',' && !insideQuotes) || currentChar == '}')
+            {
+                if (quoted)
+                {
+                    result.Append('"');
+                }
+                result.Append(current);
+                if (quoted)
+                {
+                    result.Append('"');
+                }
+                if (currentChar != '}')
+                {
+                    result.Append(',');
+                }
+                current.Clear();
+            }
+            else
+            {
+                if (descriptor.IsBoolean)
+                {
+                    if (currentChar == 't')
+                    {
+                        current.Append("true");
+                    }
+                    else if (currentChar == 'f')
+                    {
+                        current.Append("false");
+                    }
+                    else
+                    {
+                        current.Append(currentChar);
+                    }
+                }
+                else
+                {
+                    current.Append(currentChar);
+                }
+            }
+        }
+        result.Append(']');
+        return result.ToString();
     }
 
     private static FrozenDictionary<string, (Routine routine, RoutineEndpointMeta meta)[]> BuildDictionary(
@@ -386,7 +478,7 @@ public static class NpgsqlRestMiddlewareExtensions
         }
         httpFile.FinalizeHttpFile();
         return dict
-           .ToDictionary(
+            .ToDictionary(
                 x => x.Key,
                 x => x.Value.ToArray())
             .ToFrozenDictionary();

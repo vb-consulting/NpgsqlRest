@@ -2,7 +2,7 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void Test_CaseReturnJson()
+    public static void ReturnJsonTests()
     {
         script.Append(@"
 create function case_return_json(_json json) 

@@ -2,7 +2,7 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void Test_CaseReturnText()
+    public static void ReturnTextTests()
     {
         script.Append(@"
 create function case_return_text(_t text) 

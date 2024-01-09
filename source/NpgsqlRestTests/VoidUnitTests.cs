@@ -2,7 +2,7 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void Test_CaseVoid()
+    public static void VoidUnitTests()
     {
         script.Append(@"
 create function case_void() 

@@ -2,7 +2,7 @@
 
 namespace NpgsqlRest;
 
-public class TypeDescriptor
+public readonly struct TypeDescriptor
 {
     public string OriginalType { get; }
     public string Type { get; }
@@ -14,6 +14,7 @@ public class TypeDescriptor
     public bool IsBoolean { get; }
     public bool IsText { get; }
     public NpgsqlDbType DbType { get; }
+    public NpgsqlDbType BaseDbType { get; }
 
     public TypeDescriptor(string type)
     {
@@ -21,8 +22,12 @@ public class TypeDescriptor
         IsArray = type.EndsWith("[]");
         Type = (IsArray ? type[..^2] : type).Trim('"');
         DbType = this.GetDbType();
-
-        IsNumeric = DbType switch
+        BaseDbType = DbType;
+        if (this.IsArray)
+        {
+            DbType |= NpgsqlDbType.Array;
+        }
+        IsNumeric = BaseDbType switch
         {
             NpgsqlDbType.Smallint => true,
             NpgsqlDbType.Integer => true,
@@ -33,25 +38,24 @@ public class TypeDescriptor
             NpgsqlDbType.Money => true,
             _ => false
         };
-        IsJson = DbType switch
+        IsJson = BaseDbType switch
         {
             NpgsqlDbType.Jsonb => true,
             NpgsqlDbType.Json => true,
             NpgsqlDbType.JsonPath => true,
             _ => false
         };
-        IsDate = DbType == NpgsqlDbType.Date;
-        IsBoolean = DbType == NpgsqlDbType.Boolean;
-        IsDateTime = DbType == NpgsqlDbType.Timestamp || DbType == NpgsqlDbType.TimestampTz;
-
-        IsText = DbType == NpgsqlDbType.Text ||
-            DbType == NpgsqlDbType.Xml ||
-            DbType == NpgsqlDbType.Varchar ||
-            DbType == NpgsqlDbType.Char ||
-            DbType == NpgsqlDbType.Name ||
-            DbType == NpgsqlDbType.Jsonb ||
-            DbType == NpgsqlDbType.Json ||
-            DbType == NpgsqlDbType.JsonPath;
+        IsDate = BaseDbType == NpgsqlDbType.Date;
+        IsBoolean = BaseDbType == NpgsqlDbType.Boolean;
+        IsDateTime = BaseDbType == NpgsqlDbType.Timestamp || BaseDbType == NpgsqlDbType.TimestampTz;
+        IsText = BaseDbType == NpgsqlDbType.Text ||
+            BaseDbType == NpgsqlDbType.Xml ||
+            BaseDbType == NpgsqlDbType.Varchar ||
+            BaseDbType == NpgsqlDbType.Char ||
+            BaseDbType == NpgsqlDbType.Name ||
+            BaseDbType == NpgsqlDbType.Jsonb ||
+            BaseDbType == NpgsqlDbType.Json ||
+            BaseDbType == NpgsqlDbType.JsonPath;
     }
 
     private NpgsqlDbType GetDbType()
@@ -158,12 +162,6 @@ public class TypeDescriptor
 
             _ => NpgsqlDbType.Unknown
         };
-
-        if (this.IsArray)
-        {
-            result |= NpgsqlDbType.Array;
-        }
-
         return result;
     }
 }
