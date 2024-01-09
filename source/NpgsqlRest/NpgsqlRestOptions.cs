@@ -110,7 +110,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Configure creation of the .http file on service build.
     /// </summary>
-    public NpgsqlRestHttpFileOptions HttpFileOptions { get; set; } = httpFileOptions ?? new NpgsqlRestHttpFileOptions(enabled: false);
+    public NpgsqlRestHttpFileOptions HttpFileOptions { get; set; } = httpFileOptions ?? new NpgsqlRestHttpFileOptions(HttpFileOption.Disabled);
     /// <summary>
     /// Callback, if not null, will be called after endpoint meta data is created.
     /// Use this to do custom configuration over routine endpoints. 

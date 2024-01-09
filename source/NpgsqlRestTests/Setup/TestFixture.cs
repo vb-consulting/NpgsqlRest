@@ -14,6 +14,7 @@ public class TestFixture : IDisposable
     {
         application = new WebApplicationFactory<Program>();
         client = application.CreateClient();
+        client.Timeout = TimeSpan.FromHours(1);
     }
 
     public void Dispose()

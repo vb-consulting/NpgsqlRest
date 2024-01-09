@@ -1,26 +1,30 @@
 ﻿namespace NpgsqlRest;
 
+public enum HttpFileOption { Disabled, File, Endpoint, Both }
 public enum CommentHeader { None, Simple, Full }
 public enum HttpFileMode { Database, Schema }
 
 public class NpgsqlRestHttpFileOptions(
-    bool enabled = true,
-    string fileNamePattern = "{0}{1}",
+    HttpFileOption option = HttpFileOption.Both,
+    string namePattern = "{0}{1}",
     CommentHeader commentHeader = CommentHeader.Simple,
     HttpFileMode fileMode = HttpFileMode.Database,
-    bool overwrite = false,
-    bool exposeAsTextEndpoint = false)
+    bool fileOverwrite = false)
 {
     /// <summary>
-    /// Enables or disables the HttpFile feature.
+    /// Options for HTTP file generation:
+    /// Disabled - skip.
+    /// File - creates a file on disk.
+    /// Endpoint - exposes file content as endpoint.
+    /// Both - creates a file on disk and exposes file content as endpoint.
     /// </summary>
-    public bool Enabled { get; set; } = enabled;
+    public HttpFileOption Option { get; set; } = option;
     /// <summary>
     /// The pattern to use when generating file names. {0} is database name, {1} is schema suffix with underline when FileMode is set to Schema.
     /// Use this property to set the custom file name.
     /// .http extension will be added automatically.
     /// </summary>
-    public string FileNamePattern { get; set; } = fileNamePattern;
+    public string NamePattern { get; set; } = namePattern;
     /// <summary>
     /// Adds comment header to above request based on PostrgeSQL routine
     /// Set None to skip.
@@ -36,9 +40,5 @@ public class NpgsqlRestHttpFileOptions(
     /// <summary>
     /// Set to true to overwrite existing files.
     /// </summary>
-    public bool Overwrite { get; set; } = overwrite;
-    /// <summary>
-    /// Set to true to expose content of http files as endpoint instead of creating file on disk.
-    /// </summary>
-    public bool ExposeAsTextEndpoint { get; set; } = exposeAsTextEndpoint;
+    public bool FileOverwrite { get; set; } = fileOverwrite;
 }

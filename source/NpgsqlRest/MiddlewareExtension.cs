@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Npgsql;
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.AspNetCore.Routing;
 
 namespace NpgsqlRest;
 
@@ -34,8 +35,11 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             JsonObject? jsonObj = null;
-            foreach (var (routine, meta) in dict[context.Request.Path])
+            (Routine routine, RoutineEndpointMeta meta)[] tupleArray = dict[context.Request.Path];
+
+            for (var index = 0; index < tupleArray.AsSpan().Length; index++)
             {
+                var (routine, meta) = tupleArray[index];
                 if (!string.Equals(context.Request.Method, meta.HttpMethod.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -50,6 +54,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             continue;
                         }
+                        int setCount = 0;
                         for (var i = 0; i < routine.ParamCount; i++)
                         {
                             var p = meta.ParamNames[i];
@@ -59,6 +64,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
                                 {
                                     parameters[i] = paramater;
+                                    setCount++;
                                 }
                                 else
                                 {
@@ -73,13 +79,17 @@ public static class NpgsqlRestMiddlewareExtensions
                                             value,
                                             context.Request.Path);
                                     }
-                                    continue;
+                                    break;
                                 }
                             }
                             else
                             {
-                                continue;
+                                break;
                             }
+                        }
+                        if (setCount != routine.ParamCount)
+                        {
+                            continue;
                         }
                     }
                     else
@@ -126,7 +136,8 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             continue;
                         }
-
+                        
+                        int setCount = 0;
                         for (var i = 0; i < meta.ParamNames.Length; i++)
                         {
                             var p = meta.ParamNames[i];
@@ -136,6 +147,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
                                 {
                                     parameters[i] = paramater;
+                                    setCount++;
                                 }
                                 else
                                 {
@@ -150,18 +162,21 @@ public static class NpgsqlRestMiddlewareExtensions
                                             value,
                                             context.Request.Path);
                                     }
-                                    continue;
+                                    break;
                                 }
                             }
                             else
                             {
-                                continue;
+                                break;
                             }
+                        }
+                        if (setCount != routine.ParamCount)
+                        {
+                            continue;
                         }
                     }
                 }
-                //parameters parsed
-                    
+
                 if (meta.RequiresAuthorization && context.User?.Identity?.IsAuthenticated is false)
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
@@ -362,7 +377,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 continue;
             }
 
-            List<(Routine routine, RoutineEndpointMeta meta)> list = dict.ContainsKey(url) ? dict[url] : new();
+            List<(Routine routine, RoutineEndpointMeta meta)> list = dict.TryGetValue(url, out var value) ? value : [];
             list.Add((routine, meta));
             dict[meta.Url] = list;
 

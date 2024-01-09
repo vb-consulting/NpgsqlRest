@@ -7,33 +7,37 @@ namespace NpgsqlRest;
 
 internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, ILogger? logger)
 {
-    private readonly HashSet<string> initializedFiles = new();
+    private readonly HashSet<string> initializedFiles = [];
     private readonly IApplicationBuilder builder = builder;
-    private readonly Dictionary<string, StringBuilder> fileContent = new();
+    private readonly Dictionary<string, StringBuilder> fileContent = [];
 
     private NpgsqlRestOptions options = options;
     private ILogger? logger = logger;
 
+    private bool endpoint = false;
+    private bool file = false;
+
     internal void HandleEntry(Routine routine, RoutineEndpointMeta meta)
     {
-        if (options.HttpFileOptions == null || !options.HttpFileOptions.Enabled)
+        if (options.HttpFileOptions.Option == HttpFileOption.Disabled)
         {
             return;
         }
+
+        endpoint = options.HttpFileOptions.Option == HttpFileOption.Endpoint || options.HttpFileOptions.Option == HttpFileOption.Both;
+        file = options.HttpFileOptions.Option == HttpFileOption.File || options.HttpFileOptions.Option == HttpFileOption.Both;
 
         string formatfileName()
         {
             var name = GetName(options);
             var schema = options.HttpFileOptions.FileMode != HttpFileMode.Schema ? "" : string.Concat("_", routine.Schema);
-            return string.Concat(string.Format(options.HttpFileOptions.FileNamePattern, name, schema), ".http");
+            return string.Concat(string.Format(options.HttpFileOptions.NamePattern, name, schema), ".http");
         }
         var fileName = formatfileName();
         var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
-        if (!initializedFiles.Contains(fileName))
+        if (initializedFiles.Add(fileName))
         {
-            initializedFiles.Add(fileName);
-
-            if (options.HttpFileOptions.ExposeAsTextEndpoint)
+            if (endpoint)
             {
                 StringBuilder content = new();
                 content.AppendLine(string.Concat("@host=", GetHost(builder)));
@@ -43,7 +47,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             else
             {
                 var exists = File.Exists(fullFileName);
-                if (!options.HttpFileOptions.Overwrite && exists)
+                if (!options.HttpFileOptions.FileOverwrite && exists)
                 {
                     return;
                 }
@@ -133,7 +137,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             {
                 sb.AppendLine(string.Concat(
                     "    \"", p, 
-                    "\": ", 
+                    "\": ",
                     SampleValue(i, routine.ParamTypeDescriptor[i]),
                     i == meta.ParamNames.Length - 1 ? "" : ","));
             }
@@ -144,11 +148,12 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         sb.AppendLine("###");
         sb.AppendLine();
 
-        if (options.HttpFileOptions.ExposeAsTextEndpoint)
+        if (endpoint)
         {
-            fileContent[fileName].Append(sb.ToString());
+            fileContent[fileName].Append(sb);
         }
-        else
+        
+        if (file)
         {
             File.AppendAllText(fullFileName, sb.ToString());
         }
@@ -156,25 +161,25 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
 
     internal void FinalizeHttpFile()
     {
-        if (options.HttpFileOptions.ExposeAsTextEndpoint && builder is IEndpointRouteBuilder app)
+        if (endpoint && builder is IEndpointRouteBuilder app)
         {
             foreach(var (fileName, content) in fileContent)
             {
                 var url = $"/{fileName}";
                 app?.MapGet(url, () => content.ToString());
-                Logging.LogInfo(ref logger, ref options, "Exposed text endpoint GET {0}", url);
+                Logging.LogInfo(ref logger, ref options, "Exposed HTTP file content on URL: {0}{1}", GetHost(builder), url);
             }
         }
     }
 
-    private static string abc = new(Enumerable.Range('A', 26).Select(x => (char)x).ToArray());
+    private static readonly string abc = new(Enumerable.Range('A', 26).Select(x => (char)x).ToArray());
 
-    private string SampleValueUnquoted(int i, TypeDescriptor type)
+    private static string SampleValueUnquoted(int i, TypeDescriptor type)
     {
         return SampleValue(i, type).Trim('"');
     }
 
-    private string SampleValue(int i, TypeDescriptor type)
+    private static string SampleValue(int i, TypeDescriptor type)
     {
         var counter = i;
         string GetSubstring()
@@ -241,7 +246,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         string? host = null;
         if (builder is WebApplication app)
         {
-            if (app.Urls.Any())
+            if (app.Urls.Count != 0)
             {
                 host = app.Urls.FirstOrDefault();
             }
