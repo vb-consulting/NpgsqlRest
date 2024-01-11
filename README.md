@@ -4,6 +4,8 @@ Note: this is a work in progress Nugget hasn't been published yet.
 
 NpgsqlRest is a .NET 8 library that builds PostgreSQL functions and procedures into RESTful APIs:
 
+1. PostgreSQL function:
+
 ```sql
 create function hello_world() 
 returns text 
@@ -13,12 +15,16 @@ select 'Hello World'
 $$;
 ```
 
+2. .NET8 AOT Ready Web App:
+
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
 var app = builder.Build();
 app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));
 app.Run();
 ```
+
+3. Auto generated HTTP file:
 
 ```
 @host=http://localhost:5000
@@ -27,6 +33,8 @@ app.Run();
 // returns text
 POST {{host}}/api/hello-world/
 ```
+
+4. Endpoint response:
 
 ```
 HTTP/1.1 200 OK
@@ -49,25 +57,26 @@ Hello World
 
 ## Getting Started
 
-### Prerequisites
+## Dependencies
 
-- .NET 8
-- PostgreSQL
+- net8.0
+- Microsoft.NET.Sdk.Web 8.0
+- Npgsql 8.0.1
 
-### Installation
+## Installation
 
-### Documentation
+## Documentation
 
 For more detailed information on how to use NpgsqlRest, please refer to the documentation.
 
-### Contributing
+## Contributing
 
 We welcome contributions from the community. Please read our contributing guide for more information.
 
-### License
+## License
 
 This project is licensed under the terms of the MIT license.
 
-### Contact
+## Contact
 
 If you have any questions or feedback, please feel free to contact us.

@@ -13,7 +13,6 @@ var app = builder.Build();
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
-    NameSimilarTo = "%array%",
     HttpFileOptions = new() 
     { 
         FileOverwrite = true
