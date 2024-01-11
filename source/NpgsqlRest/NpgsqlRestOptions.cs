@@ -22,15 +22,15 @@ public class NpgsqlRestOptions(
     string[]? includeNames = null,
     string[]? excludeNames = null,
     string? urlPathPrefix = "/api",
-    Func<Routine, NpgsqlRestOptions, string>? urlPathBuilder = null,
+    Func<(Routine, NpgsqlRestOptions), string>? urlPathBuilder = null,
     bool connectionFromServiceProvider = false,
     NpgsqlRestHttpFileOptions? httpFileOptions = null,
-    Func<Routine, NpgsqlRestOptions, RoutineEndpointMeta, RoutineEndpointMeta?>? endpointMetaCallback = null,
+    Func<(Routine, NpgsqlRestOptions, RoutineEndpointMeta), RoutineEndpointMeta?>? endpointMetaCallback = null,
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
-    Func<StringValues, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? queryStringParameterParserCallback = null,
-    Func<JsonNode?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? jsonBodyParameterParserCallback = null,
+    Func<(StringValues, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? queryStringParameterParserCallback = null,
+    Func<(JsonNode?, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? jsonBodyParameterParserCallback = null,
     bool logConnectionNoticeEvents = true,
     int? commandTimeout = null,
     bool logParameterMismatchWarnings = true,
@@ -103,7 +103,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// A custom function delegate that returns a string that will be used as the url path for routine from the first parameter.
     /// </summary>
-    public Func<Routine, NpgsqlRestOptions, string> UrlPathBuilder { get; set; } = urlPathBuilder ?? Defaults.DefaultUrlBuilder;
+    public Func<(Routine, NpgsqlRestOptions), string> UrlPathBuilder { get; set; } = urlPathBuilder ?? Defaults.DefaultUrlBuilder;
     /// <summary>
     /// Set to true to get the PostgreSQL connection from the service provider. Otherwise, it will be created from the connection string property.
     /// </summary>
@@ -117,7 +117,7 @@ public class NpgsqlRestOptions(
     /// Use this to do custom configuration over routine endpoints. 
     /// Return null to disable endpoint.
     /// </summary>
-    public Func<Routine, NpgsqlRestOptions, RoutineEndpointMeta, RoutineEndpointMeta?>? EndpointMetaCallback { get; set; } = endpointMetaCallback;
+    public Func<(Routine, NpgsqlRestOptions, RoutineEndpointMeta), RoutineEndpointMeta?>? EndpointMetaCallback { get; set; } = endpointMetaCallback;
     /// <summary>
     /// Method that converts names for parameters and return fields. 
     /// By default it is a lower camel case.
@@ -136,13 +136,13 @@ public class NpgsqlRestOptions(
     /// Callback, if not null, will be called for every parameter in the query string to assign a database parameter value to NpgsqlParameter from a string.
     /// Return null to fallback to default parser behavior.
     /// </summary>
-    public Func<StringValues, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? QueryStringParameterParserCallback { get; set; } = 
+    public Func<(StringValues, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? QueryStringParameterParserCallback { get; set; } = 
         queryStringParameterParserCallback;
     /// <summary>
     /// Callback, if not null, will be called for every parameter in the json body to assign a database parameter value to NpgsqlParameter from a json value.
     /// Return null to fallback to default parser behavior.
     /// </summary>
-    public Func<JsonNode?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? JsonBodyParameterParserCallback { get; set; } = 
+    public Func<(JsonNode?, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? JsonBodyParameterParserCallback { get; set; } = 
         jsonBodyParameterParserCallback;
     /// <summary>
     /// Set to true to log connection notice events.

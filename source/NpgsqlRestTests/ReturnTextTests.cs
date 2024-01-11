@@ -33,11 +33,11 @@ public class ReturnTextTests(TestFixture test)
     public async Task Test_HelloWordl()
     {
         using var result = await test.Client.PostAsync("/api/hello-world/", null);
-
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("Hello World");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("Hello World");
     }
 
     [Fact]
@@ -45,10 +45,10 @@ public class ReturnTextTests(TestFixture test)
     {
         using var content = new StringContent("{\"t\":\"Hello World\"}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-text/", content);
-
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("Hello World");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("Hello World");
     }
 }

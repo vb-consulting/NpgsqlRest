@@ -46,7 +46,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     continue;
                 }
 
-                NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in gc we trust
+                NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
                 if (routine.ParamCount > 0)
                 {
                     if (meta.Parameters == EndpointParameters.QueryString)
@@ -118,7 +118,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             catch (JsonException)
                             {
-                                LogWarning(ref logger, ref options, "Could not parse json body {0}, skipping path {1}.", body, context.Request.Path);
+                                LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
                                 continue;
                             }
                             try
@@ -127,7 +127,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             catch (InvalidOperationException)
                             {
-                                LogWarning(ref logger, ref options, "Could not parse json body {0}, skipping path {1}.", body, context.Request.Path);
+                                LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
                                 continue;
                             }
                         }
@@ -476,7 +476,7 @@ public static class NpgsqlRestMiddlewareExtensions
         var httpFile = new HttpFile(builder, options, logger);
         foreach (var routine in RoutineQuery.Run(options))
         {
-            var url = options.UrlPathBuilder(routine, options);
+            var url = options.UrlPathBuilder((routine, options));
             RoutineEndpointMeta? meta = Defaults.DefaultMetaBuilder(routine, options, url);
 
             if (meta is null)
@@ -486,7 +486,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
             if (options.EndpointMetaCallback is not null)
             {
-                meta = options.EndpointMetaCallback(routine, options, meta);
+                meta = options.EndpointMetaCallback((routine, options, meta));
             }
 
             if (meta is null)

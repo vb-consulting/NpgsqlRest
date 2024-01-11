@@ -25,10 +25,10 @@ public class ReturnSetOfIntTests(TestFixture test)
     public async Task Test_CaseReturnSetOfInt()
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-int/", null);
-
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[1,2,3]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[1,2,3]");
     }
 }

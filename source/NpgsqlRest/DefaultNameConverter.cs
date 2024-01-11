@@ -16,7 +16,14 @@ internal static partial class Defaults
         }
         return value
             .Split(separator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(s => string.Concat(char.ToLowerInvariant(s[0]), s[1..]))
+            .Select((s, i) =>
+            {
+                if (i == 0)
+                {
+                    return string.Concat(char.ToLowerInvariant(s[0]), s[1..]);
+                }
+                return string.Concat(char.ToUpperInvariant(s[0]), s[1..]);
+            })
             .Aggregate(string.Empty, string.Concat);
     }
 }

@@ -31,10 +31,10 @@ public class ReturnSetOfJsonTests(TestFixture test)
     public async Task Test_CaseReturnSetOfJson()
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-json/", null);
-
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[{\"A\" : 1},{\"B\" : \"XY\"},{\"C\" : true},{\"D\" : null}]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[{\"A\" : 1},{\"B\" : \"XY\"},{\"C\" : true},{\"D\" : null}]");
     }
 }

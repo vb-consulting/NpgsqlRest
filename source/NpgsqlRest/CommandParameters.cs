@@ -22,7 +22,7 @@ internal class CommandParameters
 
         if (options.QueryStringParameterParserCallback is not null)
         {
-            var callback = options.QueryStringParameterParserCallback(values, descriptor, result);
+            var callback = options.QueryStringParameterParserCallback((values, descriptor, result));
             if (callback is not null)
             {
                 result = callback;
@@ -265,7 +265,7 @@ internal class CommandParameters
 
         if (options.JsonBodyParameterParserCallback is not null)
         {
-            var callback = options.JsonBodyParameterParserCallback(value, descriptor, result);
+            var callback = options.JsonBodyParameterParserCallback((value, descriptor, result));
             if (callback is not null)
             {
                 result = callback;

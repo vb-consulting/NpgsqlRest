@@ -1,6 +1,6 @@
 # NpgsqlRest
 
-Note: this is a work in progress Nugget hasn't been published yet.
+> Note: this still is a work in progress NuGet library hasn't been published yet.
 
 NpgsqlRest is a .NET 8 library that builds PostgreSQL functions and procedures into RESTful APIs. Simple example:
 

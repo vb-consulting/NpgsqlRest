@@ -99,9 +99,10 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-int-array/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[1,2,3]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[1,2,3]");
     }
 
     [Fact]
@@ -109,9 +110,10 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-text-array/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("""["a","bc","x,y","foo\"bar\"","\"foo\",\"bar\""]""");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("""["a","bc","x,y","foo\"bar\"","\"foo\",\"bar\""]""");
     }
 
     [Fact]
@@ -119,9 +121,10 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-bool-array/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[true,false]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[true,false]");
     }
 
     [Fact]
@@ -129,9 +132,10 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-int-array/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[[1,2,3],[4,5,6],[7,8,9]]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[[1,2,3],[4,5,6],[7,8,9]]");
     }
 
     [Fact]
@@ -139,9 +143,10 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-bool-array/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[[true,false],[false,true]]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[[true,false],[false,true]]");
     }
 
     [Fact]
@@ -149,9 +154,10 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-text-array/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("""[["a","bc"],["x","yz","foo","bar"]]""");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("""[["a","bc"],["x","yz","foo","bar"]]""");
     }
 
     [Fact]
@@ -159,8 +165,9 @@ public class ArrayTypeTests(TestFixture test)
     {
         using var result = await test.Client.PostAsync("/api/case-return-int-array-with-null/", null);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[4,5,6,null]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[4,5,6,null]");
     }
 }

@@ -57,9 +57,10 @@ public class ArrayParametersTests(TestFixture test)
         using var content = new StringContent("{\"a\":[1,2,3,4,5,6]}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-int-params-array/", content);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[1,2,3,4,5,6]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[1,2,3,4,5,6]");
     }
 
     [Fact]
@@ -68,9 +69,10 @@ public class ArrayParametersTests(TestFixture test)
         using var content = new StringContent("{\"a\":[1,2,3,null]}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-int-params-array/", content);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[1,2,3,null]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[1,2,3,null]");
     }
 
     [Fact]
@@ -79,9 +81,10 @@ public class ArrayParametersTests(TestFixture test)
         using var content = new StringContent("{\"a\":[\"abc\",\"xyz\"]}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-text-params-array/", content);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[\"abc\",\"xyz\"]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[\"abc\",\"xyz\"]");
     }
 
     [Fact]
@@ -90,9 +93,10 @@ public class ArrayParametersTests(TestFixture test)
         using var content = new StringContent("{\"a\":[\"abc\",null,\"null\",\"NULL\",\"xyz\"]}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-text-params-array/", content);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[\"abc\",null,\"null\",\"NULL\",\"xyz\"]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[\"abc\",null,\"null\",\"NULL\",\"xyz\"]");
     }
 
     [Fact]
@@ -100,9 +104,10 @@ public class ArrayParametersTests(TestFixture test)
     {
         using var result = await test.Client.GetAsync("/api/case-get-int-params-array/?a=123&a=456&a=789");
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[123,456,789]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[123,456,789]");
     }
 
     [Fact]
@@ -110,9 +115,10 @@ public class ArrayParametersTests(TestFixture test)
     {
         using var result = await test.Client.GetAsync("/api/case-get-int-params-array/?a=999&a=&a=666");
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[999,null,666]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[999,null,666]");
     }
 
     [Fact]
@@ -120,8 +126,9 @@ public class ArrayParametersTests(TestFixture test)
     {
         using var result = await test.Client.GetAsync("/api/case-get-text-params-array/?a=abc&a=xyz&a=foobar");
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[\"abc\",\"xyz\",\"foobar\"]");
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Should().Be("[\"abc\",\"xyz\",\"foobar\"]");
     }
 }

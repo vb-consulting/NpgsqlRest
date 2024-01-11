@@ -2,8 +2,9 @@
 
 internal static partial class Defaults
 {
-    internal static string DefaultUrlBuilder(Routine routine, NpgsqlRestOptions options)
+    internal static string DefaultUrlBuilder((Routine routine, NpgsqlRestOptions options) parameters)
     {
+        var (routine, options) = parameters;
         var schema = routine.Schema.ToLowerInvariant()
             .Replace("_", "-")
             .Replace(" ", "-")
