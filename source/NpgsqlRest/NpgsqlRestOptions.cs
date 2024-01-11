@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Nodes;
+using Microsoft.Extensions.Primitives;
 using Npgsql;
 
 namespace NpgsqlRest;
@@ -28,7 +29,7 @@ public class NpgsqlRestOptions(
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
-    Func<string?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? queryStringParameterParserCallback = null,
+    Func<StringValues, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? queryStringParameterParserCallback = null,
     Func<JsonNode?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? jsonBodyParameterParserCallback = null,
     bool logConnectionNoticeEvents = true,
     int? commandTimeout = null,
@@ -135,7 +136,7 @@ public class NpgsqlRestOptions(
     /// Callback, if not null, will be called for every parameter in the query string to assign a database parameter value to NpgsqlParameter from a string.
     /// Return null to fallback to default parser behavior.
     /// </summary>
-    public Func<string?, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? QueryStringParameterParserCallback { get; set; } = 
+    public Func<StringValues, TypeDescriptor, NpgsqlParameter, NpgsqlParameter?>? QueryStringParameterParserCallback { get; set; } = 
         queryStringParameterParserCallback;
     /// <summary>
     /// Callback, if not null, will be called for every parameter in the json body to assign a database parameter value to NpgsqlParameter from a json value.

@@ -42,10 +42,10 @@ Hello World
 ## Features
 
 - Automatic generation of REST endpoints from PostgreSQL functions.
-- Customizable URL paths, verbs, headers, etc for each endpoint.
-- Built-in logging and error handling.
-- Support for authorization and security measures.
-- Extensive configuration options to suit your needs.
+- Customizable URL paths, verbs, headers, authorization control, logging, etc, for each endpoint.
+- Individual configuration and customization through function or procedure comments.
+- Automatic HTTP file creation.
+- Native AOT (ahead-of-time compilation) deployment: AOT ready.
 
 ## Getting Started
 
@@ -55,10 +55,6 @@ Hello World
 - PostgreSQL
 
 ### Installation
-
-1. Clone the repository: `git clone https://github.com/yourusername/NpgsqlRest.git`
-2. Navigate to the project directory: `cd NpgsqlRest`
-3. Build the project: `dotnet build`
 
 ### Documentation
 

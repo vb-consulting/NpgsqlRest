@@ -26,6 +26,28 @@ begin
     return _i;
 end;
 $$;
+
+create function case_get_unnamed_int(int) 
+returns int 
+language plpgsql
+as 
+$$
+begin
+    raise info '_i = %', $1;
+    return $1;
+end;
+$$;
+
+create function case_return_unnamed_int(int) 
+returns int 
+language plpgsql
+as 
+$$
+begin
+    raise info '_i = %', $1;
+    return $1;
+end;
+$$;
 ");
     }
 }
@@ -58,6 +80,29 @@ public class ReturnIntTests(TestFixture test)
     public async Task Test_CaseGetInt()
     {
         using var result = await test.Client.GetAsync("/api/case-get-int/?i=999");
+
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().Be("999");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Test_CaseGetUnnamedInt()
+    {
+        using var result = await test.Client.GetAsync("/api/case-get-unnamed-int/?$1=999");
+
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().Be("999");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Test_CaseReturnUnnamedInt()
+    {
+        using var content = new StringContent("{\"$1\":999}", Encoding.UTF8, "application/json");
+        using var result = await test.Client.PostAsync("/api/case-return-unnamed-int/", content);
 
         var response = await result.Content.ReadAsStringAsync();
         response.Should().Be("999");

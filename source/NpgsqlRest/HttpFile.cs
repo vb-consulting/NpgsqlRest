@@ -34,30 +34,13 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             return string.Concat(string.Format(options.HttpFileOptions.NamePattern, name, schema), ".http");
         }
         var fileName = formatfileName();
-        var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
+        //var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
         if (initializedFiles.Add(fileName))
         {
-            if (endpoint)
-            {
-                StringBuilder content = new();
-                content.AppendLine(string.Concat("@host=", GetHost(builder)));
-                content.AppendLine();
-                fileContent[fileName] = content;
-            }
-            else
-            {
-                var exists = File.Exists(fullFileName);
-                if (!options.HttpFileOptions.FileOverwrite && exists)
-                {
-                    return;
-                }
-                File.WriteAllLines(fullFileName,
-                [
-                    string.Concat("@host=", GetHost(builder)),
-                    ""
-                ]);
-                Logging.LogInfo(ref logger, ref options, "Created http file {0}", fullFileName);
-            }
+            StringBuilder content = new();
+            content.AppendLine(string.Concat("@host=", GetHost(builder)));
+            content.AppendLine();
+            fileContent[fileName] = content;
         }
 
         StringBuilder sb = new();
@@ -125,7 +108,18 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         if (meta.ParamNames.Length > 0 && meta.Parameters == EndpointParameters.QueryString)
         {
             sb.AppendLine(string.Concat(meta.HttpMethod, " {{host}}", meta.Url, "?",
-                string.Join("&", meta.ParamNames.Select((p, i) => $"{p}={SampleValueUnquoted(i, routine.ParamTypeDescriptor[i])}"))));
+                string.Join("&", meta
+                    .ParamNames
+                    .Select((p, i) =>
+                    {
+                        var descriptor = routine.ParamTypeDescriptor[i];
+                        var value = SampleValueUnquoted(i, descriptor);
+                        if (descriptor.IsArray)
+                        {
+                            return string.Join("&", value.Split(',').Select(v => $"{p}={v}"));
+                        }
+                        return $"{p}={value}";
+                    }))));
         }
 
         if (meta.ParamNames.Length > 0 && meta.Parameters == EndpointParameters.BodyJson)
@@ -148,15 +142,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         sb.AppendLine("###");
         sb.AppendLine();
 
-        if (endpoint)
-        {
-            fileContent[fileName].Append(sb);
-        }
-        
-        if (file)
-        {
-            File.AppendAllText(fullFileName, sb.ToString());
-        }
+        fileContent[fileName].Append(sb);
     }
 
     internal void FinalizeHttpFile()
@@ -170,36 +156,53 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                 Logging.LogInfo(ref logger, ref options, "Exposed HTTP file content on URL: {0}{1}", GetHost(builder), url);
             }
         }
-    }
 
-    private static readonly string abc = new(Enumerable.Range('A', 26).Select(x => (char)x).ToArray());
+        if (file)
+        {
+            foreach(var (fileName, content) in fileContent)
+            {
+                var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
+                if (!options.HttpFileOptions.FileOverwrite && File.Exists(fullFileName))
+                {
+                    continue;
+                }
+                File.WriteAllText(fullFileName, content.ToString());
+                Logging.LogInfo(ref logger, ref options, "Created HTTP file: {0}", fullFileName);
+            }
+        }
+    }
 
     private static string SampleValueUnquoted(int i, TypeDescriptor type)
     {
-        return SampleValue(i, type).Trim('"');
+        return SampleValue(i, type, isQuery: true).Trim('"');
     }
 
-    private static string SampleValue(int i, TypeDescriptor type)
+    private static string SampleValue(int i, TypeDescriptor type, bool isQuery = false)
     {
         var counter = i;
-        string GetSubstring()
+        string GetSubstring(int? value = null) => (value ?? counter % 3) switch
         {
-            if (counter + 3 > abc.Length || counter <= 0)
+            0 => "ABC",
+            1 => "XYZ",
+            2 => "IJK",
+            _ => throw new NotImplementedException()
+        };
+
+        string GetArray(string v1, string v2, string v3, bool quoted)
+        {
+            if (isQuery)
             {
-                counter = 1;
+                return string.Concat(v1, ",", v2, ",", v3);
             }
-            return string.Concat("\"", abc.Substring(counter-1, 3), "\"");
-        }
-        string GetArray(string v1, string v2, string v3)
-        {
-            return string.Concat("[", v1, ", ", v2, ", ", v3, "]");
+            string Quoted(string value) => quoted ? string.Concat("\"", value, "\"") : value;
+            return string.Concat("[", Quoted(v1), ", ", Quoted(v2), ", ", Quoted(v3), "]");
         }
 
         if (type.IsNumeric)
         {
             if (type.IsArray)
             {
-                return GetArray((counter + 1).ToString(), (counter + 2).ToString(), (counter + 3).ToString());
+                return GetArray((counter + 1).ToString(), (counter + 2).ToString(), (counter + 3).ToString(), false);
             }
             return (counter + 1).ToString();
         }
@@ -208,34 +211,66 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         {
             if (type.IsArray)
             {
-                return GetArray(((counter + 1) % 2 == 1).ToString().ToLower(), ((counter + 2) % 2 == 1).ToString().ToLower(), ((counter + 3) % 2 == 1).ToString().ToLower());
+                return GetArray(
+                    ((counter + 1) % 2 == 1).ToString().ToLower(), 
+                    ((counter + 2) % 2 == 1).ToString().ToLower(), 
+                    ((counter + 3) % 2 == 1).ToString().ToLower(),
+                    false);
             }
             return (counter % 2 == 1).ToString().ToLower();
         }
 
         if (type.Type == "uuid")
         {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    Guid.NewGuid().ToString(),
+                    Guid.NewGuid().ToString(),
+                    Guid.NewGuid().ToString(),
+                    true);
+            }
             return string.Concat("\"", Guid.NewGuid().ToString(), "\"");
         }
 
         if (type.IsDate)
         {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd"),
+                    DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd"),
+                    DateTime.Now.ToString("yyyy-MM-dd"),
+                    true);
+            }
             return string.Concat("\"", DateTime.Now.ToString("yyyy-MM-dd"), "\"");
         }
 
         if (type.IsDateTime)
         {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    DateTime.Now.AddDays(-2).ToString("O")[..22],
+                    DateTime.Now.AddDays(-1).ToString("O")[..22],
+                    DateTime.Now.ToString("O")[..22],
+                    true);
+            }
             return string.Concat("\"", DateTime.Now.ToString("O")[..22], "\"");
-        }
-
-        if (type.IsArray)
-        {
-            return GetArray(GetSubstring(), GetSubstring(), GetSubstring());
         }
 
         if (type.IsJson)
         {
+            if (type.IsArray)
+            {
+                return GetArray("{}", "{}", "{}", false);
+            }
             return "{}";
+        }
+
+        if (type.IsArray)
+        {
+            return GetArray(GetSubstring(counter), GetSubstring(counter + 1), GetSubstring(counter + 2), true);
         }
 
         return GetSubstring();

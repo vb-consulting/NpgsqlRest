@@ -13,7 +13,11 @@ var app = builder.Build();
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
-    HttpFileOptions = new() { FileOverwrite = true, NamePattern = "postgres" },
+    NameSimilarTo = "%array%",
+    HttpFileOptions = new() 
+    { 
+        FileOverwrite = true
+    },
 });
 
 app.Run();

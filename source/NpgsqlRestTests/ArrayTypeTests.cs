@@ -77,6 +77,16 @@ begin
     ) t(a);
 end;
 $$;
+
+create function case_return_int_array_with_null() 
+returns int[]
+language plpgsql
+as 
+$$
+begin
+    return array[4,5,6,null];
+end;
+$$;
 """);
     }
 }
@@ -140,6 +150,16 @@ public class ArrayTypeTests(TestFixture test)
         using var result = await test.Client.PostAsync("/api/case-return-setof-text-array/", null);
         var response = await result.Content.ReadAsStringAsync();
         response.Should().Be("""[["a","bc"],["x","yz","foo","bar"]]""");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Test_CaseReturnIntArraywithNull()
+    {
+        using var result = await test.Client.PostAsync("/api/case-return-int-array-with-null/", null);
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().Be("[4,5,6,null]");
         result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
     }

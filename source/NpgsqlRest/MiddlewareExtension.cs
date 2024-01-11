@@ -9,6 +9,7 @@ using Npgsql;
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
 using Microsoft.AspNetCore.Routing;
+using System;
 
 namespace NpgsqlRest;
 
@@ -58,10 +59,10 @@ public static class NpgsqlRestMiddlewareExtensions
                         for (var i = 0; i < routine.ParamCount; i++)
                         {
                             var p = meta.ParamNames[i];
+                            var descriptor = routine.ParamTypeDescriptor[i];
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
-                                var value = qsValue.FirstOrDefault();
-                                if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
+                                if (CommandParameters.TryCreateCmdParameter(ref qsValue, ref descriptor, ref options, out var paramater))
                                 {
                                     parameters[i] = paramater;
                                     setCount++;
@@ -76,7 +77,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             ref options,
                                             "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
                                             routine.ParamTypeDescriptor[0].DbType,
-                                            value,
+                                            qsValue.ToString(),
                                             context.Request.Path);
                                     }
                                     break;
@@ -87,6 +88,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 break;
                             }
                         }
+
                         if (setCount != routine.ParamCount)
                         {
                             continue;
@@ -109,12 +111,10 @@ public static class NpgsqlRestMiddlewareExtensions
                                 continue;
                             }
 
-                            JsonNode node;
+                            JsonNode? node;
                             try
                             {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                                 node = JsonNode.Parse(body);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                             }
                             catch (JsonException)
                             {
@@ -259,7 +259,6 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                 }
                                 context.Response.StatusCode = (int)HttpStatusCode.OK;
-
                                 if (descriptor.IsArray && value is not null)
                                 {
                                     value = PgArrayToJsonArray(ref value, ref descriptor);
@@ -388,6 +387,20 @@ public static class NpgsqlRestMiddlewareExtensions
         var current = new StringBuilder();
         var quoted = !(descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson);
         bool insideQuotes = false;
+        bool hasQuotes = false;
+
+        bool isNull()
+        {
+            if (current?.Length == 4)
+            {
+                return 
+                    current[0] == 'N' && 
+                    current[1] == 'U' && 
+                    current[2] == 'L' && 
+                    current[3] == 'L';
+            }
+            return false;
+        }
 
         ReadOnlySpan<char> span = value.AsSpan();
         for (int i = 1; i < span.Length; i++)
@@ -397,15 +410,26 @@ public static class NpgsqlRestMiddlewareExtensions
             if (currentChar == '"' && span[i - 1] != '\\')
             {
                 insideQuotes = !insideQuotes;
+                hasQuotes = true;
             }
             else if ((currentChar == ',' && !insideQuotes) || currentChar == '}')
             {
-                if (quoted)
+                var currentIsNull = isNull() && !hasQuotes;
+                if (quoted && !currentIsNull)
                 {
                     result.Append('"');
                 }
-                result.Append(current);
-                if (quoted)
+
+                if (currentIsNull)
+                {
+                    result.Append("null");
+                }
+                else
+                {
+                    result.Append(current);
+                }
+
+                if (quoted && !currentIsNull)
                 {
                     result.Append('"');
                 }
@@ -414,6 +438,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     result.Append(',');
                 }
                 current.Clear();
+                hasQuotes = false;
             }
             else
             {

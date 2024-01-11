@@ -1,0 +1,86 @@
+@host=http://localhost:5000
+
+// function public.case_get_int_params_array(
+//     _a integer[]
+// )
+// returns integer[]
+GET {{host}}/api/case-get-int-params-array/?a=1&a=2&a=3
+
+###
+
+// function public.case_get_text_params_array(
+//     _a text[]
+// )
+// returns text[]
+GET {{host}}/api/case-get-text-params-array/?a=ABC&a=XYZ&a=IJK
+
+###
+
+// function public.case_return_bool_array()
+// returns boolean[]
+POST {{host}}/api/case-return-bool-array/
+
+###
+
+// function public.case_return_int_array()
+// returns integer[]
+POST {{host}}/api/case-return-int-array/
+
+###
+
+// function public.case_return_int_array_with_null()
+// returns integer[]
+POST {{host}}/api/case-return-int-array-with-null/
+
+###
+
+// function public.case_return_int_params_array(
+//     _a integer[]
+// )
+// returns integer[]
+POST {{host}}/api/case-return-int-params-array/
+content-type: application/json
+
+{
+    "a": [1, 2, 3]
+}
+
+###
+
+// function public.case_return_setof_bool_array()
+// returns setof boolean[]
+POST {{host}}/api/case-return-setof-bool-array/
+
+###
+
+// function public.case_return_setof_int_array()
+// returns setof integer[]
+POST {{host}}/api/case-return-setof-int-array/
+
+###
+
+// function public.case_return_setof_text_array()
+// returns setof text[]
+POST {{host}}/api/case-return-setof-text-array/
+
+###
+
+// function public.case_return_text_array()
+// returns text[]
+POST {{host}}/api/case-return-text-array/
+
+###
+
+// function public.case_return_text_params_array(
+//     _a text[]
+// )
+// returns text[]
+POST {{host}}/api/case-return-text-params-array/
+content-type: application/json
+
+{
+    "a": ["ABC", "XYZ", "IJK"]
+}
+
+###
+
