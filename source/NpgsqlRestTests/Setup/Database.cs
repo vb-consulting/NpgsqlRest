@@ -14,7 +14,7 @@ public static partial class Database
     {
         foreach (var method in typeof(Database).GetMethods(BindingFlags.Static | BindingFlags.Public))
         {
-            if (!method.GetParameters().Any())
+            if (method.GetParameters().Length == 0)
             {
                 method.Invoke(null, []);
             }
@@ -35,7 +35,7 @@ public static partial class Database
             Database = dbname
         };
 
-        using NpgsqlConnection test = new NpgsqlConnection(builder.ConnectionString);
+        using NpgsqlConnection test = new(builder.ConnectionString);
         test.Open();
         using var command = test.CreateCommand();
         command.CommandText = script.ToString();
@@ -50,7 +50,7 @@ public static partial class Database
         {
             return;
         }
-        using NpgsqlConnection connection = new NpgsqlConnection(initialConnectionString);
+        using NpgsqlConnection connection = new(initialConnectionString);
         connection.Open();
         void exec(string sql)
         {

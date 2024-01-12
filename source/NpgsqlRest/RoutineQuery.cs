@@ -163,22 +163,6 @@ from cte";
             var returnsRecord = reader.Get<bool>("returns_record");
             var returnsUnnamedSet = reader.Get<bool>("returns_unnamed_set");
             
-            Dictionary<int, string> expressions = [];
-            var expression = string.Concat(
-                isVoid || (returnsRecord == false && returnsRecord == false) ? "select " : string.Concat("select ", string.Join(", ", paramNames), " "),
-                schema,
-                ".",
-                name,
-                "(");
-            for (var i = 0; i <= paramCount; i++)
-            {
-                expressions[i] = 
-                    string.Concat(
-                        expression, 
-                        string.Join(", ", Enumerable.Range(1, i).Select(i => $"${i}")), 
-                        ")");
-            }
-
             var returnRecordTypes = reader.Get<string[]>("return_record_types");
             TypeDescriptor[] returnTypeDescriptor;
             if (isVoid)
@@ -197,6 +181,41 @@ from cte";
                 }
             }
             var paramDefaults = reader.Get<string[]>("param_defaults");
+            var paramTypeDescriptor = paramTypes
+                .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
+                .ToArray();
+
+            Dictionary<int, string> expressions = [];
+            var expression = string.Concat(
+                isVoid || (returnsRecord == false && returnsRecord == false) ? "select " : string.Concat("select ", string.Join(", ", paramNames), " "),
+                schema,
+                ".",
+                name,
+                "(");
+            for (var i = 0; i <= paramCount; i++)
+            {
+                expressions[i] =
+                    string.Concat(
+                        expression,
+                        string.Join(", ", Enumerable
+                            .Range(1, i)
+                            .Select(i =>
+                            {
+                                var descriptor = paramTypeDescriptor[i - 1];
+                                if (descriptor.IsCastToText())
+                                {
+                                    return $"${i}::{descriptor.OriginalType switch
+                                    { 
+                                        "bit" => "varbit",
+                                        "char" => "varchar",
+                                        _ => descriptor.OriginalType
+                                    }}";
+                                }
+                                return $"${i}";
+                            })),
+                        ")");
+            }
+
             yield return new Routine(
                 type: type.GetEnum<RoutineType>(),
                 typeInfo: type,
@@ -224,10 +243,7 @@ from cte";
                 paramTypes: paramTypes,
                 paramDefaults: paramDefaults,
                 definition: reader.Get<string>("definition"),
-                paramTypeDescriptor: paramTypes
-                    .Select((x, i) => 
-                        new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
-                    .ToArray(),
+                paramTypeDescriptor: paramTypeDescriptor,
                 isVoid: isVoid,
                 expressions: expressions,
                 returnTypeDescriptor: returnTypeDescriptor);

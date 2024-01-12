@@ -1,7 +1,9 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Primitives;
+using System.Globalization;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -17,9 +19,9 @@ internal class CommandParameters
     {
         result = new NpgsqlParameter
         {
-            NpgsqlDbType = descriptor.DbType
+            NpgsqlDbType = descriptor.ActualDbType
         };
-
+        
         if (options.QueryStringParameterParserCallback is not null)
         {
             var callback = options.QueryStringParameterParserCallback((values, descriptor, result));
@@ -30,88 +32,91 @@ internal class CommandParameters
             }
         }
 
-        static bool TryGetValue(ref TypeDescriptor descriptor, ref string? value, out object? result)
+        static bool TryGetValue(
+            ref TypeDescriptor descriptor, 
+            ref string? value, 
+            out object? resultValue)
         {
             if (!descriptor.IsText && string.IsNullOrEmpty(value))
             {
-                result = DBNull.Value;
+                resultValue = DBNull.Value;
                 return true;
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Smallint)
             {
-                if (short.TryParse(value, out var shortValue))
+                if (short.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var shortValue))
                 {
-                    result = shortValue;
+                    resultValue = shortValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Integer)
             {
-                if (int.TryParse(value, out var intValue))
+                if (int.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var intValue))
                 {
-                    result = intValue;
+                    resultValue = intValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Bigint)
             {
-                if (long.TryParse(value, out var bigValue))
+                if (long.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var bigValue))
                 {
-                    result = bigValue;
+                    resultValue = bigValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Double)
             {
-                if (double.TryParse(value, out var doubleValue))
+                if (double.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var doubleValue))
                 {
-                    result = doubleValue;
+                    resultValue = doubleValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Real)
             {
-                if (float.TryParse(value, out var floatValue))
+                if (float.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var floatValue))
                 {
-                    result = floatValue;
+                    resultValue = floatValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Numeric || descriptor.BaseDbType == NpgsqlDbType.Money)
             {
-                if (decimal.TryParse(value, out var decimalValue))
+                if (decimal.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var decimalValue))
                 {
-                    result = decimalValue;
+                    resultValue = decimalValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
@@ -119,12 +124,12 @@ internal class CommandParameters
             {
                 if (bool.TryParse(value, out var boolValue))
                 {
-                    result = boolValue;
+                    resultValue = boolValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
@@ -132,12 +137,19 @@ internal class CommandParameters
             {
                 if (DateTime.TryParse(value, out var dateTimeValue))
                 {
-                    result = dateTimeValue;
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
+                    {
+                        resultValue = DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc);
+                    }
+                    else
+                    {
+                        resultValue = dateTimeValue;
+                    }
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
@@ -145,25 +157,32 @@ internal class CommandParameters
             {
                 if (DateOnly.TryParse(value, out var dateTimeValue))
                 {
-                    result = dateTimeValue;
+                    resultValue = dateTimeValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Time || descriptor.BaseDbType == NpgsqlDbType.TimeTz)
             {
-                if (TimeOnly.TryParse(value, out var dateTimeValue))
+                if (DateTime.TryParse(value, out var dateTimeValue))
                 {
-                    result = dateTimeValue;
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimeTz)
+                    {
+                        resultValue = new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc));
+                    }
+                    else
+                    {
+                        resultValue = TimeOnly.FromDateTime(dateTimeValue);
+                    };
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
@@ -171,23 +190,23 @@ internal class CommandParameters
             {
                 if (Guid.TryParse(value, out var guidValue))
                 {
-                    result = guidValue;
+                    resultValue = guidValue;
                     return true;
                 }
                 else
                 {
-                    result = null!;
+                    resultValue = null!;
                     return false;
                 }
             }
             else if (descriptor.IsText)
             {
-                result = value;
+                resultValue = value;
                 return true;
             }
 
             // for all other cases, use raw string
-            result = value;
+            resultValue = value;
             return true;
         }
 
@@ -260,7 +279,7 @@ internal class CommandParameters
     {
         result = new NpgsqlParameter
         {
-            NpgsqlDbType = descriptor.DbType
+            NpgsqlDbType = descriptor.ActualDbType
         };
 
         if (options.JsonBodyParameterParserCallback is not null)
@@ -286,7 +305,11 @@ internal class CommandParameters
             return true;
         }
 
-        bool TryGetNonStringValue(ref TypeDescriptor descriptor, ref JsonNode value, ref JsonValueKind valueKind, out object result)
+        bool TryGetNonStringValue(
+            ref TypeDescriptor descriptor, 
+            ref JsonNode value, 
+            ref JsonValueKind valueKind, 
+            out object result)
         {
             try
             {
@@ -331,19 +354,28 @@ internal class CommandParameters
             }
             catch (Exception ex) when (ex is FormatException || ex is InvalidOperationException)
             {
-                // do nothing, continue as string
             }
             result = null!;
             return false;
         }
 
-        bool TryGetNonStringValueFromString(ref TypeDescriptor descriptor, ref string content, out object result)
+        bool TryGetNonStringValueFromString(
+            ref TypeDescriptor descriptor, 
+            ref string content, 
+            out object result)
         {
             if (descriptor.BaseDbType == NpgsqlDbType.Timestamp || descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
             {
                 if (DateTime.TryParse(content, out var dateTimeValue))
                 {
-                    result = dateTimeValue;
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
+                    {
+                        result = DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc);
+                    }
+                    else
+                    {
+                        result = dateTimeValue;
+                    }
                     return true;
                 }
             }
@@ -357,9 +389,16 @@ internal class CommandParameters
             }
             else if (descriptor.BaseDbType == NpgsqlDbType.Time || descriptor.BaseDbType == NpgsqlDbType.TimeTz)
             {
-                if (TimeOnly.TryParse(content, out var dateTimeValue))
+                if (DateTime.TryParse(content, out var dateTimeValue))
                 {
-                    result = dateTimeValue;
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimeTz)
+                    {
+                        result = new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc));
+                    }
+                    else
+                    {
+                        result = TimeOnly.FromDateTime(dateTimeValue);
+                    };
                     return true;
                 }
             }

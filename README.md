@@ -4,7 +4,7 @@
 
 NpgsqlRest is a .NET 8 library that builds PostgreSQL functions and procedures into RESTful APIs. Simple example:
 
-## 1) PostgreSQL Function
+1) PostgreSQL Function
 
 ```sql
 create function hello_world() 
@@ -15,7 +15,7 @@ select 'Hello World'
 $$;
 ```
 
-## 2) .NET8 AOT Ready Web App
+1) .NET8 AOT Ready Web App
 
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -24,7 +24,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-## 3) Auto-Generated HTTP File (Optional)
+1) Auto-Generated HTTP File (Optional)
 
 ```
 @host=http://localhost:5000
@@ -34,7 +34,7 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-## 4) Endpoint Response
+4) Endpoint Response
 
 ```
 HTTP/1.1 200 OK

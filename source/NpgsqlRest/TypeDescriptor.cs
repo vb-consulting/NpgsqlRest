@@ -1,4 +1,5 @@
-﻿using NpgsqlTypes;
+﻿using System.Collections.Generic;
+using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
@@ -15,6 +16,7 @@ public readonly struct TypeDescriptor
     public bool IsText { get; }
     public NpgsqlDbType DbType { get; }
     public NpgsqlDbType BaseDbType { get; }
+    public NpgsqlDbType ActualDbType { get; }
     public bool HasDefault { get; }
 
     public TypeDescriptor(string type, bool hasDefault = false)
@@ -25,10 +27,15 @@ public readonly struct TypeDescriptor
         Type = (IsArray ? type[..^2] : type).Trim('"');
         DbType = this.GetDbType();
         BaseDbType = DbType;
+
+        ActualDbType = CastToText(BaseDbType) ? NpgsqlDbType.Text : BaseDbType;
+
         if (this.IsArray)
         {
             DbType |= NpgsqlDbType.Array;
+            ActualDbType |= NpgsqlDbType.Array;
         }
+
         IsNumeric = BaseDbType switch
         {
             NpgsqlDbType.Smallint => true,
@@ -44,7 +51,6 @@ public readonly struct TypeDescriptor
         {
             NpgsqlDbType.Jsonb => true,
             NpgsqlDbType.Json => true,
-            NpgsqlDbType.JsonPath => true,
             _ => false
         };
         IsDate = BaseDbType == NpgsqlDbType.Date;
@@ -59,6 +65,59 @@ public readonly struct TypeDescriptor
             BaseDbType == NpgsqlDbType.Json ||
             BaseDbType == NpgsqlDbType.JsonPath;
     }
+
+    public bool IsCastToText() => CastToText(BaseDbType);
+
+    private static bool CastToText(NpgsqlDbType type) => type switch
+    {
+        NpgsqlDbType.Interval => true,
+        NpgsqlDbType.Bit => true,
+        NpgsqlDbType.Varbit => true,
+        NpgsqlDbType.Bytea => true,
+        NpgsqlDbType.Inet => true,
+        NpgsqlDbType.MacAddr => true,
+        NpgsqlDbType.Cidr => true,
+        NpgsqlDbType.MacAddr8 => true,
+        NpgsqlDbType.TsQuery => true,
+        NpgsqlDbType.TsVector => true,
+        NpgsqlDbType.Box => true,
+        NpgsqlDbType.Circle => true,
+        NpgsqlDbType.Line => true,
+        NpgsqlDbType.LSeg => true,
+        NpgsqlDbType.Path => true,
+        NpgsqlDbType.Point => true,
+        NpgsqlDbType.Polygon => true,
+        NpgsqlDbType.Oid => true,
+        NpgsqlDbType.Xid => true,
+        NpgsqlDbType.Xid8 => true,
+        NpgsqlDbType.Cid => true,
+        NpgsqlDbType.Regtype => true,
+        NpgsqlDbType.Regconfig => true,
+        NpgsqlDbType.IntegerRange => true,
+        NpgsqlDbType.BigIntRange => true,
+        NpgsqlDbType.NumericRange => true,
+        NpgsqlDbType.TimestampRange => true,
+        NpgsqlDbType.TimestampTzRange => true,
+        NpgsqlDbType.DateRange => true,
+        NpgsqlDbType.IntegerMultirange => true,
+        NpgsqlDbType.BigIntMultirange => true,
+        NpgsqlDbType.NumericMultirange => true,
+        NpgsqlDbType.TimestampMultirange => true,
+        NpgsqlDbType.TimestampTzMultirange => true,
+        NpgsqlDbType.DateMultirange => true,
+        NpgsqlDbType.Int2Vector => true,
+        NpgsqlDbType.Oidvector => true,
+        NpgsqlDbType.PgLsn => true,
+        NpgsqlDbType.Tid => true,
+        NpgsqlDbType.Citext => true,
+        NpgsqlDbType.LQuery => true,
+        NpgsqlDbType.LTree => true,
+        NpgsqlDbType.LTxtQuery => true,
+        NpgsqlDbType.Hstore => true,
+        NpgsqlDbType.Geometry => true,
+        NpgsqlDbType.Geography => true,
+        _ => false
+    };
 
     private NpgsqlDbType GetDbType()
     {
@@ -109,6 +168,7 @@ public readonly struct TypeDescriptor
             "boolean" => NpgsqlDbType.Boolean,
             "bytea" => NpgsqlDbType.Bytea,
             "uuid" => NpgsqlDbType.Uuid,
+            "bit varying" => NpgsqlDbType.Varbit,
             "varbit" => NpgsqlDbType.Varbit,
             "bit" => NpgsqlDbType.Bit,
 

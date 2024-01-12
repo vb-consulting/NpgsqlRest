@@ -1,14 +1,12 @@
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-using System.Text.Json.Nodes;
-
 namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void MultiParamsTests()
+    public static void MultiParamsQueryStringTests1()
     {
         script.Append(@"
-create function case_multi_params1(
+create function case_get_multi_params1(
     _smallint smallint,
     _integer integer,
     _bigint bigint,
@@ -60,35 +58,34 @@ $$;
 }
 
 [Collection("TestFixture")]
-public class MultiParamsTests(TestFixture test)
+public class MultiParamsQueryStringTests1(TestFixture test)
 {
     [Fact]
     public async Task Test_CaseMultiParams1()
     {
-        string body = """
-        {  
-            "smallint": 1,
-            "integer": 2,
-            "bigint": 3,
-            "numeric": 4,
-            "text": "text",
-            "varchar": "varchar",
-            "char": "abc",
-            "json": {"a": "b"},
-            "jsonb": {"c": "d"},
-            "smallintArray": [1,2,3],
-            "integerArray": [2,3,4],
-            "bigintArray": [3,4,5],
-            "numericArray": [4,5,6],
-            "textArray": ["text1","text2"],
-            "varcharArray": ["varchar1","varchar2"],
-            "charArray": ["abc","xyz"],
-            "jsonArray": [{"a": "b"},{"c": "d"}],
-            "jsonbArray": [{"x": "y"},{"i": "j"}]
-        }
-""";
-        using var content = new StringContent(body, Encoding.UTF8, "application/json");
-        using var result = await test.Client.PostAsync("/api/case-multi-params1/", content);
+        var query = new QueryBuilder
+        {
+            { "smallint", "1" },
+            { "integer", "2" },
+            { "bigint", "3" },
+            { "numeric", "4" },
+            { "text", "text" },
+            { "varchar", "varchar" },
+            { "char", "abc" },
+            { "json", "{\"a\": \"b\"}" },
+            { "jsonb", "{\"c\": \"d\"}" },
+            { "smallintArray", "1" }, { "smallintArray", "2" }, { "smallintArray", "3" },
+            { "integerArray", "2" }, { "integerArray", "3" }, { "integerArray", "4" },
+            { "bigintArray", "3" }, { "bigintArray", "4" }, { "bigintArray", "5" },
+            { "numericArray", "4" }, { "numericArray", "5" }, { "numericArray", "6" },
+            { "textArray", "text1" }, { "textArray", "text2" },
+            { "varcharArray", "varchar1" }, { "varcharArray", "varchar2" },
+            { "charArray", "abc" }, { "charArray", "xyz" },
+            { "jsonArray", "{\"a\": \"b\"}" }, { "jsonArray", "{\"c\": \"d\"}" },
+            { "jsonbArray", "{\"x\": \"y\"}" }, { "jsonbArray", "{\"i\": \"j\"}" }
+        };
+
+        using var result = await test.Client.GetAsync($"/api/case-get-multi-params1/{query}");
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);

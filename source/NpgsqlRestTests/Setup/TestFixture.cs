@@ -17,7 +17,9 @@ public class TestFixture : IDisposable
         client.Timeout = TimeSpan.FromHours(1);
     }
 
+#pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
     public void Dispose()
+#pragma warning restore CA1816 // Dispose methods should call SuppressFinalize
     {
         client.Dispose();
         application.Dispose();
