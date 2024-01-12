@@ -1,4 +1,4 @@
-using FluentAssertions.Equivalency;
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 using System.Text.Json.Nodes;
 
 namespace NpgsqlRestTests;
@@ -95,7 +95,6 @@ public class MultiParamsTests(TestFixture test)
         result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
 
         var node = JsonNode.Parse(response);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
         node["smallint"].ToJsonString().Should().Be("1");
         node["integer"].ToJsonString().Should().Be("2");
         node["bigint"].ToJsonString().Should().Be("3");

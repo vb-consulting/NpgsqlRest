@@ -15,10 +15,12 @@ public readonly struct TypeDescriptor
     public bool IsText { get; }
     public NpgsqlDbType DbType { get; }
     public NpgsqlDbType BaseDbType { get; }
+    public bool HasDefault { get; }
 
-    public TypeDescriptor(string type)
+    public TypeDescriptor(string type, bool hasDefault = false)
     {
         OriginalType = type;
+        HasDefault = hasDefault;
         IsArray = type.EndsWith("[]");
         Type = (IsArray ? type[..^2] : type).Trim('"');
         DbType = this.GetDbType();

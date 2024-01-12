@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using System.Linq;
+using Npgsql;
 using NpgsqlTypes;
 
 namespace NpgsqlRest;
@@ -43,7 +44,11 @@ internal class RoutineQuery()
         coalesce(
             array_agg((p.udt_schema || '.' || p.udt_name)::regtype::text order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT'), 
             '{}'::text[]
-        ) as out_param_types
+        ) as out_param_types,
+        coalesce(
+            array_agg(p.parameter_default order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'), 
+            '{}'::text[]
+        ) as in_param_defaults
     from 
         information_schema.routines r
         join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
@@ -115,6 +120,7 @@ select
     array_length(in_params, 1) as param_count,
     in_params as param_names,
     in_param_types as param_types,
+    in_param_defaults as param_defaults,
     pg_get_functiondef(oid) as definition
 from cte";
 
@@ -156,14 +162,23 @@ from cte";
             var schema = reader.Get<string>("schema");
             var returnsRecord = reader.Get<bool>("returns_record");
             var returnsUnnamedSet = reader.Get<bool>("returns_unnamed_set");
+            
+            Dictionary<int, string> expressions = [];
             var expression = string.Concat(
                 isVoid || (returnsRecord == false && returnsRecord == false) ? "select " : string.Concat("select ", string.Join(", ", paramNames), " "),
                 schema,
                 ".",
                 name,
-                "(",
-                string.Join(", ", Enumerable.Range(1, paramCount).Select(i => $"${i}")), 
-                ")");
+                "(");
+            for (var i = 0; i <= paramCount; i++)
+            {
+                expressions[i] = 
+                    string.Concat(
+                        expression, 
+                        string.Join(", ", Enumerable.Range(1, i).Select(i => $"${i}")), 
+                        ")");
+            }
+
             var returnRecordTypes = reader.Get<string[]>("return_record_types");
             TypeDescriptor[] returnTypeDescriptor;
             if (isVoid)
@@ -181,6 +196,7 @@ from cte";
                     returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
                 }
             }
+            var paramDefaults = reader.Get<string[]>("param_defaults");
             yield return new Routine(
                 type: type.GetEnum<RoutineType>(),
                 typeInfo: type,
@@ -206,10 +222,14 @@ from cte";
                 paramCount: paramCount,
                 paramNames: paramNames,
                 paramTypes: paramTypes,
+                paramDefaults: paramDefaults,
                 definition: reader.Get<string>("definition"),
-                paramTypeDescriptor: paramTypes.Select(x => new TypeDescriptor(x)).ToArray(),
+                paramTypeDescriptor: paramTypes
+                    .Select((x, i) => 
+                        new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
+                    .ToArray(),
                 isVoid: isVoid,
-                expression: expression,
+                expressions: expressions,
                 returnTypeDescriptor: returnTypeDescriptor);
         }
     }

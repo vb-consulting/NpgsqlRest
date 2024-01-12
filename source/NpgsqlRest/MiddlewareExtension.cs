@@ -1,15 +1,12 @@
 ﻿using System.Collections.Frozen;
 using System.Data;
 using System.Net;
-using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Npgsql;
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
-using Microsoft.AspNetCore.Routing;
-using System;
 
 namespace NpgsqlRest;
 
@@ -51,10 +48,6 @@ public static class NpgsqlRestMiddlewareExtensions
                 {
                     if (meta.Parameters == EndpointParameters.QueryString)
                     {
-                        if (context.Request.Query.Count != meta.ParamNames.Length)
-                        {
-                            continue;
-                        }
                         int setCount = 0;
                         for (var i = 0; i < routine.ParamCount; i++)
                         {
@@ -80,12 +73,14 @@ public static class NpgsqlRestMiddlewareExtensions
                                             qsValue.ToString(),
                                             context.Request.Path);
                                     }
-                                    break;
                                 }
                             }
                             else
                             {
-                                break;
+                                if (descriptor.HasDefault)
+                                {
+                                    setCount++;
+                                }
                             }
                         }
 
@@ -132,7 +127,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                         }
 
-                        if (jsonObj?.Count != meta.ParamNames.Length)
+                        if (jsonObj is null)
                         {
                             continue;
                         }
@@ -141,10 +136,11 @@ public static class NpgsqlRestMiddlewareExtensions
                         for (var i = 0; i < meta.ParamNames.Length; i++)
                         {
                             var p = meta.ParamNames[i];
+                            var descriptor = routine.ParamTypeDescriptor[i];
                             if (jsonObj.ContainsKey(p))
                             {
                                 var value = jsonObj[p];
-                                if (CommandParameters.TryCreateCmdParameter(ref value, ref routine.ParamTypeDescriptor[i], ref options, out var paramater))
+                                if (CommandParameters.TryCreateCmdParameter(ref value, ref descriptor, ref options, out var paramater))
                                 {
                                     parameters[i] = paramater;
                                     setCount++;
@@ -162,12 +158,14 @@ public static class NpgsqlRestMiddlewareExtensions
                                             value,
                                             context.Request.Path);
                                     }
-                                    break;
                                 }
                             }
                             else
                             {
-                                break;
+                                if (descriptor.HasDefault)
+                                {
+                                    setCount++;
+                                }
                             }
                         }
                         if (setCount != routine.ParamCount)
@@ -216,8 +214,17 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
 
                     await using var command = connection.CreateCommand();
-                    command.Parameters.AddRange(parameters);
-                    command.CommandText = routine.Expression;
+                    int paramCount = 0;
+                    for (var i = 0; i < parameters.Length; i++)
+                    {
+                        var parameter = parameters[i];
+                        if (parameter is not null)
+                        {
+                            command.Parameters.Add(parameter);
+                            paramCount++;
+                        }
+                    }
+                    command.CommandText = routine.Expressions[paramCount];
                     if (meta.CommandTimeout.HasValue)
                     {
                         command.CommandTimeout = meta.CommandTimeout.Value;
@@ -272,7 +279,12 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             else
                             {
-                                LogError(ref logger, ref options, "Could not read a value from expression \"{0}\" mapped to {1} {2} ", routine.Expression, context.Request.Method, context.Request.Path);
+                                LogError(ref logger, ref options, 
+                                    "Could not read a value from {0} \"{1}\" mapped to {2} {3} ", 
+                                    routine.Type.ToString().ToLower(), 
+                                    command.CommandText,
+                                    context.Request.Method, 
+                                    context.Request.Path);
                                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                                 await context.Response.CompleteAsync();
                                 return;
