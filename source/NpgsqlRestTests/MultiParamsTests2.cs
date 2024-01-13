@@ -21,7 +21,8 @@ create or replace function case_multi_params2(
     _varbit varbit,
     _bit bit(3),
     _inet inet,
-    _macaddr macaddr
+    _macaddr macaddr,
+    _bytea bytea
 ) 
 returns json
 language plpgsql
@@ -43,7 +44,8 @@ begin
         'varbit', _varbit,
         'bit', _bit,
         'inet', _inet,
-        'macaddr', _macaddr
+        'macaddr', _macaddr,
+        'bytea', _bytea
     );
 end;
 $$;
@@ -73,7 +75,8 @@ public class MultiParamsTests2(TestFixture test)
             "varbit": "101011100",
             "bit": "101",
             "inet": "192.168.5.18",
-            "macaddr": "00-B0-D0-63-C2-26"
+            "macaddr": "00-B0-D0-63-C2-26",
+            "bytea": "\\xDEADBEEF"
         }
 """;
         using var content = new StringContent(body, Encoding.UTF8, "application/json");
@@ -99,5 +102,6 @@ public class MultiParamsTests2(TestFixture test)
         node["bit"].GetValue<string>().Should().Be("101");
         node["inet"].GetValue<string>().Should().Be("192.168.5.18");
         node["macaddr"].GetValue<string>().Should().Be("00:b0:d0:63:c2:26");
+        node["bytea"].GetValue<string>().Should().Be("\\xdeadbeef");
     }
 }

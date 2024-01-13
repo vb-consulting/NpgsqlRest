@@ -1,190 +1,45 @@
 @host=http://localhost:5000
 
-// function public.case_get_int(
-//     _i integer
-// )
-// returns integer
-GET {{host}}/api/case-get-int/?i=1
-
-###
-
-// function public.case_get_int_params_array(
-//     _a integer[]
-// )
-// returns integer[]
-GET {{host}}/api/case-get-int-params-array/?a=1&a=2&a=3
-
-###
-
-// function public.case_get_text_params_array(
-//     _a text[]
-// )
-// returns text[]
-GET {{host}}/api/case-get-text-params-array/?a=ABC&a=XYZ&a=IJK
-
-###
-
-// function public.case_get_unnamed_int(
-//      integer
-// )
-// returns integer
-GET {{host}}/api/case-get-unnamed-int/?$1=1
-
-###
-
-// function public.case_return_bool_array()
-// returns boolean[]
-POST {{host}}/api/case-return-bool-array/
-
-###
-
-// function public.case_return_int(
-//     _i integer
-// )
-// returns integer
-POST {{host}}/api/case-return-int/
-content-type: application/json
-
-{
-    "i": 1
-}
-
-###
-
-// function public.case_return_int_array()
-// returns integer[]
-POST {{host}}/api/case-return-int-array/
-
-###
-
-// function public.case_return_int_array_with_null()
-// returns integer[]
-POST {{host}}/api/case-return-int-array-with-null/
-
-###
-
-// function public.case_return_int_params_array(
-//     _a integer[]
-// )
-// returns integer[]
-POST {{host}}/api/case-return-int-params-array/
-content-type: application/json
-
-{
-    "a": [1, 2, 3]
-}
-
-###
-
-// function public.case_return_json(
-//     _json json
+// function public.case_multi_params2(
+//     _real real,
+//     _double double precision,
+//     _jsonpath jsonpath,
+//     _timestamp timestamp without time zone,
+//     _timestamptz timestamp with time zone,
+//     _date date,
+//     _time time without time zone,
+//     _timetz time with time zone,
+//     _interval interval,
+//     _bool boolean,
+//     _uuid uuid,
+//     _varbit bit varying,
+//     _bit varbit,
+//     _inet inet,
+//     _macaddr macaddr,
+//     _bytea bytea
 // )
 // returns json
-POST {{host}}/api/case-return-json/
+POST {{host}}/api/case-multi-params2/
 content-type: application/json
 
 {
-    "json": {}
+    "real": 1.2,
+    "double": 2.3,
+    "jsonpath": "$.user.addresses[0].city",
+    "timestamp": "2024-01-13T12:54:30.96",
+    "timestamptz": "2024-01-13T12:54:30.96",
+    "date": "2024-01-13",
+    "time": "12:54:30.964548",
+    "timetz": "12:54:30.964820+01:00",
+    "interval": "8 minutes 9 seconds",
+    "bool": true,
+    "uuid": "b44b56ed-551c-4e7f-ba9a-ee76b89af2fb",
+    "varbit": "101",
+    "bit": "010",
+    "inet": "192.168.5.13",
+    "macaddr": "00-B0-D0-63-C2-26",
+    "bytea": "\\xDEADBEEF"
 }
-
-###
-
-// function public.case_return_setof_bool()
-// returns setof boolean
-POST {{host}}/api/case-return-setof-bool/
-
-###
-
-// function public.case_return_setof_bool_array()
-// returns setof boolean[]
-POST {{host}}/api/case-return-setof-bool-array/
-
-###
-
-// function public.case_return_setof_int()
-// returns setof integer
-POST {{host}}/api/case-return-setof-int/
-
-###
-
-// function public.case_return_setof_int_array()
-// returns setof integer[]
-POST {{host}}/api/case-return-setof-int-array/
-
-###
-
-// function public.case_return_setof_json()
-// returns setof json
-POST {{host}}/api/case-return-setof-json/
-
-###
-
-// function public.case_return_setof_text()
-// returns setof text
-POST {{host}}/api/case-return-setof-text/
-
-###
-
-// function public.case_return_setof_text_array()
-// returns setof text[]
-POST {{host}}/api/case-return-setof-text-array/
-
-###
-
-// function public.case_return_text(
-//     _t text
-// )
-// returns text
-POST {{host}}/api/case-return-text/
-content-type: application/json
-
-{
-    "t": ABC
-}
-
-###
-
-// function public.case_return_text_array()
-// returns text[]
-POST {{host}}/api/case-return-text-array/
-
-###
-
-// function public.case_return_text_params_array(
-//     _a text[]
-// )
-// returns text[]
-POST {{host}}/api/case-return-text-params-array/
-content-type: application/json
-
-{
-    "a": ["ABC", "XYZ", "IJK"]
-}
-
-###
-
-// function public.case_return_unnamed_int(
-//      integer
-// )
-// returns integer
-POST {{host}}/api/case-return-unnamed-int/
-content-type: application/json
-
-{
-    "$1": 1
-}
-
-###
-
-// function public.case_void()
-// returns void
-POST {{host}}/api/case-void/
-
-###
-
-// function public.hello_world()
-// returns text
-POST {{host}}/api/hello-world/
 
 ###
 

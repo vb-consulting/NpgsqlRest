@@ -38,11 +38,16 @@ internal class RoutineQuery()
             '{}'::text[]
         ) as out_params,
         coalesce(
-            array_agg((p.udt_schema || '.' || p.udt_name)::regtype::text order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'), 
+            array_agg(
+                case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
+                order by p.ordinal_position
+            ) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'), 
             '{}'::text[]
         ) as in_param_types,
         coalesce(
-            array_agg((p.udt_schema || '.' || p.udt_name)::regtype::text order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT'), 
+            array_agg(
+                case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
+                order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT'), 
             '{}'::text[]
         ) as out_param_types,
         coalesce(
@@ -204,12 +209,7 @@ from cte";
                                 var descriptor = paramTypeDescriptor[i - 1];
                                 if (descriptor.IsCastToText())
                                 {
-                                    return $"${i}::{descriptor.OriginalType switch
-                                    { 
-                                        "bit" => "varbit",
-                                        "char" => "varchar",
-                                        _ => descriptor.OriginalType
-                                    }}";
+                                    return $"${i}::{descriptor.OriginalType}";
                                 }
                                 return $"${i}";
                             })),

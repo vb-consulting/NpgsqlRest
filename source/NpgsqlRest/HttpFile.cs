@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection.Metadata;
 using System.Text;
 using Npgsql;
 
@@ -34,7 +33,6 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             return string.Concat(string.Format(options.HttpFileOptions.NamePattern, name, schema), ".http");
         }
         var fileName = formatfileName();
-        //var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
         if (initializedFiles.Add(fileName))
         {
             StringBuilder content = new();
@@ -59,7 +57,9 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     for (var i = 0; i < routine.ParamCount; i++)
                     {
                         var name = routine.ParamNames[i];
-                        var type = routine.ParamTypes[i];
+                        var defaultValue = routine.ParamDefaults[i];
+                        var paramType = routine.ParamTypes[i];
+                        var type = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
                         sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ParamCount - 1 ? "" : ","));
                     }
                     sb.AppendLine("// )");
@@ -113,7 +113,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     .Select((p, i) =>
                     {
                         var descriptor = routine.ParamTypeDescriptor[i];
-                        var value = SampleValueUnquoted(i, descriptor);
+                        var value = Uri.EscapeDataString(SampleValueUnquoted(i, descriptor));
                         if (descriptor.IsArray)
                         {
                             return string.Join("&", value.Split(',').Select(v => $"{p}={v}"));
@@ -180,13 +180,15 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
     private static string SampleValue(int i, TypeDescriptor type, bool isQuery = false)
     {
         var counter = i;
-        string GetSubstring(int? value = null) => (value ?? counter % 3) switch
+        string GetSubstring(int? value = null) => ((value ?? counter) % 3) switch
         {
             0 => "ABC",
             1 => "XYZ",
             2 => "IJK",
-            _ => throw new NotImplementedException()
+            _ => "WTF"
         };
+
+        static string Quote(string value) => string.Concat("\"", value, "\"");
 
         string GetArray(string v1, string v2, string v3, bool quoted)
         {
@@ -194,12 +196,26 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             {
                 return string.Concat(v1, ",", v2, ",", v3);
             }
-            string Quoted(string value) => quoted ? string.Concat("\"", value, "\"") : value;
-            return string.Concat("[", Quoted(v1), ", ", Quoted(v2), ", ", Quoted(v3), "]");
+            return string.Concat("[", Quote(v1), ", ", Quote(v2), ", ", Quote(v3), "]");
         }
 
         if (type.IsNumeric)
         {
+            if (string.Equals(type.Type, "real", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(type.Type, "double precision", StringComparison.OrdinalIgnoreCase))
+            {
+                if (type.IsArray)
+                {
+                    return GetArray(
+                        $"{counter + 2}.{counter + 3}",
+                        $"{counter + 3}.{counter + 4}",
+                        $"{counter + 4}.{counter + 5}",
+                        false);
+                }
+                return $"{counter+1}.{counter+2}";
+            }
+            else
+
             if (type.IsArray)
             {
                 return GetArray((counter + 1).ToString(), (counter + 2).ToString(), (counter + 3).ToString(), false);
@@ -230,20 +246,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     Guid.NewGuid().ToString(),
                     true);
             }
-            return string.Concat("\"", Guid.NewGuid().ToString(), "\"");
-        }
-
-        if (type.IsDate)
-        {
-            if (type.IsArray)
-            {
-                return GetArray(
-                    DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd"),
-                    DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd"),
-                    DateTime.Now.ToString("yyyy-MM-dd"),
-                    true);
-            }
-            return string.Concat("\"", DateTime.Now.ToString("yyyy-MM-dd"), "\"");
+            return Quote(Guid.NewGuid().ToString());
         }
 
         if (type.IsDateTime)
@@ -256,7 +259,20 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     DateTime.Now.ToString("O")[..22],
                     true);
             }
-            return string.Concat("\"", DateTime.Now.ToString("O")[..22], "\"");
+            return Quote(DateTime.Now.ToString("O")[..22]);
+        }
+
+        if (type.IsDate)
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd"),
+                    DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd"),
+                    DateTime.Now.ToString("yyyy-MM-dd"),
+                    true);
+            }
+            return Quote(DateTime.Now.ToString("yyyy-MM-dd"));
         }
 
         if (type.IsJson)
@@ -268,12 +284,117 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             return "{}";
         }
 
+        if (string.Equals(type.Type, "jsonpath", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    $"$.user.addresses[0].city",
+                    $"$.user.addresses[1].street",
+                    $"$.user.addresses[2].postalNumber",
+                true);
+            }
+            return Quote($"$.user.addresses[0].city");
+        }
+
+        if (string.Equals(type.Type, "time without time zone", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    DateTime.Now.AddDays(-2).TimeOfDay.ToString()[..^1],
+                    DateTime.Now.AddDays(-1).TimeOfDay.ToString()[..^1],
+                    DateTime.Now.TimeOfDay.ToString()[..^1],
+                true);
+            }
+            return Quote(DateTime.Now.TimeOfDay.ToString()[..^1]);
+        }
+
+        if (string.Equals(type.Type, "time with time zone", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    string.Concat(DateTime.Now.AddDays(-2).TimeOfDay.ToString()[..^1], "+01:00"),
+                    string.Concat(DateTime.Now.AddDays(-1).TimeOfDay.ToString()[..^1], "+01:00"),
+                    string.Concat(DateTime.Now.TimeOfDay.ToString()[..^1], "+01:00"),
+                true);
+            }
+            return Quote(string.Concat(DateTime.Now.TimeOfDay.ToString()[..^1], "+01:00"));
+        }
+
+        if (string.Equals(type.Type, "interval", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    $"{counter + 1} minutes {(counter + 2) % 60} seconds",
+                    $"{counter + 2} minutes {(counter + 3) % 60} seconds",
+                    $"{counter + 3} minutes {(counter + 4) % 60} seconds",
+                true);
+            }
+            return Quote($"{counter} minutes {(counter + 1) % 60} seconds");
+        }
+
+        if (string.Equals(type.Type, "varbit", StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(type.Type, "bit varying", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    $"110",
+                    $"101",
+                    $"011",
+                true);
+            }
+            return Quote($"{(counter) % 2}{(counter+1) % 2}{(counter+2) % 2}");
+        }
+
+        if (string.Equals(type.Type, "inet", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    $"192.168.5.{counter}",
+                    $"192.168.5.{counter+1}",
+                    $"192.168.5.{counter+2}",
+                true);
+            }
+            return Quote($"192.168.5.{counter}");
+        }
+
+        if (string.Equals(type.Type, "macaddr", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    $"00-B0-D0-63-C2-26",
+                    $"00-B0-D0-63-C2-26",
+                    $"00-B0-D0-63-C2-26",
+                true);
+            }
+            return Quote($"00-B0-D0-63-C2-26");
+        }
+
+        if (string.Equals(type.Type, "bytea", StringComparison.OrdinalIgnoreCase))
+        {
+            if (type.IsArray)
+            {
+                return GetArray(
+                    $"\\\\xFEADBAEF",
+                    $"\\\\xAEADBDEF",
+                    $"\\\\xEEADEEEF",
+                true);
+            }
+            return Quote($"\\\\xDEADBEEF");
+        }
+
         if (type.IsArray)
         {
             return GetArray(GetSubstring(counter), GetSubstring(counter + 1), GetSubstring(counter + 2), true);
         }
 
-        return GetSubstring();
+        return Quote(GetSubstring());
     }
 
     private static string GetHost(IApplicationBuilder builder)
