@@ -1,5 +1,24 @@
 @host=http://localhost:5000
 
+// function my_schema.case_return_text(
+//     _t text
+// )
+// returns text
+POST {{host}}/api/my-schema/case-return-text/
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// function my_schema.hello_world()
+// returns text
+POST {{host}}/api/my-schema/hello-world/
+
+###
+
 // function public.case_default_params(
 //     _p1 integer,
 //     _p2 integer DEFAULT 2,
@@ -90,7 +109,40 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-13T14%3A34%3A20.39&timestamptz=2024-01-13T14%3A34%3A20.39&date=2024-01-13&time=14%3A34%3A20.392739&timetz=14%3A34%3A20.393101%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=20181f7a-d36f-4cad-bee4-8a78b6d4b418&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-13T14%3A49%3A32.55&timestamptz=2024-01-13T14%3A49%3A32.55&date=2024-01-13&time=14%3A49%3A32.557710&timetz=14%3A49%3A32.558066%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=d7def5a9-a736-418f-9de3-7689b400c505&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+
+###
+
+// function public.case_get_overload()
+// returns text
+GET {{host}}/api/case-get-overload/
+
+###
+
+// function public.case_get_overload(
+//     _i integer
+// )
+// returns text
+GET {{host}}/api/case-get-overload/?i=1
+
+###
+
+// function public.case_get_overload(
+//     _i integer,
+//     _t text
+// )
+// returns text
+GET {{host}}/api/case-get-overload/?i=1&t=XYZ
+
+###
+
+// function public.case_get_overload(
+//     _i integer,
+//     _t text,
+//     _b boolean
+// )
+// returns text
+GET {{host}}/api/case-get-overload/?i=1&t=XYZ&b=false
 
 ###
 
@@ -183,14 +235,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-13T14:34:20.39",
-    "timestamptz": "2024-01-13T14:34:20.39",
+    "timestamp": "2024-01-13T14:49:32.55",
+    "timestamptz": "2024-01-13T14:49:32.55",
     "date": "2024-01-13",
-    "time": "14:34:20.395146",
-    "timetz": "14:34:20.395147+01:00",
+    "time": "14:49:32.559529",
+    "timetz": "14:49:32.559530+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "a3ad315e-359f-4b30-a5b3-ebf9987694a5",
+    "uuid": "bd71a433-4a41-411e-9b6f-b18f72f2cfe8",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
