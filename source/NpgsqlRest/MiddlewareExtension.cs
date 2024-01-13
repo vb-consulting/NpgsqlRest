@@ -354,50 +354,68 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     first = false;
                                 }
-                                string[] values = new string[routine.ReturnRecordCount];
-                                reader.GetValues(values);
+                                //string[] values = new string[routine.ReturnRecordCount];
+                                //reader.GetValues(values);
                                 for (var i = 0; i < routine.ReturnRecordCount; i++)
                                 {
-                                    string value = values[i];
+                                    object value = reader.GetValue(i);
+                                    // AllResultTypesAreUnknown = true always returns string, except for null
+                                    #pragma warning disable CS8600 
+                                    string raw = value == DBNull.Value ? "" : value as string;
+                                    #pragma warning restore CS8600
                                     if (routine.ReturnsUnnamedSet == false)
                                     {
+                                        if (i == 0)
+                                        {
+                                            await context.Response.WriteAsync("{");
+                                        }
                                         await context.Response.WriteAsync(string.Concat("\"", meta.ReturnRecordNames[i], "\":"));
                                     }
+
                                     var descriptor = routine.ReturnTypeDescriptor[i];
-                                    if ((object)value == DBNull.Value)
+                                    if (value == DBNull.Value)
                                     {
                                         await context.Response.WriteAsync("null");
                                     }
                                     else if (descriptor.IsArray && value is not null)
                                     {
-                                        value = PgArrayToJsonArray(ref value, ref descriptor);
-                                        await context.Response.WriteAsync(value);
+                                        raw = PgArrayToJsonArray(ref raw, ref descriptor);
+                                        await context.Response.WriteAsync(raw);
                                     }
                                     else if ((descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson) && value is not null)
                                     {
                                         if (descriptor.IsBoolean)
                                         {
-                                            if (string.Equals(value, "t", StringComparison.Ordinal))
+                                            if (string.Equals(raw, "t", StringComparison.Ordinal))
                                             {
                                                 await context.Response.WriteAsync("true");
                                             }
-                                            else if (string.Equals(value, "f", StringComparison.Ordinal))
+                                            else if (string.Equals(raw, "f", StringComparison.Ordinal))
                                             {
                                                 await context.Response.WriteAsync("false");
                                             }
                                             else
                                             {
-                                                await context.Response.WriteAsync(value);
+                                                await context.Response.WriteAsync(raw);
                                             }
                                         }
                                         else
                                         {
-                                            await context.Response.WriteAsync(value);
+                                            await context.Response.WriteAsync(raw);
                                         }
                                     }
                                     else
                                     {
                                         await context.Response.WriteAsync(string.Concat("\"", value, "\""));
+                                    }
+
+                                    if (routine.ReturnsUnnamedSet == false && i == routine.ReturnRecordCount - 1)
+                                    {
+                                        await context.Response.WriteAsync("}");
+                                    }
+                                    if (i < routine.ReturnRecordCount - 1)
+                                    {
+                                        await context.Response.WriteAsync(",");
                                     }
                                 }
                             }

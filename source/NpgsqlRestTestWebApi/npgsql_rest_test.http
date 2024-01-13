@@ -109,7 +109,7 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-13T14%3A49%3A32.55&timestamptz=2024-01-13T14%3A49%3A32.55&date=2024-01-13&time=14%3A49%3A32.557710&timetz=14%3A49%3A32.558066%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=d7def5a9-a736-418f-9de3-7689b400c505&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-13T19%3A33%3A33.37&timestamptz=2024-01-13T19%3A33%3A33.37&date=2024-01-13&time=19%3A33%3A33.377746&timetz=19%3A33%3A33.378169%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=6009fa41-c1ff-466e-9eaf-ca37a7694b04&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -235,14 +235,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-13T14:49:32.55",
-    "timestamptz": "2024-01-13T14:49:32.55",
+    "timestamp": "2024-01-13T19:33:33.37",
+    "timestamptz": "2024-01-13T19:33:33.37",
     "date": "2024-01-13",
-    "time": "14:49:32.559529",
-    "timetz": "14:49:32.559530+01:00",
+    "time": "19:33:33.379988",
+    "timetz": "19:33:33.379990+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "bd71a433-4a41-411e-9b6f-b18f72f2cfe8",
+    "uuid": "44814299-bb51-4038-8c1a-b7f35414c40e",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -399,6 +399,16 @@ POST {{host}}/api/case-return-setof-text/
 // function public.case_return_setof_text_array()
 // returns setof text[]
 POST {{host}}/api/case-return-setof-text-array/
+
+###
+
+// function public.case_return_table1()
+// returns table(
+//     int_field integer,
+//     text_field text,
+//     bool_field boolean
+// )
+POST {{host}}/api/case-return-table1/
 
 ###
 

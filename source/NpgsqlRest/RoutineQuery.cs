@@ -185,6 +185,7 @@ from cte";
                     returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
                 }
             }
+            var returnRecordNames = reader.Get<string[]>("return_record_names");
             var paramDefaults = reader.Get<string[]>("param_defaults");
             var paramTypeDescriptor = paramTypes
                 .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
@@ -192,7 +193,9 @@ from cte";
 
             Dictionary<int, string> expressions = [];
             var expression = string.Concat(
-                isVoid || (returnsRecord == false && returnsRecord == false) ? "select " : string.Concat("select ", string.Join(", ", paramNames), " "),
+                (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet)) ? 
+                    "select " : 
+                    string.Concat("select ", string.Join(", ", returnRecordNames), " from "),
                 schema,
                 ".",
                 name,
@@ -235,7 +238,7 @@ from cte";
                 returnsRecord: returnsRecord,
                 returnType: returnType,
                 returnRecordCount: reader.Get<int>("return_record_count"),
-                returnRecordNames: reader.Get<string[]>("return_record_names"),
+                returnRecordNames: returnRecordNames,
                 returnRecordTypes: returnRecordTypes,
                 returnsUnnamedSet: returnsUnnamedSet,
                 paramCount: paramCount,
