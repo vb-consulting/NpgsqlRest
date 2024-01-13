@@ -354,15 +354,11 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     first = false;
                                 }
-                                //string[] values = new string[routine.ReturnRecordCount];
-                                //reader.GetValues(values);
                                 for (var i = 0; i < routine.ReturnRecordCount; i++)
                                 {
                                     object value = reader.GetValue(i);
                                     // AllResultTypesAreUnknown = true always returns string, except for null
-                                    #pragma warning disable CS8600 
-                                    string raw = value == DBNull.Value ? "" : value as string;
-                                    #pragma warning restore CS8600
+                                    string raw = value == DBNull.Value ? "" : (string)value;
                                     if (routine.ReturnsUnnamedSet == false)
                                     {
                                         if (i == 0)
