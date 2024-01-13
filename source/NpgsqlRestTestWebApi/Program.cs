@@ -13,7 +13,6 @@ var app = builder.Build();
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
-    NameSimilarTo = "case_multi_params2",
     HttpFileOptions = new() 
     { 
         FileOverwrite = true

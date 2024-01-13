@@ -1,5 +1,162 @@
 @host=http://localhost:5000
 
+// function public.case_default_params(
+//     _p1 integer,
+//     _p2 integer DEFAULT 2,
+//     _p3 integer DEFAULT 3,
+//     _p4 integer DEFAULT 4
+// )
+// returns json
+POST {{host}}/api/case-default-params/
+content-type: application/json
+
+{
+    "p1": 1,
+    "p2": 2,
+    "p3": 3,
+    "p4": 4
+}
+
+###
+
+// function public.case_get_default_params(
+//     _p1 integer,
+//     _p2 integer DEFAULT 2,
+//     _p3 integer DEFAULT 3,
+//     _p4 integer DEFAULT 4
+// )
+// returns json
+GET {{host}}/api/case-get-default-params/?p1=1&p2=2&p3=3&p4=4
+
+###
+
+// function public.case_get_int(
+//     _i integer
+// )
+// returns integer
+GET {{host}}/api/case-get-int/?i=1
+
+###
+
+// function public.case_get_int_params_array(
+//     _a integer[]
+// )
+// returns integer[]
+GET {{host}}/api/case-get-int-params-array/?a=1%2C2%2C3
+
+###
+
+// function public.case_get_multi_params1(
+//     _smallint smallint,
+//     _integer integer,
+//     _bigint bigint,
+//     _numeric numeric,
+//     _text text,
+//     _varchar character varying,
+//     _char character,
+//     _json json,
+//     _jsonb jsonb,
+//     _smallint_array smallint[],
+//     _integer_array integer[],
+//     _bigint_array bigint[],
+//     _numeric_array numeric[],
+//     _text_array text[],
+//     _varchar_array character varying[],
+//     _char_array character[],
+//     _json_array json[],
+//     _jsonb_array jsonb[]
+// )
+// returns json
+GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4&text=XYZ&varchar=IJK&char=ABC&json=%7B%7D&jsonb=%7B%7D&smallintArray=10%2C11%2C12&integerArray=11%2C12%2C13&bigintArray=12%2C13%2C14&numericArray=13%2C14%2C15&textArray=XYZ%2CIJK%2CABC&varcharArray=IJK%2CABC%2CXYZ&charArray=ABC%2CXYZ%2CIJK&jsonArray=%7B%7D%2C%7B%7D%2C%7B%7D&jsonbArray=%7B%7D%2C%7B%7D%2C%7B%7D
+
+###
+
+// function public.case_get_multi_params2(
+//     _real real,
+//     _double double precision,
+//     _jsonpath jsonpath,
+//     _timestamp timestamp without time zone,
+//     _timestamptz timestamp with time zone,
+//     _date date,
+//     _time time without time zone,
+//     _timetz time with time zone,
+//     _interval interval,
+//     _bool boolean,
+//     _uuid uuid,
+//     _varbit bit varying,
+//     _bit varbit,
+//     _inet inet,
+//     _macaddr macaddr,
+//     _bytea bytea
+// )
+// returns json
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-13T14%3A34%3A20.39&timestamptz=2024-01-13T14%3A34%3A20.39&date=2024-01-13&time=14%3A34%3A20.392739&timetz=14%3A34%3A20.393101%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=20181f7a-d36f-4cad-bee4-8a78b6d4b418&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+
+###
+
+// function public.case_get_text_params_array(
+//     _a text[]
+// )
+// returns text[]
+GET {{host}}/api/case-get-text-params-array/?a=ABC%2CXYZ%2CIJK
+
+###
+
+// function public.case_get_unnamed_int(
+//      integer
+// )
+// returns integer
+GET {{host}}/api/case-get-unnamed-int/?$1=1
+
+###
+
+// function public.case_multi_params1(
+//     _smallint smallint,
+//     _integer integer,
+//     _bigint bigint,
+//     _numeric numeric,
+//     _text text,
+//     _varchar character varying,
+//     _char character,
+//     _json json,
+//     _jsonb jsonb,
+//     _smallint_array smallint[],
+//     _integer_array integer[],
+//     _bigint_array bigint[],
+//     _numeric_array numeric[],
+//     _text_array text[],
+//     _varchar_array character varying[],
+//     _char_array character[],
+//     _json_array json[],
+//     _jsonb_array jsonb[]
+// )
+// returns json
+POST {{host}}/api/case-multi-params1/
+content-type: application/json
+
+{
+    "smallint": 1,
+    "integer": 2,
+    "bigint": 3,
+    "numeric": 4,
+    "text": "XYZ",
+    "varchar": "IJK",
+    "char": "ABC",
+    "json": {},
+    "jsonb": {},
+    "smallintArray": [10, 11, 12],
+    "integerArray": [11, 12, 13],
+    "bigintArray": [12, 13, 14],
+    "numericArray": [13, 14, 15],
+    "textArray": ["XYZ", "IJK", "ABC"],
+    "varcharArray": ["IJK", "ABC", "XYZ"],
+    "charArray": ["ABC", "XYZ", "IJK"],
+    "jsonArray": [{}, {}, {}],
+    "jsonbArray": [{}, {}, {}]
+}
+
+###
+
 // function public.case_multi_params2(
 //     _real real,
 //     _double double precision,
@@ -26,20 +183,227 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-13T12:54:30.96",
-    "timestamptz": "2024-01-13T12:54:30.96",
+    "timestamp": "2024-01-13T14:34:20.39",
+    "timestamptz": "2024-01-13T14:34:20.39",
     "date": "2024-01-13",
-    "time": "12:54:30.964548",
-    "timetz": "12:54:30.964820+01:00",
+    "time": "14:34:20.395146",
+    "timetz": "14:34:20.395147+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "b44b56ed-551c-4e7f-ba9a-ee76b89af2fb",
+    "uuid": "a3ad315e-359f-4b30-a5b3-ebf9987694a5",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
     "macaddr": "00-B0-D0-63-C2-26",
     "bytea": "\\xDEADBEEF"
 }
+
+###
+
+// function public.case_overload()
+// returns text
+POST {{host}}/api/case-overload/
+
+###
+
+// function public.case_overload(
+//     _i integer
+// )
+// returns text
+POST {{host}}/api/case-overload/
+content-type: application/json
+
+{
+    "i": 1
+}
+
+###
+
+// function public.case_overload(
+//     _i integer,
+//     _t text
+// )
+// returns text
+POST {{host}}/api/case-overload/
+content-type: application/json
+
+{
+    "i": 1,
+    "t": "XYZ"
+}
+
+###
+
+// function public.case_overload(
+//     _i integer,
+//     _t text,
+//     _b boolean
+// )
+// returns text
+POST {{host}}/api/case-overload/
+content-type: application/json
+
+{
+    "i": 1,
+    "t": "XYZ",
+    "b": false
+}
+
+###
+
+// function public.case_return_bool_array()
+// returns boolean[]
+POST {{host}}/api/case-return-bool-array/
+
+###
+
+// function public.case_return_int(
+//     _i integer
+// )
+// returns integer
+POST {{host}}/api/case-return-int/
+content-type: application/json
+
+{
+    "i": 1
+}
+
+###
+
+// function public.case_return_int_array()
+// returns integer[]
+POST {{host}}/api/case-return-int-array/
+
+###
+
+// function public.case_return_int_array_with_null()
+// returns integer[]
+POST {{host}}/api/case-return-int-array-with-null/
+
+###
+
+// function public.case_return_int_params_array(
+//     _a integer[]
+// )
+// returns integer[]
+POST {{host}}/api/case-return-int-params-array/
+content-type: application/json
+
+{
+    "a": [1, 2, 3]
+}
+
+###
+
+// function public.case_return_json(
+//     _json json
+// )
+// returns json
+POST {{host}}/api/case-return-json/
+content-type: application/json
+
+{
+    "json": {}
+}
+
+###
+
+// function public.case_return_setof_bool()
+// returns setof boolean
+POST {{host}}/api/case-return-setof-bool/
+
+###
+
+// function public.case_return_setof_bool_array()
+// returns setof boolean[]
+POST {{host}}/api/case-return-setof-bool-array/
+
+###
+
+// function public.case_return_setof_int()
+// returns setof integer
+POST {{host}}/api/case-return-setof-int/
+
+###
+
+// function public.case_return_setof_int_array()
+// returns setof integer[]
+POST {{host}}/api/case-return-setof-int-array/
+
+###
+
+// function public.case_return_setof_json()
+// returns setof json
+POST {{host}}/api/case-return-setof-json/
+
+###
+
+// function public.case_return_setof_text()
+// returns setof text
+POST {{host}}/api/case-return-setof-text/
+
+###
+
+// function public.case_return_setof_text_array()
+// returns setof text[]
+POST {{host}}/api/case-return-setof-text-array/
+
+###
+
+// function public.case_return_text(
+//     _t text
+// )
+// returns text
+POST {{host}}/api/case-return-text/
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// function public.case_return_text_array()
+// returns text[]
+POST {{host}}/api/case-return-text-array/
+
+###
+
+// function public.case_return_text_params_array(
+//     _a text[]
+// )
+// returns text[]
+POST {{host}}/api/case-return-text-params-array/
+content-type: application/json
+
+{
+    "a": ["ABC", "XYZ", "IJK"]
+}
+
+###
+
+// function public.case_return_unnamed_int(
+//      integer
+// )
+// returns integer
+POST {{host}}/api/case-return-unnamed-int/
+content-type: application/json
+
+{
+    "$1": 1
+}
+
+###
+
+// function public.case_void()
+// returns void
+POST {{host}}/api/case-void/
+
+###
+
+// function public.hello_world()
+// returns text
+POST {{host}}/api/hello-world/
 
 ###
 

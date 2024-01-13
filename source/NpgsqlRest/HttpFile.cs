@@ -196,7 +196,11 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             {
                 return string.Concat(v1, ",", v2, ",", v3);
             }
-            return string.Concat("[", Quote(v1), ", ", Quote(v2), ", ", Quote(v3), "]");
+            if (quoted)
+            {
+                return string.Concat("[", Quote(v1), ", ", Quote(v2), ", ", Quote(v3), "]");
+            }
+            return string.Concat("[", v1, ", ", v2, ", ", v3, "]");
         }
 
         if (type.IsNumeric)

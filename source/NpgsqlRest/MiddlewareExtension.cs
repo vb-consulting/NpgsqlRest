@@ -26,21 +26,88 @@ public static class NpgsqlRestMiddlewareExtensions
 
         builder.Use(async (context, next) =>
         {
-            if (!dict.ContainsKey(context.Request.Path))
+            if (!dict.TryGetValue(context.Request.Path, out (Routine routine, RoutineEndpointMeta meta)[]? tupleArray))
+            {
+                await next(context);
+                return;
+            }
+            if (tupleArray.Length == 0)
             {
                 await next(context);
                 return;
             }
 
             JsonObject? jsonObj = null;
-            (Routine routine, RoutineEndpointMeta meta)[] tupleArray = dict[context.Request.Path];
+            string? body = null;
+            async Task ParseJsonBody()
+            {
+                if (jsonObj is null)
+                {
+                    context.Request.EnableBuffering();
+                    context.Request.Body.Position = 0;
+                    if (body is null)
+                    {
+                        using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+                        body = await reader.ReadToEndAsync();
+                    }
+                    if (string.IsNullOrWhiteSpace(body))
+                    {
+                        return;
+                    }
+                    JsonNode? node;
+                    try
+                    {
+                        node = JsonNode.Parse(body);
+                    }
+                    catch (JsonException)
+                    {
+                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                        return;
+                    }
+                    try
+                    {
+                        jsonObj = node?.AsObject();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                    }
+                }
+            }
 
+            bool overloaded = tupleArray.Length > 1;
             for (var index = 0; index < tupleArray.AsSpan().Length; index++)
             {
                 var (routine, meta) = tupleArray[index];
                 if (!string.Equals(context.Request.Method, meta.HttpMethod.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
+                }
+
+                if (overloaded)
+                {
+                    if (meta.Parameters == EndpointParameters.QueryString)
+                    {
+                        if (routine.ParamCount != context.Request.Query.Count)
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        if (jsonObj is null)
+                        {
+                            await ParseJsonBody();
+                            if (jsonObj is null && routine.ParamCount > 0)
+                            {
+                                continue;
+                            }
+                        }
+                        if (routine.ParamCount != (jsonObj is null ? 0 : jsonObj.Count))
+                        {
+                            continue;
+                        }
+                    }
                 }
 
                 NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
@@ -83,7 +150,6 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                             }
                         }
-
                         if (setCount != routine.ParamCount)
                         {
                             continue;
@@ -93,43 +159,11 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         if (jsonObj is null)
                         {
-                            string body;
-                            context.Request.EnableBuffering();
-                            context.Request.Body.Position = 0;
-                            using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
-                            {
-                                body = await reader.ReadToEndAsync();
-                            }
-
-                            if (string.IsNullOrEmpty(body))
+                            await ParseJsonBody();
+                            if (jsonObj is null)
                             {
                                 continue;
                             }
-
-                            JsonNode? node;
-                            try
-                            {
-                                node = JsonNode.Parse(body);
-                            }
-                            catch (JsonException)
-                            {
-                                LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
-                                continue;
-                            }
-                            try
-                            {
-                                jsonObj = node?.AsObject();
-                            }
-                            catch (InvalidOperationException)
-                            {
-                                LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
-                                continue;
-                            }
-                        }
-
-                        if (jsonObj is null)
-                        {
-                            continue;
                         }
 
                         int setCount = 0;
