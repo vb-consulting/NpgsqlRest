@@ -9,29 +9,13 @@ using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
-internal class CommandParameters
+internal class ParameterParser
 {
-    internal static bool TryCreateCmdParameter(
+    internal static bool TryParseParameter(
         ref StringValues values, 
-        ref TypeDescriptor descriptor, 
-        ref NpgsqlRestOptions options, 
-        out NpgsqlParameter result)
+        ref TypeDescriptor descriptor,
+        ref NpgsqlParameter parameter)
     {
-        result = new NpgsqlParameter
-        {
-            NpgsqlDbType = descriptor.ActualDbType
-        };
-        
-        if (options.QueryStringParameterParserCallback is not null)
-        {
-            var callback = options.QueryStringParameterParserCallback((values, descriptor, result));
-            if (callback is not null)
-            {
-                result = callback;
-                return true;
-            }
-        }
-
         static bool TryGetValue(
             ref TypeDescriptor descriptor, 
             ref string? value, 
@@ -214,7 +198,7 @@ internal class CommandParameters
         {
             if (values.Count == 0)
             {
-                result.Value = DBNull.Value;
+                parameter.Value = DBNull.Value;
                 return true;
             }
             else if (values.Count == 1)
@@ -222,7 +206,7 @@ internal class CommandParameters
                 var value = values[0];
                 if (TryGetValue(ref descriptor, ref value, out var resultValue))
                 {
-                    result.Value = resultValue;
+                    parameter.Value = resultValue;
                     return true;
                 }
                 return false;
@@ -237,7 +221,7 @@ internal class CommandParameters
                 var value = sb.ToString();
                 if (TryGetValue(ref descriptor, ref value, out var resultValue))
                 {
-                    result.Value = resultValue;
+                    parameter.Value = resultValue;
                     return true;
                 }
                 return false;
@@ -247,7 +231,7 @@ internal class CommandParameters
         {
             if (values.Count == 0)
             {
-                result.Value = DBNull.Value;
+                parameter.Value = DBNull.Value;
                 return true;
             }
             else
@@ -265,43 +249,27 @@ internal class CommandParameters
                         return false;
                     }
                 }
-                result.Value = list;
+                parameter.Value = list;
                 return true;
             }
         }
     }
 
-    internal static bool TryCreateCmdParameter(
+    internal static bool TryParseParameter(
         ref JsonNode? value, 
-        ref TypeDescriptor descriptor, 
-        ref NpgsqlRestOptions options, 
-        out NpgsqlParameter result)
+        ref TypeDescriptor descriptor,
+        ref NpgsqlParameter parameter)
     {
-        result = new NpgsqlParameter
-        {
-            NpgsqlDbType = descriptor.ActualDbType
-        };
-
-        if (options.JsonBodyParameterParserCallback is not null)
-        {
-            var callback = options.JsonBodyParameterParserCallback((value, descriptor, result));
-            if (callback is not null)
-            {
-                result = callback;
-                return true;
-            }
-        }
-
         if (value is null)
         {
-            result.Value = DBNull.Value;
+            parameter.Value = DBNull.Value;
             return true;
         }
 
         JsonValueKind kind = value.GetValueKind();
         if (kind == JsonValueKind.Null)
         {
-            result.Value = DBNull.Value;
+            parameter.Value = DBNull.Value;
             return true;
         }
 
@@ -416,7 +384,7 @@ internal class CommandParameters
 
         if (TryGetNonStringValue(ref descriptor, ref value, ref kind, out var nonStringValue))
         {
-            result.Value = nonStringValue;
+            parameter.Value = nonStringValue;
             return true;
         }
 
@@ -452,18 +420,18 @@ internal class CommandParameters
                 }
                 list.Add(arrayItemContent);
             }
-            result.Value = list;
+            parameter.Value = list;
             return true;
         }
 
         var content = value.ToString();
         if (TryGetNonStringValueFromString(ref descriptor, ref content, out nonStringValue))
         {
-            result.Value = nonStringValue;
+            parameter.Value = nonStringValue;
             return true;
         }
 
-        result.Value = content;
+        parameter.Value = content;
         return true;
     }
 }

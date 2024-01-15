@@ -5,7 +5,7 @@ namespace NpgsqlRest;
 public class RoutineEndpointMeta(
     string url,
     Method method,
-    EndpointParameters parameters = EndpointParameters.QueryString,
+    RequestParamType requestParamType = RequestParamType.QueryString,
     bool requiresAuthorization = false,
     string[]? returnRecordNames = null,
     string[]? paramNames = null,
@@ -15,7 +15,7 @@ public class RoutineEndpointMeta(
 {
     public string Url { get; set;  } = url;
     public Method HttpMethod { get; set; } = method;
-    public EndpointParameters Parameters { get; set; } = parameters;
+    public RequestParamType RequestParamType { get; set; } = requestParamType;
     public bool RequiresAuthorization { get; set; } = requiresAuthorization;
     public string[] ReturnRecordNames { get; set; } = returnRecordNames ?? [];
     public string[] ParamNames { get; } = paramNames ?? [];

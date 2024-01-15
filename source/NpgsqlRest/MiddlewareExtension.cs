@@ -7,6 +7,8 @@ using System.Text.Json.Nodes;
 using Npgsql;
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
+using System.Reflection.Metadata;
+using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest;
 
@@ -86,7 +88,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                 if (overloaded)
                 {
-                    if (meta.Parameters == EndpointParameters.QueryString)
+                    if (meta.RequestParamType == RequestParamType.QueryString)
                     {
                         if (routine.ParamCount != context.Request.Query.Count)
                         {
@@ -113,18 +115,53 @@ public static class NpgsqlRestMiddlewareExtensions
                 NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
                 if (routine.ParamCount > 0)
                 {
-                    if (meta.Parameters == EndpointParameters.QueryString)
+                    if (meta.RequestParamType == RequestParamType.QueryString)
                     {
                         int setCount = 0;
                         for (var i = 0; i < routine.ParamCount; i++)
                         {
-                            var p = meta.ParamNames[i];
+                            string p = meta.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
+                            var parameter = new NpgsqlParameter
+                            {
+                                NpgsqlDbType = descriptor.ActualDbType
+                            };
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
-                                if (CommandParameters.TryCreateCmdParameter(ref qsValue, ref descriptor, ref options, out var paramater))
+                                if (ParameterParser.TryParseParameter(ref qsValue, ref descriptor, ref parameter))
                                 {
-                                    parameters[i] = paramater;
+                                    if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
+                                    {
+                                        if (options.ValidateParameters is not null)
+                                        {
+                                            options.ValidateParameters(new ParameterValidationValues(
+                                                context,
+                                                routine,
+                                                parameter,
+                                                paramName: p,
+                                                typeDescriptor: descriptor,
+                                                requestParamType: meta.RequestParamType,
+                                                queryStringValues: qsValue,
+                                                jsonBodyNode: null));
+                                        }
+                                        if (options.ValidateParametersAsync is not null)
+                                        {
+                                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                                context,
+                                                routine,
+                                                parameter,
+                                                paramName: p,
+                                                typeDescriptor: descriptor,
+                                                requestParamType: meta.RequestParamType,
+                                                queryStringValues: qsValue,
+                                                jsonBodyNode: null));
+                                        }
+                                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                        {
+                                            return;
+                                        }
+                                    }
+                                    parameters[i] = parameter;
                                     setCount++;
                                 }
                                 else
@@ -144,7 +181,43 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             else
                             {
-                                if (descriptor.HasDefault)
+                                if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
+                                {
+                                    if (options.ValidateParameters is not null)
+                                    {
+                                        options.ValidateParameters(new ParameterValidationValues(
+                                            context,
+                                            routine,
+                                            parameter,
+                                            paramName: p,
+                                            typeDescriptor: descriptor,
+                                            requestParamType: meta.RequestParamType,
+                                            queryStringValues: qsValue,
+                                            jsonBodyNode: null));
+                                    }
+                                    if (options.ValidateParametersAsync is not null)
+                                    {
+                                        await options.ValidateParametersAsync(new ParameterValidationValues(
+                                            context,
+                                            routine,
+                                            parameter,
+                                            paramName: p,
+                                            typeDescriptor: descriptor,
+                                            requestParamType: meta.RequestParamType,
+                                            queryStringValues: qsValue,
+                                            jsonBodyNode: null));
+                                    }
+                                    if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                    {
+                                        return;
+                                    }
+                                }
+                                if (parameter.Value is not null)
+                                {
+                                    parameters[i] = parameter;
+                                    setCount++;
+                                }
+                                else if (descriptor.HasDefault)
                                 {
                                     setCount++;
                                 }
@@ -169,14 +242,49 @@ public static class NpgsqlRestMiddlewareExtensions
                         int setCount = 0;
                         for (var i = 0; i < meta.ParamNames.Length; i++)
                         {
-                            var p = meta.ParamNames[i];
+                            string p = meta.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
+                            var parameter = new NpgsqlParameter
+                            {
+                                NpgsqlDbType = descriptor.ActualDbType
+                            };
                             if (jsonObj.ContainsKey(p))
                             {
                                 var value = jsonObj[p];
-                                if (CommandParameters.TryCreateCmdParameter(ref value, ref descriptor, ref options, out var paramater))
+                                if (ParameterParser.TryParseParameter(ref value, ref descriptor, ref parameter))
                                 {
-                                    parameters[i] = paramater;
+                                    if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
+                                    {
+                                        if (options.ValidateParameters is not null)
+                                        {
+                                            options.ValidateParameters(new ParameterValidationValues(
+                                                context,
+                                                routine,
+                                                parameter,
+                                                paramName: p,
+                                                typeDescriptor: descriptor,
+                                                requestParamType: meta.RequestParamType,
+                                                queryStringValues: null,
+                                                jsonBodyNode: value));
+                                        }
+                                        if (options.ValidateParametersAsync is not null)
+                                        {
+                                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                                context,
+                                                routine,
+                                                parameter,
+                                                paramName: p,
+                                                typeDescriptor: descriptor,
+                                                requestParamType: meta.RequestParamType,
+                                                queryStringValues: null,
+                                                jsonBodyNode: value));
+                                        }
+                                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                        {
+                                            return;
+                                        }
+                                    }
+                                    parameters[i] = parameter;
                                     setCount++;
                                 }
                                 else
@@ -196,7 +304,43 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             else
                             {
-                                if (descriptor.HasDefault)
+                                if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
+                                {
+                                    if (options.ValidateParameters is not null)
+                                    {
+                                        options.ValidateParameters(new ParameterValidationValues(
+                                            context,
+                                            routine,
+                                            parameter,
+                                            paramName: p,
+                                            typeDescriptor: descriptor,
+                                            requestParamType: meta.RequestParamType,
+                                            queryStringValues: null,
+                                            jsonBodyNode: null));
+                                    }
+                                    if (options.ValidateParametersAsync is not null)
+                                    {
+                                        await options.ValidateParametersAsync(new ParameterValidationValues(
+                                            context,
+                                            routine,
+                                            parameter,
+                                            paramName: p,
+                                            typeDescriptor: descriptor,
+                                            requestParamType: meta.RequestParamType,
+                                            queryStringValues: null,
+                                            jsonBodyNode: null));
+                                    }
+                                    if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                    {
+                                        return;
+                                    }
+                                }
+                                if (parameter.Value is not null)
+                                {
+                                    parameters[i] = parameter;
+                                    setCount++;
+                                }
+                                else if (descriptor.HasDefault)
                                 {
                                     setCount++;
                                 }

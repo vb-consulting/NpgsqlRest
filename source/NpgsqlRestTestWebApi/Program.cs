@@ -1,3 +1,4 @@
+using System.Net;
 using NpgsqlRest;
 
 var builder = WebApplication.CreateEmptyBuilder(new ());
@@ -10,13 +11,14 @@ var connectionString = NpgsqlRestTests.Database.Create(addNamePrefix: false, rec
 
 var app = builder.Build();
 
+
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
     HttpFileOptions = new() 
     { 
         FileOverwrite = true
-    },
+    }
 });
 
 app.Run();

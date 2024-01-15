@@ -4,8 +4,54 @@ using Npgsql;
 
 namespace NpgsqlRest;
 
+public readonly struct ParameterValidationValues(
+    HttpContext context, 
+    Routine routine, 
+    NpgsqlParameter parameter,
+    string paramName,
+    TypeDescriptor typeDescriptor,
+    RequestParamType requestParamType,
+    StringValues? queryStringValues,
+    JsonNode? jsonBodyNode)
+{
+    /// <summary>
+    /// Current HttpContext.
+    /// </summary>
+    public readonly HttpContext Context = context;
+    /// <summary>
+    /// Current Routine.
+    /// </summary>
+    public readonly Routine Routine = routine;
+    /// <summary>
+    /// Parameter to be validated. Note: if parameter is using default value and value not provided, parameter.Value is null.
+    /// </summary>
+    public readonly NpgsqlParameter Parameter = parameter;
+    /// <summary>
+    /// Current parameter name (converted).
+    /// </summary>
+    public readonly string ParamName = paramName;
+    /// <summary>
+    /// Current parameter type descriptor (additional type information)
+    /// </summary>
+    public readonly TypeDescriptor TypeDescriptor = typeDescriptor;
+    /// <summary>
+    /// Current parameter position Query String or JSON Body.
+    /// </summary>
+    public readonly RequestParamType RequestParamType = requestParamType;
+    /// <summary>
+    /// Current parameter values from Query String.
+    /// NULL if parameter is not from Query String or Query String is not provided and parameter has default.
+    /// </summary>
+    public readonly StringValues? QueryStringValues = queryStringValues;
+    /// <summary>
+    /// Current parameter values from JSON Body.
+    /// NULL if parameter is not from JSON Body or JSON Body is not provided and parameter has default.
+    /// </summary>
+    public readonly JsonNode? JsonBodyNode = jsonBodyNode;
+}
+
 public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
-public enum EndpointParameters { QueryString, BodyJson }
+public enum RequestParamType { QueryString, BodyJson }
 
 /// <summary>
 /// Options for the NpgsqlRest middleware.
@@ -29,13 +75,13 @@ public class NpgsqlRestOptions(
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
-    Func<(StringValues, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? queryStringParameterParserCallback = null,
-    Func<(JsonNode?, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? jsonBodyParameterParserCallback = null,
     bool logConnectionNoticeEvents = true,
     int? commandTimeout = null,
     bool logParameterMismatchWarnings = true,
     Method? defaultHttpMethod = null,
-    EndpointParameters? defaultParameters = null)
+    RequestParamType? defaultRequestParamType = null,
+    Action<ParameterValidationValues>? validateParameters = null,
+    Func<ParameterValidationValues, Task>? validateParametersAsync = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -133,18 +179,6 @@ public class NpgsqlRestOptions(
     /// </summary>
     public LogLevel LogLevel { get; set; } = logLevel;
     /// <summary>
-    /// Callback, if not null, will be called for every parameter in the query string to assign a database parameter value to NpgsqlParameter from a string.
-    /// Return null to fallback to default parser behavior.
-    /// </summary>
-    public Func<(StringValues, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? QueryStringParameterParserCallback { get; set; } = 
-        queryStringParameterParserCallback;
-    /// <summary>
-    /// Callback, if not null, will be called for every parameter in the json body to assign a database parameter value to NpgsqlParameter from a json value.
-    /// Return null to fallback to default parser behavior.
-    /// </summary>
-    public Func<(JsonNode?, TypeDescriptor, NpgsqlParameter), NpgsqlParameter?>? JsonBodyParameterParserCallback { get; set; } = 
-        jsonBodyParameterParserCallback;
-    /// <summary>
     /// Set to true to log connection notice events.
     /// </summary>
     public bool LogConnectionNoticeEvents { get; set; } = logConnectionNoticeEvents;
@@ -166,5 +200,13 @@ public class NpgsqlRestOptions(
     /// Default parameter position Query String or JSON Body.
     /// NULL is default behavior: if endpoint is not POST, use Query String, otherwise JSON Body.
     /// </summary>
-    public EndpointParameters? DefaultParameters { get; set; } = defaultParameters;
+    public RequestParamType? DefaultRequestParamType { get; set; } = defaultRequestParamType;
+    /// <summary>
+    /// Parameters validation function callback.
+    /// </summary>
+    public Action<ParameterValidationValues>? ValidateParameters { get; set; } = validateParameters;
+    /// <summary>
+    /// Parameters validation function async callback.
+    /// </summary>
+    public Func<ParameterValidationValues, Task>? ValidateParametersAsync { get; set; } = validateParametersAsync;
 }

@@ -6,7 +6,7 @@ public static partial class Database
     public static void MultiParamsQueryStringTests2()
     {
         script.Append(@"
-create or replace function case_get_multi_params2(
+create function case_get_multi_params2(
     _real real,
     _double double precision,
     _jsonpath jsonpath,

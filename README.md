@@ -2,6 +2,11 @@
 
 > Note: this still is a work in progress NuGet library hasn't been published yet.
 
+![build-test-publish](https://github.com/vb-consulting/NpgsqlRest/workflows/build-test-publish/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-green)
+![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
+![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
+
 NpgsqlRest is a .NET 8 library that builds PostgreSQL functions and procedures into RESTful APIs. Simple example:
 
 #### 1) PostgreSQL Function

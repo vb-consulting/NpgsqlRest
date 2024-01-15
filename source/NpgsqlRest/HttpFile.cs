@@ -100,12 +100,12 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                 }
             }
         }
-        if (meta.ParamNames.Length == 0 || meta.Parameters != EndpointParameters.QueryString)
+        if (meta.ParamNames.Length == 0 || meta.RequestParamType != RequestParamType.QueryString)
         {
             sb.AppendLine(string.Concat(meta.HttpMethod, " {{host}}", meta.Url));
         }
 
-        if (meta.ParamNames.Length > 0 && meta.Parameters == EndpointParameters.QueryString)
+        if (meta.ParamNames.Length > 0 && meta.RequestParamType == RequestParamType.QueryString)
         {
             sb.AppendLine(string.Concat(meta.HttpMethod, " {{host}}", meta.Url, "?",
                 string.Join("&", meta
@@ -122,7 +122,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     }))));
         }
 
-        if (meta.ParamNames.Length > 0 && meta.Parameters == EndpointParameters.BodyJson)
+        if (meta.ParamNames.Length > 0 && meta.RequestParamType == RequestParamType.BodyJson)
         {
             sb.AppendLine("content-type: application/json");
             sb.AppendLine();

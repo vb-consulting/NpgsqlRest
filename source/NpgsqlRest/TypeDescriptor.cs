@@ -19,7 +19,7 @@ public readonly struct TypeDescriptor
     public NpgsqlDbType ActualDbType { get; }
     public bool HasDefault { get; }
 
-    public TypeDescriptor(string type, bool hasDefault = false)
+    internal TypeDescriptor(string type, bool hasDefault = false)
     {
         OriginalType = type;
         HasDefault = hasDefault;
@@ -66,7 +66,7 @@ public readonly struct TypeDescriptor
             BaseDbType == NpgsqlDbType.JsonPath;
     }
 
-    public bool IsCastToText() => CastToText(BaseDbType);
+    internal bool IsCastToText() => CastToText(BaseDbType);
 
     private static bool CastToText(NpgsqlDbType type) => type switch
     {

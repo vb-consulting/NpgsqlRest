@@ -35,7 +35,7 @@ begin
 end;
 $$;
 
-create or replace function case_return_setof_int_array() 
+create function case_return_setof_int_array() 
 returns setof int[]
 language plpgsql
 as 
@@ -50,7 +50,7 @@ begin
 end;
 $$;
 
-create or replace function case_return_setof_bool_array() 
+create function case_return_setof_bool_array() 
 returns setof boolean[]
 language plpgsql
 as 
@@ -64,7 +64,7 @@ begin
 end;
 $$;
 
-create or replace function case_return_setof_text_array() 
+create function case_return_setof_text_array() 
 returns setof text[]
 language plpgsql
 as 

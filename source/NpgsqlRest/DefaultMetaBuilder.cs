@@ -6,7 +6,7 @@ internal static partial class Defaults
     {
         var hasGet = routine.Name.Contains("get", StringComparison.OrdinalIgnoreCase);
         var method = hasGet ? Method.GET : Method.POST;
-        var parameters = method == Method.GET ? EndpointParameters.QueryString : EndpointParameters.BodyJson;
+        var requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
         string[] returnRecordNames = routine.ReturnRecordNames.Select(s => options.NameConverter(s) ?? "").ToArray();
         string[] paramNames = routine
             .ParamNames
@@ -23,7 +23,7 @@ internal static partial class Defaults
         return new(
                 url: url,
                 method: method,
-                parameters: parameters,
+                requestParamType: requestParamType,
                 requiresAuthorization: options.RequiresAuthorization,
                 returnRecordNames: returnRecordNames,
                 paramNames: paramNames,

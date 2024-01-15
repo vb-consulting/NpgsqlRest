@@ -109,7 +109,7 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-13T19%3A33%3A33.37&timestamptz=2024-01-13T19%3A33%3A33.37&date=2024-01-13&time=19%3A33%3A33.377746&timetz=19%3A33%3A33.378169%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=6009fa41-c1ff-466e-9eaf-ca37a7694b04&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-15T13%3A43%3A19.72&timestamptz=2024-01-15T13%3A43%3A19.72&date=2024-01-15&time=13%3A43%3A19.723426&timetz=13%3A43%3A19.723711%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=90df5640-45a0-4bf0-b6bd-9c3feb520e7f&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -159,6 +159,19 @@ GET {{host}}/api/case-get-text-params-array/?a=ABC%2CXYZ%2CIJK
 // )
 // returns integer
 GET {{host}}/api/case-get-unnamed-int/?$1=1
+
+###
+
+// function public.case_jsonpath_param(
+//     _jsonpath jsonpath
+// )
+// returns text
+POST {{host}}/api/case-jsonpath-param/
+content-type: application/json
+
+{
+    "jsonpath": "$.user.addresses[0].city"
+}
 
 ###
 
@@ -235,14 +248,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-13T19:33:33.37",
-    "timestamptz": "2024-01-13T19:33:33.37",
-    "date": "2024-01-13",
-    "time": "19:33:33.379988",
-    "timetz": "19:33:33.379990+01:00",
+    "timestamp": "2024-01-15T13:43:19.72",
+    "timestamptz": "2024-01-15T13:43:19.72",
+    "date": "2024-01-15",
+    "time": "13:43:19.725057",
+    "timetz": "13:43:19.725058+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "44814299-bb51-4038-8c1a-b7f35414c40e",
+    "uuid": "2376622c-dfbb-479c-a7c2-faaaf08892ad",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
