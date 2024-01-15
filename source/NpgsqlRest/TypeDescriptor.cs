@@ -18,6 +18,7 @@ public readonly struct TypeDescriptor
     public NpgsqlDbType BaseDbType { get; }
     public NpgsqlDbType ActualDbType { get; }
     public bool HasDefault { get; }
+    public bool NeedsEscape { get; }
 
     internal TypeDescriptor(string type, bool hasDefault = false)
     {
@@ -47,15 +48,20 @@ public readonly struct TypeDescriptor
             NpgsqlDbType.Money => true,
             _ => false
         };
+
         IsJson = BaseDbType switch
         {
             NpgsqlDbType.Jsonb => true,
             NpgsqlDbType.Json => true,
             _ => false
         };
+        
         IsDate = BaseDbType == NpgsqlDbType.Date;
+        
         IsBoolean = BaseDbType == NpgsqlDbType.Boolean;
+
         IsDateTime = BaseDbType == NpgsqlDbType.Timestamp || BaseDbType == NpgsqlDbType.TimestampTz;
+
         IsText = BaseDbType == NpgsqlDbType.Text ||
             BaseDbType == NpgsqlDbType.Xml ||
             BaseDbType == NpgsqlDbType.Varchar ||
@@ -64,6 +70,21 @@ public readonly struct TypeDescriptor
             BaseDbType == NpgsqlDbType.Jsonb ||
             BaseDbType == NpgsqlDbType.Json ||
             BaseDbType == NpgsqlDbType.JsonPath;
+
+        NeedsEscape = BaseDbType == NpgsqlDbType.Xml ||
+            BaseDbType == NpgsqlDbType.Varchar ||
+            BaseDbType == NpgsqlDbType.Char ||
+            BaseDbType == NpgsqlDbType.Name ||
+            BaseDbType == NpgsqlDbType.JsonPath ||
+            BaseDbType == NpgsqlDbType.Bytea ||
+            BaseDbType == NpgsqlDbType.TsQuery ||
+            BaseDbType == NpgsqlDbType.TsVector ||
+            BaseDbType == NpgsqlDbType.Citext ||
+            BaseDbType == NpgsqlDbType.LQuery ||
+            BaseDbType == NpgsqlDbType.LTree ||
+            BaseDbType == NpgsqlDbType.LTxtQuery ||
+            BaseDbType == NpgsqlDbType.TsVector ||
+            BaseDbType == NpgsqlDbType.Hstore;
     }
 
     internal bool IsCastToText() => CastToText(BaseDbType);

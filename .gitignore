@@ -397,3 +397,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 /source/NpgsqlRestTestWebApi/appsettings.Development.json
+
+BenchmarkTests/

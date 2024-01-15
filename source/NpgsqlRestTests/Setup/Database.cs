@@ -5,31 +5,24 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    private const string initialName = "npgsql_rest_test";
+    private const string dbname = "npgsql_rest_test";
     private const string initialConnectionString = "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=postgres";
-    private static string? dbname;
     private static readonly StringBuilder script = new();
 
     static Database()
     {
         foreach (var method in typeof(Database).GetMethods(BindingFlags.Static | BindingFlags.Public))
         {
-            if (method.GetParameters().Length == 0)
+            if (method.GetParameters().Length == 0 && !string.Equals(method.Name, "Create", StringComparison.OrdinalIgnoreCase))
             {
                 method.Invoke(null, []);
             }
         }
     }
 
-    public static string Create(bool addNamePrefix = false, bool recreate = true)
+    public static string Create()
     {
-        dbname = addNamePrefix ? string.Concat(initialName, "_", Guid.NewGuid().ToString()[..8]) : initialName;
-
-        if (recreate)
-        {
-            DropIfExists(create: true);
-        }
-        
+        DropIfExists();
         var builder = new NpgsqlConnectionStringBuilder(initialConnectionString)
         {
             Database = dbname
@@ -44,12 +37,8 @@ public static partial class Database
         return builder.ConnectionString;
     }
 
-    public static void DropIfExists(bool create)
+    public static void DropIfExists()
     {
-        if (string.IsNullOrEmpty(dbname))
-        {
-            return;
-        }
         using NpgsqlConnection connection = new(initialConnectionString);
         connection.Open();
         void exec(string sql)
@@ -76,10 +65,6 @@ public static partial class Database
             exec($"select pg_terminate_backend(pid) from pg_stat_activity where datname = '{dbname}' and pid <> pg_backend_pid()");
             exec($"drop database {dbname}");
         }
-
-        if (create)
-        {
-            exec($"create database {dbname}");
-        }
+        exec($"create database {dbname}");
     }
 }

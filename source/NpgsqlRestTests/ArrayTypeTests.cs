@@ -1,3 +1,4 @@
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace NpgsqlRestTests;
 
 public static partial class Database
@@ -21,7 +22,7 @@ language plpgsql
 as 
 $$
 begin
-    return array['a','bc','x,y','foo"bar"','"foo","bar"'];
+    return array['a', 'bc', 'x,y', 'foo"bar"', '"foo","bar"', 'foo\bar'];
 end;
 $$;
 
@@ -113,7 +114,16 @@ public class ArrayTypeTests(TestFixture test)
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
         result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
-        response.Should().Be("""["a","bc","x,y","foo\"bar\"","\"foo\",\"bar\""]""");
+        response.Should().Be("""["a","bc","x,y","foo\"bar\"","\"foo\",\"bar\"","foo\\bar"]""");
+
+        var array = JsonNode.Parse(response).AsArray();
+        array.Count.Should().Be(6);
+        array[0].ToJsonString().Should().Be("\"a\"");
+        array[1].ToJsonString().Should().Be("\"bc\"");
+        array[2].ToJsonString().Should().Be("\"x,y\"");
+        array[3].ToJsonString().Should().Be("\"foo\\u0022bar\\u0022\"");
+        array[4].ToJsonString().Should().Be("\"\\u0022foo\\u0022,\\u0022bar\\u0022\"");
+        array[5].ToJsonString().Should().Be("\"foo\\\\bar\"");
     }
 
     [Fact]

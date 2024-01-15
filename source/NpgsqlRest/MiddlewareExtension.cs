@@ -5,10 +5,10 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Npgsql;
+using Microsoft.Extensions.Primitives;
+
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
-using System.Reflection.Metadata;
-using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest;
 
@@ -16,7 +16,10 @@ public static class NpgsqlRestMiddlewareExtensions
 {
     public static IApplicationBuilder UseNpgsqlRest(this IApplicationBuilder builder, NpgsqlRestOptions options)
     {
-        ArgumentException.ThrowIfNullOrEmpty(options.ConnectionString);
+        if (options.ConnectionString is null && options.ConnectionFromServiceProvider is false)
+        {
+            throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
+        }
         ILogger? logger = null;
         if (builder is WebApplication app)
         {
@@ -541,14 +544,21 @@ public static class NpgsqlRestMiddlewareExtensions
                                         }
                                         else
                                         {
+                                            // numeric and json
                                             await context.Response.WriteAsync(raw);
                                         }
                                     }
                                     else
                                     {
-                                        await context.Response.WriteAsync(string.Concat("\"", value, "\""));
+                                        if (descriptor.NeedsEscape)
+                                        {
+                                            await context.Response.WriteAsync(SerializePlainText(ref raw));
+                                        }
+                                        else
+                                        {
+                                            await context.Response.WriteAsync(string.Concat("\"", raw, "\""));
+                                        }
                                     }
-
                                     if (routine.ReturnsUnnamedSet == false && i == routine.ReturnRecordCount - 1)
                                     {
                                         await context.Response.WriteAsync("}");
@@ -580,7 +590,17 @@ public static class NpgsqlRestMiddlewareExtensions
         return builder;
     }
 
-    public static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
+    private static readonly JsonSerializerOptions plainTextSerializerOptions = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    private static string SerializePlainText(ref string value)
+    {
+        return JsonSerializer.Serialize(value, plainTextSerializerOptions);
+    }
+
+    private static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length < 3 || value[0] != '{' || value[^1] != '}')
         {
@@ -606,12 +626,11 @@ public static class NpgsqlRestMiddlewareExtensions
             return false;
         }
 
-        ReadOnlySpan<char> span = value.AsSpan();
-        for (int i = 1; i < span.Length; i++)
+        for (int i = 1; i < value.Length; i++)
         {
-            char currentChar = span[i];
+            char currentChar = value[i];
 
-            if (currentChar == '"' && span[i - 1] != '\\')
+            if (currentChar == '"' && value[i - 1] != '\\')
             {
                 insideQuotes = !insideQuotes;
                 hasQuotes = true;

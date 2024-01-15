@@ -109,7 +109,7 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-15T13%3A43%3A19.72&timestamptz=2024-01-15T13%3A43%3A19.72&date=2024-01-15&time=13%3A43%3A19.723426&timetz=13%3A43%3A19.723711%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=90df5640-45a0-4bf0-b6bd-9c3feb520e7f&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-15T19%3A58%3A25.46&timestamptz=2024-01-15T19%3A58%3A25.46&date=2024-01-15&time=19%3A58%3A25.468655&timetz=19%3A58%3A25.468918%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=cecaee95-5c5d-4578-ae0d-c643faa8d0d8&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -248,14 +248,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-15T13:43:19.72",
-    "timestamptz": "2024-01-15T13:43:19.72",
+    "timestamp": "2024-01-15T19:58:25.47",
+    "timestamptz": "2024-01-15T19:58:25.47",
     "date": "2024-01-15",
-    "time": "13:43:19.725057",
-    "timetz": "13:43:19.725058+01:00",
+    "time": "19:58:25.470341",
+    "timetz": "19:58:25.470342+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "2376622c-dfbb-479c-a7c2-faaaf08892ad",
+    "uuid": "35583b56-b077-4165-8c98-ed8d08c6d54f",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -419,9 +419,34 @@ POST {{host}}/api/case-return-setof-text-array/
 // returns table(
 //     int_field integer,
 //     text_field text,
-//     bool_field boolean
+//     bool_field boolean,
+//     int_array integer[],
+//     text_array text[],
+//     bool_array boolean[]
 // )
 POST {{host}}/api/case-return-table1/
+
+###
+
+// function public.case_return_table2()
+// returns table(
+//     real real,
+//     double double precision,
+//     jsonpath jsonpath,
+//     timestamp timestamp without time zone,
+//     timestamptz timestamp with time zone,
+//     date date,
+//     time time without time zone,
+//     timetz time with time zone,
+//     interval interval,
+//     uuid uuid,
+//     varbit bit varying,
+//     bit varbit,
+//     inet inet,
+//     macaddr macaddr,
+//     bytea bytea
+// )
+POST {{host}}/api/case-return-table2/
 
 ###
 

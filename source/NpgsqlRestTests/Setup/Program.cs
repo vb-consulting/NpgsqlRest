@@ -23,18 +23,9 @@ public class Program
     {
         var builder = WebApplication.CreateEmptyBuilder(new());
         builder.WebHost.UseKestrelCore();
-
-        try
-        {
-            var connectionString = Database.Create(addNamePrefix: true, recreate: true);
-
-            var app = builder.Build();
-            app.UseNpgsqlRest(new(connectionString) { ValidateParameters = Validate });
-            app.Run();
-        }
-        finally
-        {
-            Database.DropIfExists(create: false);
-        }
+        var connectionString = Database.Create();
+        var app = builder.Build();
+        app.UseNpgsqlRest(new(connectionString) { ValidateParameters = Validate });
+        app.Run();
     }
 }

@@ -7,7 +7,7 @@ builder.Logging.AddConsole();
 builder.WebHost.UseKestrelCore();
 builder.Services.AddRoutingCore();
 
-var connectionString = NpgsqlRestTests.Database.Create(addNamePrefix: false, recreate: true);
+var connectionString = NpgsqlRestTests.Database.Create();
 
 var app = builder.Build();
 
