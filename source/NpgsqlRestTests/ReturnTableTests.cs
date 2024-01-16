@@ -125,18 +125,18 @@ public class ReturnTableTests(TestFixture test)
 
         array[0]["real"].ToJsonString().Should().Be("1.1");
         array[0]["double"].ToJsonString().Should().Be("2.2");
-        array[0]["jsonpath"].ToJsonString().Should().Be("\"$.\\u0022path\\u0022\"");
-        array[0]["timestamp"].ToJsonString().Should().Be("\"2023-01-29 00:00:00\"");
-        array[0]["timestamptz"].ToJsonString().Should().Be("\"2023-01-30 00:00:00\\u002B01\"");
-        array[0]["date"].ToJsonString().Should().Be("\"2023-01-31\"");
-        array[0]["time"].ToJsonString().Should().Be("\"00:15:45\"");
-        array[0]["timetz"].ToJsonString().Should().Be("\"00:35:45\\u002B01\"");
-        array[0]["interval"].ToJsonString().Should().Be("\"1 day 10:30:01\"");
-        array[0]["uuid"].ToJsonString().Should().Be("\"1137788c-f1ba-4379-8f5a-f530cacde300\"");
-        array[0]["varbit"].ToJsonString().Should().Be("\"111100001\"");
-        array[0]["bit"].ToJsonString().Should().Be("\"111\"");
-        array[0]["inet"].ToJsonString().Should().Be("\"192.168.5.18\"");
-        array[0]["macaddr"].ToJsonString().Should().Be("\"00:b0:d0:63:c2:26\"");
-        array[0]["bytea"].ToJsonString().Should().Be("\"\\\\xdeadbeef\"");
+        array[0]["jsonpath"].GetValue<string>().Should().Be("$.\"path\"");
+        array[0]["timestamp"].GetValue<string>().Should().Be("2023-01-29T00:00:00");
+        array[0]["timestamptz"].GetValue<string>().Should().Be("2023-01-30T00:00:00+01");
+        array[0]["date"].GetValue<string>().Should().Be("2023-01-31");
+        array[0]["time"].GetValue<string>().Should().Be("00:15:45");
+        array[0]["timetz"].GetValue<string>().Should().Be("00:35:45+01");
+        array[0]["interval"].GetValue<string>().Should().Be("1 day 10:30:01");
+        array[0]["uuid"].GetValue<string>().Should().Be("1137788c-f1ba-4379-8f5a-f530cacde300");
+        array[0]["varbit"].GetValue<string>().Should().Be("111100001");
+        array[0]["bit"].GetValue<string>().Should().Be("111");
+        array[0]["inet"].GetValue<string>().Should().Be("192.168.5.18");
+        array[0]["macaddr"].GetValue<string>().Should().Be("00:b0:d0:63:c2:26");
+        array[0]["bytea"].GetValue<string>().Should().Be("\\xdeadbeef");
     }
 }

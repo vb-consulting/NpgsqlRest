@@ -552,11 +552,18 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (descriptor.NeedsEscape)
                                         {
-                                            await context.Response.WriteAsync(SerializePlainText(ref raw));
+                                            await context.Response.WriteAsync(JsonSerializer.Serialize(raw, plainTextSerializerOptions));
                                         }
                                         else
                                         {
-                                            await context.Response.WriteAsync(string.Concat("\"", raw, "\""));
+                                            if (descriptor.IsDateTime)
+                                            {
+                                                await context.Response.WriteAsync(string.Concat("\"", raw.Replace(' ', 'T'), "\""));
+                                            }
+                                            else
+                                            {
+                                                await context.Response.WriteAsync(string.Concat("\"", raw, "\""));
+                                            }
                                         }
                                     }
                                     if (routine.ReturnsUnnamedSet == false && i == routine.ReturnRecordCount - 1)
@@ -594,11 +601,6 @@ public static class NpgsqlRestMiddlewareExtensions
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
-
-    private static string SerializePlainText(ref string value)
-    {
-        return JsonSerializer.Serialize(value, plainTextSerializerOptions);
-    }
 
     private static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
     {
