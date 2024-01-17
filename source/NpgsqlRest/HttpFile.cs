@@ -147,6 +147,11 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
 
     internal void FinalizeHttpFile()
     {
+        if (options.HttpFileOptions.Option == HttpFileOption.Disabled)
+        {
+            return;
+        }
+
         if (endpoint && builder is IEndpointRouteBuilder app)
         {
             foreach(var (fileName, content) in fileContent)

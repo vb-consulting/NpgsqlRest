@@ -109,7 +109,7 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-15T19%3A58%3A25.46&timestamptz=2024-01-15T19%3A58%3A25.46&date=2024-01-15&time=19%3A58%3A25.468655&timetz=19%3A58%3A25.468918%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=cecaee95-5c5d-4578-ae0d-c643faa8d0d8&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-17T14%3A09%3A05.60&timestamptz=2024-01-17T14%3A09%3A05.60&date=2024-01-17&time=14%3A09%3A05.609706&timetz=14%3A09%3A05.610124%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=1de7853c-9712-4a6e-b16c-fa351248fc66&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -248,14 +248,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-15T19:58:25.47",
-    "timestamptz": "2024-01-15T19:58:25.47",
-    "date": "2024-01-15",
-    "time": "19:58:25.470341",
-    "timetz": "19:58:25.470342+01:00",
+    "timestamp": "2024-01-17T14:09:05.61",
+    "timestamptz": "2024-01-17T14:09:05.61",
+    "date": "2024-01-17",
+    "time": "14:09:05.612094",
+    "timetz": "14:09:05.612095+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "35583b56-b077-4165-8c98-ed8d08c6d54f",
+    "uuid": "c9ee013e-2f0e-4dda-b598-f122a3928dc6",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -501,9 +501,111 @@ POST {{host}}/api/case-void/
 
 ###
 
+// function public.comment_authorize1()
+// returns text
+POST {{host}}/api/comment-authorize1/
+
+###
+
+// function public.comment_authorize2()
+// returns text
+POST {{host}}/api/comment-authorize2/
+
+###
+
+// function public.comment_authorize3()
+// returns text
+POST {{host}}/api/comment-authorize3/
+
+###
+
+// function public.comment_authorize4()
+// returns text
+POST {{host}}/api/comment-authorize4/
+
+###
+
+// function public.comment_get_param_type_json1(
+//     _t text
+// )
+// returns text
+GET {{host}}/api/comment-get-param-type-json1/
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// function public.comment_get_param_type_json2(
+//     _t text
+// )
+// returns text
+GET {{host}}/api/comment-get-param-type-json2/
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// function public.comment_param_type_query1(
+//     _t text
+// )
+// returns text
+POST {{host}}/api/comment-param-type-query1/?t=ABC
+
+###
+
+// function public.comment_param_type_query2(
+//     _t text
+// )
+// returns text
+POST {{host}}/api/comment-param-type-query2/?t=ABC
+
+###
+
+// function public.comment_response_headers()
+// returns text
+POST {{host}}/api/comment-response-headers/
+
+###
+
+// function public.comment_verb_test1()
+// returns text
+GET {{host}}/api/comment-verb-test1/
+
+###
+
+// function public.comment_verb_test2()
+// returns text
+GET {{host}}/api/comment-verb-test2/
+
+###
+
+// function public.comment_verb_test3()
+// returns text
+GET {{host}}/custom_url_from_comment
+
+###
+
+// function public.comment_wrong_verb()
+// returns text
+POST {{host}}/api/comment-wrong-verb/
+
+###
+
 // function public.hello_world()
 // returns text
 POST {{host}}/api/hello-world/
+
+###
+
+// function public.hello_world_html()
+// returns text
+GET {{host}}/api/hello-world-html/
 
 ###
 

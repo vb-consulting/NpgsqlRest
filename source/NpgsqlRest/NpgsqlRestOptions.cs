@@ -2,6 +2,21 @@
 
 public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
 public enum RequestParamType { QueryString, BodyJson }
+public enum CommentsMode 
+{ 
+    /// <summary>
+    /// Routine comments are ignored.
+    /// </summary>
+    Ignore,
+    /// <summary>
+    /// Creates all endpoints and parses comments for to configure endpoint meta data.
+    /// </summary>
+    ParseAll,
+    /// <summary>
+    /// Creates only endpoints from routines containing a comment with HTTP tag and and configures endpoint meta data.
+    /// </summary>
+    OnlyWithHttpTag
+}
 
 /// <summary>
 /// Options for the NpgsqlRest middleware.
@@ -31,7 +46,8 @@ public class NpgsqlRestOptions(
     Method? defaultHttpMethod = null,
     RequestParamType? defaultRequestParamType = null,
     Action<ParameterValidationValues>? validateParameters = null,
-    Func<ParameterValidationValues, Task>? validateParametersAsync = null)
+    Func<ParameterValidationValues, Task>? validateParametersAsync = null,
+    CommentsMode commentsMode = CommentsMode.ParseAll)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -99,7 +115,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// A custom function delegate that returns a string that will be used as the url path for routine from the first parameter.
     /// </summary>
-    public Func<(Routine, NpgsqlRestOptions), string> UrlPathBuilder { get; set; } = urlPathBuilder ?? Defaults.DefaultUrlBuilder;
+    public Func<(Routine, NpgsqlRestOptions), string> UrlPathBuilder { get; set; } = urlPathBuilder ?? DefaultUrlBuilder.CreateUrl;
     /// <summary>
     /// Set to true to get the PostgreSQL connection from the service provider. Otherwise, it will be created from the connection string property.
     /// </summary>
@@ -119,7 +135,7 @@ public class NpgsqlRestOptions(
     /// By default it is a lower camel case.
     /// Use NameConverter = name => name to preserve original names.
     /// </summary>
-    public Func<string?, string?> NameConverter { get; set; } = nameConverter ?? Defaults.CamelCaseNameConverter;
+    public Func<string?, string?> NameConverter { get; set; } = nameConverter ?? DefaultNameConverter.ConvertToCamelCase;
     /// <summary>
     /// Set to true to require authorization for all endpoints.
     /// </summary>
@@ -159,4 +175,11 @@ public class NpgsqlRestOptions(
     /// Parameters validation function async callback.
     /// </summary>
     public Func<ParameterValidationValues, Task>? ValidateParametersAsync { get; set; } = validateParametersAsync;
+    /// <summary>
+    /// Configure how to parse comments:
+    /// Ignore: Routine comments are ignored.
+    /// ParseAll: Creates all endpoints and parses comments for to configure endpoint meta data (default).
+    /// OnlyWithHttpTag: Creates only endpoints from routines containing a comment with HTTP tag and and configures endpoint meta data.
+    /// </summary>
+    public CommentsMode CommentsMode { get; set; } = commentsMode;
 }

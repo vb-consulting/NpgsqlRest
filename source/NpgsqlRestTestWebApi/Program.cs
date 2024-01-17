@@ -1,4 +1,3 @@
-using System.Net;
 using NpgsqlRest;
 
 var builder = WebApplication.CreateEmptyBuilder(new ());

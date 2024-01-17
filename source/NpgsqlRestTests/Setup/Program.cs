@@ -25,7 +25,10 @@ public class Program
         builder.WebHost.UseKestrelCore();
         var connectionString = Database.Create();
         var app = builder.Build();
-        app.UseNpgsqlRest(new(connectionString) { ValidateParameters = Validate });
+        app.UseNpgsqlRest(new(connectionString)
+        { 
+            ValidateParameters = Validate 
+        });
         app.Run();
     }
 }

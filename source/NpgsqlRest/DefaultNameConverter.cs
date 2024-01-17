@@ -1,10 +1,10 @@
 ﻿namespace NpgsqlRest;
 
-internal static partial class Defaults
+internal static class DefaultNameConverter
 {
     private static readonly string[] separator = ["_"];
 
-    internal static string? CamelCaseNameConverter(string? value)
+    internal static string? ConvertToCamelCase(string? value)
     {
         if (value is null)
         {

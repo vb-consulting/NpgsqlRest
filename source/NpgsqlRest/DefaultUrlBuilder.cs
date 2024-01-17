@@ -1,8 +1,8 @@
 ﻿namespace NpgsqlRest;
 
-internal static partial class Defaults
+internal static class DefaultUrlBuilder
 {
-    internal static string DefaultUrlBuilder((Routine routine, NpgsqlRestOptions options) parameters)
+    internal static string CreateUrl((Routine routine, NpgsqlRestOptions options) parameters)
     {
         var (routine, options) = parameters;
         var schema = routine.Schema.ToLowerInvariant()

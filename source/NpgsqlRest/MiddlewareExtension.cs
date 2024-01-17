@@ -441,10 +441,10 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                                 if (meta.ResponseHeaders.Count > 0)
                                 {
-                                    foreach (var (headerKey, headerValue) in meta.ResponseHeaders)
+                                    foreach ((string headerKey, StringValues headerValue) in meta.ResponseHeaders)
                                     {
                                         context.Response.Headers.Append(headerKey, headerValue);
-                                    }
+                                    };
                                 }
                                 context.Response.StatusCode = (int)HttpStatusCode.OK;
                                 if (descriptor.IsArray && value is not null)
@@ -701,8 +701,7 @@ public static class NpgsqlRestMiddlewareExtensions
         var httpFile = new HttpFile(builder, options, logger);
         foreach (var routine in RoutineQuery.Run(options))
         {
-            var url = options.UrlPathBuilder((routine, options));
-            RoutineEndpointMeta? meta = Defaults.DefaultMetaBuilder(routine, options, url);
+            RoutineEndpointMeta? meta = DefaultEndpointMeta.Create(routine, options, logger);
 
             if (meta is null)
             {
@@ -719,7 +718,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 continue;
             }
 
-            List<(Routine routine, RoutineEndpointMeta meta)> list = dict.TryGetValue(url, out var value) ? value : [];
+            List<(Routine routine, RoutineEndpointMeta meta)> list = dict.TryGetValue(meta.Url, out var value) ? value : [];
             list.Add((routine, meta));
             dict[meta.Url] = list;
 

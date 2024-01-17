@@ -30,7 +30,7 @@ $$;
 public class ReturnTextTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_HelloWordl()
+    public async Task Test_HelloWorld()
     {
         using var result = await test.Client.PostAsync("/api/hello-world/", null);
         var response = await result.Content.ReadAsStringAsync();
