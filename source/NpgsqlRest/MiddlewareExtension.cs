@@ -31,7 +31,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
         builder.Use(async (context, next) =>
         {
-            if (!dict.TryGetValue(context.Request.Path, out (Routine routine, RoutineEndpointMeta meta)[]? tupleArray))
+            if (!dict.TryGetValue(context.Request.Path, out (Routine routine, RoutineEndpoint endpoint)[]? tupleArray))
             {
                 await next(context);
                 return;
@@ -83,15 +83,15 @@ public static class NpgsqlRestMiddlewareExtensions
             bool overloaded = tupleArray.Length > 1;
             for (var index = 0; index < tupleArray.AsSpan().Length; index++)
             {
-                var (routine, meta) = tupleArray[index];
-                if (!string.Equals(context.Request.Method, meta.HttpMethod.ToString(), StringComparison.OrdinalIgnoreCase))
+                var (routine, endpoint) = tupleArray[index];
+                if (!string.Equals(context.Request.Method, endpoint.HttpMethod.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
                 if (overloaded)
                 {
-                    if (meta.RequestParamType == RequestParamType.QueryString)
+                    if (endpoint.RequestParamType == RequestParamType.QueryString)
                     {
                         if (routine.ParamCount != context.Request.Query.Count)
                         {
@@ -118,12 +118,12 @@ public static class NpgsqlRestMiddlewareExtensions
                 NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
                 if (routine.ParamCount > 0)
                 {
-                    if (meta.RequestParamType == RequestParamType.QueryString)
+                    if (endpoint.RequestParamType == RequestParamType.QueryString)
                     {
                         int setCount = 0;
                         for (var i = 0; i < routine.ParamCount; i++)
                         {
-                            string p = meta.ParamNames[i];
+                            string p = endpoint.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
                             var parameter = new NpgsqlParameter
                             {
@@ -143,7 +143,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                                 parameter,
                                                 paramName: p,
                                                 typeDescriptor: descriptor,
-                                                requestParamType: meta.RequestParamType,
+                                                requestParamType: endpoint.RequestParamType,
                                                 queryStringValues: qsValue,
                                                 jsonBodyNode: null));
                                         }
@@ -155,7 +155,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                                 parameter,
                                                 paramName: p,
                                                 typeDescriptor: descriptor,
-                                                requestParamType: meta.RequestParamType,
+                                                requestParamType: endpoint.RequestParamType,
                                                 queryStringValues: qsValue,
                                                 jsonBodyNode: null));
                                         }
@@ -194,7 +194,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             parameter,
                                             paramName: p,
                                             typeDescriptor: descriptor,
-                                            requestParamType: meta.RequestParamType,
+                                            requestParamType: endpoint.RequestParamType,
                                             queryStringValues: qsValue,
                                             jsonBodyNode: null));
                                     }
@@ -206,7 +206,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             parameter,
                                             paramName: p,
                                             typeDescriptor: descriptor,
-                                            requestParamType: meta.RequestParamType,
+                                            requestParamType: endpoint.RequestParamType,
                                             queryStringValues: qsValue,
                                             jsonBodyNode: null));
                                     }
@@ -243,9 +243,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         }
 
                         int setCount = 0;
-                        for (var i = 0; i < meta.ParamNames.Length; i++)
+                        for (var i = 0; i < endpoint.ParamNames.Length; i++)
                         {
-                            string p = meta.ParamNames[i];
+                            string p = endpoint.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
                             var parameter = new NpgsqlParameter
                             {
@@ -266,7 +266,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                                 parameter,
                                                 paramName: p,
                                                 typeDescriptor: descriptor,
-                                                requestParamType: meta.RequestParamType,
+                                                requestParamType: endpoint.RequestParamType,
                                                 queryStringValues: null,
                                                 jsonBodyNode: value));
                                         }
@@ -278,7 +278,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                                 parameter,
                                                 paramName: p,
                                                 typeDescriptor: descriptor,
-                                                requestParamType: meta.RequestParamType,
+                                                requestParamType: endpoint.RequestParamType,
                                                 queryStringValues: null,
                                                 jsonBodyNode: value));
                                         }
@@ -317,7 +317,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             parameter,
                                             paramName: p,
                                             typeDescriptor: descriptor,
-                                            requestParamType: meta.RequestParamType,
+                                            requestParamType: endpoint.RequestParamType,
                                             queryStringValues: null,
                                             jsonBodyNode: null));
                                     }
@@ -329,7 +329,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             parameter,
                                             paramName: p,
                                             typeDescriptor: descriptor,
-                                            requestParamType: meta.RequestParamType,
+                                            requestParamType: endpoint.RequestParamType,
                                             queryStringValues: null,
                                             jsonBodyNode: null));
                                     }
@@ -356,7 +356,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
 
-                if (meta.RequiresAuthorization && context.User?.Identity?.IsAuthenticated is false)
+                if (endpoint.RequiresAuthorization && context.User?.Identity?.IsAuthenticated is false)
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     await context.Response.CompleteAsync();
@@ -406,9 +406,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         }
                     }
                     command.CommandText = routine.Expressions[paramCount];
-                    if (meta.CommandTimeout.HasValue)
+                    if (endpoint.CommandTimeout.HasValue)
                     {
-                        command.CommandTimeout = meta.CommandTimeout.Value;
+                        command.CommandTimeout = endpoint.CommandTimeout.Value;
                     }
                     if (routine.IsVoid)
                     {
@@ -427,9 +427,9 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 string? value = reader.GetValue(0) as string;
                                 TypeDescriptor descriptor = routine.ReturnTypeDescriptor[0];
-                                if (meta.ResponseContentType is not null)
+                                if (endpoint.ResponseContentType is not null)
                                 {
-                                    context.Response.ContentType = meta.ResponseContentType;
+                                    context.Response.ContentType = endpoint.ResponseContentType;
                                 }
                                 else if (descriptor.IsJson || descriptor.IsArray)
                                 {
@@ -439,9 +439,9 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     context.Response.ContentType = Text.Plain;
                                 }
-                                if (meta.ResponseHeaders.Count > 0)
+                                if (endpoint.ResponseHeaders.Count > 0)
                                 {
-                                    foreach ((string headerKey, StringValues headerValue) in meta.ResponseHeaders)
+                                    foreach ((string headerKey, StringValues headerValue) in endpoint.ResponseHeaders)
                                     {
                                         context.Response.Headers.Append(headerKey, headerValue);
                                     };
@@ -473,17 +473,17 @@ public static class NpgsqlRestMiddlewareExtensions
                         }
                         else
                         {
-                            if (meta.ResponseContentType is not null)
+                            if (endpoint.ResponseContentType is not null)
                             {
-                                context.Response.ContentType = meta.ResponseContentType;
+                                context.Response.ContentType = endpoint.ResponseContentType;
                             }
                             else
                             {
                                 context.Response.ContentType = Application.Json;
                             }
-                            if (meta.ResponseHeaders.Count > 0)
+                            if (endpoint.ResponseHeaders.Count > 0)
                             {
-                                foreach (var (headerKey, headerValue) in meta.ResponseHeaders)
+                                foreach (var (headerKey, headerValue) in endpoint.ResponseHeaders)
                                 {
                                     context.Response.Headers.Append(headerKey, headerValue);
                                 }
@@ -512,7 +512,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         {
                                             await context.Response.WriteAsync("{");
                                         }
-                                        await context.Response.WriteAsync(string.Concat("\"", meta.ReturnRecordNames[i], "\":"));
+                                        await context.Response.WriteAsync(string.Concat("\"", endpoint.ReturnRecordNames[i], "\":"));
                                     }
 
                                     var descriptor = routine.ReturnTypeDescriptor[i];
@@ -692,38 +692,40 @@ public static class NpgsqlRestMiddlewareExtensions
         return result.ToString();
     }
 
-    private static FrozenDictionary<string, (Routine routine, RoutineEndpointMeta meta)[]> BuildDictionary(
+    private static FrozenDictionary<string, (Routine routine, RoutineEndpoint endpoint)[]> BuildDictionary(
         IApplicationBuilder builder,
         NpgsqlRestOptions options,
         ILogger? logger)
     {
-        var dict = new Dictionary<string, List<(Routine routine, RoutineEndpointMeta meta)>>();
+        var dict = new Dictionary<string, List<(Routine routine, RoutineEndpoint endpoint)>>();
         var httpFile = new HttpFile(builder, options, logger);
         foreach (var routine in RoutineQuery.Run(options))
         {
-            RoutineEndpointMeta? meta = DefaultEndpointMeta.Create(routine, options, logger);
+            RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);
 
-            if (meta is null)
+            if (result is null)
             {
                 continue;
             }
 
-            if (options.EndpointMetaCallback is not null)
+            if (options.EndpointCreated is not null)
             {
-                meta = options.EndpointMetaCallback((routine, options, meta));
+                result = options.EndpointCreated(routine, result.Value);
             }
 
-            if (meta is null)
+            if (result is null)
             {
                 continue;
             }
 
-            List<(Routine routine, RoutineEndpointMeta meta)> list = dict.TryGetValue(meta.Url, out var value) ? value : [];
-            list.Add((routine, meta));
-            dict[meta.Url] = list;
+            RoutineEndpoint endpoint = result.Value;
 
-            httpFile.HandleEntry(routine, meta);
-            LogInfo(ref logger, ref options, "Created endpoint {0} {1}", meta.HttpMethod.ToString(), meta.Url);
+            List<(Routine routine, RoutineEndpoint meta)> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
+            list.Add((routine, endpoint));
+            dict[endpoint.Url] = list;
+
+            httpFile.HandleEntry(routine, endpoint);
+            LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.HttpMethod.ToString(), endpoint.Url);
         }
         httpFile.FinalizeHttpFile();
         return dict

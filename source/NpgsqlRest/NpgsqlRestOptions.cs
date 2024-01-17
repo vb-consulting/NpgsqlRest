@@ -33,10 +33,10 @@ public class NpgsqlRestOptions(
     string[]? includeNames = null,
     string[]? excludeNames = null,
     string? urlPathPrefix = "/api",
-    Func<(Routine, NpgsqlRestOptions), string>? urlPathBuilder = null,
+    Func<Routine, NpgsqlRestOptions, string>? urlPathBuilder = null,
     bool connectionFromServiceProvider = false,
     NpgsqlRestHttpFileOptions? httpFileOptions = null,
-    Func<(Routine, NpgsqlRestOptions, RoutineEndpointMeta), RoutineEndpointMeta?>? endpointMetaCallback = null,
+    Func<Routine, RoutineEndpoint, RoutineEndpoint?>? endpointCreated = null,
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
@@ -115,7 +115,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// A custom function delegate that returns a string that will be used as the url path for routine from the first parameter.
     /// </summary>
-    public Func<(Routine, NpgsqlRestOptions), string> UrlPathBuilder { get; set; } = urlPathBuilder ?? DefaultUrlBuilder.CreateUrl;
+    public Func<Routine, NpgsqlRestOptions, string> UrlPathBuilder { get; set; } = urlPathBuilder ?? DefaultUrlBuilder.CreateUrl;
     /// <summary>
     /// Set to true to get the PostgreSQL connection from the service provider. Otherwise, it will be created from the connection string property.
     /// </summary>
@@ -127,9 +127,9 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Callback, if not null, will be called after endpoint meta data is created.
     /// Use this to do custom configuration over routine endpoints. 
-    /// Return null to disable endpoint.
+    /// Return null to disable this endpoint.
     /// </summary>
-    public Func<(Routine, NpgsqlRestOptions, RoutineEndpointMeta), RoutineEndpointMeta?>? EndpointMetaCallback { get; set; } = endpointMetaCallback;
+    public Func<Routine, RoutineEndpoint, RoutineEndpoint?>? EndpointCreated { get; set; } = endpointCreated;
     /// <summary>
     /// Method that converts names for parameters and return fields. 
     /// By default it is a lower camel case.

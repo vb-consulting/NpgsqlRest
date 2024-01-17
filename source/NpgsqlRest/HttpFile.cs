@@ -16,14 +16,14 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
     private bool endpoint = false;
     private bool file = false;
 
-    internal void HandleEntry(Routine routine, RoutineEndpointMeta meta)
+    internal void HandleEntry(Routine routine, RoutineEndpoint endpoint)
     {
         if (options.HttpFileOptions.Option == HttpFileOption.Disabled)
         {
             return;
         }
 
-        endpoint = options.HttpFileOptions.Option == HttpFileOption.Endpoint || options.HttpFileOptions.Option == HttpFileOption.Both;
+        this.endpoint = options.HttpFileOptions.Option == HttpFileOption.Endpoint || options.HttpFileOptions.Option == HttpFileOption.Both;
         file = options.HttpFileOptions.Option == HttpFileOption.File || options.HttpFileOptions.Option == HttpFileOption.Both;
 
         string formatfileName()
@@ -100,15 +100,15 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                 }
             }
         }
-        if (meta.ParamNames.Length == 0 || meta.RequestParamType != RequestParamType.QueryString)
+        if (endpoint.ParamNames.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)
         {
-            sb.AppendLine(string.Concat(meta.HttpMethod, " {{host}}", meta.Url));
+            sb.AppendLine(string.Concat(endpoint.HttpMethod, " {{host}}", endpoint.Url));
         }
 
-        if (meta.ParamNames.Length > 0 && meta.RequestParamType == RequestParamType.QueryString)
+        if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
         {
-            sb.AppendLine(string.Concat(meta.HttpMethod, " {{host}}", meta.Url, "?",
-                string.Join("&", meta
+            sb.AppendLine(string.Concat(endpoint.HttpMethod, " {{host}}", endpoint.Url, "?",
+                string.Join("&", endpoint
                     .ParamNames
                     .Select((p, i) =>
                     {
@@ -122,18 +122,18 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     }))));
         }
 
-        if (meta.ParamNames.Length > 0 && meta.RequestParamType == RequestParamType.BodyJson)
+        if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.BodyJson)
         {
             sb.AppendLine("content-type: application/json");
             sb.AppendLine();
             sb.AppendLine("{");
-            foreach(var (p, i)  in meta.ParamNames.Select((p, i) => (p, i)))
+            foreach(var (p, i)  in endpoint.ParamNames.Select((p, i) => (p, i)))
             {
                 sb.AppendLine(string.Concat(
                     "    \"", p, 
                     "\": ",
                     SampleValue(i, routine.ParamTypeDescriptor[i]),
-                    i == meta.ParamNames.Length - 1 ? "" : ","));
+                    i == endpoint.ParamNames.Length - 1 ? "" : ","));
             }
             sb.AppendLine("}");
         }

@@ -2,7 +2,7 @@
 
 namespace NpgsqlRest;
 
-internal static class DefaultEndpointMeta
+internal static class DefaultEndpoint
 {
     internal static readonly char[] newlineSeparator = ['\r', '\n'];
     internal static readonly char[] wordSeparator = [' '];
@@ -22,9 +22,9 @@ internal static class DefaultEndpointMeta
     private const string timeout2 = "timeout";
     private const string contentType = "content-type";
 
-    internal static RoutineEndpointMeta? Create(Routine routine, NpgsqlRestOptions options, ILogger? logger)
+    internal static RoutineEndpoint? Create(Routine routine, NpgsqlRestOptions options, ILogger? logger)
     {
-        var url = options.UrlPathBuilder((routine, options));
+        var url = options.UrlPathBuilder(routine, options);
         var hasGet = routine.Name.Contains("get", StringComparison.OrdinalIgnoreCase);
         var method = hasGet ? Method.GET : Method.POST;
         var requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
