@@ -12,10 +12,11 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{35679C8A-E260-4E62-8A5C-702999F671B6}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		..\.github\workflows\build-test-publish.yml = ..\.github\workflows\build-test-publish.yml
-		..\changelog.md = ..\changelog.md
-		..\LICENSE = ..\LICENSE
-		..\README.md = ..\README.md
+		.gitignore = .gitignore
+		.github\workflows\build-test-publish.yml = .github\workflows\build-test-publish.yml
+		changelog.md = changelog.md
+		LICENSE = LICENSE
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global

@@ -6,7 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
-    
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <IsPackable>true</IsPackable>
+    <Title>NpgsqlRest</Title>
     <Authors>VB-Consulting</Authors>
     <Company>VB-Consulting</Company>
     <Copyright>VB-Consulting</Copyright>
@@ -29,7 +31,6 @@
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <FileVersion>1.0.0</FileVersion>
     <PackageVersion>1.0.0</PackageVersion>
-    <Title>NpgsqlRest</Title>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,7 +42,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <PackageReferenceFiles Include="bin\$(Configuration)\$(AssemblyName).xml" />
   </ItemGroup>
 
