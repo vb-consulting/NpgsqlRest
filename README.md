@@ -7,7 +7,7 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-NpgsqlRest is a .NET 8 library that builds PostgreSQL functions and procedures into RESTful APIs. Simple example:
+Automatic REST API for Any Postgres Database as NET8 Middleware
 
 **1) PostgreSQL Function**
 

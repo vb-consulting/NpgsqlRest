@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    
+    <Authors>VB-Consulting</Authors>
+    <Company>VB-Consulting</Company>
+    <Copyright>VB-Consulting</Copyright>
+    <Description>Automatic REST API for Any Postgres Database as NET8 Middleware</Description>
+    <PackageTags>api;api-rest;restful-api;http;postgres;;dotnet;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
+    <PackageProjectUrl>https://github.com/vb-consulting/NpgsqlRest</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/vb-consulting/NpgsqlRest</RepositoryUrl>
+    <PackageReleaseNotes>https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md</PackageReleaseNotes>
+    <PackageId>NpgsqlRest</PackageId>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(AssemblyName).xml</DocumentationFile>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>NpgsqlRest</Title>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.1" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReferenceFiles Include="bin\$(Configuration)\$(AssemblyName).xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>

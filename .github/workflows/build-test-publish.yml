@@ -1,0 +1,33 @@
+name: build-test-publish
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install PosgtreSQL
+      uses: vb-consulting/postgresql-action@v1
+      with:
+        postgresql version: '16'  # See https://hub.docker.com/_/postgres for available versions
+        postgresql user: 'postgres'
+        postgresql password: 'postgres'
+    - uses: actions/checkout@v2
+    - name: Setup .NET8
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 8.0.x
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    - name: Test
+      run: dotnet test --no-restore --verbosity m
+    - name: Publish
+      run: dotnet nuget push **\*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{secrets.NUGET_API_KEY}} --skip-duplicate
