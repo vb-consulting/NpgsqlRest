@@ -109,7 +109,7 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-18T11%3A35%3A57.93&timestamptz=2024-01-18T11%3A35%3A57.93&date=2024-01-18&time=11%3A35%3A57.933582&timetz=11%3A35%3A57.933871%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=5b52ecac-8396-436b-a3dd-29cfff3f3511&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-18T11%3A55%3A50.86&timestamptz=2024-01-18T11%3A55%3A50.86&date=2024-01-18&time=11%3A55%3A50.865221&timetz=11%3A55%3A50.865501%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=bbd46d0b-69e6-4547-b1b4-e57709777e22&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -248,14 +248,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-18T11:35:57.93",
-    "timestamptz": "2024-01-18T11:35:57.93",
+    "timestamp": "2024-01-18T11:55:50.86",
+    "timestamptz": "2024-01-18T11:55:50.86",
     "date": "2024-01-18",
-    "time": "11:35:57.935240",
-    "timetz": "11:35:57.935241+01:00",
+    "time": "11:55:50.867102",
+    "timetz": "11:55:50.867103+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "6f4dcafa-687b-470b-9210-1e3a3adbc77e",
+    "uuid": "dbffee98-c3b4-423b-8525-5602b38f4f2c",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",

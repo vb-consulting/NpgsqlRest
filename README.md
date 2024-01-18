@@ -9,7 +9,7 @@
 
 NpgsqlRest is a .NET 8 library that builds PostgreSQL functions and procedures into RESTful APIs. Simple example:
 
-#### 1) PostgreSQL Function
+**1) PostgreSQL Function**
 
 ```sql
 create function hello_world() 
@@ -20,7 +20,7 @@ select 'Hello World'
 $$;
 ```
 
-#### 2) .NET8 AOT Ready Web App
+**2) .NET8 AOT Ready Web App**
 
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -29,7 +29,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-#### 3) Auto-Generated HTTP File (Optional)
+**3) Auto-Generated HTTP File (Optional)**
 
 ```
 @host=http://localhost:5000
@@ -39,7 +39,7 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-#### 4) Endpoint Response
+**4) Endpoint Response**
 
 ```
 HTTP/1.1 200 OK
@@ -55,12 +55,115 @@ Hello World
 ## Features
 
 - Automatic generation of REST endpoints from PostgreSQL functions.
-- Customizable URL paths, verbs, headers, authorization control, logging, etc, for each endpoint.
-- Individual configuration and customization through function or procedure comments.
-- Automatic HTTP file creation.
-- Native AOT (ahead-of-time compilation) deployment: AOT ready.
+- Native AOT Ready.
+- Customization of endpoints with comment annotations.
+- Automatic HTTP files.
+- Interact seamlessly with NET8 backend and take advantage of NET8 features.
+
+### Automatic Generation of REST Endpoints
+
+See the introductory example above.
+
+### Native AOT Ready
+
+With the NET8 you can build into native code code (ahead-of-time (AOT) compilation). 
+
+NpgsqlRest is fully native AOT-ready and AOT-tested.
+
+AOT builds have faster startup time, smaller memory footprints and don't require any .NET runtime installed.
+
+### Comment Annotations
+
+Configure individual endpoints with powerful and simple routine comment annotations. You can use any PostgreSQL administration tool or a simple script:
+
+```sql
+create function hello_world_html() returns text language sql as 
+$$
+select '<div>Hello World</div>';
+$$
+
+comment on function hello_world_html() is '
+Using comment annotations to configure this endpoint.
+HTTP GET /hello
+Content-Type: text/html';
+```
+
+```
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/1.1 GET http://localhost:5000/api/hello - 200 - text/html 29.7810ms
+```
+
+```
+Connection: close
+Content-Type: text/html
+Date: Thu, 18 Jan 2024 11:00:39 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+
+<div>Hello World</div>
+```
+
+### Automatic HTTP Files
+
+Create automatically [HTTP file(s)](https://learn.microsoft.com/en-us/aspnet/core/test/http-files?view=aspnetcore-8.0) with ready-made randomized test example calls.
+
+## NET8 backend
+
+NpgsqlRest is implemented as a NET8 middleware component, which means that anything that is available in NET8 is also available to the NpgsqlRest REST endpoints. And that is, well, everything. From rate limiters to all kinds of authorization schemas, to name a few.
+
+You can also interact with the NET8 calling code. Do you want to supply the username to all parameters named "user"? No problem, how about this:
+
+```csharp
+var app = builder.Build();
+app.UseNpgsqlRest(new(connectionString)
+{
+    ValidateParameters = p =>
+    {
+        if (p.Context.User.Identity?.IsAuthenticated == true && 
+            string.Equals(p.ParamName, "user", StringComparison.OrdinalIgnoreCase))
+        {
+            p.Parameter.Value = p.Context.User.Identity.Name;
+        }
+    } 
+});
+app.Run();
+```
 
 ## Getting Started
+
+### Installation
+
+- .NET CLI:
+```
+dotnet add package NpgsqlRest
+```
+
+- Package Manager:
+```
+NuGet\Install-Package Norm.net
+```
+
+- Package Reference:
+```xml
+<PackageReference Include="NpgsqlRest" />
+```
+
+- Script & Interactive:
+```
+#r "nuget: NpgsqlRest"
+```
+
+### First Use
+
+Your application builder code:
+
+```csharp
+var app = builder.Build();
+app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));
+app.Run();
+```
+
+For all available build options, please consult a [source code file](https://github.com/vb-consulting/NpgsqlRest/blob/master/source/NpgsqlRest/NpgsqlRestOptions.cs), until proper documentation is built.
 
 ## Dependencies
 
@@ -68,15 +171,10 @@ Hello World
 - Microsoft.NET.Sdk.Web 8.0
 - Npgsql 8.0.1
 
-## Installation
-
-## Documentation
-
-For more detailed information on how to use NpgsqlRest, please refer to the documentation.
 
 ## Contributing
 
-We welcome contributions from the community. Please read our contributing guide for more information.
+We welcome contributions from the community. Please make a pull request if you whish to contribute.
 
 ## License
 
