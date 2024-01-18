@@ -81,7 +81,6 @@ select '<div>Hello World</div>';
 $$
 
 comment on function hello_world_html() is '
-Using comment annotations to configure this endpoint.
 HTTP GET /hello
 Content-Type: text/html';
 ```
@@ -131,22 +130,17 @@ app.Run();
 
 ### Installation
 
-- .NET CLI:
+Install the package from NuGet:
+
 ```
 dotnet add package NpgsqlRest
 ```
-
-- Package Manager:
 ```
 NuGet\Install-Package Norm.net
 ```
-
-- Package Reference:
 ```xml
 <PackageReference Include="NpgsqlRest" />
 ```
-
-- Script & Interactive:
 ```
 #r "nuget: NpgsqlRest"
 ```
@@ -168,11 +162,13 @@ For all available build options, please consult a [source code file](https://git
 - net8.0
 - Microsoft.NET.Sdk.Web 8.0
 - Npgsql 8.0.1
+- PostgreSQL >= 13
 
+Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs#L9C9-L9C49). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
 
 ## Contributing
 
-We welcome contributions from the community. Please make a pull request if you whish to contribute.
+We welcome contributions from the community. Please make a pull request if you wish to contribute.
 
 ## License
 
