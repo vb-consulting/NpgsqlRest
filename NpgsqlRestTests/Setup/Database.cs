@@ -66,5 +66,6 @@ public static partial class Database
             exec($"drop database {dbname}");
         }
         exec($"create database {dbname}");
+        exec($"alter database {dbname} set timezone to 'UTC'");
     }
 }
