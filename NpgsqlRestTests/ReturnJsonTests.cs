@@ -1,3 +1,4 @@
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 namespace NpgsqlRestTests;
 
 public static partial class Database
@@ -31,6 +32,9 @@ public class ReturnJsonTests(TestFixture test)
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
         result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
-        response.Should().Be("{\r\n  \"a\": 1,\r\n  \"b\": \"c\"\r\n}");
+
+        var node = JsonNode.Parse(response);
+        node["a"].ToJsonString().Should().Be("1");
+        node["b"].ToJsonString().Should().Be("\"c\"");
     }
 }
