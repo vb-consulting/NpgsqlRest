@@ -5,13 +5,15 @@ namespace NpgsqlRest;
 public readonly struct RoutineEndpoint(
     string url,
     Method method,
-    RequestParamType requestParamType = RequestParamType.QueryString,
-    bool requiresAuthorization = false,
-    string[]? returnRecordNames = null,
-    string[]? paramNames = null,
-    int? commandTimeout = null,
-    string? responseContentType = null,
-    Dictionary<string, StringValues>? responseHeaders = null)
+    RequestParamType requestParamType,
+    bool requiresAuthorization,
+    string[]? returnRecordNames,
+    string[]? paramNames,
+    int? commandTimeout,
+    string? responseContentType,
+    Dictionary<string, StringValues>? responseHeaders,
+    RequestHeadersMode requestHeadersMode,
+    string requestHeadersParameterName)
 {
     public readonly string Url = url;
     public readonly Method HttpMethod = method;
@@ -22,4 +24,6 @@ public readonly struct RoutineEndpoint(
     public readonly int? CommandTimeout = commandTimeout;
     public readonly string? ResponseContentType = responseContentType;
     public readonly Dictionary<string, StringValues> ResponseHeaders = responseHeaders ?? [];
+    public readonly RequestHeadersMode RequestHeadersMode = requestHeadersMode;
+    public readonly string RequestHeadersParameterName = requestHeadersParameterName;
 }

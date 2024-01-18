@@ -18,6 +18,23 @@ public enum CommentsMode
     OnlyWithHttpTag
 }
 
+public enum RequestHeadersMode
+{
+    /// <summary>
+    /// Ignore request headers, don't send them to PostgreSQL (default).
+    /// </summary>
+    Ignore,
+    /// <summary>
+    /// Send all request headers as json object to PostgreSQL by executing set_config('context.headers', headers, false) before routine call.
+    /// </summary>
+    Context,
+    /// <summary>
+    /// Send all request headers as json object to PostgreSQL as default routine parameter with name set by RequestHeadersParameterName option.
+    /// This parameter has to have the default value (null) in the routine and have to be text or json type.
+    /// </summary>
+    Parameter
+}
+
 /// <summary>
 /// Options for the NpgsqlRest middleware.
 /// </summary>
@@ -47,7 +64,9 @@ public class NpgsqlRestOptions(
     RequestParamType? defaultRequestParamType = null,
     Action<ParameterValidationValues>? validateParameters = null,
     Func<ParameterValidationValues, Task>? validateParametersAsync = null,
-    CommentsMode commentsMode = CommentsMode.ParseAll)
+    CommentsMode commentsMode = CommentsMode.ParseAll,
+    RequestHeadersMode requestHeadersMode = RequestHeadersMode.Ignore,
+    string requestHeadersParameterName = "headers")
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -141,7 +160,7 @@ public class NpgsqlRestOptions(
     /// </summary>
     public bool RequiresAuthorization { get; set;  } = requiresAuthorization;
     /// <summary>
-    /// Set the the minimal level of log messages or LogLevel.None to disable logging.
+    /// Set the minimal level of log messages or LogLevel.None to disable logging.
     /// </summary>
     public LogLevel LogLevel { get; set; } = logLevel;
     /// <summary>
@@ -182,4 +201,16 @@ public class NpgsqlRestOptions(
     /// OnlyWithHttpTag: Creates only endpoints from routines containing a comment with HTTP tag and and configures endpoint meta data.
     /// </summary>
     public CommentsMode CommentsMode { get; set; } = commentsMode;
+    /// <summary>
+    /// Configure how to send request headers to PostgreSQL:
+    /// Ignore: Ignore request headers, don't send them to PostgreSQL (default).
+    /// AsContextConfig: Send all request headers as json object to PostgreSQL by executing set_config('context.headers', headers, false) before routine call.
+    /// AsDefaultParameter: Send all request headers as json object to PostgreSQL as default routine parameter with name set by RequestHeadersParameterName option.
+    /// </summary>
+    public RequestHeadersMode RequestHeadersMode { get; set; } = requestHeadersMode;
+    /// <summary>
+    /// The name of the default routine parameter (text or json) to send request headers to PostgreSQL (parsed or unparsed).
+    /// This is only used when RequestHeadersMode is set to AsDefaultParameter.
+    /// </summary>
+    public string RequestHeadersParameterName { get; set; } = requestHeadersParameterName;
 }

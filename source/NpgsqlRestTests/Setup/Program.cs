@@ -21,12 +21,15 @@ public class Program
 
     public static void Main()
     {
+        var connectionString = Database.Create();
+        // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
+        AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
+
         var builder = WebApplication.CreateEmptyBuilder(new());
         builder.WebHost.UseKestrelCore();
-        var connectionString = Database.Create();
         var app = builder.Build();
         app.UseNpgsqlRest(new(connectionString)
-        { 
+        {
             ValidateParameters = Validate 
         });
         app.Run();

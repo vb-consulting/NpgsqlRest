@@ -44,6 +44,14 @@ begin
     );
 end;
 $$;
+
+create function case_single_default_params(_p text = 'xyz') 
+returns text 
+language sql
+as 
+$$
+select _p;
+$$;
 ");
     }
 }
@@ -160,5 +168,40 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Test_SingleDefault()
+    {
+        using var content = new StringContent("{\"p\": \"abc\"}", Encoding.UTF8, "application/json");
+        using var result = await test.Client.PostAsync("/api/case-single-default-params/", content);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("abc");
+    }
+
+    [Fact]
+    public async Task Test_SingleDefaul_EmptyBody()
+    {
+        using var content = new StringContent("{}", Encoding.UTF8, "application/json");
+        using var result = await test.Client.PostAsync("/api/case-single-default-params/", content);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("xyz");
+    }
+
+    [Fact]
+    public async Task Test_SingleDefaul_NullBody()
+    {
+        using var result = await test.Client.PostAsync("/api/case-single-default-params/", null);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("xyz");
     }
 }

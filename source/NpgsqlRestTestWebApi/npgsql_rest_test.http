@@ -109,7 +109,7 @@ GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-17T14%3A09%3A05.60&timestamptz=2024-01-17T14%3A09%3A05.60&date=2024-01-17&time=14%3A09%3A05.609706&timetz=14%3A09%3A05.610124%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=1de7853c-9712-4a6e-b16c-fa351248fc66&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-18T11%3A35%3A57.93&timestamptz=2024-01-18T11%3A35%3A57.93&date=2024-01-18&time=11%3A35%3A57.933582&timetz=11%3A35%3A57.933871%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=5b52ecac-8396-436b-a3dd-29cfff3f3511&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -248,14 +248,14 @@ content-type: application/json
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-01-17T14:09:05.61",
-    "timestamptz": "2024-01-17T14:09:05.61",
-    "date": "2024-01-17",
-    "time": "14:09:05.612094",
-    "timetz": "14:09:05.612095+01:00",
+    "timestamp": "2024-01-18T11:35:57.93",
+    "timestamptz": "2024-01-18T11:35:57.93",
+    "date": "2024-01-18",
+    "time": "11:35:57.935240",
+    "timetz": "11:35:57.935241+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "c9ee013e-2f0e-4dda-b598-f122a3928dc6",
+    "uuid": "6f4dcafa-687b-470b-9210-1e3a3adbc77e",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -495,6 +495,19 @@ content-type: application/json
 
 ###
 
+// function public.case_single_default_params(
+//     _p text DEFAULT 'xyz'::text
+// )
+// returns text
+POST {{host}}/api/case-single-default-params/
+content-type: application/json
+
+{
+    "p": "ABC"
+}
+
+###
+
 // function public.case_void()
 // returns void
 POST {{host}}/api/case-void/
@@ -597,6 +610,42 @@ POST {{host}}/api/comment-wrong-verb/
 
 ###
 
+// function public.get_req_headers_context()
+// returns text
+GET {{host}}/api/get-req-headers-context/
+
+###
+
+// function public.get_req_headers_ignore()
+// returns text
+GET {{host}}/api/get-req-headers-ignore/
+
+###
+
+// function public.get_req_headers_parameter1(
+//     _headers text DEFAULT NULL::text
+// )
+// returns text
+GET {{host}}/api/get-req-headers-parameter1/?headers=ABC
+
+###
+
+// function public.get_req_headers_parameter2(
+//     headers text DEFAULT NULL::text
+// )
+// returns text
+GET {{host}}/api/get-req-headers-parameter2/?headers=ABC
+
+###
+
+// function public.get_req_headers_parameter3(
+//     h text DEFAULT NULL::text
+// )
+// returns text
+GET {{host}}/api/get-req-headers-parameter3/?h=ABC
+
+###
+
 // function public.hello_world()
 // returns text
 POST {{host}}/api/hello-world/
@@ -606,6 +655,45 @@ POST {{host}}/api/hello-world/
 // function public.hello_world_html()
 // returns text
 GET {{host}}/api/hello-world-html/
+
+###
+
+// function public.req_headers_parameter1(
+//     _headers text DEFAULT NULL::text
+// )
+// returns text
+POST {{host}}/api/req-headers-parameter1/
+content-type: application/json
+
+{
+    "headers": "ABC"
+}
+
+###
+
+// function public.req_headers_parameter2(
+//     headers text DEFAULT NULL::text
+// )
+// returns text
+POST {{host}}/api/req-headers-parameter2/
+content-type: application/json
+
+{
+    "headers": "ABC"
+}
+
+###
+
+// function public.req_headers_parameter3(
+//     h text DEFAULT NULL::text
+// )
+// returns text
+POST {{host}}/api/req-headers-parameter3/
+content-type: application/json
+
+{
+    "h": "ABC"
+}
 
 ###
 

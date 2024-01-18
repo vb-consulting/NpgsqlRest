@@ -9,11 +9,23 @@ using Microsoft.Extensions.Primitives;
 
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
+using System.Text.Json.Serialization;
 
 namespace NpgsqlRest;
 
+[JsonSerializable(typeof(string))]
+internal partial class NpgsqlRestSerializerContext : JsonSerializerContext
+{
+}
+
 public static class NpgsqlRestMiddlewareExtensions
 {
+    private static readonly JsonSerializerOptions plainTextSerializerOptions = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        TypeInfoResolver = new NpgsqlRestSerializerContext()
+    };
+
     public static IApplicationBuilder UseNpgsqlRest(this IApplicationBuilder builder, NpgsqlRestOptions options)
     {
         if (options.ConnectionString is null && options.ConnectionFromServiceProvider is false)
@@ -57,7 +69,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     if (string.IsNullOrWhiteSpace(body))
                     {
-                        return;
+                        body = "{}";
                     }
                     JsonNode? node;
                     try
@@ -116,6 +128,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
 
                 NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
+                int? headerParameterIndex = null;
                 if (routine.ParamCount > 0)
                 {
                     if (endpoint.RequestParamType == RequestParamType.QueryString)
@@ -222,6 +235,15 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                                 else if (descriptor.HasDefault)
                                 {
+                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                                    {
+                                        if (string.Equals(p, options.RequestHeadersParameterName, StringComparison.Ordinal) ||
+                                            string.Equals(routine.ParamNames[i], options.RequestHeadersParameterName, StringComparison.Ordinal))
+                                        {
+                                            parameters[i] = parameter;
+                                            headerParameterIndex = i;
+                                        }
+                                    }
                                     setCount++;
                                 }
                             }
@@ -345,6 +367,15 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                                 else if (descriptor.HasDefault)
                                 {
+                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                                    {
+                                        if (string.Equals(p, options.RequestHeadersParameterName, StringComparison.Ordinal) || 
+                                            string.Equals(routine.ParamNames[i], options.RequestHeadersParameterName, StringComparison.Ordinal))
+                                        {
+                                            parameters[i] = parameter;
+                                            headerParameterIndex = i;
+                                        }
+                                    }
                                     setCount++;
                                 }
                             }
@@ -361,6 +392,33 @@ public static class NpgsqlRestMiddlewareExtensions
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     await context.Response.CompleteAsync();
                     return;
+                }
+
+                string? headers = null;
+                if (endpoint.RequestHeadersMode != RequestHeadersMode.Ignore)
+                {
+                    headers = "{";
+                    var i = 0;
+                    foreach (var header in context.Request.Headers)
+                    {
+                        if (i++ > 0)
+                        {
+                            headers = string.Concat(headers, ",");
+                        }
+                        headers = string.Concat(
+                            headers, 
+                            JsonSerializer.Serialize(header.Key, plainTextSerializerOptions),
+                            ":",
+                            JsonSerializer.Serialize(header.Value.ToString(), plainTextSerializerOptions));
+                    }
+                    headers = string.Concat(headers, "}");
+                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                    {
+                        if (headerParameterIndex.HasValue)
+                        {
+                            parameters[headerParameterIndex.Value].Value = headers;
+                        }
+                    }
                 }
 
                 NpgsqlConnection? connection = null;
@@ -395,6 +453,16 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
 
                     await using var command = connection.CreateCommand();
+
+                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
+                    {
+                        command.CommandText = string.Concat(
+                            "select set_config('request.headers', '",
+                            headers,
+                            "', false)");
+                        command.ExecuteNonQuery();
+                    }
+
                     int paramCount = 0;
                     for (var i = 0; i < parameters.Length; i++)
                     {
@@ -596,11 +664,6 @@ public static class NpgsqlRestMiddlewareExtensions
 
         return builder;
     }
-
-    private static readonly JsonSerializerOptions plainTextSerializerOptions = new()
-    {
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
 
     private static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
     {
