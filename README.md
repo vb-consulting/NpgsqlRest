@@ -1,7 +1,5 @@
 # NpgsqlRest
 
-> Note: this still is a work in progress NuGet library hasn't been published yet.
-
 ![build-test-publish](https://github.com/vb-consulting/NpgsqlRest/workflows/build-test-publish/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
