@@ -257,17 +257,17 @@ internal static class DefaultEndpoint
         }
 
         return new(
-            url: url,
-            method: method,
-            requestParamType: requestParamType,
-            requiresAuthorization: requiresAuthorization,
-            returnRecordNames: returnRecordNames,
-            paramNames: paramNames,
-            commandTimeout: commandTimeout,
-            responseContentType: responseContentType,
-            responseHeaders: responseHeaders,
-            requestHeadersMode: requestHeadersMode,
-            requestHeadersParameterName: requestHeadersParameterName);
+            Url: url,
+            Method: method,
+            RequestParamType: requestParamType,
+            RequiresAuthorization: requiresAuthorization,
+            ReturnRecordNames: returnRecordNames,
+            ParamNames: paramNames,
+            CommandTimeout: commandTimeout,
+            ResponseContentType: responseContentType,
+            ResponseHeaders: responseHeaders ?? [],
+            RequestHeadersMode: requestHeadersMode,
+            RequestHeadersParameterName: requestHeadersParameterName);
     }
 
     private static bool StringEquals(ref string str1, string str2) => 

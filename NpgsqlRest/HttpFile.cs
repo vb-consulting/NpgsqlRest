@@ -102,12 +102,12 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         }
         if (endpoint.ParamNames.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)
         {
-            sb.AppendLine(string.Concat(endpoint.HttpMethod, " {{host}}", endpoint.Url));
+            sb.AppendLine(string.Concat(endpoint.Method, " {{host}}", endpoint.Url));
         }
 
         if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
         {
-            sb.AppendLine(string.Concat(endpoint.HttpMethod, " {{host}}", endpoint.Url, "?",
+            sb.AppendLine(string.Concat(endpoint.Method, " {{host}}", endpoint.Url, "?",
                 string.Join("&", endpoint
                     .ParamNames
                     .Select((p, i) =>

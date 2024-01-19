@@ -6,10 +6,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Npgsql;
 using Microsoft.Extensions.Primitives;
-
+using System.Text.Json.Serialization;
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
-using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace NpgsqlRest;
 
@@ -33,7 +33,11 @@ public static class NpgsqlRestMiddlewareExtensions
             throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
         }
         ILogger? logger = null;
-        if (builder is WebApplication app)
+        if (options.Logger is not null)
+        {
+            logger = options.Logger;
+        }
+        else if (builder is WebApplication app)
         {
             logger = app.Logger;
         }
@@ -96,7 +100,7 @@ public static class NpgsqlRestMiddlewareExtensions
             for (var index = 0; index < tupleArray.AsSpan().Length; index++)
             {
                 var (routine, endpoint) = tupleArray[index];
-                if (!string.Equals(context.Request.Method, endpoint.HttpMethod.ToString(), StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(context.Request.Method, endpoint.Method.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -788,7 +792,11 @@ public static class NpgsqlRestMiddlewareExtensions
             dict[endpoint.Url] = list;
 
             httpFile.HandleEntry(routine, endpoint);
-            LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.HttpMethod.ToString(), endpoint.Url);
+            LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.Method.ToString(), endpoint.Url);
+        }
+        if (options.EndpointsCreated is not null)
+        {
+            options.EndpointsCreated(dict.Values.SelectMany(x => x).ToArray());
         }
         httpFile.FinalizeHttpFile();
         return dict

@@ -57,6 +57,7 @@ public class NpgsqlRestOptions(
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
+    ILogger? logger = null,
     bool logConnectionNoticeEvents = true,
     int? commandTimeout = null,
     bool logParameterMismatchWarnings = true,
@@ -66,7 +67,8 @@ public class NpgsqlRestOptions(
     Func<ParameterValidationValues, Task>? validateParametersAsync = null,
     CommentsMode commentsMode = CommentsMode.ParseAll,
     RequestHeadersMode requestHeadersMode = RequestHeadersMode.Ignore,
-    string requestHeadersParameterName = "headers")
+    string requestHeadersParameterName = "headers",
+    Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -164,6 +166,10 @@ public class NpgsqlRestOptions(
     /// </summary>
     public LogLevel LogLevel { get; set; } = logLevel;
     /// <summary>
+    /// Use this logger instead of the default logger.
+    /// </summary>
+    public ILogger? Logger { get; set; } = logger;
+    /// <summary>
     /// Set to true to log connection notice events.
     /// </summary>
     public bool LogConnectionNoticeEvents { get; set; } = logConnectionNoticeEvents;
@@ -213,4 +219,8 @@ public class NpgsqlRestOptions(
     /// This is only used when RequestHeadersMode is set to AsDefaultParameter.
     /// </summary>
     public string RequestHeadersParameterName { get; set; } = requestHeadersParameterName;
+    /// <summary>
+    /// Callback, if not null, will be called after all endpoints are created.
+    /// </summary>
+    public Action<(Routine routine, RoutineEndpoint endpoint)[]>? EndpointsCreated { get; set; } = endpointsCreated;
 }
