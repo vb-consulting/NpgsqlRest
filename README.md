@@ -58,7 +58,7 @@ Hello World
 - Customization of endpoints with comment annotations. You can easily configure any endpoint by adding annotation labels to routine comments. Like for example HTTP GET if you want to change the method verb to GET.
 - Automatic HTTP files. Create ready-to-run HTTP files easily, for testing, debugging and discovery.
 - Interact seamlessly with .NET8 backend and take advantage of .NET8 features.
-- High performance with or without native AOT, up to 6 times higher throughput than similar solution.
+- High performance with or without native AOT, up to 6 times higher throughput than similar solutions.
 
 ### Automatic Generation of REST Endpoints
 
@@ -107,7 +107,7 @@ Transfer-Encoding: chunked
 
 Create automatically [HTTP file(s[)](https://learn.microsoft.com/en-us/aspnet/core/test/http-files?view=aspnetcore-8.0) with ready-to-run randomized test example calls.
 
-## NET8 backend
+### NET8 backend
 
 NpgsqlRest is implemented as a NET8 middleware component, which means that anything that is available in NET8 is also available to the NpgsqlRest REST endpoints. 
 
@@ -136,6 +136,26 @@ app.UseNpgsqlRest(new(connectionString)
 app.Run();
 ```
 
+### High Performances
+
+K6 performance tests, 10 seconds, 100 virtual users.
+
+PostgREST:
+
+```console
+   ✓ http_req_duration..............: avg=37.91ms min=559.1µs  med=1.67ms  max=1.5s    p(90)=113.81ms p(95)=200.96ms
+     iterations.....................: 13377   1315.56161/s
+```
+
+NpgsqlRest AOT build:
+
+```console
+   ✓ http_req_duration..............: avg=5.65ms   min=524.55µs med=4.61ms  max=77.83ms p(90)=10.9ms   p(95)=13.61ms
+     iterations.....................: 86458   8624.438772/s
+```
+
+See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestPerfTest).
+  
 ## Getting Started
 
 ### Installation
