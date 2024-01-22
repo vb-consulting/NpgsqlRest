@@ -144,15 +144,17 @@ PostgREST:
 
 ```console
    ✓ http_req_duration..............: avg=37.91ms min=559.1µs  med=1.67ms  max=1.5s    p(90)=113.81ms p(95)=200.96ms
-     iterations.....................: 13377   1315.56161/s
+     http_reqs......................: 13377   1315.56161/s
 ```
 
 NpgsqlRest AOT build:
 
 ```console
    ✓ http_req_duration..............: avg=5.65ms   min=524.55µs med=4.61ms  max=77.83ms p(90)=10.9ms   p(95)=13.61ms
-     iterations.....................: 86458   8624.438772/s
+     http_reqs......................: 86458   8624.438772/s
 ```
+
+> In simple terms, for a period of a 10 seconds, and for 100 simulated virtual concurrent users, PostgREST has generated 13377 succesful requests with average duration of 37.91ms, and NpgsqlRest AOT build has generated 86458 succesful requests with average duration of 5.65ms.
 
 See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestPerfTest).
   
