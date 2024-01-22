@@ -5,12 +5,12 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-Automatic REST API for Any Postgres Database implemented as AOUT Ready .NET8 Middleware
+Automatic REST API for Any Postgres Database implemented as AOT Ready .NET8 Middleware
 
-1) Your PostgreSQL Function
+#### 1) Your PostgreSQL Function
 
 ```sql
-create function hello_world() 
+create function hello_world()                                                                           
 returns text 
 language sql
 as $$
@@ -18,29 +18,29 @@ select 'Hello World'
 $$;
 ```
 
-2) .NET8 AOT Ready Web App
+#### 2) .NET8 AOT Ready Web App
 
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
 var app = builder.Build();
-app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));
+app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));  
 app.Run();
 ```
 
-1) Optionally, Auto-Generated HTTP File
+#### 3) Optionally, Auto-Generated HTTP File
 
-```
-@host=http://localhost:5000
+```http
+@host=http://localhost:5000                                                                             
 
 // function public.hello_world()
 // returns text
 POST {{host}}/api/hello-world/
 ```
 
-4) Endpoint Response
+#### 4) Endpoint Response
 
-```
-HTTP/1.1 200 OK
+```http
+HTTP/1.1 200 OK                                                                                          
 Connection: close
 Content-Type: text/plain
 Date: Tue, 09 Jan 2024 14:25:26 GMT
@@ -78,7 +78,10 @@ Configure individual endpoints with powerful and simple routine comment annotati
 Function:
 
 ```sql
-create function hello_world_html() returns text language sql as 
+create function hello_world_html()                                                                      
+returns text 
+language sql 
+as 
 $$
 select '<div>Hello World</div>';
 $$
@@ -90,8 +93,8 @@ Content-Type: text/html';
 
 Will have content type `text/html` as visible in comment annotation:
 
-```
-Connection: close
+```http
+Connection: close                                                                                       
 Content-Type: text/html
 Date: Thu, 18 Jan 2024 11:00:39 GMT
 Server: Kestrel
@@ -118,7 +121,7 @@ You can also interact with the NET8 calling code to:
 For example, pass a `Context.User.Identity.Name` to every parameter named `user`:
 
 ```csharp
-var app = builder.Build();
+var app = builder.Build();                                                                              
 app.UseNpgsqlRest(new(connectionString)
 {
     ValidateParameters = p =>
@@ -139,16 +142,16 @@ app.Run();
 
 Install the package from NuGet by using any of these available methods:
 
-```
+```bash
 dotnet add package NpgsqlRest --version 1.2.0
 ```
-```
+```powershell
 NuGet\Install-Package NpgsqlRest -version 1.2.0
 ```
 ```xml
 <PackageReference Include="NpgsqlRest" Version="1.2.0" />
 ```
-```
+```yaml
 #r "nuget: NpgsqlRest, 1.2.0"
 ```
 
