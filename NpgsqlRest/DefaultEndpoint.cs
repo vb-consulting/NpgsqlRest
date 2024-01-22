@@ -65,6 +65,7 @@ internal static class DefaultEndpoint
         "body-parameter-name",
         "body_parameter_name",
         "bodyparamname",
+        "body-param-name",
         "body_param_name"
     ];
 
