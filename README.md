@@ -5,9 +5,9 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-Automatic REST API for Any Postgres Database as NET8 Middleware
+Automatic REST API for Any Postgres Database implemented as AOUT Ready .NET8 Middleware
 
-**1) PostgreSQL Function**
+1) Your PostgreSQL Function
 
 ```sql
 create function hello_world() 
@@ -18,7 +18,7 @@ select 'Hello World'
 $$;
 ```
 
-**2) .NET8 AOT Ready Web App**
+2) .NET8 AOT Ready Web App
 
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -27,7 +27,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-**3) Auto-Generated HTTP File (Optional)**
+1) Optionally, Auto-Generated HTTP File
 
 ```
 @host=http://localhost:5000
@@ -37,7 +37,7 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-**4) Endpoint Response**
+4) Endpoint Response
 
 ```
 HTTP/1.1 200 OK
@@ -52,15 +52,16 @@ Hello World
 
 ## Features
 
-- Automatic generation of REST endpoints from PostgreSQL functions.
-- Native AOT Ready.
-- Customization of endpoints with comment annotations.
-- Automatic HTTP files.
-- Interact seamlessly with NET8 backend and take advantage of NET8 features.
+- Automatic generation of the HTTP REST endpoints from PostgreSQL functions and procedures.
+- Native AOT Ready. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
+- Customization of endpoints with comment annotations. You can easily configure any endpoint by adding annotation labels to routine comments. Like for example HTTP GET if you want to change the method verb to GET.
+- Automatic HTTP files. Create ready-to-run HTTP files easily, for testing, debugging and discovery.
+- Interact seamlessly with .NET8 backend and take advantage of .NET8 features.
+- High performance with or without native AOT, up to 6 times higher throughput than similar solution.
 
 ### Automatic Generation of REST Endpoints
 
-See the introductory example above.
+See the introductory example above. Automatically build HTTP REST endpoints from PostgreSQL functions and procedures and configure them the way you like.
 
 ### Native AOT Ready
 
@@ -74,6 +75,8 @@ AOT builds have faster startup time, smaller memory footprints and don't require
 
 Configure individual endpoints with powerful and simple routine comment annotations. You can use any PostgreSQL administration tool or a simple script:
 
+Function:
+
 ```sql
 create function hello_world_html() returns text language sql as 
 $$
@@ -85,10 +88,7 @@ HTTP GET /hello
 Content-Type: text/html';
 ```
 
-```
-info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/1.1 GET http://localhost:5000/api/hello - 200 - text/html 29.7810ms
-```
+Will have content type `text/html` as visible in comment annotation:
 
 ```
 Connection: close
@@ -102,13 +102,20 @@ Transfer-Encoding: chunked
 
 ### Automatic HTTP Files
 
-Create automatically [HTTP file(s)](https://learn.microsoft.com/en-us/aspnet/core/test/http-files?view=aspnetcore-8.0) with ready-made randomized test example calls.
+Create automatically [HTTP file(s[)](https://learn.microsoft.com/en-us/aspnet/core/test/http-files?view=aspnetcore-8.0) with ready-to-run randomized test example calls.
 
 ## NET8 backend
 
-NpgsqlRest is implemented as a NET8 middleware component, which means that anything that is available in NET8 is also available to the NpgsqlRest REST endpoints. And that is, well, everything. From rate limiters to all kinds of authorization schemas, to name a few.
+NpgsqlRest is implemented as a NET8 middleware component, which means that anything that is available in NET8 is also available to the NpgsqlRest REST endpoints. 
 
-You can also interact with the NET8 calling code. Do you want to supply the username to all parameters named "user"? No problem, how about this:
+And that is, well, everything... from rate limiters to all kinds of authorization schemas, to name a few.
+
+You can also interact with the NET8 calling code to: 
+
+- Provide custom parameter validations.
+- Pass custom values to function/procedure parameters.
+
+For example, pass a `Context.User.Identity.Name` to every parameter named `user`:
 
 ```csharp
 var app = builder.Build();
@@ -130,19 +137,19 @@ app.Run();
 
 ### Installation
 
-Install the package from NuGet:
+Install the package from NuGet by using any of these available methods:
 
 ```
-dotnet add package NpgsqlRest
+dotnet add package NpgsqlRest --version 1.2.0
 ```
 ```
-NuGet\Install-Package Norm.net
+NuGet\Install-Package NpgsqlRest -version 1.2.0
 ```
 ```xml
-<PackageReference Include="NpgsqlRest" Version="1.1.0" />
+<PackageReference Include="NpgsqlRest" Version="1.2.0" />
 ```
 ```
-#r "nuget: NpgsqlRest"
+#r "nuget: NpgsqlRest, 1.2.0"
 ```
 
 ### First Use

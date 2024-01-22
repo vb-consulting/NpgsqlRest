@@ -19,6 +19,31 @@ POST {{host}}/api/my-schema/hello-world
 
 ###
 
+// function public.body_param_name_1p(
+//     _p text
+// )
+// returns text
+POST {{host}}/api/body-param-name-1p?p=ABC
+
+###
+
+// function public.body_param_name_2p(
+//     _i integer,
+//     _p text
+// )
+// returns text
+POST {{host}}/api/body-param-name-2p?i=1&p=XYZ
+
+###
+
+// function public.body_param_name_int(
+//     _int integer
+// )
+// returns text
+POST {{host}}/api/body-param-name-int?int=1
+
+###
+
 // function public.case_default_params(
 //     _p1 integer,
 //     _p2 integer DEFAULT 2,
@@ -109,7 +134,7 @@ GET {{host}}/api/case-get-multi-params1?smallint=1&integer=2&bigint=3&numeric=4&
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-04-04T03%3A03%3A03.00&timestamptz=2024-05-05T04%3A04%3A04.00&date=2024-06-06&time=06%3A06%3A0&timetz=07%3A07%3A0%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=9b9de768-d831-452c-b8eb-a662e484e53c&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-04-04T03%3A03%3A03.00&timestamptz=2024-05-05T04%3A04%3A04.00&date=2024-06-06&time=06%3A06%3A0&timetz=07%3A07%3A0%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=a1397a1c-0409-41d8-b63e-dc43f2525565&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -255,7 +280,7 @@ content-type: application/json
     "timetz": "07:07:0+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "535a00a2-cf41-4491-9ed0-4548430c12ed",
+    "uuid": "5eb76ac0-8f1e-49de-a6a7-04c9f263ead7",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -610,6 +635,12 @@ POST {{host}}/api/comment-wrong-verb
 
 ###
 
+// function public.ending_slash()
+// returns text
+POST {{host}}/api/ending-slash
+
+###
+
 // function public.get_req_headers_context()
 // returns text
 GET {{host}}/api/get-req-headers-context
@@ -619,6 +650,14 @@ GET {{host}}/api/get-req-headers-context
 // function public.get_req_headers_ignore()
 // returns text
 GET {{host}}/api/get-req-headers-ignore
+
+###
+
+// function public.get_req_headers_param_not_default(
+//     _not_default text
+// )
+// returns text
+GET {{host}}/api/get-req-headers-param-not-default?notDefault=ABC
 
 ###
 
@@ -661,6 +700,19 @@ GET {{host}}/api/hello-world-html
 // function public.immutable_func()
 // returns text
 GET {{host}}/api/immutable-func
+
+###
+
+// function public.req_headers_param_not_default(
+//     _not_default text
+// )
+// returns text
+POST {{host}}/api/req-headers-param-not-default
+content-type: application/json
+
+{
+    "notDefault": "ABC"
+}
 
 ###
 

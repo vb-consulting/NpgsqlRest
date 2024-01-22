@@ -21,7 +21,7 @@
 //     long_foo_bar text,
 //     is_foobar boolean
 // )
-POST {{host}}/api/perf-test/
+POST {{host}}/api/perf-test
 content-type: application/json
 
 {
