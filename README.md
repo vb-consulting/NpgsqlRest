@@ -162,7 +162,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-For all available build options, please consult a [source code file](https://github.com/vb-consulting/NpgsqlRest/blob/master/source/NpgsqlRest/NpgsqlRestOptions.cs), until the documentation website is built.
+For all available build options, please consult a [source code file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/NpgsqlRestOptions.cs), until the documentation website is built.
 
 ## Dependencies
 
