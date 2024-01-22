@@ -10,7 +10,7 @@ Automatic REST API for Any Postgres Database implemented as AOT Ready .NET8 Midd
 #### 1) Your PostgreSQL Function
 
 ```sql
-create function hello_world()                                                                           
+create function hello_world()                                    
 returns text 
 language sql
 as $$
@@ -23,14 +23,15 @@ $$;
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
 var app = builder.Build();
-app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));  
+var connectionStr = "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres";
+app.UseNpgsqlRest(new(connectionStr));
 app.Run();
 ```
 
 #### 3) Optionally, Auto-Generated HTTP File
 
 ```http
-@host=http://localhost:5000                                                                             
+@host=http://localhost:5000                                      
 
 // function public.hello_world()
 // returns text
@@ -40,7 +41,7 @@ POST {{host}}/api/hello-world/
 #### 4) Endpoint Response
 
 ```http
-HTTP/1.1 200 OK                                                                                          
+HTTP/1.1 200 OK                                                  
 Connection: close
 Content-Type: text/plain
 Date: Tue, 09 Jan 2024 14:25:26 GMT
@@ -78,8 +79,7 @@ Configure individual endpoints with powerful and simple routine comment annotati
 Function:
 
 ```sql
-create function hello_world_html()                                                                      
-returns text 
+create function hello_world_html()                               
 language sql 
 as 
 $$
@@ -94,7 +94,7 @@ Content-Type: text/html';
 Will have content type `text/html` as visible in comment annotation:
 
 ```http
-Connection: close                                                                                       
+Connection: close                                                
 Content-Type: text/html
 Date: Thu, 18 Jan 2024 11:00:39 GMT
 Server: Kestrel
@@ -121,7 +121,7 @@ You can also interact with the NET8 calling code to:
 For example, pass a `Context.User.Identity.Name` to every parameter named `user`:
 
 ```csharp
-var app = builder.Build();                                                                              
+var app = builder.Build();                                       
 app.UseNpgsqlRest(new(connectionString)
 {
     ValidateParameters = p =>
