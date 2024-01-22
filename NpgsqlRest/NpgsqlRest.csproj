@@ -26,11 +26,12 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReadmeFile>README.MD</PackageReadmeFile>
     <DocumentationFile>bin\$(Configuration)\$(AssemblyName).xml</DocumentationFile>
-    <Version>1.1.0</Version>
-    <AssemblyVersion>1.1.0</AssemblyVersion>
-    <FileVersion>1.1.0</FileVersion>
-    <PackageVersion>1.1.0</PackageVersion>
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0</AssemblyVersion>
+    <FileVersion>1.2.0</FileVersion>
+    <PackageVersion>1.2.0</PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,6 +49,13 @@
 
   <ItemGroup>
     <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.MD">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>

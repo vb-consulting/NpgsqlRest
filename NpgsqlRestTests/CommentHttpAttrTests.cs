@@ -27,28 +27,28 @@ comment on function comment_wrong_verb() is 'HTTP wrong-verb';
 public class CommentHttpAttrTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CommentVerbTest1()
+    public async Task Test_comment_verb_test1()
     {
         using var response = await test.Client.GetAsync("/api/comment-verb-test1/");
         await AssertResponse(response, "verb test1");
     }
 
     [Fact]
-    public async Task Test_CommentVerbTest2()
+    public async Task Test_comment_verb_test2()
     {
         using var response = await test.Client.GetAsync("/api/comment-verb-test2/");
         await AssertResponse(response, "verb test2");
     }
 
     [Fact]
-    public async Task Test_CommentVerbTest3()
+    public async Task Test_comment_verb_test3()
     {
         using var response = await test.Client.GetAsync("/custom_url_from_comment");
         await AssertResponse(response, "verb test3");
     }
 
     [Fact]
-    public async Task Test_CommentWrongVerb()
+    public async Task Test_comment_wrong_verb()
     {
         using var response1 = await test.Client.GetAsync("/wrong-verb");
         response1?.StatusCode.Should().Be(HttpStatusCode.NotFound);

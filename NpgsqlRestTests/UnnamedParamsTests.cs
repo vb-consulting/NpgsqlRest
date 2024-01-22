@@ -34,7 +34,7 @@ $$;
 public class UnnamedParamsTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseGetUnnamedInt()
+    public async Task Test_case_get_unnamed_int()
     {
         using var result = await test.Client.GetAsync("/api/case-get-unnamed-int/?$1=999");
         var response = await result.Content.ReadAsStringAsync();
@@ -45,7 +45,7 @@ public class UnnamedParamsTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnUnnamedInt()
+    public async Task Test_case_return_unnamed_int()
     {
         using var content = new StringContent("{\"$1\":999}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-unnamed-int/", content);

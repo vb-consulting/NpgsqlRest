@@ -13,4 +13,5 @@ public readonly record struct RoutineEndpoint(
     string? ResponseContentType,
     Dictionary<string, StringValues> ResponseHeaders,
     RequestHeadersMode RequestHeadersMode,
-    string RequestHeadersParameterName);
+    string RequestHeadersParameterName,
+    string? BodyParameterName);

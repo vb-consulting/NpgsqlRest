@@ -25,7 +25,7 @@ $$;
 public class NotDotnetCompliantTypeParams(TestFixture test)
 {
     [Fact]
-    public async Task Test_ValidateParameter()
+    public async Task Test_case_jsonpath_param_BadRequest()
     {
         string body = """
         {  

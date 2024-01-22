@@ -30,21 +30,21 @@ HTTP';
 public class CommentAuthAttrTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_Authorize1()
+    public async Task Test_comment_authorize1()
     {
         using var response1 = await test.Client.PostAsync("/api/comment-authorize1/", null);
         response1?.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Test_Authorize2()
+    public async Task Test_comment_authorize2()
     {
         using var response1 = await test.Client.PostAsync("/api/comment-authorize2/", null);
         response1?.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task Test_Authorize3()
+    public async Task Test_comment_authorize3()
     {
         using var response1 = await test.Client.PostAsync("/api/comment-authorize3/", null);
         //missing leading HTTP tag, authorize should be ignored
@@ -52,7 +52,7 @@ public class CommentAuthAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Authorize4()
+    public async Task Test_comment_authorize4()
     {
         using var response1 = await test.Client.PostAsync("/api/comment-authorize4/", null);
         //HTTP should precede Authorize

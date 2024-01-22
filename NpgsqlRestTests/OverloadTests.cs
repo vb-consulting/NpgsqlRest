@@ -52,7 +52,7 @@ $$;
 public class OverloadTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_Overload_No_Params1()
+    public async Task Test_Overload_NoParams1()
     {
         using var result = await test.Client.PostAsync("/api/case-overload/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -63,7 +63,7 @@ public class OverloadTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_No_Params2()
+    public async Task Test_case_overload_NoParams2()
     {
         using var content = new StringContent("{}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-overload/", content);
@@ -75,7 +75,7 @@ public class OverloadTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_One_Param()
+    public async Task Test_case_overload_OneParam()
     {
         using var content = new StringContent("{\"i\": 1}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-overload/", content);
@@ -87,7 +87,7 @@ public class OverloadTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_Two_Params()
+    public async Task Test_case_overload_Two_arams()
     {
         using var content = new StringContent("{\"i\": 1, \"t\": \"ABC\"}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-overload/", content);
@@ -99,7 +99,7 @@ public class OverloadTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_Three_Params()
+    public async Task Test_case_overload_ThreeParams()
     {
         using var content = new StringContent("{\"i\": 1, \"t\": \"ABC\", \"b\": true}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-overload/", content);
@@ -111,7 +111,7 @@ public class OverloadTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_Wrong_Params()
+    public async Task Test_case_overload_WrongParams()
     {
         using var content = new StringContent("{\"i\": 1, \"t\": \"ABC\", \"X\": true}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-overload/", content);

@@ -24,7 +24,7 @@ $$;
 public class ReturnSetOfBoolTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseReturnSetOfJson()
+    public async Task Test_case_return_setof_bool()
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-bool/", null);
         var response = await result.Content.ReadAsStringAsync();

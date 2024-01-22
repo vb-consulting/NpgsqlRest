@@ -52,7 +52,7 @@ $$;
 public class OverloadQueryStringTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_Overload_No_Params()
+    public async Task Test_case_get_overload_NoParams()
     {
         using var result = await test.Client.GetAsync("/api/case-get-overload/");
         var response = await result.Content.ReadAsStringAsync();
@@ -63,7 +63,7 @@ public class OverloadQueryStringTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_One_Param()
+    public async Task Test_case_get_overload_OneParam()
     {
         var query = new QueryBuilder { { "i", "1" } };
         using var result = await test.Client.GetAsync($"/api/case-get-overload/{query}");
@@ -75,7 +75,7 @@ public class OverloadQueryStringTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_Two_Params()
+    public async Task Test_case_get_overload_TwoParams()
     {
         var query = new QueryBuilder { { "i", "1" }, { "t", "ABC" } };
         using var result = await test.Client.GetAsync($"/api/case-get-overload/{query}");
@@ -87,7 +87,7 @@ public class OverloadQueryStringTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_Three_Params()
+    public async Task Test_case_get_overload_ThreeParams()
     {
         var query = new QueryBuilder { { "i", "1" }, { "t", "ABC" }, { "b", "true" } };
         using var result = await test.Client.GetAsync($"/api/case-get-overload/{query}");
@@ -99,7 +99,7 @@ public class OverloadQueryStringTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_Overload_Wrong_Params()
+    public async Task Test_case_get_overload_WrongParams()
     {
         var query = new QueryBuilder { { "i", "1" }, { "t", "ABC" }, { "X", "true" } };
         using var result = await test.Client.GetAsync($"/api/case-get-overload/{query}");

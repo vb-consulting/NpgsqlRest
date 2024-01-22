@@ -30,7 +30,7 @@ $$;
 public class ReturnTextTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_HelloWorld()
+    public async Task Test_hello_world()
     {
         using var result = await test.Client.PostAsync("/api/hello-world/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -41,7 +41,7 @@ public class ReturnTextTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnText()
+    public async Task Test_case_return_text()
     {
         using var content = new StringContent("{\"t\":\"Hello World\"}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-text/", content);

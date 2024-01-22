@@ -54,15 +54,31 @@ internal static class DefaultEndpoint
     private const string parameterKey = "parameter";
     private static readonly string[] requestHeadersParameterNameKey = [
         "requestheadersparametername",
+        "requestheadersparamname",
         "request_headers_parameter_name",
+        "request_headers_param_name",
         "request-headers-parameter-name",
+        "request-headers-param-name",
+    ];
+    private static readonly string[] bodyParameterNameKey = [
+        "bodyparametername",
+        "body-parameter-name",
+        "body_parameter_name",
+        "bodyparamname",
+        "body_param_name"
     ];
 
-    internal static RoutineEndpoint? Create(Routine routine, NpgsqlRestOptions options, ILogger? logger)
+    internal static RoutineEndpoint? Create(
+        Routine routine, 
+        NpgsqlRestOptions options, 
+        ILogger? logger)
     {
         var url = options.UrlPathBuilder(routine, options);
-        var hasGet = routine.Name.Contains("get", StringComparison.OrdinalIgnoreCase);
-        var method = hasGet ? Method.GET : Method.POST;
+        var hasGet = 
+            routine.Name.Contains("_get_", StringComparison.OrdinalIgnoreCase) ||
+            routine.Name.StartsWith("get_", StringComparison.OrdinalIgnoreCase) ||
+            routine.Name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
+        var method = hasGet ? Method.GET : (routine.VolatilityOption == VolatilityOption.Volatile ? Method.POST : Method.GET);
         var requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
         string[] returnRecordNames = routine.ReturnRecordNames.Select(s => options.NameConverter(s) ?? "").ToArray();
         string[] paramNames = routine
@@ -84,6 +100,7 @@ internal static class DefaultEndpoint
         Dictionary<string, StringValues>? responseHeaders = null;
         RequestHeadersMode requestHeadersMode = options.RequestHeadersMode;
         string requestHeadersParameterName = options.RequestHeadersParameterName;
+        string? bodyParameterName = null;
 
         if (options.CommentsMode != CommentsMode.Ignore)
         {
@@ -213,6 +230,14 @@ internal static class DefaultEndpoint
                             }
                         }
 
+                        else if (hasHttpTag && StringEqualsToArray(ref words[0], bodyParameterNameKey))
+                        {
+                            if (words.Length == 2)
+                            {
+                                bodyParameterName = words[1];
+                            }
+                        }
+
                         else if (hasHttpTag && line.Contains(':'))
                         {
                             var parts = line.Split(headerSeparator, 2);
@@ -267,7 +292,8 @@ internal static class DefaultEndpoint
             ResponseContentType: responseContentType,
             ResponseHeaders: responseHeaders ?? [],
             RequestHeadersMode: requestHeadersMode,
-            RequestHeadersParameterName: requestHeadersParameterName);
+            RequestHeadersParameterName: requestHeadersParameterName,
+            BodyParameterName: bodyParameterName);
     }
 
     private static bool StringEquals(ref string str1, string str2) => 

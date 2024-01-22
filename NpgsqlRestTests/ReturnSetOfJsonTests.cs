@@ -28,7 +28,7 @@ $$;
 public class ReturnSetOfJsonTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseReturnSetOfJson()
+    public async Task Test_case_return_setof_json()
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-json/", null);
         var response = await result.Content.ReadAsStringAsync();

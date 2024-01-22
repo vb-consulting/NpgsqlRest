@@ -24,7 +24,7 @@ $$;
 public class ReturnJsonTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseReturnJson()
+    public async Task Test_case_return_json()
     {
         using var content = new StringContent("{\"json\": {\"a\": 1, \"b\": \"c\"}}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-json/", content);

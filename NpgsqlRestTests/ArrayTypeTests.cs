@@ -96,7 +96,7 @@ $$;
 public class ArrayTypeTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseReturnIntArray()
+    public async Task Test_case_return_int_array()
     {
         using var result = await test.Client.PostAsync("/api/case-return-int-array/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -107,7 +107,7 @@ public class ArrayTypeTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnTextArray()
+    public async Task Test_case_return_text_array()
     {
         using var result = await test.Client.PostAsync("/api/case-return-text-array/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -127,7 +127,7 @@ public class ArrayTypeTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnBoolArray()
+    public async Task Test_case_return_bool_array()
     {
         using var result = await test.Client.PostAsync("/api/case-return-bool-array/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -138,7 +138,7 @@ public class ArrayTypeTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnSetofIntArray()
+    public async Task Test_case_return_setof_int_array()
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-int-array/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -160,7 +160,7 @@ public class ArrayTypeTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnSetofTextArray()
+    public async Task Test_case_return_setof_bool_array()
     {
         using var result = await test.Client.PostAsync("/api/case-return-setof-text-array/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -171,7 +171,7 @@ public class ArrayTypeTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnIntArraywithNull()
+    public async Task Test_case_return_int_array_with_null()
     {
         using var result = await test.Client.PostAsync("/api/case-return-int-array-with-null/", null);
         var response = await result.Content.ReadAsStringAsync();

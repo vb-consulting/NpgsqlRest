@@ -1,0 +1,50 @@
+@host=http://localhost:5000
+
+// NpgsqlRest endpoint test
+
+// function public.perf_test(
+//     _records integer,
+//     _text_param text,
+//     _int_param integer,
+//     _ts_param timestamp without time zone,
+//     _bool_param boolean
+// )
+// returns table(
+//     id1 integer,
+//     foo1 text,
+//     bar1 text,
+//     datetime1 timestamp without time zone,
+//     id2 integer,
+//     foo2 text,
+//     bar2 text,
+//     datetime2 timestamp without time zone,
+//     long_foo_bar text,
+//     is_foobar boolean
+// )
+POST {{host}}/api/perf-test/
+content-type: application/json
+
+{
+    "records": 5,
+    "textParam": "ABCXYZ",
+    "intParam": 99,
+    "tsParam": "2024-01-19",
+    "boolParam": true
+}
+
+###
+
+// postgrest endpoint test
+
+POST http://127.0.0.1:3000/rpc/perf_test
+content-type: application/json
+
+{
+    "_records": 5,
+    "_text_param": "ABCXYZ",
+    "_int_param": 99,
+    "_ts_param": "2024-01-19",
+    "_bool_param": true
+}
+
+###

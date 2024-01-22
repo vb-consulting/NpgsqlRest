@@ -30,6 +30,7 @@ internal static class DefaultUrlBuilder
                 .Replace("\"", "")
                 .Trim('/'),
             "/");
-        return string.Concat(string.Concat(prefix, schema, name).TrimEnd('/'), '/');
+        //return string.Concat(string.Concat(prefix, schema, name).TrimEnd('/'), '/');
+        return string.Concat(prefix, schema, name).TrimEnd('/');
     }
 }

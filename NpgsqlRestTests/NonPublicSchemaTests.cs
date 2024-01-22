@@ -32,7 +32,7 @@ $$;
 public class NonPublicSchemaTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_HelloWordl()
+    public async Task Test_my_schema__hello_world()
     {
         using var result = await test.Client.PostAsync("/api/my-schema/hello-world/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -43,7 +43,7 @@ public class NonPublicSchemaTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnText()
+    public async Task Test_my_schema__case_return_text()
     {
         using var content = new StringContent("{\"t\":\"Hello World\"}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/my-schema/case-return-text/", content);

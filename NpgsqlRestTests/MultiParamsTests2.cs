@@ -57,7 +57,7 @@ $$;
 public class MultiParamsTests2(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseMultiParams2()
+    public async Task Test_case_multi_params2()
     {
         string body = """
         {  

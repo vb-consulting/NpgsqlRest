@@ -57,7 +57,7 @@ $$;
 public class MultiParamsQueryStringTests2(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseGetMultiParams2()
+    public async Task Test_case_get_multi_params2()
     {
         var query = new QueryBuilder
         {

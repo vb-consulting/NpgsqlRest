@@ -4,7 +4,7 @@
 //     _t text
 // )
 // returns text
-POST {{host}}/api/my-schema/case-return-text
+POST {{host}}/api/my-schema/case-return-text/
 content-type: application/json
 
 {
@@ -15,7 +15,7 @@ content-type: application/json
 
 // function my_schema.hello_world()
 // returns text
-POST {{host}}/api/my-schema/hello-world
+POST {{host}}/api/my-schema/hello-world/
 
 ###
 
@@ -26,7 +26,7 @@ POST {{host}}/api/my-schema/hello-world
 //     _p4 integer DEFAULT 4
 // )
 // returns json
-POST {{host}}/api/case-default-params
+POST {{host}}/api/case-default-params/
 content-type: application/json
 
 {
@@ -45,7 +45,7 @@ content-type: application/json
 //     _p4 integer DEFAULT 4
 // )
 // returns json
-GET {{host}}/api/case-get-default-params?p1=1&p2=2&p3=3&p4=4
+GET {{host}}/api/case-get-default-params/?p1=1&p2=2&p3=3&p4=4
 
 ###
 
@@ -53,7 +53,7 @@ GET {{host}}/api/case-get-default-params?p1=1&p2=2&p3=3&p4=4
 //     _i integer
 // )
 // returns integer
-GET {{host}}/api/case-get-int?i=1
+GET {{host}}/api/case-get-int/?i=1
 
 ###
 
@@ -61,7 +61,7 @@ GET {{host}}/api/case-get-int?i=1
 //     _a integer[]
 // )
 // returns integer[]
-GET {{host}}/api/case-get-int-params-array?a=1&a=2&a=3
+GET {{host}}/api/case-get-int-params-array/?a=1%2C2%2C3
 
 ###
 
@@ -86,7 +86,7 @@ GET {{host}}/api/case-get-int-params-array?a=1&a=2&a=3
 //     _jsonb_array jsonb[]
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params1?smallint=1&integer=2&bigint=3&numeric=4&text=XYZ&varchar=IJK&char=ABC&json=%7B%7D&jsonb=%7B%7D&smallintArray=10&smallintArray=11&smallintArray=12&integerArray=11&integerArray=12&integerArray=13&bigintArray=12&bigintArray=13&bigintArray=14&numericArray=13&numericArray=14&numericArray=15&textArray=XYZ&textArray=IJK&textArray=ABC&varcharArray=IJK&varcharArray=ABC&varcharArray=XYZ&charArray=ABC&charArray=XYZ&charArray=IJK&jsonArray=%7B%7D&jsonArray=%7B%7D&jsonArray=%7B%7D&jsonbArray=%7B%7D&jsonbArray=%7B%7D&jsonbArray=%7B%7D
+GET {{host}}/api/case-get-multi-params1/?smallint=1&integer=2&bigint=3&numeric=4&text=XYZ&varchar=IJK&char=ABC&json=%7B%7D&jsonb=%7B%7D&smallintArray=10%2C11%2C12&integerArray=11%2C12%2C13&bigintArray=12%2C13%2C14&numericArray=13%2C14%2C15&textArray=XYZ%2CIJK%2CABC&varcharArray=IJK%2CABC%2CXYZ&charArray=ABC%2CXYZ%2CIJK&jsonArray=%7B%7D%2C%7B%7D%2C%7B%7D&jsonbArray=%7B%7D%2C%7B%7D%2C%7B%7D
 
 ###
 
@@ -109,13 +109,13 @@ GET {{host}}/api/case-get-multi-params1?smallint=1&integer=2&bigint=3&numeric=4&
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-04-04T03%3A03%3A03.00&timestamptz=2024-05-05T04%3A04%3A04.00&date=2024-06-06&time=06%3A06%3A0&timetz=07%3A07%3A0%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=9b9de768-d831-452c-b8eb-a662e484e53c&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2/?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-01-19T12%3A27%3A29.32&timestamptz=2024-01-19T12%3A27%3A29.32&date=2024-01-19&time=12%3A27%3A29.323523&timetz=12%3A27%3A29.324011%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=7741fbfb-91bf-4dac-8007-56b6ec262d23&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
 // function public.case_get_overload()
 // returns text
-GET {{host}}/api/case-get-overload
+GET {{host}}/api/case-get-overload/
 
 ###
 
@@ -123,7 +123,7 @@ GET {{host}}/api/case-get-overload
 //     _i integer
 // )
 // returns text
-GET {{host}}/api/case-get-overload?i=1
+GET {{host}}/api/case-get-overload/?i=1
 
 ###
 
@@ -132,7 +132,7 @@ GET {{host}}/api/case-get-overload?i=1
 //     _t text
 // )
 // returns text
-GET {{host}}/api/case-get-overload?i=1&t=XYZ
+GET {{host}}/api/case-get-overload/?i=1&t=XYZ
 
 ###
 
@@ -142,7 +142,7 @@ GET {{host}}/api/case-get-overload?i=1&t=XYZ
 //     _b boolean
 // )
 // returns text
-GET {{host}}/api/case-get-overload?i=1&t=XYZ&b=false
+GET {{host}}/api/case-get-overload/?i=1&t=XYZ&b=false
 
 ###
 
@@ -150,7 +150,7 @@ GET {{host}}/api/case-get-overload?i=1&t=XYZ&b=false
 //     _a text[]
 // )
 // returns text[]
-GET {{host}}/api/case-get-text-params-array?a=ABC&a=XYZ&a=IJK
+GET {{host}}/api/case-get-text-params-array/?a=ABC%2CXYZ%2CIJK
 
 ###
 
@@ -158,7 +158,7 @@ GET {{host}}/api/case-get-text-params-array?a=ABC&a=XYZ&a=IJK
 //      integer
 // )
 // returns integer
-GET {{host}}/api/case-get-unnamed-int?$1=1
+GET {{host}}/api/case-get-unnamed-int/?$1=1
 
 ###
 
@@ -166,7 +166,7 @@ GET {{host}}/api/case-get-unnamed-int?$1=1
 //     _jsonpath jsonpath
 // )
 // returns text
-POST {{host}}/api/case-jsonpath-param
+POST {{host}}/api/case-jsonpath-param/
 content-type: application/json
 
 {
@@ -196,7 +196,7 @@ content-type: application/json
 //     _jsonb_array jsonb[]
 // )
 // returns json
-POST {{host}}/api/case-multi-params1
+POST {{host}}/api/case-multi-params1/
 content-type: application/json
 
 {
@@ -241,21 +241,21 @@ content-type: application/json
 //     _bytea bytea
 // )
 // returns json
-POST {{host}}/api/case-multi-params2
+POST {{host}}/api/case-multi-params2/
 content-type: application/json
 
 {
     "real": 1.2,
     "double": 2.3,
     "jsonpath": "$.user.addresses[0].city",
-    "timestamp": "2024-04-04T03:03:03.00",
-    "timestamptz": "2024-05-05T04:04:04.00",
-    "date": "2024-06-06",
-    "time": "06:06:0",
-    "timetz": "07:07:0+01:00",
+    "timestamp": "2024-01-19T12:27:29.32",
+    "timestamptz": "2024-01-19T12:27:29.32",
+    "date": "2024-01-19",
+    "time": "12:27:29.325986",
+    "timetz": "12:27:29.325988+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "535a00a2-cf41-4491-9ed0-4548430c12ed",
+    "uuid": "bc6dc426-ac8c-4c13-a264-2f9c3c0635db",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -267,7 +267,7 @@ content-type: application/json
 
 // function public.case_overload()
 // returns text
-POST {{host}}/api/case-overload
+POST {{host}}/api/case-overload/
 
 ###
 
@@ -275,7 +275,7 @@ POST {{host}}/api/case-overload
 //     _i integer
 // )
 // returns text
-POST {{host}}/api/case-overload
+POST {{host}}/api/case-overload/
 content-type: application/json
 
 {
@@ -289,7 +289,7 @@ content-type: application/json
 //     _t text
 // )
 // returns text
-POST {{host}}/api/case-overload
+POST {{host}}/api/case-overload/
 content-type: application/json
 
 {
@@ -305,7 +305,7 @@ content-type: application/json
 //     _b boolean
 // )
 // returns text
-POST {{host}}/api/case-overload
+POST {{host}}/api/case-overload/
 content-type: application/json
 
 {
@@ -318,7 +318,7 @@ content-type: application/json
 
 // function public.case_return_bool_array()
 // returns boolean[]
-POST {{host}}/api/case-return-bool-array
+POST {{host}}/api/case-return-bool-array/
 
 ###
 
@@ -326,7 +326,7 @@ POST {{host}}/api/case-return-bool-array
 //     _i integer
 // )
 // returns integer
-POST {{host}}/api/case-return-int
+POST {{host}}/api/case-return-int/
 content-type: application/json
 
 {
@@ -337,13 +337,13 @@ content-type: application/json
 
 // function public.case_return_int_array()
 // returns integer[]
-POST {{host}}/api/case-return-int-array
+POST {{host}}/api/case-return-int-array/
 
 ###
 
 // function public.case_return_int_array_with_null()
 // returns integer[]
-POST {{host}}/api/case-return-int-array-with-null
+POST {{host}}/api/case-return-int-array-with-null/
 
 ###
 
@@ -351,7 +351,7 @@ POST {{host}}/api/case-return-int-array-with-null
 //     _a integer[]
 // )
 // returns integer[]
-POST {{host}}/api/case-return-int-params-array
+POST {{host}}/api/case-return-int-params-array/
 content-type: application/json
 
 {
@@ -364,7 +364,7 @@ content-type: application/json
 //     _json json
 // )
 // returns json
-POST {{host}}/api/case-return-json
+POST {{host}}/api/case-return-json/
 content-type: application/json
 
 {
@@ -375,43 +375,43 @@ content-type: application/json
 
 // function public.case_return_setof_bool()
 // returns setof boolean
-POST {{host}}/api/case-return-setof-bool
+POST {{host}}/api/case-return-setof-bool/
 
 ###
 
 // function public.case_return_setof_bool_array()
 // returns setof boolean[]
-POST {{host}}/api/case-return-setof-bool-array
+POST {{host}}/api/case-return-setof-bool-array/
 
 ###
 
 // function public.case_return_setof_int()
 // returns setof integer
-POST {{host}}/api/case-return-setof-int
+POST {{host}}/api/case-return-setof-int/
 
 ###
 
 // function public.case_return_setof_int_array()
 // returns setof integer[]
-POST {{host}}/api/case-return-setof-int-array
+POST {{host}}/api/case-return-setof-int-array/
 
 ###
 
 // function public.case_return_setof_json()
 // returns setof json
-POST {{host}}/api/case-return-setof-json
+POST {{host}}/api/case-return-setof-json/
 
 ###
 
 // function public.case_return_setof_text()
 // returns setof text
-POST {{host}}/api/case-return-setof-text
+POST {{host}}/api/case-return-setof-text/
 
 ###
 
 // function public.case_return_setof_text_array()
 // returns setof text[]
-POST {{host}}/api/case-return-setof-text-array
+POST {{host}}/api/case-return-setof-text-array/
 
 ###
 
@@ -424,7 +424,7 @@ POST {{host}}/api/case-return-setof-text-array
 //     text_array text[],
 //     bool_array boolean[]
 // )
-POST {{host}}/api/case-return-table1
+POST {{host}}/api/case-return-table1/
 
 ###
 
@@ -446,7 +446,7 @@ POST {{host}}/api/case-return-table1
 //     macaddr macaddr,
 //     bytea bytea
 // )
-POST {{host}}/api/case-return-table2
+POST {{host}}/api/case-return-table2/
 
 ###
 
@@ -454,7 +454,7 @@ POST {{host}}/api/case-return-table2
 //     _t text
 // )
 // returns text
-POST {{host}}/api/case-return-text
+POST {{host}}/api/case-return-text/
 content-type: application/json
 
 {
@@ -465,7 +465,7 @@ content-type: application/json
 
 // function public.case_return_text_array()
 // returns text[]
-POST {{host}}/api/case-return-text-array
+POST {{host}}/api/case-return-text-array/
 
 ###
 
@@ -473,7 +473,7 @@ POST {{host}}/api/case-return-text-array
 //     _a text[]
 // )
 // returns text[]
-POST {{host}}/api/case-return-text-params-array
+POST {{host}}/api/case-return-text-params-array/
 content-type: application/json
 
 {
@@ -486,7 +486,7 @@ content-type: application/json
 //      integer
 // )
 // returns integer
-POST {{host}}/api/case-return-unnamed-int
+POST {{host}}/api/case-return-unnamed-int/
 content-type: application/json
 
 {
@@ -499,7 +499,7 @@ content-type: application/json
 //     _p text DEFAULT 'xyz'::text
 // )
 // returns text
-POST {{host}}/api/case-single-default-params
+POST {{host}}/api/case-single-default-params/
 content-type: application/json
 
 {
@@ -510,31 +510,31 @@ content-type: application/json
 
 // function public.case_void()
 // returns void
-POST {{host}}/api/case-void
+POST {{host}}/api/case-void/
 
 ###
 
 // function public.comment_authorize1()
 // returns text
-POST {{host}}/api/comment-authorize1
+POST {{host}}/api/comment-authorize1/
 
 ###
 
 // function public.comment_authorize2()
 // returns text
-POST {{host}}/api/comment-authorize2
+POST {{host}}/api/comment-authorize2/
 
 ###
 
 // function public.comment_authorize3()
 // returns text
-POST {{host}}/api/comment-authorize3
+POST {{host}}/api/comment-authorize3/
 
 ###
 
 // function public.comment_authorize4()
 // returns text
-POST {{host}}/api/comment-authorize4
+POST {{host}}/api/comment-authorize4/
 
 ###
 
@@ -542,7 +542,7 @@ POST {{host}}/api/comment-authorize4
 //     _t text
 // )
 // returns text
-GET {{host}}/api/comment-get-param-type-json1
+GET {{host}}/api/comment-get-param-type-json1/
 content-type: application/json
 
 {
@@ -555,7 +555,7 @@ content-type: application/json
 //     _t text
 // )
 // returns text
-GET {{host}}/api/comment-get-param-type-json2
+GET {{host}}/api/comment-get-param-type-json2/
 content-type: application/json
 
 {
@@ -568,7 +568,7 @@ content-type: application/json
 //     _t text
 // )
 // returns text
-POST {{host}}/api/comment-param-type-query1?t=ABC
+POST {{host}}/api/comment-param-type-query1/?t=ABC
 
 ###
 
@@ -576,25 +576,25 @@ POST {{host}}/api/comment-param-type-query1?t=ABC
 //     _t text
 // )
 // returns text
-POST {{host}}/api/comment-param-type-query2?t=ABC
+POST {{host}}/api/comment-param-type-query2/?t=ABC
 
 ###
 
 // function public.comment_response_headers()
 // returns text
-POST {{host}}/api/comment-response-headers
+POST {{host}}/api/comment-response-headers/
 
 ###
 
 // function public.comment_verb_test1()
 // returns text
-GET {{host}}/api/comment-verb-test1
+GET {{host}}/api/comment-verb-test1/
 
 ###
 
 // function public.comment_verb_test2()
 // returns text
-GET {{host}}/api/comment-verb-test2
+GET {{host}}/api/comment-verb-test2/
 
 ###
 
@@ -606,19 +606,19 @@ GET {{host}}/custom_url_from_comment
 
 // function public.comment_wrong_verb()
 // returns text
-POST {{host}}/api/comment-wrong-verb
+POST {{host}}/api/comment-wrong-verb/
 
 ###
 
 // function public.get_req_headers_context()
 // returns text
-GET {{host}}/api/get-req-headers-context
+GET {{host}}/api/get-req-headers-context/
 
 ###
 
 // function public.get_req_headers_ignore()
 // returns text
-GET {{host}}/api/get-req-headers-ignore
+GET {{host}}/api/get-req-headers-ignore/
 
 ###
 
@@ -626,7 +626,7 @@ GET {{host}}/api/get-req-headers-ignore
 //     _headers text DEFAULT NULL::text
 // )
 // returns text
-GET {{host}}/api/get-req-headers-parameter1?headers=ABC
+GET {{host}}/api/get-req-headers-parameter1/?headers=ABC
 
 ###
 
@@ -634,7 +634,7 @@ GET {{host}}/api/get-req-headers-parameter1?headers=ABC
 //     headers text DEFAULT NULL::text
 // )
 // returns text
-GET {{host}}/api/get-req-headers-parameter2?headers=ABC
+GET {{host}}/api/get-req-headers-parameter2/?headers=ABC
 
 ###
 
@@ -642,25 +642,51 @@ GET {{host}}/api/get-req-headers-parameter2?headers=ABC
 //     h text DEFAULT NULL::text
 // )
 // returns text
-GET {{host}}/api/get-req-headers-parameter3?h=ABC
+GET {{host}}/api/get-req-headers-parameter3/?h=ABC
 
 ###
 
 // function public.hello_world()
 // returns text
-POST {{host}}/api/hello-world
+POST {{host}}/api/hello-world/
 
 ###
 
 // function public.hello_world_html()
 // returns text
-GET {{host}}/api/hello-world-html
+GET {{host}}/api/hello-world-html/
 
 ###
 
-// function public.immutable_func()
-// returns text
-GET {{host}}/api/immutable-func
+// function public.perf_test(
+//     _records integer,
+//     _text_param text,
+//     _int_param integer,
+//     _ts_param timestamp without time zone,
+//     _bool_param boolean
+// )
+// returns table(
+//     id1 integer,
+//     foo1 text,
+//     bar1 text,
+//     datetime1 timestamp without time zone,
+//     id2 integer,
+//     foo2 text,
+//     bar2 text,
+//     datetime2 timestamp without time zone,
+//     long_foo_bar text,
+//     is_foobar boolean
+// )
+POST {{host}}/api/perf-test/
+content-type: application/json
+
+{
+    "records": 1,
+    "textParam": "XYZ",
+    "intParam": 3,
+    "tsParam": "2024-01-19T12:27:29.33",
+    "boolParam": false
+}
 
 ###
 
@@ -668,7 +694,7 @@ GET {{host}}/api/immutable-func
 //     _headers text DEFAULT NULL::text
 // )
 // returns text
-POST {{host}}/api/req-headers-parameter1
+POST {{host}}/api/req-headers-parameter1/
 content-type: application/json
 
 {
@@ -681,7 +707,7 @@ content-type: application/json
 //     headers text DEFAULT NULL::text
 // )
 // returns text
-POST {{host}}/api/req-headers-parameter2
+POST {{host}}/api/req-headers-parameter2/
 content-type: application/json
 
 {
@@ -694,24 +720,12 @@ content-type: application/json
 //     h text DEFAULT NULL::text
 // )
 // returns text
-POST {{host}}/api/req-headers-parameter3
+POST {{host}}/api/req-headers-parameter3/
 content-type: application/json
 
 {
     "h": "ABC"
 }
-
-###
-
-// function public.stable_func()
-// returns text
-GET {{host}}/api/stable-func
-
-###
-
-// function public.volatile_func()
-// returns text
-POST {{host}}/api/volatile-func
 
 ###
 

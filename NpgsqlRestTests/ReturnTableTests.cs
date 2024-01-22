@@ -77,7 +77,7 @@ $$;
 public class ReturnTableTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseReturnTable1()
+    public async Task Test_case_return_table1()
     {
         using var result = await test.Client.PostAsync("/api/case-return-table1/", null);
         var response = await result.Content.ReadAsStringAsync();
@@ -111,7 +111,7 @@ public class ReturnTableTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnTable2()
+    public async Task Test_case_return_table2()
     {
         using var result = await test.Client.PostAsync("/api/case-return-table2/", null);
         var response = await result.Content.ReadAsStringAsync();

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Npgsql;
 
@@ -113,10 +114,14 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     .Select((p, i) =>
                     {
                         var descriptor = routine.ParamTypeDescriptor[i];
-                        var value = Uri.EscapeDataString(SampleValueUnquoted(i, descriptor));
+                        var value = SampleValueUnquoted(i, descriptor);
                         if (descriptor.IsArray)
                         {
-                            return string.Join("&", value.Split(',').Select(v => $"{p}={v}"));
+                            return string.Join("&", value.Split(',').Select(v => $"{p}={Uri.EscapeDataString(v)}"));
+                        }
+                        else
+                        {
+                            value = Uri.EscapeDataString(value);
                         }
                         return $"{p}={value}";
                     }))));
@@ -152,13 +157,26 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             return;
         }
 
-        if (endpoint && builder is IEndpointRouteBuilder app)
+        if (endpoint)
         {
             foreach(var (fileName, content) in fileContent)
             {
-                var url = $"/{fileName}";
-                app?.MapGet(url, () => content.ToString());
-                Logging.LogInfo(ref logger, ref options, "Exposed HTTP file content on URL: {0}{1}", GetHost(builder), url);
+                var path = $"/{fileName}";
+                builder.Use(async (context, next) =>
+                {
+                    if (!(string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase) && 
+                        string.Equals(context.Request.Path, path, StringComparison.Ordinal)))
+                    {
+                        await next(context);
+                        return;
+                    }
+
+                    context.Response.StatusCode = 200;
+                    context.Response.ContentType = "text/plain";
+                    await context.Response.WriteAsync(content.ToString());
+                });
+
+                Logging.LogInfo(ref logger, ref options, "Exposed HTTP file content on URL: {0}{1}", GetHost(builder), path);
             }
         }
 
@@ -260,28 +278,30 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
 
         if (type.IsDateTime)
         {
+            var now = new DateTime(2024, counter % 12 + 1, counter % 28 + 1, counter % 24, counter % 60, counter % 60);
             if (type.IsArray)
             {
                 return GetArray(
-                    DateTime.Now.AddDays(-2).ToString("O")[..22],
-                    DateTime.Now.AddDays(-1).ToString("O")[..22],
-                    DateTime.Now.ToString("O")[..22],
+                    now.AddDays(-2).ToString("O")[..22],
+                    now.AddDays(-1).ToString("O")[..22],
+                    now.ToString("O")[..22],
                     true);
             }
-            return Quote(DateTime.Now.ToString("O")[..22]);
+            return Quote(now.ToString("O")[..22]);
         }
 
         if (type.IsDate)
         {
+            var now = new DateTime(2024, counter % 12 + 1, counter % 28 + 1, counter % 24, counter % 60, counter % 60);
             if (type.IsArray)
             {
                 return GetArray(
-                    DateTime.Now.AddDays(-2).ToString("yyyy-MM-dd"),
-                    DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd"),
-                    DateTime.Now.ToString("yyyy-MM-dd"),
+                    now.AddDays(-2).ToString("yyyy-MM-dd"),
+                    now.AddDays(-1).ToString("yyyy-MM-dd"),
+                    now.ToString("yyyy-MM-dd"),
                     true);
             }
-            return Quote(DateTime.Now.ToString("yyyy-MM-dd"));
+            return Quote(now.ToString("yyyy-MM-dd"));
         }
 
         if (type.IsJson)
@@ -308,28 +328,30 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
 
         if (string.Equals(type.Type, "time without time zone", StringComparison.OrdinalIgnoreCase))
         {
+            var now = new DateTime(2024, counter % 12 + 1, counter % 28 + 1, counter % 24, counter % 60, counter % 60);
             if (type.IsArray)
             {
                 return GetArray(
-                    DateTime.Now.AddDays(-2).TimeOfDay.ToString()[..^1],
-                    DateTime.Now.AddDays(-1).TimeOfDay.ToString()[..^1],
-                    DateTime.Now.TimeOfDay.ToString()[..^1],
+                    now.AddDays(-2).TimeOfDay.ToString()[..^1],
+                    now.AddDays(-1).TimeOfDay.ToString()[..^1],
+                    now.TimeOfDay.ToString()[..^1],
                 true);
             }
-            return Quote(DateTime.Now.TimeOfDay.ToString()[..^1]);
+            return Quote(now.TimeOfDay.ToString()[..^1]);
         }
 
         if (string.Equals(type.Type, "time with time zone", StringComparison.OrdinalIgnoreCase))
         {
+            var now = new DateTime(2024, counter % 12 + 1, counter % 28 + 1, counter % 24, counter % 60, counter % 60);
             if (type.IsArray)
             {
                 return GetArray(
-                    string.Concat(DateTime.Now.AddDays(-2).TimeOfDay.ToString()[..^1], "+01:00"),
-                    string.Concat(DateTime.Now.AddDays(-1).TimeOfDay.ToString()[..^1], "+01:00"),
-                    string.Concat(DateTime.Now.TimeOfDay.ToString()[..^1], "+01:00"),
+                    string.Concat(now.AddDays(-2).TimeOfDay.ToString()[..^1], "+01:00"),
+                    string.Concat(now.AddDays(-1).TimeOfDay.ToString()[..^1], "+01:00"),
+                    string.Concat(now.TimeOfDay.ToString()[..^1], "+01:00"),
                 true);
             }
-            return Quote(string.Concat(DateTime.Now.TimeOfDay.ToString()[..^1], "+01:00"));
+            return Quote(string.Concat(now.TimeOfDay.ToString()[..^1], "+01:00"));
         }
 
         if (string.Equals(type.Type, "interval", StringComparison.OrdinalIgnoreCase))
@@ -406,6 +428,8 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         return Quote(GetSubstring());
     }
 
+    [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
+            Justification = "Configuration.GetValue only uses string type parameters")]
     private static string GetHost(IApplicationBuilder builder)
     {
         string? host = null;

@@ -1,7 +1,16 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-
+using Microsoft.Extensions.Logging;
+#pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
+#pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
 namespace NpgsqlRestTests;
+
+public class EmptyLogger : ILogger
+{
+    public IDisposable BeginScope<TState>(TState state) => throw new NotImplementedException();
+    public bool IsEnabled(LogLevel logLevel) => false;
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter) { }
+}
 
 public class Program
 {
@@ -30,7 +39,8 @@ public class Program
         var app = builder.Build();
         app.UseNpgsqlRest(new(connectionString)
         {
-            ValidateParameters = Validate 
+            ValidateParameters = Validate,
+            Logger = new EmptyLogger()
         });
         app.Run();
     }

@@ -22,7 +22,7 @@ $$;
 public class VoidUnitTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseVoid()
+    public async Task Test_case_void()
     {
         using var result = await test.Client.PostAsync("/api/case-void/", null);
         result.StatusCode.Should().Be(HttpStatusCode.NoContent);

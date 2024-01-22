@@ -34,7 +34,7 @@ $$;
 public class ReturnIntTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseReturnInt()
+    public async Task Test_case_return_int()
     {
         using var content = new StringContent("{\"i\":999}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-int/", content);
@@ -46,7 +46,7 @@ public class ReturnIntTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseReturnInt_Wrong_Parameter()
+    public async Task Test_case_return_int_WrongParameter()
     {
         using var content = new StringContent("{\"x\":666}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-return-int/", content);
@@ -55,7 +55,7 @@ public class ReturnIntTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseGetInt()
+    public async Task Test_case_get_int()
     {
         using var result = await test.Client.GetAsync("/api/case-get-int/?i=999");
         var response = await result.Content.ReadAsStringAsync();

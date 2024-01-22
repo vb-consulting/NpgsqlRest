@@ -7,16 +7,15 @@ using System.Text.Json.Nodes;
 using Npgsql;
 using Microsoft.Extensions.Primitives;
 using System.Text.Json.Serialization;
+
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
-using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace NpgsqlRest;
 
 [JsonSerializable(typeof(string))]
-internal partial class NpgsqlRestSerializerContext : JsonSerializerContext
-{
-}
+internal partial class NpgsqlRestSerializerContext : JsonSerializerContext { }
 
 public static class NpgsqlRestMiddlewareExtensions
 {
@@ -49,13 +48,23 @@ public static class NpgsqlRestMiddlewareExtensions
         {
             if (!dict.TryGetValue(context.Request.Path, out (Routine routine, RoutineEndpoint endpoint)[]? tupleArray))
             {
-                await next(context);
-                return;
-            }
-            if (tupleArray.Length == 0)
-            {
-                await next(context);
-                return;
+                var path = context.Request.Path.ToString();
+                if (path.EndsWith('/'))
+                {
+                    if (!dict.TryGetValue(path[..^1], out tupleArray))
+                    {
+                        await next(context);
+                        return;
+                    }
+                }
+                else
+                {
+                    if (!dict.TryGetValue(string.Concat(path, '/'), out tupleArray))
+                    {
+                        await next(context);
+                        return;
+                    }
+                }
             }
 
             JsonObject? jsonObj = null;
@@ -71,14 +80,10 @@ public static class NpgsqlRestMiddlewareExtensions
                         using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
                         body = await reader.ReadToEndAsync();
                     }
-                    if (string.IsNullOrWhiteSpace(body))
-                    {
-                        body = "{}";
-                    }
                     JsonNode? node;
                     try
                     {
-                        node = JsonNode.Parse(body);
+                        node = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
                     }
                     catch (JsonException)
                     {
@@ -96,8 +101,10 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
             }
 
-            bool overloaded = tupleArray.Length > 1;
-            for (var index = 0; index < tupleArray.AsSpan().Length; index++)
+            var len = tupleArray.Length;
+            bool overloaded = len > 1;
+            //for (var index = 0; index < len; index++)
+            for (var index = len - 1; index >= 0; index--)
             {
                 var (routine, endpoint) = tupleArray[index];
                 if (!string.Equals(context.Request.Method, endpoint.Method.ToString(), StringComparison.OrdinalIgnoreCase))
@@ -109,7 +116,8 @@ public static class NpgsqlRestMiddlewareExtensions
                 {
                     if (endpoint.RequestParamType == RequestParamType.QueryString)
                     {
-                        if (routine.ParamCount != context.Request.Query.Count)
+                        var count = endpoint.BodyParameterName is null ? context.Request.Query.Count : context.Request.Query.Count + 1;
+                        if (routine.ParamCount != count)
                         {
                             continue;
                         }
@@ -154,7 +162,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (options.ValidateParameters is not null)
                                         {
-                                            options.ValidateParameters(new ParameterValidationValues(
+                                            options.ValidateParameters(new(
                                                 context,
                                                 routine,
                                                 parameter,
@@ -166,7 +174,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         }
                                         if (options.ValidateParametersAsync is not null)
                                         {
-                                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                            await options.ValidateParametersAsync(new(
                                                 context,
                                                 routine,
                                                 parameter,
@@ -201,11 +209,42 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             else
                             {
+                                // set param endpoint.BodyParameterName here
+                                if (endpoint.BodyParameterName is not null)
+                                {
+                                    if (string.Equals(p, endpoint.BodyParameterName, StringComparison.Ordinal) ||
+                                        string.Equals(routine.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal))
+                                    {
+                                        await ParseJsonBody();
+                                        if (body is null)
+                                        {
+                                            parameter.Value = DBNull.Value;
+                                        }
+                                        else
+                                        {
+                                            StringValues bodyStringValues = body;
+                                            if (!ParameterParser.TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter))
+                                            {
+                                                // parameters don't match, continuing to another overload
+                                                if (options.LogParameterMismatchWarnings)
+                                                {
+                                                    LogWarning(
+                                                        ref logger,
+                                                        ref options,
+                                                        "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
+                                                        routine.ParamTypeDescriptor[0].DbType,
+                                                        qsValue.ToString(),
+                                                        context.Request.Path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                 {
                                     if (options.ValidateParameters is not null)
                                     {
-                                        options.ValidateParameters(new ParameterValidationValues(
+                                        options.ValidateParameters(new(
                                             context,
                                             routine,
                                             parameter,
@@ -217,7 +256,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                     if (options.ValidateParametersAsync is not null)
                                     {
-                                        await options.ValidateParametersAsync(new ParameterValidationValues(
+                                        await options.ValidateParametersAsync(new(
                                             context,
                                             routine,
                                             parameter,
@@ -232,22 +271,25 @@ public static class NpgsqlRestMiddlewareExtensions
                                         return;
                                     }
                                 }
-                                if (parameter.Value is not null)
+                                if (parameter.Value is null)
+                                {
+                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                                    {
+                                        if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
+                                            string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
+                                        {
+                                            parameters[i] = parameter;
+                                            headerParameterIndex = i;
+                                        }
+                                    }
+                                }
+                                if (parameter.Value is not null || headerParameterIndex is not null)
                                 {
                                     parameters[i] = parameter;
                                     setCount++;
                                 }
                                 else if (descriptor.HasDefault)
                                 {
-                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
-                                    {
-                                        if (string.Equals(p, options.RequestHeadersParameterName, StringComparison.Ordinal) ||
-                                            string.Equals(routine.ParamNames[i], options.RequestHeadersParameterName, StringComparison.Ordinal))
-                                        {
-                                            parameters[i] = parameter;
-                                            headerParameterIndex = i;
-                                        }
-                                    }
                                     setCount++;
                                 }
                             }
@@ -298,7 +340,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         }
                                         if (options.ValidateParametersAsync is not null)
                                         {
-                                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                            await options.ValidateParametersAsync(new(
                                                 context,
                                                 routine,
                                                 parameter,
@@ -364,22 +406,25 @@ public static class NpgsqlRestMiddlewareExtensions
                                         return;
                                     }
                                 }
-                                if (parameter.Value is not null)
+                                if (parameter.Value is null)
+                                {
+                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                                    {
+                                        if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
+                                            string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
+                                        {
+                                            parameters[i] = parameter;
+                                            headerParameterIndex = i;
+                                        }
+                                    }
+                                }
+                                if (parameter.Value is not null || headerParameterIndex is not null)
                                 {
                                     parameters[i] = parameter;
                                     setCount++;
                                 }
                                 else if (descriptor.HasDefault)
                                 {
-                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
-                                    {
-                                        if (string.Equals(p, options.RequestHeadersParameterName, StringComparison.Ordinal) || 
-                                            string.Equals(routine.ParamNames[i], options.RequestHeadersParameterName, StringComparison.Ordinal))
-                                        {
-                                            parameters[i] = parameter;
-                                            headerParameterIndex = i;
-                                        }
-                                    }
                                     setCount++;
                                 }
                             }
@@ -409,11 +454,13 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             headers = string.Concat(headers, ",");
                         }
+                        var key = header.Key;
+                        var value = header.Value.ToString();
                         headers = string.Concat(
-                            headers, 
-                            JsonSerializer.Serialize(header.Key, plainTextSerializerOptions),
+                            headers,
+                            SerializeString(ref key),
                             ":",
-                            JsonSerializer.Serialize(header.Value.ToString(), plainTextSerializerOptions));
+                            SerializeString(ref value));
                     }
                     headers = string.Concat(headers, "}");
                     if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
@@ -624,7 +671,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (descriptor.NeedsEscape)
                                         {
-                                            await context.Response.WriteAsync(JsonSerializer.Serialize(raw, plainTextSerializerOptions));
+                                            await context.Response.WriteAsync(SerializeString(ref raw));
                                         }
                                         else
                                         {
@@ -668,6 +715,13 @@ public static class NpgsqlRestMiddlewareExtensions
 
         return builder;
     }
+
+    [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
+            Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
+    [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
+            Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
+    private static string SerializeString(ref string value) => 
+        JsonSerializer.Serialize(value, plainTextSerializerOptions);
 
     private static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
     {
@@ -786,6 +840,16 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             RoutineEndpoint endpoint = result.Value;
+
+            if (endpoint.BodyParameterName is not null && endpoint.RequestParamType == RequestParamType.BodyJson)
+            {
+                endpoint = endpoint with { RequestParamType = RequestParamType.QueryString };
+                LogWarning(ref logger, ref options, 
+                    "Endpoint {0} {1} changed request parameter type from body to query string because body will be used for parameter named `{2}`.", 
+                    endpoint.Method.ToString(), 
+                    endpoint.Url,
+                    endpoint.BodyParameterName);
+            }
 
             List<(Routine routine, RoutineEndpoint meta)> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
             list.Add((routine, endpoint));

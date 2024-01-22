@@ -36,7 +36,7 @@ ParamType Json
 public class CommentParamTypeAttrTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CommentParamTypeQuery1_JsonBody()
+    public async Task Test_comment_param_type_query1_JsonBody()
     {
         using var content = new StringContent("{\"t\": \"comment_param_type_query1\"}", Encoding.UTF8, "application/json");
         using var response = await test.Client.PostAsync("/api/comment-param-type-query1/", content);
@@ -44,7 +44,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentParamTypeQuery1_QueryString()
+    public async Task Test_comment_param_type_query1_QueryString()
     {
         var query = new QueryBuilder { { "t", "comment-param-type-query1" } };
         using var response = await test.Client.PostAsync($"/api/comment-param-type-query1/{query}", null);
@@ -56,7 +56,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentParamTypeQuery2_JsonBody()
+    public async Task Test_comment_param_type_query2_JsonBody()
     {
         using var content = new StringContent("{\"t\": \"comment_param_type_query2\"}", Encoding.UTF8, "application/json");
         using var response = await test.Client.PostAsync("/api/comment-param-type-query2/", content);
@@ -64,7 +64,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentParamTypeQuery2_QueryString()
+    public async Task Test_comment_param_type_query2_QueryString()
     {
         var query = new QueryBuilder { { "t", "comment-param-type-query2" } };
         using var response = await test.Client.PostAsync($"/api/comment-param-type-query2/{query}", null);
@@ -76,7 +76,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentGetParamTypeJson1_QueryString()
+    public async Task Test_comment_get_param_type_json1_QueryString()
     {
         var query = new QueryBuilder { { "t", "comment-param-type-query1" } };
         using var response = await test.Client.GetAsync($"/api/comment-get-param-type-json1/{query}");
@@ -84,7 +84,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentGetParamTypeJson1_JsonBody()
+    public async Task Test_comment_get_param_type_json1_JsonBody()
     {
         var request = new HttpRequestMessage
         {
@@ -101,7 +101,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentGetParamTypeJson2_QueryString()
+    public async Task Test_comment_get_param_type_json2_QueryString()
     {
         var query = new QueryBuilder { { "t", "comment-param-type-query2" } };
         using var response = await test.Client.GetAsync($"/api/comment-get-param-type-json2/{query}");
@@ -109,7 +109,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentGetParamTypeJson2_JsonBody()
+    public async Task Test_comment_get_param_type_json2_JsonBody()
     {
         var request = new HttpRequestMessage
         {

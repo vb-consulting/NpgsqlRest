@@ -60,7 +60,7 @@ $$;
 public class DefaultParametersTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_CaseDefaultParams1()
+    public async Task Test_case_default_params__1()
     {
         using var content = new StringContent("{\"p1\": 11}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-default-params/", content);
@@ -72,7 +72,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseDefaultParams2()
+    public async Task Test_case_default_params__2()
     {
         using var content = new StringContent("{\"p1\": 11, \"p2\": 22}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-default-params/", content);
@@ -84,7 +84,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseDefaultParams3()
+    public async Task Test_case_default_params__3()
     {
         using var content = new StringContent("{\"p1\": 11, \"p2\": 22, \"p3\": 33}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-default-params/", content);
@@ -96,7 +96,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseDefaultParams4()
+    public async Task Test_case_default_params__4()
     {
         using var content = new StringContent("{\"p1\": 11, \"p2\": 22, \"p3\": 33, \"p4\": 44}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-default-params/", content);
@@ -108,7 +108,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseDefaultParams_MissingParam()
+    public async Task Test_case_default_params_MissingParam()
     {
         using var content = new StringContent("{\"p2\": 22}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-default-params/", content);
@@ -118,7 +118,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseGetDefaultParams1()
+    public async Task Test_case_get_default_params__1()
     {
         using var result = await test.Client.GetAsync("/api/case-get-default-params/?p1=11");
         var response = await result.Content.ReadAsStringAsync();
@@ -129,7 +129,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseGetDefaultParams2()
+    public async Task Test_case_get_default_params__2()
     {
         using var result = await test.Client.GetAsync("/api/case-get-default-params/?p1=11&p2=22");
         var response = await result.Content.ReadAsStringAsync();
@@ -140,7 +140,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseGetDefaultParams3()
+    public async Task Test_case_get_default_params__3()
     {
         using var result = await test.Client.GetAsync("/api/case-get-default-params/?p1=11&p2=22&p3=33");
         var response = await result.Content.ReadAsStringAsync();
@@ -151,7 +151,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseGetDefaultParams4()
+    public async Task Test_case_get_default_params__4()
     {
         using var result = await test.Client.GetAsync("/api/case-get-default-params/?p1=11&p2=22&p3=33&p4=44");
         var response = await result.Content.ReadAsStringAsync();
@@ -162,7 +162,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CaseGetDefaultParams_MissingParam()
+    public async Task Test_case_get_default_params_MissingParam()
     {
         using var result = await test.Client.GetAsync("/api/case-get-default-params/?p2=11");
         var response = await result.Content.ReadAsStringAsync();
@@ -171,7 +171,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_SingleDefault()
+    public async Task Test_case_single_default_params()
     {
         using var content = new StringContent("{\"p\": \"abc\"}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-single-default-params/", content);
@@ -183,7 +183,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_SingleDefaul_EmptyBody()
+    public async Task Test_case_single_default_params_EmptyBody()
     {
         using var content = new StringContent("{}", Encoding.UTF8, "application/json");
         using var result = await test.Client.PostAsync("/api/case-single-default-params/", content);
@@ -195,7 +195,7 @@ public class DefaultParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_SingleDefaul_NullBody()
+    public async Task Test_case_single_default_params_NullBody()
     {
         using var result = await test.Client.PostAsync("/api/case-single-default-params/", null);
         var response = await result.Content.ReadAsStringAsync();

@@ -27,7 +27,7 @@ cache-control: no-store
 public class CommentResponseHeadersTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_HelloWorld()
+    public async Task Test_hello_world_html()
     {
         using var result = await test.Client.GetAsync("/api/hello-world-html/");
         var response = await result.Content.ReadAsStringAsync();
@@ -38,7 +38,7 @@ public class CommentResponseHeadersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_CommentResponseHeaders()
+    public async Task Test_comment_response_headers()
     {
         using var response = await test.Client.PostAsync("/api/comment-response-headers/", null);
         var content = await response.Content.ReadAsStringAsync();
