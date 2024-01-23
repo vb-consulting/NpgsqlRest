@@ -14,7 +14,7 @@ export const options = {
         breaking: {
             executor: "ramping-vus",
             stages: [
-                { duration: "10s", target: 100 },
+                { duration: "60s", target: 100 },
             ],
         },
     },
@@ -22,13 +22,19 @@ export const options = {
 
 export default function () {
     // define URL and request body
-    const url = "http://127.0.0.1:5000/api/perf-test";
+    
+    //PostgREST
+    const url = "http://127.0.0.1:3000/rpc/perf_test";
+    
+    //NpgsqlRest
+    //const url = "http://127.0.0.1:5000/api/perf-test";
+
     const payload = JSON.stringify({
-        records: 5,
-        textParam: "ABCXYZ",
-        intParam: 99,
-        tsParam: "2024-01-19",
-        boolParam: true
+        _records: 5,
+        _text_param: "ABCXYZ",
+        _int_param: 99,
+        _ts_param: "2024-01-19",
+        _bool_param: true
     });
     const params = {
         headers: {
@@ -44,4 +50,3 @@ export default function () {
         "response code was 200": (res) => res.status == 200,
     });
 }
-

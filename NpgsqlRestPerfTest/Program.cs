@@ -10,7 +10,11 @@ var app = builder.Build();
 app.Urls.Add("http://localhost:5000");
 app.UseNpgsqlRest(new("Host=127.0.0.1;Port=5432;Database=perf_tests;Username=postgres;Password=postgres")
 {
-    // PostgREST compatibility
+    //
+    // PostgREST compatibility:
+    // Leave the names intact as-is, and send send request headers into connection context.
+    //
+    NameConverter = n => n,
     RequestHeadersMode = RequestHeadersMode.Context
 });
 app.Run();

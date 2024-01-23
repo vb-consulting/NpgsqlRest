@@ -162,18 +162,18 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
 
 ### Installation
 
-Install the package from NuGet by using any of these available methods:
+Install the package from NuGet by using any of the available methods:
 
-```bash
+```console
 dotnet add package NpgsqlRest --version 1.2.0
 ```
-```powershell
+```console
 NuGet\Install-Package NpgsqlRest -version 1.2.0
 ```
 ```xml
 <PackageReference Include="NpgsqlRest" Version="1.2.0" />
 ```
-```yaml
+```console
 #r "nuget: NpgsqlRest, 1.2.0"
 ```
 
@@ -200,12 +200,9 @@ Note: PostgreSQL 13 minimal version is required to run the initial query to get 
 
 ## Contributing
 
-We welcome contributions from the community. Please make a pull request if you wish to contribute.
+Contributions from the community are welcomed.
+Please make a pull request with a description if you wish to contribute.
 
 ## License
 
 This project is licensed under the terms of the MIT license.
-
-## Contact
-
-If you have any questions or feedback, please feel free to contact us.

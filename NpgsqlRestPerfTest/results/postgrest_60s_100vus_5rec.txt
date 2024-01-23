@@ -1,0 +1,40 @@
+vbilopav@DESKTOP-O3A6QK2:~/k6$ k6 run api-test.js
+
+          /\      |‾‾| /‾‾/   /‾‾/
+     /\  /  \     |  |/  /   /  /
+    /  \/    \    |     (   /   ‾‾\
+   /          \   |  |\  \ |  (‾)  |
+  / __________ \  |__| \__\ \_____/ .io
+
+  execution: local
+     script: api-test.js
+     output: -
+
+  scenarios: (100.00%) 1 scenario, 100 max VUs, 1m30s max duration (incl. graceful stop):
+           * breaking: Up to 100 looping VUs for 1m0s over 1 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+
+     ✓ response code was 200
+
+     checks.........................: 100.00% ✓ 80507       ✗ 0
+     data_received..................: 108 MB  1.8 MB/s
+     data_sent......................: 20 MB   325 kB/s
+     http_req_blocked...............: avg=3.16µs  min=406ns    med=2.22µs  max=9.56ms  p(90)=3.99µs   p(95)=4.54µs
+     http_req_connecting............: avg=379ns   min=0s       med=0s      max=9.48ms  p(90)=0s       p(95)=0s
+   ✓ http_req_duration..............: avg=37.29ms min=538.29µs med=1.95ms  max=1.08s   p(90)=131.74ms p(95)=177.5ms
+       { expected_response:true }...: avg=37.29ms min=538.29µs med=1.95ms  max=1.08s   p(90)=131.74ms p(95)=177.5ms
+   ✓ http_req_failed................: 0.00%   ✓ 0           ✗ 80507
+     http_req_receiving.............: avg=49.43µs min=6.67µs   med=36.67µs max=13.72ms p(90)=80.91µs  p(95)=107.49µs
+     http_req_sending...............: avg=17.31µs min=2.49µs   med=12.24µs max=17.55ms p(90)=22.39µs  p(95)=28.74µs
+     http_req_tls_handshaking.......: avg=0s      min=0s       med=0s      max=0s      p(90)=0s       p(95)=0s
+     http_req_waiting...............: avg=37.22ms min=509.35µs med=1.89ms  max=1.08s   p(90)=131.63ms p(95)=177.41ms
+     http_reqs......................: 80507   1337.262801/s
+     iteration_duration.............: avg=37.4ms  min=581.22µs med=2.07ms  max=1.08s   p(90)=131.93ms p(95)=177.66ms
+     iterations.....................: 80507   1337.262801/s
+     vus............................: 99      min=2         max=99
+     vus_max........................: 100     min=100       max=100
+
+
+running (1m00.2s), 000/100 VUs, 80507 complete and 0 interrupted iterations
+breaking ✓ [======================================] 000/100 VUs  1m0s
+

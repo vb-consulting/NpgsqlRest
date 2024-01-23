@@ -25,11 +25,11 @@ POST {{host}}/api/perf-test
 content-type: application/json
 
 {
-    "records": 5,
-    "textParam": "ABCXYZ",
-    "intParam": 99,
-    "tsParam": "2024-01-19",
-    "boolParam": true
+    "_records": 5,
+    "_text_param": "ABCXYZ",
+    "_int_param": 99,
+    "_ts_param": "2024-01-19",
+    "_bool_param": true
 }
 
 ###
