@@ -30,7 +30,7 @@ app.Run();
 
 #### 3) Optionally, Auto-Generated HTTP File
 
-```http
+```console
 @host=http://localhost:5000                                      
 
 // function public.hello_world()
@@ -40,7 +40,7 @@ POST {{host}}/api/hello-world/
 
 #### 4) Endpoint Response
 
-```http
+```console
 HTTP/1.1 200 OK                                                  
 Connection: close
 Content-Type: text/plain
@@ -93,7 +93,7 @@ Content-Type: text/html';
 
 Will have content type `text/html` as visible in comment annotation:
 
-```http
+```console
 Connection: close                                                
 Content-Type: text/html
 Date: Thu, 18 Jan 2024 11:00:39 GMT
