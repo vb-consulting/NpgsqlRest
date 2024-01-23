@@ -1,5 +1,121 @@
 # Changelog
 
+## Version 1.3.0 (2024-23-01)
+
+### 1) Support For Variadic Parameters
+
+```sql
+create function variadic_param_plus_one(variadic v int[]) 
+returns int[] 
+language sql
+as 
+$$
+select array_agg(n + 1) from unnest($1) AS n;
+$$;
+```
+```csharp
+[Fact]
+public async Task Test_variadic_param_plus_one()
+{
+    using var body = new StringContent("{\"v\": [1,2,3,4]}", Encoding.UTF8);
+    using var response = await test.Client.PostAsync("/api/variadic-param-plus-one", body);
+    var content = await response.Content.ReadAsStringAsync();
+
+    response?.StatusCode.Should().Be(HttpStatusCode.OK);
+    content.Should().Be("[2,3,4,5]");
+}
+```
+
+### 2) Support For Table-Valued Functions
+
+It seems that support for functions returning existing tables (set of table, or table-valued functions) was accidentally missing. This is now fixed. 
+
+Example:
+
+```sql
+create table test_table (
+    id int,
+    name text not null
+);
+
+insert into test_table values (1, 'one'), (2, 'two'), (3, 'three');
+
+create function get_test_table() 
+returns setof test_table
+language sql
+as 
+$$
+select * from test_table;
+$$;
+```
+```csharp
+[Fact]
+public async Task Test_get_test_table()
+{
+    using var response = await test.Client.GetAsync("/api/get-test-table");
+    var content = await response.Content.ReadAsStringAsync();
+
+    response?.StatusCode.Should().Be(HttpStatusCode.OK);
+    response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+    content.Should().Be("[{\"id\":1,\"name\":\"one\"},{\"id\":2,\"name\":\"two\"},{\"id\":3,\"name\":\"three\"}]");
+}
+```
+
+### 2) Support for Untyped Functions
+
+Untyped functions are functions that return a set of records of the unknown type. 
+
+For example:
+
+```sql
+create function get_test_records() 
+returns setof record
+language sql
+as 
+$$
+select * from (values (1, 'one'), (2, 'two'), (3, 'three')) v(id, name);
+$$;
+```
+
+These cannot be called without the result column definition list:
+
+```sql
+select * from get_test_records()
+
+-- throws error:
+-- ERROR:  a column definition list is required for functions returning "record"
+-- LINE 1: select * from get_test_records()
+
+select * from get_test_records() as v(a int, b text)
+-- returns result with columns a int, b text
+```
+
+There is no way of knowing which results these functions will return (as far as I know) and the only way to return a workable set is to execute it as a scalar function:
+
+```sql
+select get_test_records() 
+
+-- returns values:
+(1,one)
+(2,two)
+(3,three)
+```
+
+These are raw record values as returned from PostgreSQL without any parsing (for example text is not quoted). When NpgsqlRest executes this type of function it will return a JSON array with raw values from the PostgreSQL server without left and right parenthesis:
+
+```csharp
+[Fact]
+public async Task Test_get_test_records()
+{
+    using var response = await test.Client.GetAsync("/api/get-test-records");
+    var content = await response.Content.ReadAsStringAsync();
+
+    response?.StatusCode.Should().Be(HttpStatusCode.OK);
+    response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+    content.Should().Be("[\"1,one\",\"2,two\",\"3,three\"]");
+}
+```
+
 ## Version 1.2.0 (2024-22-01)
 
 ### 1) Fix AOT Warnings

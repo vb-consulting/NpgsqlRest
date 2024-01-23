@@ -29,14 +29,26 @@ internal class RoutineQuery()
         else '' end volatility_option,
         proc.proretset as returns_set,
         (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
+        
         coalesce(
             array_agg(p.parameter_name::text order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'), 
             '{}'::text[]
         ) as in_params,
+
         coalesce(
-            array_agg(p.parameter_name::text order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT'), 
+            case when r.data_type = 'USER-DEFINED' then
+                (
+                    select array_agg(column_name order by col.ordinal_position) 
+                    from information_schema.columns col
+                    where table_schema = r.type_udt_schema and table_name = r.type_udt_name
+                )
+            else
+                array_agg(p.parameter_name::text order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
+            end,
+            
             '{}'::text[]
         ) as out_params,
+
         coalesce(
             array_agg(
                 case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
@@ -44,16 +56,30 @@ internal class RoutineQuery()
             ) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'), 
             '{}'::text[]
         ) as in_param_types,
+
         coalesce(
-            array_agg(
-                case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
-                order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT'), 
-            '{}'::text[]
+            case when r.data_type = 'USER-DEFINED' then
+                (
+                    select array_agg(
+                        case when col.data_type = 'bit' then 'varbit' else (col.udt_schema || '.' || col.udt_name)::regtype::text end
+                        order by col.ordinal_position
+                    ) 
+                    from information_schema.columns col
+                    where table_schema = r.type_udt_schema and table_name = r.type_udt_name
+                )
+            else
+                array_agg(
+                    case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
+                    order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
+            end, '{}'::text[]
         ) as out_param_types,
+
         coalesce(
             array_agg(p.parameter_default order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'), 
             '{}'::text[]
-        ) as in_param_defaults
+        ) as in_param_defaults,
+
+        case when proc.provariadic <> 0 then true else false end as has_variadic
     from 
         information_schema.routines r
         join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
@@ -84,8 +110,9 @@ internal class RoutineQuery()
     group by
         r.routine_type, r.specific_schema, r.routine_name, 
         proc.oid, r.specific_name, r.external_language, des.description,
-        r.security_type, r.type_udt_schema, r.type_udt_name,
-        proc.proisstrict, proc.procost, proc.prorows, proc.proparallel, proc.provolatile, proc.proretset
+        r.security_type, r.data_type, r.type_udt_schema, r.type_udt_name,
+        proc.proisstrict, proc.procost, proc.prorows, proc.proparallel, proc.provolatile, 
+        proc.proretset, proc.provariadic
 )
 select
     type,
@@ -106,6 +133,7 @@ select
         when returns_set is true and return_type <> 'record' then 'record'
         else return_type
     end as return_type,
+
     case 
         when case when returns_set is true or return_type = 'record' then true else false end then 
             case when array_length(out_params, 1) is null then 1 else array_length(out_params, 1) end
@@ -121,11 +149,15 @@ select
             case when array_length(out_params, 1) is null then array[return_type]::text[] else out_param_types end
         else array[]::text[]
     end as return_record_types,
+
     returns_set is true and return_type <> 'record' and array_length(out_params, 1) is null as returns_unnamed_set,
+    returns_set is true and return_type = 'record' and array_length(out_params, 1) is null as is_unnamed_record,
+
     array_length(in_params, 1) as param_count,
     in_params as param_names,
     in_param_types as param_types,
     in_param_defaults as param_defaults,
+    has_variadic,
     pg_get_functiondef(oid) as definition
 from cte";
 
@@ -191,9 +223,13 @@ from cte";
                 .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
                 .ToArray();
 
+            bool hasVariadic = reader.Get<bool>("has_variadic");
+            bool isUnnamedRecord = reader.Get<bool>("is_unnamed_record");
+
             Dictionary<int, string> expressions = [];
+
             var expression = string.Concat(
-                (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet)) ? 
+                (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet) || isUnnamedRecord) ? 
                     "select " : 
                     string.Concat("select ", string.Join(", ", returnRecordNames), " from "),
                 schema,
@@ -210,11 +246,12 @@ from cte";
                             .Select(i =>
                             {
                                 var descriptor = paramTypeDescriptor[i - 1];
+                                string prefix = hasVariadic && i == paramCount ? "variadic " : "";
                                 if (descriptor.IsCastToText())
                                 {
-                                    return $"${i}::{descriptor.OriginalType}";
+                                    return $"{prefix}${i}::{descriptor.OriginalType}";
                                 }
-                                return $"${i}";
+                                return $"{prefix}${i}";
                             })),
                         ")");
             }
@@ -240,7 +277,7 @@ from cte";
                 returnRecordCount: reader.Get<int>("return_record_count"),
                 returnRecordNames: returnRecordNames,
                 returnRecordTypes: returnRecordTypes,
-                returnsUnnamedSet: returnsUnnamedSet,
+                returnsUnnamedSet: returnsUnnamedSet || isUnnamedRecord,
                 paramCount: paramCount,
                 paramNames: paramNames,
                 paramTypes: paramTypes,

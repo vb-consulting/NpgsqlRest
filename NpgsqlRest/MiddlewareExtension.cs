@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
 using System.Diagnostics.CodeAnalysis;
+using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
@@ -669,7 +670,15 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                     else
                                     {
-                                        if (descriptor.NeedsEscape)
+                                        if (descriptor.ActualDbType == NpgsqlDbType.Unknown)
+                                        {
+                                            if (raw.StartsWith('(') && raw.EndsWith(')'))
+                                            {
+                                                raw = raw[1..^1];
+                                            }
+                                            await context.Response.WriteAsync(SerializeString(ref raw));
+                                        }
+                                        else if (descriptor.NeedsEscape)
                                         {
                                             await context.Response.WriteAsync(SerializeString(ref raw));
                                         }
