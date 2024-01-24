@@ -1,7 +1,7 @@
 # NpgsqlRest
 
 ![build-test-publish](https://github.com/vb-consulting/NpgsqlRest/workflows/build-test-publish/badge.svg)
-[![Coverage Status](https://img.shields.io/codecov/c/github/npgsqlrest/master)](https://app.codecov.io/gh/NpgsqlRest)
+[![Coverage Status](https://img.shields.io/codecov/github/npgsqlrest/master)](https://app.codecov.io/gh/NpgsqlRest)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
