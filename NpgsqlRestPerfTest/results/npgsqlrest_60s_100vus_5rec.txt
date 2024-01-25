@@ -16,24 +16,24 @@ vbilopav@DESKTOP-O3A6QK2:~/k6$ k6 run api-test.js
 
      ✓ response code was 200
 
-     checks.........................: 100.00% ✓ 364322      ✗ 0
-     data_received..................: 764 MB  13 MB/s
-     data_sent......................: 89 MB   1.5 MB/s
-     http_req_blocked...............: avg=3.88µs   min=318ns    med=2.75µs  max=10.31ms  p(90)=4.46µs   p(95)=5µs
-     http_req_connecting............: avg=120ns    min=0s       med=0s      max=4.86ms   p(90)=0s       p(95)=0s
-   ✓ http_req_duration..............: avg=8.04ms   min=440.83µs med=7.39ms  max=124.12ms p(90)=14.68ms  p(95)=17.36ms
-       { expected_response:true }...: avg=8.04ms   min=440.83µs med=7.39ms  max=124.12ms p(90)=14.68ms  p(95)=17.36ms
-   ✓ http_req_failed................: 0.00%   ✓ 0           ✗ 364322
-     http_req_receiving.............: avg=161.47µs min=12.16µs  med=59.23µs max=55.65ms  p(90)=147.37µs p(95)=423.41µs
-     http_req_sending...............: avg=23.36µs  min=2.28µs   med=14.75µs max=18.11ms  p(90)=23.42µs  p(95)=28.23µs
-     http_req_tls_handshaking.......: avg=0s       min=0s       med=0s      max=0s       p(90)=0s       p(95)=0s
-     http_req_waiting...............: avg=7.86ms   min=386.9µs  med=7.2ms   max=124.06ms p(90)=14.42ms  p(95)=17.05ms
-     http_reqs......................: 364322  6070.858014/s
-     iteration_duration.............: avg=8.21ms   min=474.2µs  med=7.57ms  max=124.21ms p(90)=14.9ms   p(95)=17.61ms
-     iterations.....................: 364322  6070.858014/s
+     checks.........................: 100.00% ✓ 310123      ✗ 0
+     data_received..................: 650 MB  11 MB/s
+     data_sent......................: 75 MB   1.3 MB/s
+     http_req_blocked...............: avg=4.69µs  min=532ns    med=3.28µs  max=15.7ms   p(90)=4.83µs   p(95)=5.48µs
+     http_req_connecting............: avg=132ns   min=0s       med=0s      max=3.01ms   p(90)=0s       p(95)=0s
+   ✓ http_req_duration..............: avg=9.45ms  min=508.37µs med=8.19ms  max=385.82ms p(90)=15.98ms  p(95)=19.57ms
+       { expected_response:true }...: avg=9.45ms  min=508.37µs med=8.19ms  max=385.82ms p(90)=15.98ms  p(95)=19.57ms
+   ✓ http_req_failed................: 0.00%   ✓ 0           ✗ 310123
+     http_req_receiving.............: avg=182.2µs min=15.3µs   med=68.37µs max=98.51ms  p(90)=174.66µs p(95)=472.31µs
+     http_req_sending...............: avg=27.33µs min=3.06µs   med=17.64µs max=18.88ms  p(90)=25.61µs  p(95)=33.42µs
+     http_req_tls_handshaking.......: avg=0s      min=0s       med=0s      max=0s       p(90)=0s       p(95)=0s
+     http_req_waiting...............: avg=9.24ms  min=464.03µs med=8ms     max=382.18ms p(90)=15.67ms  p(95)=19.21ms
+     http_reqs......................: 310123  5166.948728/s
+     iteration_duration.............: avg=9.65ms  min=566.17µs med=8.38ms  max=386.16ms p(90)=16.23ms  p(95)=19.85ms
+     iterations.....................: 310123  5166.948728/s
      vus............................: 99      min=2         max=99
      vus_max........................: 100     min=100       max=100
 
 
-running (1m00.0s), 000/100 VUs, 364322 complete and 0 interrupted iterations
+running (1m00.0s), 000/100 VUs, 310123 complete and 0 interrupted iterations
 breaking ✓ [======================================] 000/100 VUs  1m0s

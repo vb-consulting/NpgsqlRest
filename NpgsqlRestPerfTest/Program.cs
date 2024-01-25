@@ -12,7 +12,7 @@ app.UseNpgsqlRest(new("Host=127.0.0.1;Port=5432;Database=perf_tests;Username=pos
 {
     //
     // PostgREST compatibility:
-    // Leave the names intact as-is, and send send request headers into connection context.
+    // Leave the names intact as-is, and send request headers into the connection context.
     //
     NameConverter = n => n,
     RequestHeadersMode = RequestHeadersMode.Context
