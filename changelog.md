@@ -1,16 +1,67 @@
 # Changelog
 
-## Version 1.4.0 (2024-26-01)
-
 ## Version [1.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.4.0) (2024-26-01)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.3.0...1.4.0)
 
-bla bla
+### 1) Improved Untyped Functions
+
+In the previous version, untyped functions were returning a JSON array where each element was an entire raw record as returned from PostgreSQL encoded into JSON string:
+
+Following raw output: 
+
+```console
+(1,one)
+(2,two)
+(3,three)
+```
+
+would produce this JSON response: `["1,one","2,two","3,three"]`.
+
+However, this response is not very usable, because clients still need to process each record which can be pretty tricky for many reasons:
+For example, comma symbols are encoded into double-quoted strings: `foo,bar` -> `"foo,bar"`, which makes them very hard to split values by as CSV strings, and many other reasons.
+
+In this version, each record is encoded into a JSON array and each element into its own JSON string. The example above now looks like (formatted):
+
+```json
+[
+    ["1", "one"],
+    ["2", "two"],
+    ["3", "three"]
+]
+```
+
+Note that are all types now encoded as strings, regardless of the actual type. This is because, as far as I know, it is impossible to figure out actual types from the untyped function with the `Npgsql` data driver.
+
+This may create awkward situations, because, for example, the raw output from PostgreSQL for the `boolean true` value and `text 't'` value are identical `t` and will be encoded also identical `"t"`. The assumption is that clients will know what types and values should they expect and act accordingly. 
+
+This makes the use of untyped functions a very powerful approach, because the actual result table definition, doesn't have to be explicitly defined every time:
+
+```sql
+create function get_test_records() 
+returns setof record
+language sql
+as 
+$$
+select * from (values 
+    (1, 'one'), 
+    (2, 'two'), 
+    (3, 'three')
+) v;
+$$;
+```
+
+### 2) Improved Logging
+
+There are also some improvements in the logging mechanism and new logging options:
+
+- When the endpoint attribute is set through the comment annotation, this event is now logged as an information-level log. Previously, it was hard to tell did we set the endpoint attribute or not, because, when an annotation is wrong, it is interpreted as plain comment and ignored. Now it's easy.
+- We can turn off or on this feature with the `LogAnnotationSetInfo` build option. The default is true.
+- There is also another new build option to control logging: `LogEndpointCreatedInfo`. Controls should we log the endpoint creation or not? The default is true.
 
 ----------
 
-## Version 1.3.0 (2024-23-01)
+## Version [1.3.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.3.0) (2024-23-01)
 
 ### 1) Support For Variadic Parameters
 
@@ -83,7 +134,7 @@ returns setof record
 language sql
 as 
 $$
-select * from (values (1, 'one'), (2, 'two'), (3, 'three')) v(id, name);
+select * from (values (1, 'one'), (2, 'two'), (3, 'three')) v;
 $$;
 ```
 
