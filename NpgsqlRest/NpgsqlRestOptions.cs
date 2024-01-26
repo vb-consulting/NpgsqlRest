@@ -58,6 +58,8 @@ public class NpgsqlRestOptions(
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
     ILogger? logger = null,
+    bool logEndpointCreatedInfo = true,
+    bool logAnnotationSetInfo = true,
     bool logConnectionNoticeEvents = true,
     int? commandTimeout = null,
     bool logParameterMismatchWarnings = true,
@@ -169,6 +171,14 @@ public class NpgsqlRestOptions(
     /// Use this logger instead of the default logger.
     /// </summary>
     public ILogger? Logger { get; set; } = logger;
+    /// <summary>
+    /// Log endpoint created events.
+    /// </summary>
+    public bool LogEndpointCreatedInfo { get; set; } = logEndpointCreatedInfo;
+    /// <summary>
+    /// Log annotation set events. When endpoint properties are set from comment annotations.
+    /// </summary>
+    public bool LogAnnotationSetInfo { get; set; } = logAnnotationSetInfo;
     /// <summary>
     /// Set to true to log connection notice events.
     /// </summary>

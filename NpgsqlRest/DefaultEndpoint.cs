@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 
 namespace NpgsqlRest;
 
@@ -26,6 +28,7 @@ internal static class DefaultEndpoint
     private static readonly string[] jsonKey = [
         "bodyjson",
         "body_json",
+        "body-json",
         "json",
         "body"
     ];
@@ -38,6 +41,7 @@ internal static class DefaultEndpoint
     private static readonly string[] timeoutKey = [
         "commandtimeout",
         "command_timeout",
+        "command-timeout",
         "timeout"
     ];
     private const string contentTypeKey = "content-type";
@@ -81,6 +85,11 @@ internal static class DefaultEndpoint
             routine.Name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
         var method = hasGet ? Method.GET : (routine.VolatilityOption == VolatilityOption.Volatile ? Method.POST : Method.GET);
         var requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
+
+        var originalUrl = url;
+        var originalMethod = method;
+        var originalParamType = requestParamType;
+
         string[] returnRecordNames = routine.ReturnRecordNames.Select(s => options.NameConverter(s) ?? "").ToArray();
         string[] paramNames = routine
             .ParamNames
@@ -146,9 +155,7 @@ internal static class DefaultEndpoint
                                 string urlPathSegment = words[2];
                                 if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                                 {
-                                    Logging.LogWarning(
-                                        ref logger,
-                                        ref options,
+                                    Logging.LogWarning(ref logger, ref options,
                                         $"Invalid URL path segment '{urlPathSegment}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{url}'");
                                 }
                                 else
@@ -159,6 +166,10 @@ internal static class DefaultEndpoint
                                         url = string.Concat("/", url);
                                     }
                                 }
+                            }
+                            if (method != originalMethod || !string.Equals(url, originalUrl))
+                            {
+                                Info(ref logger, ref options, ref routine, $"has set HTTP by comment annotations to \"{method} {url}\"");
                             }
                         }
                         
@@ -179,17 +190,27 @@ internal static class DefaultEndpoint
                                     ref options,
                                     $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{requestParamType}'");
                             }
+
+                            if (originalParamType != requestParamType)
+                            {
+                                Info(ref logger, ref options, ref routine, $"has set REQUEST PARAMETER TYPE by comment annotations to \"{requestParamType}\"");
+                            }
                         }
-                        
+
                         else if (hasHttpTag && StringEqualsToArray(ref words[0], authorizeKey))
                         {
                             requiresAuthorization = true;
+                            Info(ref logger, ref options, ref routine, $"has set REQUIRED AUTHORIZATION by comment annotations.");
                         }
-                        
+
                         else if (hasHttpTag && words.Length >= 2 && StringEqualsToArray(ref words[0], timeoutKey))
                         {
                             if (int.TryParse(words[1], out var parsedTimeout))
                             {
+                                if (commandTimeout != parsedTimeout)
+                                {
+                                    Info(ref logger, ref options, ref routine, $"has set COMMAND TIMEOUT by comment annotations to {parsedTimeout} seconds");
+                                }
                                 commandTimeout = parsedTimeout;
                             }
                             else
@@ -221,12 +242,20 @@ internal static class DefaultEndpoint
                                     ref options,
                                     $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are Ignore or Context or Parameter. Using default '{requestHeadersMode}'");
                             }
+                            if (requestHeadersMode != options.RequestHeadersMode)
+                            {
+                                Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS MODE by comment annotations to \"{requestHeadersMode}\"");
+                            }
                         }
 
                         else if (hasHttpTag && StringEqualsToArray(ref words[0], requestHeadersParameterNameKey))
                         { 
                             if (words.Length == 2)
                             {
+                                if (!string.Equals(requestHeadersParameterName, words[1]))
+                                {
+                                    Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS PARAMETER NAME by comment annotations to \"{words[1]}\"");
+                                }
                                 requestHeadersParameterName = words[1];
                             }
                         }
@@ -235,6 +264,10 @@ internal static class DefaultEndpoint
                         {
                             if (words.Length == 2)
                             {
+                                if (!string.Equals(bodyParameterName, words[1]))
+                                {
+                                    Info(ref logger, ref options, ref routine, $"has set BODY PARAMETER NAME by comment annotations to \"{words[1]}\"");
+                                }
                                 bodyParameterName = words[1];
                             }
                         }
@@ -248,6 +281,10 @@ internal static class DefaultEndpoint
                                 var headerValue = parts[1].Trim();
                                 if (StringEquals(ref headerName, contentTypeKey))
                                 {
+                                    if (!string.Equals(responseContentType, headerValue))
+                                    {
+                                        Info(ref logger, ref options, ref routine, $"has set Content-Type HEADER by comment annotations to \"{headerValue}\"");
+                                    }
                                     responseContentType = headerValue;
                                 }
                                 else
@@ -269,6 +306,10 @@ internal static class DefaultEndpoint
                                         {
                                             responseHeaders.Add(headerName, new StringValues(headerValue));
                                         }
+                                    }
+                                    if (!string.Equals(responseContentType, headerValue))
+                                    {
+                                        Info(ref logger, ref options, ref routine, $"has set {headerName} HEADER by comment annotations to \"{headerValue}\"");
                                     }
                                 }
                             }
@@ -297,8 +338,16 @@ internal static class DefaultEndpoint
             BodyParameterName: bodyParameterName);
     }
 
-    private static bool StringEquals(ref string str1, string str2) => 
-            str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
+    private static void Info(ref ILogger? logger, ref NpgsqlRestOptions options, ref Routine routine, string message)
+    {
+        if (!options.LogAnnotationSetInfo)
+        {
+            return;
+        }
+        Logging.LogInfo(ref logger, ref options, string.Concat($"{routine.Type} {routine.Schema}.{routine.Name} ", message));
+    }
+
+    private static bool StringEquals(ref string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
 
     private static bool StringEqualsToArray(ref string str, string[] arr)
     {

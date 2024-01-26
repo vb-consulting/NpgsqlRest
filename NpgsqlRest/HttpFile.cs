@@ -268,12 +268,12 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             if (type.IsArray)
             {
                 return GetArray(
-                    Guid.NewGuid().ToString(),
-                    Guid.NewGuid().ToString(),
-                    Guid.NewGuid().ToString(),
+                    new Guid().ToString(),
+                    new Guid().ToString(),
+                    new Guid().ToString(),
                     true);
             }
-            return Quote(Guid.NewGuid().ToString());
+            return Quote(new Guid().ToString());
         }
 
         if (type.IsDateTime)

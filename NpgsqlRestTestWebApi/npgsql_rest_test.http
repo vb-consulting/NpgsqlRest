@@ -134,7 +134,7 @@ GET {{host}}/api/case-get-multi-params1?smallint=1&integer=2&bigint=3&numeric=4&
 //     _bytea bytea
 // )
 // returns json
-GET {{host}}/api/case-get-multi-params2?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-04-04T03%3A03%3A03.00&timestamptz=2024-05-05T04%3A04%3A04.00&date=2024-06-06&time=06%3A06%3A0&timetz=07%3A07%3A0%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=a1397a1c-0409-41d8-b63e-dc43f2525565&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
+GET {{host}}/api/case-get-multi-params2?real=1.2&double=2.3&jsonpath=%24.user.addresses%5B0%5D.city&timestamp=2024-04-04T03%3A03%3A03.00&timestamptz=2024-05-05T04%3A04%3A04.00&date=2024-06-06&time=06%3A06%3A0&timetz=07%3A07%3A0%2B01%3A00&interval=8%20minutes%209%20seconds&bool=true&uuid=00000000-0000-0000-0000-000000000000&varbit=101&bit=010&inet=192.168.5.13&macaddr=00-B0-D0-63-C2-26&bytea=%5C%5CxDEADBEEF
 
 ###
 
@@ -280,7 +280,7 @@ content-type: application/json
     "timetz": "07:07:0+01:00",
     "interval": "8 minutes 9 seconds",
     "bool": true,
-    "uuid": "5eb76ac0-8f1e-49de-a6a7-04c9f263ead7",
+    "uuid": "00000000-0000-0000-0000-000000000000",
     "varbit": "101",
     "bit": "010",
     "inet": "192.168.5.13",
@@ -338,6 +338,12 @@ content-type: application/json
     "t": "XYZ",
     "b": false
 }
+
+###
+
+// function public.case_return_array_edge_cases()
+// returns text[]
+POST {{host}}/api/case-return-array-edge-cases
 
 ###
 
@@ -685,6 +691,21 @@ GET {{host}}/api/get-req-headers-parameter3?h=ABC
 
 ###
 
+// function public.get_test_records()
+// returns setof record
+GET {{host}}/api/get-test-records
+
+###
+
+// function public.get_test_table()
+// returns table(
+//     id integer,
+//     name text
+// )
+GET {{host}}/api/get-test-table
+
+###
+
 // function public.hello_world()
 // returns text
 POST {{host}}/api/hello-world
@@ -758,6 +779,19 @@ content-type: application/json
 // function public.stable_func()
 // returns text
 GET {{host}}/api/stable-func
+
+###
+
+// function public.variadic_param_plus_one(
+//     v integer[]
+// )
+// returns integer[]
+POST {{host}}/api/variadic-param-plus-one
+content-type: application/json
+
+{
+    "v": [1, 2, 3]
+}
 
 ###
 

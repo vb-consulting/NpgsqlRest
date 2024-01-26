@@ -5,27 +5,15 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Npgsql;
+using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
-using System.Text.Json.Serialization;
-
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
-using System.Diagnostics.CodeAnalysis;
-using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
-[JsonSerializable(typeof(string))]
-internal partial class NpgsqlRestSerializerContext : JsonSerializerContext { }
-
 public static class NpgsqlRestMiddlewareExtensions
 {
-    private static readonly JsonSerializerOptions plainTextSerializerOptions = new()
-    {
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        TypeInfoResolver = new NpgsqlRestSerializerContext()
-    };
-
     public static IApplicationBuilder UseNpgsqlRest(this IApplicationBuilder builder, NpgsqlRestOptions options)
     {
         if (options.ConnectionString is null && options.ConnectionFromServiceProvider is false)
@@ -459,9 +447,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         var value = header.Value.ToString();
                         headers = string.Concat(
                             headers,
-                            SerializeString(ref key),
+                            PgConverters.SerializeString(ref key),
                             ":",
-                            SerializeString(ref value));
+                            PgConverters.SerializeString(ref value));
                     }
                     headers = string.Concat(headers, "}");
                     if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
@@ -508,10 +496,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
                     {
-                        command.CommandText = string.Concat(
-                            "select set_config('request.headers', '",
-                            headers,
-                            "', false)");
+                        command.CommandText = string.Concat("select set_config('request.headers','",headers,"',false)");
                         command.ExecuteNonQuery();
                     }
 
@@ -569,7 +554,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 context.Response.StatusCode = (int)HttpStatusCode.OK;
                                 if (descriptor.IsArray && value is not null)
                                 {
-                                    value = PgArrayToJsonArray(ref value, ref descriptor);
+                                    value = PgConverters.PgArrayToJsonArray(ref value, ref descriptor);
                                 }
                                 if (value is not null)
                                 {
@@ -642,7 +627,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                     else if (descriptor.IsArray && value is not null)
                                     {
-                                        raw = PgArrayToJsonArray(ref raw, ref descriptor);
+                                        raw = PgConverters.PgArrayToJsonArray(ref raw, ref descriptor);
                                         await context.Response.WriteAsync(raw);
                                     }
                                     else if ((descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson) && value is not null)
@@ -672,15 +657,11 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (descriptor.ActualDbType == NpgsqlDbType.Unknown)
                                         {
-                                            if (raw.StartsWith('(') && raw.EndsWith(')'))
-                                            {
-                                                raw = raw[1..^1];
-                                            }
-                                            await context.Response.WriteAsync(SerializeString(ref raw));
+                                            await context.Response.WriteAsync(PgConverters.PgUnknownToJsonArray(ref raw));
                                         }
                                         else if (descriptor.NeedsEscape)
                                         {
-                                            await context.Response.WriteAsync(SerializeString(ref raw));
+                                            await context.Response.WriteAsync(PgConverters.SerializeString(ref raw));
                                         }
                                         else
                                         {
@@ -723,103 +704,6 @@ public static class NpgsqlRestMiddlewareExtensions
         });
 
         return builder;
-    }
-
-    [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
-            Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
-            Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    private static string SerializeString(ref string value) => 
-        JsonSerializer.Serialize(value, plainTextSerializerOptions);
-
-    private static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
-    {
-        if (string.IsNullOrWhiteSpace(value) || value.Length < 3 || value[0] != '{' || value[^1] != '}')
-        {
-            return value;
-        }
-
-        var result = new StringBuilder("[");
-        var current = new StringBuilder();
-        var quoted = !(descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson);
-        bool insideQuotes = false;
-        bool hasQuotes = false;
-
-        bool isNull()
-        {
-            if (current?.Length == 4)
-            {
-                return 
-                    current[0] == 'N' && 
-                    current[1] == 'U' && 
-                    current[2] == 'L' && 
-                    current[3] == 'L';
-            }
-            return false;
-        }
-
-        for (int i = 1; i < value.Length; i++)
-        {
-            char currentChar = value[i];
-
-            if (currentChar == '"' && value[i - 1] != '\\')
-            {
-                insideQuotes = !insideQuotes;
-                hasQuotes = true;
-            }
-            else if ((currentChar == ',' && !insideQuotes) || currentChar == '}')
-            {
-                var currentIsNull = isNull() && !hasQuotes;
-                if (quoted && !currentIsNull)
-                {
-                    result.Append('"');
-                }
-
-                if (currentIsNull)
-                {
-                    result.Append("null");
-                }
-                else
-                {
-                    result.Append(current);
-                }
-
-                if (quoted && !currentIsNull)
-                {
-                    result.Append('"');
-                }
-                if (currentChar != '}')
-                {
-                    result.Append(',');
-                }
-                current.Clear();
-                hasQuotes = false;
-            }
-            else
-            {
-                if (descriptor.IsBoolean)
-                {
-                    if (currentChar == 't')
-                    {
-                        current.Append("true");
-                    }
-                    else if (currentChar == 'f')
-                    {
-                        current.Append("false");
-                    }
-                    else
-                    {
-                        current.Append(currentChar);
-                    }
-                }
-                else
-                {
-                    current.Append(currentChar);
-                }
-            }
-        }
-        result.Append(']');
-        return result.ToString();
     }
 
     private static FrozenDictionary<string, (Routine routine, RoutineEndpoint endpoint)[]> BuildDictionary(
@@ -865,7 +749,10 @@ public static class NpgsqlRestMiddlewareExtensions
             dict[endpoint.Url] = list;
 
             httpFile.HandleEntry(routine, endpoint);
-            LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.Method.ToString(), endpoint.Url);
+            if (options.LogEndpointCreatedInfo)
+            {
+                LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.Method.ToString(), endpoint.Url);
+            }
         }
         if (options.EndpointsCreated is not null)
         {

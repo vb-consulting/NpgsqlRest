@@ -5,7 +5,7 @@ public static partial class Database
 {
     public static void ArrayTypeTests()
     {
-        script.Append("""
+        script.Append("""""
 create function case_return_int_array() 
 returns int[]
 language plpgsql
@@ -88,7 +88,28 @@ begin
     return array[4,5,6,null];
 end;
 $$;
-""");
+
+
+create function case_return_array_edge_cases() 
+returns text[]
+language plpgsql
+as 
+$$
+begin
+    return array[
+        'foo,bar',
+        'foo"bar',
+        '"foo"bar"',
+        'foo""bar',
+        'foo""""bar',
+        'foo"",""bar',
+        'foo\bar',
+        'foo/bar',
+        E'foo\nbar'
+    ];
+end;
+$$;
+""""");
     }
 }
 
@@ -179,5 +200,34 @@ public class ArrayTypeTests(TestFixture test)
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
         result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         response.Should().Be("[4,5,6,null]");
+    }
+
+    [Fact]
+    public async Task Test_case_return_array_edge_cases()
+    {
+        using var response = await test.Client.PostAsync("/api/case-return-array-edge-cases", null);
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+
+        var expextedContent = """""
+        [
+            "foo,bar",
+            "foo\"bar",
+            "\"foo\"bar\"",
+            "foo\"\"bar",
+            "foo\"\"\"\"bar",
+            "foo\"\",\"\"bar",
+            "foo\\bar",
+            "foo/bar",
+            "foo\nbar"
+        ]
+        """""
+        .Replace(" ", "")
+        .Replace("\r", "")
+        .Replace("\n", "");
+
+        content.Should().Be(expextedContent);
     }
 }
