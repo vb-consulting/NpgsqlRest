@@ -7,6 +7,8 @@
 
 Automatic REST API for Any Postgres Database implemented as AOT Ready .NET8 Middleware
 
+Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
+
 #### 1) Your PostgreSQL Function
 
 ```sql

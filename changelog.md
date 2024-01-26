@@ -1,5 +1,15 @@
 # Changelog
 
+## Version 1.4.0 (2024-26-01)
+
+## Version [1.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.4.0) (2024-26-01)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.3.0...1.4.0)
+
+bla bla
+
+----------
+
 ## Version 1.3.0 (2024-23-01)
 
 ### 1) Support For Variadic Parameters
@@ -115,6 +125,8 @@ public async Task Test_get_test_records()
     content.Should().Be("[\"1,one\",\"2,two\",\"3,three\"]");
 }
 ```
+
+----------
 
 ## Version 1.2.0 (2024-22-01)
 
@@ -286,6 +298,7 @@ body-param-name content
 
 In this comment annotation a keyword that comes before the parameter name could be any of these: `BodyParameterMame`, `body-parameter-name`, `body_parameter_name`, `BodyParamMame`, `body-param-name` or `body_param_name`.
 
+----------
 
 ## Version 1.1.0 (2024-19-01)
 
