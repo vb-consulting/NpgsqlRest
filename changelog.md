@@ -51,8 +51,6 @@ Then function will not be executed at all no info will be emitted with `raise in
 
 In this version NpgsqlRest will return `HTTP 204 NoContent` response if any of the parameters are NULL. and it will avoid calling database in the first place. 
 
-```csharp
-
 ### 2) Other Improvements
 
 This realase feautures a lot of internal refactoring and code cleanup.

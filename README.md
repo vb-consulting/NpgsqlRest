@@ -5,9 +5,11 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-Automatic REST API for Any Postgres Database implemented as AOT Ready .NET8 Middleware
+**Automatic REST API** for PostgreSQL Databases implemented as **AOT Ready .NET8 Middleware**
 
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
+
+See the changelog for the latest release changes [changelog.md](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md).
 
 #### 1) Your PostgreSQL Function
 
@@ -55,12 +57,12 @@ Hello World
 
 ## Features
 
-- Automatic generation of the HTTP REST endpoints from PostgreSQL functions and procedures.
-- Native AOT Ready. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
-- Customization of endpoints with comment annotations. You can easily configure any endpoint by adding annotation labels to routine comments. Like for example HTTP GET if you want to change the method verb to GET.
-- Automatic HTTP files. Create ready-to-run HTTP files easily, for testing, debugging and discovery.
-- Interact seamlessly with .NET8 backend and take advantage of .NET8 features.
-- High performance with or without native AOT, up to 6 times higher throughput than similar solutions.
+- Automatic **generation of the HTTP REST endpoints** from PostgreSQL functions and procedures.
+- **Native AOT Ready**. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
+- **Customization** of endpoints with comment annotations. You can easily configure any endpoint by adding annotation labels to routine comments. Like for example HTTP GET if you want to change the method verb to GET.
+- **Automatic HTTP files**. Create ready-to-run HTTP files easily, for testing, debugging and discovery.
+- Interact seamlessly with **.NET8 backend** and take advantage of .NET8 features.
+- **High performance** with or without native AOT, up to 6 times higher throughput than similar solutions.
 
 ### Automatic Generation of REST Endpoints
 
