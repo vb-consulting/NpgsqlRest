@@ -1,5 +1,23 @@
 # Changelog
 
+## Version [1.5.1](https://github.com/vb-consulting/NpgsqlRest/tree/1.5.1) (2024-27-01)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.5.0...1.5.1)
+
+Small fix for JSON returning time stamps in an array. 
+
+Previously, the JSON response didn't have T between date and time, which is required by the  ISO 8601 standard.
+
+```
+"{\"2024-01-24 00:00:00\",\"2024-01-20 00:00:00\",\"2024-01-21 00:00:00\"}"
+```
+
+Now it's fixed:
+
+```
+"{\"2024-01-24T00:00:00\",\"2024-01-20T00:00:00\",\"2024-01-21T00:00:00\"}"
+```
+
 ## Version [1.5.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.5.0) (2024-27-01)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.4.0...1.5.0)

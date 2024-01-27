@@ -1,7 +1,5 @@
 @host=http://localhost:5000
 
-// NpgsqlRest endpoint test
-
 // function public.perf_test(
 //     _records integer,
 //     _text_param text,
@@ -25,11 +23,85 @@ POST {{host}}/api/perf-test
 content-type: application/json
 
 {
-    "_records": 5,
-    "_text_param": "ABCXYZ",
-    "_int_param": 99,
-    "_ts_param": "2024-01-19",
-    "_bool_param": true
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
+}
+
+###
+
+// function public.perf_test_arrays(
+//     _records integer,
+//     _text_param text,
+//     _int_param integer,
+//     _ts_param timestamp without time zone,
+//     _bool_param boolean
+// )
+// returns table(
+//     id1 integer[],
+//     foo1 text[],
+//     bar1 text[],
+//     datetime1 timestamp without time zone[],
+//     id2 integer[],
+//     foo2 text[],
+//     bar2 text[],
+//     datetime2 timestamp without time zone[],
+//     long_foo_bar text[],
+//     is_foobar boolean[]
+// )
+POST {{host}}/api/perf-test-arrays
+content-type: application/json
+
+{
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
+}
+
+###
+
+// function public.perf_test_record(
+//     _records integer,
+//     _text_param text,
+//     _int_param integer,
+//     _ts_param timestamp without time zone,
+//     _bool_param boolean
+// )
+// returns setof record
+POST {{host}}/api/perf-test-record
+content-type: application/json
+
+{
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
+}
+
+###
+
+// function public.perf_test_record_arrays(
+//     _records integer,
+//     _text_param text,
+//     _int_param integer,
+//     _ts_param timestamp without time zone,
+//     _bool_param boolean
+// )
+// returns setof record
+POST {{host}}/api/perf-test-record-arrays
+content-type: application/json
+
+{
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
 }
 
 ###
@@ -40,11 +112,49 @@ POST http://127.0.0.1:3000/rpc/perf_test
 content-type: application/json
 
 {
-    "_records": 5,
-    "_text_param": "ABCXYZ",
-    "_int_param": 99,
-    "_ts_param": "2024-01-19",
-    "_bool_param": true
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
 }
 
 ###
+
+POST http://127.0.0.1:3000/rpc/perf_test_arrays
+content-type: application/json
+
+{
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
+}
+
+###
+
+
+POST http://127.0.0.1:3000/rpc/perf_test_record
+content-type: application/json
+
+{
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
+}
+
+###
+
+POST http://127.0.0.1:3000/rpc/perf_test_record_arrays
+content-type: application/json
+
+{
+  "_records": 5,
+  "_text_param": "ABCXYZ",
+  "_int_param": 99,
+  "_ts_param": "2024-01-19",
+  "_bool_param": true
+}

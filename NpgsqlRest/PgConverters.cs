@@ -174,7 +174,12 @@ internal static class PgConverters
                         current.Append(currentChar);
                     }
                 }
-                else
+                else if (descriptor.IsDateTime)
+                {
+                    //json time requires T between date and time
+                    current.Append(currentChar == ' ' ? 'T' : currentChar);
+                }
+                else 
                 {
                     if (currentChar == '\n')
                     {
