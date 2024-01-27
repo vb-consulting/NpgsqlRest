@@ -5,8 +5,8 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    private const string dbname = "npgsql_rest_test";
-    private const string initialConnectionString = "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=postgres";
+    private const string Dbname = "npgsql_rest_test";
+    private const string InitialConnectionString = "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=postgres";
     private static readonly StringBuilder script = new();
 
     static Database()
@@ -23,9 +23,9 @@ public static partial class Database
     public static string Create()
     {
         DropIfExists();
-        var builder = new NpgsqlConnectionStringBuilder(initialConnectionString)
+        var builder = new NpgsqlConnectionStringBuilder(InitialConnectionString)
         {
-            Database = dbname
+            Database = Dbname
         };
 
         using NpgsqlConnection test = new(builder.ConnectionString);
@@ -39,15 +39,15 @@ public static partial class Database
 
     public static void DropIfExists()
     {
-        using NpgsqlConnection connection = new(initialConnectionString);
+        using NpgsqlConnection connection = new(InitialConnectionString);
         connection.Open();
-        void exec(string sql)
+        void Exec(string sql)
         {
             using var command = connection.CreateCommand();
             command.CommandText = sql;
             command.ExecuteNonQuery();
         }
-        bool any(string sql)
+        bool Any(string sql)
         {
             using var command = connection.CreateCommand();
             command.CommandText = sql;
@@ -59,13 +59,13 @@ public static partial class Database
             return false;
         }
 
-        if (any($"select 1 from pg_database where datname = '{dbname}'"))
+        if (Any($"select 1 from pg_database where datname = '{Dbname}'"))
         {
-            exec($"revoke connect on database {dbname} from public");
-            exec($"select pg_terminate_backend(pid) from pg_stat_activity where datname = '{dbname}' and pid <> pg_backend_pid()");
-            exec($"drop database {dbname}");
+            Exec($"revoke connect on database {Dbname} from public");
+            Exec($"select pg_terminate_backend(pid) from pg_stat_activity where datname = '{Dbname}' and pid <> pg_backend_pid()");
+            Exec($"drop database {Dbname}");
         }
-        exec($"create database {dbname}");
-        exec($"alter database {dbname} set timezone to 'UTC'");
+        Exec($"create database {Dbname}");
+        Exec($"alter database {Dbname} set timezone to 'UTC'");
     }
 }

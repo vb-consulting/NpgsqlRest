@@ -16,14 +16,8 @@ internal static class DefaultNameConverter
         }
         return value
             .Split(separator, StringSplitOptions.RemoveEmptyEntries)
-            .Select((s, i) =>
-            {
-                if (i == 0)
-                {
-                    return string.Concat(char.ToLowerInvariant(s[0]), s[1..]);
-                }
-                return string.Concat(char.ToUpperInvariant(s[0]), s[1..]);
-            })
+            .Select((s, i) => 
+                string.Concat(i == 0 ? char.ToLowerInvariant(s[0]) : char.ToUpperInvariant(s[0]), s[1..]))
             .Aggregate(string.Empty, string.Concat);
     }
 }

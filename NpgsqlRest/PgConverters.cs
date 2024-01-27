@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace NpgsqlRest;
 
 [JsonSerializable(typeof(string))]
-internal partial class NpgsqlRestSerializerContext : JsonSerializerContext { }
+internal partial class NpgsqlRestSerializerContext : JsonSerializerContext;
 
 internal static class PgConverters
 {
@@ -107,9 +107,9 @@ internal static class PgConverters
         bool insideQuotes = false;
         bool hasQuotes = false;
 
-        bool isNull()
+        bool IsNull()
         {
-            if (current?.Length == 4)
+            if (current.Length == 4)
             {
                 return
                     current[0] == 'N' &&
@@ -131,7 +131,7 @@ internal static class PgConverters
             }
             else if ((currentChar == ',' && !insideQuotes) || currentChar == '}')
             {
-                var currentIsNull = isNull() && !hasQuotes;
+                var currentIsNull = IsNull() && !hasQuotes;
                 if (quoted && !currentIsNull)
                 {
                     result.Append('"');

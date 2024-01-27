@@ -1,5 +1,62 @@
 # Changelog
 
+## Version [1.5.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.5.0) (2024-27-01)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.4.0...1.5.0)
+
+### 1) New Feature: Strict Function Support
+
+Functions in strict mode are functions that are declared with the `STRICT` or with `RETURNS NULL ON NULL INPUT` keyword. 
+
+These functions are **not executed** at all if any of the parameters are NULL.
+
+```sql
+create function strict_function(_p1 int, _p2 int) 
+returns text 
+strict
+language plpgsql
+as 
+$$
+begin
+    raise info '_p1 = %, _p2 = %', _p1, _p2;
+    return 'strict';
+end;
+$$;
+
+create function returns_null_on_null_input_function(_p1 int, _p2 int)
+  returns text
+  returns null on null input
+  language plpgsql
+as 
+$$
+begin
+    raise info '_p1 = %, _p2 = %', _p1, _p2;
+return 'returns null on null input';
+end;
+$$;
+```
+
+If any of these functions were called with NULL:
+
+```sql
+select strict_function(1,null);
+select strict_function(null,1);
+select strict_function(null,null);
+select returns_null_on_null_input_function(1,null);
+select returns_null_on_null_input_function(null,1);
+select returns_null_on_null_input_function(null,null);
+```
+
+Then function will not be executed at all no info will be emitted with `raise info` since nothing is executed. 
+
+In this version NpgsqlRest will return `HTTP 204 NoContent` response if any of the parameters are NULL. and it will avoid calling database in the first place. 
+
+```csharp
+
+### 2) Other Improvements
+
+This realase feautures a lot of internal refactoring and code cleanup.
+
 ## Version [1.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.4.0) (2024-26-01)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.3.0...1.4.0)

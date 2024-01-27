@@ -7,15 +7,11 @@ namespace NpgsqlRest;
 
 internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, ILogger? logger)
 {
-    private readonly HashSet<string> initializedFiles = [];
-    private readonly IApplicationBuilder builder = builder;
-    private readonly Dictionary<string, StringBuilder> fileContent = [];
+    private readonly HashSet<string> _initializedFiles = [];
+    private readonly Dictionary<string, StringBuilder> _fileContent = [];
 
-    private NpgsqlRestOptions options = options;
-    private ILogger? logger = logger;
-
-    private bool endpoint = false;
-    private bool file = false;
+    private bool _endpoint = false;
+    private bool _file = false;
 
     internal void HandleEntry(Routine routine, RoutineEndpoint endpoint)
     {
@@ -24,80 +20,81 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             return;
         }
 
-        this.endpoint = options.HttpFileOptions.Option == HttpFileOption.Endpoint || options.HttpFileOptions.Option == HttpFileOption.Both;
-        file = options.HttpFileOptions.Option == HttpFileOption.File || options.HttpFileOptions.Option == HttpFileOption.Both;
+        _endpoint = options.HttpFileOptions.Option == HttpFileOption.Endpoint || options.HttpFileOptions.Option == HttpFileOption.Both;
+        _file = options.HttpFileOptions.Option == HttpFileOption.File || options.HttpFileOptions.Option == HttpFileOption.Both;
 
-        string formatfileName()
-        {
-            var name = GetName(options);
-            var schema = options.HttpFileOptions.FileMode != HttpFileMode.Schema ? "" : string.Concat("_", routine.Schema);
-            return string.Concat(string.Format(options.HttpFileOptions.NamePattern, name, schema), ".http");
-        }
-        var fileName = formatfileName();
-        if (initializedFiles.Add(fileName))
+        var fileName = FormatFileName();
+        if (_initializedFiles.Add(fileName))
         {
             StringBuilder content = new();
             content.AppendLine(string.Concat("@host=", GetHost(builder)));
             content.AppendLine();
-            fileContent[fileName] = content;
+            _fileContent[fileName] = content;
         }
 
         StringBuilder sb = new();
 
         if (options.HttpFileOptions.CommentHeader != CommentHeader.None)
         {
-            if (options.HttpFileOptions.CommentHeader == CommentHeader.Simple)
+            switch (options.HttpFileOptions.CommentHeader)
             {
-                sb.AppendLine(string.Concat("// ",
-                    routine.TypeInfo, " ",
-                    routine.Schema, ".",
-                    routine.Name, "(",
-                    routine.ParamCount == 0 ? ")" : ""));
-                if (routine.ParamCount > 0)
+                case CommentHeader.Simple:
                 {
-                    for (var i = 0; i < routine.ParamCount; i++)
+                    sb.AppendLine(string.Concat("// ",
+                        routine.TypeInfo, " ",
+                        routine.Schema, ".",
+                        routine.Name, "(",
+                        routine.ParamCount == 0 ? ")" : ""));
+                    if (routine.ParamCount > 0)
                     {
-                        var name = routine.ParamNames[i];
-                        var defaultValue = routine.ParamDefaults[i];
-                        var paramType = routine.ParamTypes[i];
-                        var type = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
-                        sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ParamCount - 1 ? "" : ","));
-                    }
-                    sb.AppendLine("// )");
-                }
-                if (!routine.ReturnsRecord)
-                {
-                    sb.AppendLine(string.Concat("// returns ", routine.ReturnType));
-                }
-                else
-                {
-                    if (routine.ReturnsUnnamedSet)
-                    {
-                        sb.AppendLine(string.Concat("// returns setof ", routine.ReturnRecordTypes[0]));
-                    }
-                    else
-                    {
-                        sb.AppendLine("// returns table(");
-
-                        for (var i = 0; i < routine.ReturnRecordCount; i++)
+                        for (var i = 0; i < routine.ParamCount; i++)
                         {
-                            var name = routine.ReturnRecordNames[i];
-                            var type = routine.ReturnRecordTypes[i];
-                            sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ReturnRecordCount - 1 ? "" : ","));
+                            var name = routine.ParamNames[i];
+                            var defaultValue = routine.ParamDefaults[i];
+                            var paramType = routine.ParamTypes[i];
+                            var type = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
+                            sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ParamCount - 1 ? "" : ","));
                         }
                         sb.AppendLine("// )");
                     }
-                }
-            }
-            else if (options.HttpFileOptions.CommentHeader == CommentHeader.Full)
-            {
-                foreach (var line in routine.Definition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    if (line == "\r")
+                    if (!routine.ReturnsRecord)
                     {
-                        continue;
+                        sb.AppendLine(string.Concat("// returns ", routine.ReturnType));
                     }
-                    sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
+                    else
+                    {
+                        if (routine.ReturnsUnnamedSet)
+                        {
+                            sb.AppendLine(string.Concat("// returns setof ", routine.ReturnRecordTypes[0]));
+                        }
+                        else
+                        {
+                            sb.AppendLine("// returns table(");
+
+                            for (var i = 0; i < routine.ReturnRecordCount; i++)
+                            {
+                                var name = routine.ReturnRecordNames[i];
+                                var type = routine.ReturnRecordTypes[i];
+                                sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ReturnRecordCount - 1 ? "" : ","));
+                            }
+                            sb.AppendLine("// )");
+                        }
+                    }
+
+                    break;
+                }
+                case CommentHeader.Full:
+                {
+                    foreach (var line in routine.Definition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (line == "\r")
+                        {
+                            continue;
+                        }
+                        sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
+                    }
+
+                    break;
                 }
             }
         }
@@ -119,11 +116,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                         {
                             return string.Join("&", value.Split(',').Select(v => $"{p}={Uri.EscapeDataString(v)}"));
                         }
-                        else
-                        {
-                            value = Uri.EscapeDataString(value);
-                        }
-                        return $"{p}={value}";
+                        return $"{p}={Uri.EscapeDataString(value)}";
                     }))));
         }
 
@@ -147,7 +140,15 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         sb.AppendLine("###");
         sb.AppendLine();
 
-        fileContent[fileName].Append(sb);
+        _fileContent[fileName].Append(sb);
+        return;
+
+        string FormatFileName()
+        {
+            var name = GetName(options);
+            var schema = options.HttpFileOptions.FileMode != HttpFileMode.Schema ? "" : string.Concat("_", routine.Schema);
+            return string.Concat(string.Format(options.HttpFileOptions.NamePattern, name, schema), ".http");
+        }
     }
 
     internal void FinalizeHttpFile()
@@ -157,9 +158,9 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             return;
         }
 
-        if (endpoint)
+        if (_endpoint)
         {
-            foreach(var (fileName, content) in fileContent)
+            foreach(var (fileName, content) in _fileContent)
             {
                 var path = $"/{fileName}";
                 builder.Use(async (context, next) =>
@@ -180,9 +181,9 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             }
         }
 
-        if (file)
+        if (_file)
         {
-            foreach(var (fileName, content) in fileContent)
+            foreach(var (fileName, content) in _fileContent)
             {
                 var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
                 if (!options.HttpFileOptions.FileOverwrite && File.Exists(fullFileName))
@@ -203,28 +204,6 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
     private static string SampleValue(int i, TypeDescriptor type, bool isQuery = false)
     {
         var counter = i;
-        string GetSubstring(int? value = null) => ((value ?? counter) % 3) switch
-        {
-            0 => "ABC",
-            1 => "XYZ",
-            2 => "IJK",
-            _ => "WTF"
-        };
-
-        static string Quote(string value) => string.Concat("\"", value, "\"");
-
-        string GetArray(string v1, string v2, string v3, bool quoted)
-        {
-            if (isQuery)
-            {
-                return string.Concat(v1, ",", v2, ",", v3);
-            }
-            if (quoted)
-            {
-                return string.Concat("[", Quote(v1), ", ", Quote(v2), ", ", Quote(v3), "]");
-            }
-            return string.Concat("[", v1, ", ", v2, ", ", v3, "]");
-        }
 
         if (type.IsNumeric)
         {
@@ -426,6 +405,25 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         }
 
         return Quote(GetSubstring());
+
+        static string Quote(string value) => string.Concat("\"", value, "\"");
+
+        string GetArray(string v1, string v2, string v3, bool quoted)
+        {
+            if (isQuery)
+            {
+                return string.Concat(v1, ",", v2, ",", v3);
+            }
+            return quoted ? string.Concat("[", Quote(v1), ", ", Quote(v2), ", ", Quote(v3), "]") : string.Concat("[", v1, ", ", v2, ", ", v3, "]");
+        }
+
+        string GetSubstring(int? value = null) => ((value ?? counter) % 3) switch
+        {
+            0 => "ABC",
+            1 => "XYZ",
+            2 => "IJK",
+            _ => "WTF"
+        };
     }
 
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",

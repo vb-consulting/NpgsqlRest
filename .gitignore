@@ -399,3 +399,4 @@ FodyWeavers.xsd
 /source/NpgsqlRestTestWebApi/appsettings.Development.json
 
 BenchmarkTests/
+.idea/

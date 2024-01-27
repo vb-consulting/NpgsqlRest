@@ -31,7 +31,7 @@ public readonly struct Routine(
     int paramCount,
     string[] paramNames,
     string[] paramTypes,
-    string[] paramDefaults,
+    string?[] paramDefaults,
     string definition,
     TypeDescriptor[] paramTypeDescriptor,
     bool isVoid,
@@ -62,7 +62,7 @@ public readonly struct Routine(
     public int ParamCount { get; } = paramCount;
     public string[] ParamNames { get; } = paramNames;
     public string[] ParamTypes { get; } = paramTypes;
-    public string[] ParamDefaults { get; } = paramDefaults;
+    public string?[] ParamDefaults { get; } = paramDefaults;
     public string Definition { get; } = definition;
     public TypeDescriptor[] ParamTypeDescriptor { get; } = paramTypeDescriptor;
     public bool IsVoid { get; } = isVoid;

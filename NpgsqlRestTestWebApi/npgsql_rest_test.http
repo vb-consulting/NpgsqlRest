@@ -776,9 +776,39 @@ content-type: application/json
 
 ###
 
+// function public.returns_null_on_null_input_function(
+//     _p1 integer,
+//     _p2 integer
+// )
+// returns text
+POST {{host}}/api/returns-null-on-null-input-function
+content-type: application/json
+
+{
+    "p1": 1,
+    "p2": 2
+}
+
+###
+
 // function public.stable_func()
 // returns text
 GET {{host}}/api/stable-func
+
+###
+
+// function public.strict_function(
+//     _p1 integer,
+//     _p2 integer
+// )
+// returns text
+POST {{host}}/api/strict-function
+content-type: application/json
+
+{
+    "p1": 1,
+    "p2": 2
+}
 
 ###
 

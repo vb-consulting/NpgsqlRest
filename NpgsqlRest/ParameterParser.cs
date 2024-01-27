@@ -9,191 +9,13 @@ using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
-internal class ParameterParser
+internal static class ParameterParser
 {
     internal static bool TryParseParameter(
         ref StringValues values, 
         ref TypeDescriptor descriptor,
         ref NpgsqlParameter parameter)
     {
-        static bool TryGetValue(
-            ref TypeDescriptor descriptor, 
-            ref string? value, 
-            out object? resultValue)
-        {
-            if (!descriptor.IsText && string.IsNullOrEmpty(value))
-            {
-                resultValue = DBNull.Value;
-                return true;
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Smallint)
-            {
-                if (short.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var shortValue))
-                {
-                    resultValue = shortValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Integer)
-            {
-                if (int.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var intValue))
-                {
-                    resultValue = intValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Bigint)
-            {
-                if (long.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var bigValue))
-                {
-                    resultValue = bigValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Double)
-            {
-                if (double.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var doubleValue))
-                {
-                    resultValue = doubleValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Real)
-            {
-                if (float.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var floatValue))
-                {
-                    resultValue = floatValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Numeric || descriptor.BaseDbType == NpgsqlDbType.Money)
-            {
-                if (decimal.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var decimalValue))
-                {
-                    resultValue = decimalValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Boolean)
-            {
-                if (bool.TryParse(value, out var boolValue))
-                {
-                    resultValue = boolValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Timestamp || descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
-            {
-                if (DateTime.TryParse(value, out var dateTimeValue))
-                {
-                    if (descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
-                    {
-                        resultValue = DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc);
-                    }
-                    else
-                    {
-                        resultValue = dateTimeValue;
-                    }
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Date)
-            {
-                if (DateOnly.TryParse(value, out var dateTimeValue))
-                {
-                    resultValue = dateTimeValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Time || descriptor.BaseDbType == NpgsqlDbType.TimeTz)
-            {
-                if (DateTime.TryParse(value, out var dateTimeValue))
-                {
-                    if (descriptor.BaseDbType == NpgsqlDbType.TimeTz)
-                    {
-                        resultValue = new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc));
-                    }
-                    else
-                    {
-                        resultValue = TimeOnly.FromDateTime(dateTimeValue);
-                    };
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Uuid)
-            {
-                if (Guid.TryParse(value, out var guidValue))
-                {
-                    resultValue = guidValue;
-                    return true;
-                }
-                else
-                {
-                    resultValue = null!;
-                    return false;
-                }
-            }
-            else if (descriptor.IsText)
-            {
-                resultValue = value;
-                return true;
-            }
-
-            // for all other cases, use raw string
-            resultValue = value;
-            return true;
-        }
-
         if (descriptor.IsArray == false)
         {
             if (values.Count == 0)
@@ -201,7 +23,7 @@ internal class ParameterParser
                 parameter.Value = DBNull.Value;
                 return true;
             }
-            else if (values.Count == 1)
+            if (values.Count == 1)
             {
                 var value = values[0];
                 if (TryGetValue(ref descriptor, ref value, out var resultValue))
@@ -227,31 +49,166 @@ internal class ParameterParser
                 return false;
             }
         }
-        else
+
+        if (values.Count == 0)
         {
-            if (values.Count == 0)
+            parameter.Value = DBNull.Value;
+            return true;
+        }
+
+        var list = new List<object?>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+        {
+            var value = values[i];
+            if (TryGetValue(ref descriptor, ref value, out var resultValue))
             {
-                parameter.Value = DBNull.Value;
-                return true;
+                list.Add(resultValue);
             }
             else
             {
-                var list = new List<object?>(values.Count);
-                for (var i = 0; i < values.Count; i++)
+                return false;
+            }
+        }
+        parameter.Value = list;
+        return true;
+
+        static bool TryGetValue(
+            ref TypeDescriptor descriptor, 
+            ref string? value, 
+            out object? resultValue)
+        {
+            if (!descriptor.IsText && string.IsNullOrEmpty(value))
+            {
+                resultValue = DBNull.Value;
+                return true;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Smallint)
+            {
+                if (short.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var shortValue))
                 {
-                    var value = values[i];
-                    if (TryGetValue(ref descriptor, ref value, out var resultValue))
+                    resultValue = shortValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Integer)
+            {
+                if (int.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var intValue))
+                {
+                    resultValue = intValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Bigint)
+            {
+                if (long.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var bigValue))
+                {
+                    resultValue = bigValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Double)
+            {
+                if (double.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var doubleValue))
+                {
+                    resultValue = doubleValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Real)
+            {
+                if (float.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var floatValue))
+                {
+                    resultValue = floatValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Numeric || descriptor.BaseDbType == NpgsqlDbType.Money)
+            {
+                if (decimal.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var decimalValue))
+                {
+                    resultValue = decimalValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Boolean)
+            {
+                if (bool.TryParse(value, out var boolValue))
+                {
+                    resultValue = boolValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Timestamp || descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
+            {
+                if (DateTime.TryParse(value, out var dateTimeValue))
+                {
+                    resultValue = descriptor.BaseDbType == NpgsqlDbType.TimestampTz ? DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc) : dateTimeValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Date)
+            {
+                if (DateOnly.TryParse(value, out var dateTimeValue))
+                {
+                    resultValue = dateTimeValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+
+            if (descriptor.BaseDbType == NpgsqlDbType.Time || descriptor.BaseDbType == NpgsqlDbType.TimeTz)
+            {
+                if (DateTime.TryParse(value, out var dateTimeValue))
+                {
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimeTz)
                     {
-                        list.Add(resultValue);
+                        resultValue = new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc));
                     }
                     else
                     {
-                        return false;
+                        resultValue = TimeOnly.FromDateTime(dateTimeValue);
                     }
+                    return true;
                 }
-                parameter.Value = list;
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.BaseDbType == NpgsqlDbType.Uuid)
+            {
+                if (Guid.TryParse(value, out var guidValue))
+                {
+                    resultValue = guidValue;
+                    return true;
+                }
+                resultValue = null!;
+                return false;
+            }
+            if (descriptor.IsText)
+            {
+                resultValue = value;
                 return true;
             }
+
+            // for all other cases, use raw string
+            resultValue = value;
+            return true;
         }
     }
 
@@ -271,115 +228,6 @@ internal class ParameterParser
         {
             parameter.Value = DBNull.Value;
             return true;
-        }
-
-        bool TryGetNonStringValue(
-            ref TypeDescriptor descriptor, 
-            ref JsonNode value, 
-            ref JsonValueKind valueKind, 
-            out object result)
-        {
-            try
-            {
-                if (valueKind == JsonValueKind.Number)
-                {
-                    if (descriptor.BaseDbType == NpgsqlDbType.Smallint)
-                    {
-                        result = value.GetValue<short>();
-                        return true;
-                    }
-                    else if (descriptor.BaseDbType == NpgsqlDbType.Integer)
-                    {
-                        result = value.GetValue<int>();
-                        return true;
-                    }
-                    else if (descriptor.BaseDbType == NpgsqlDbType.Bigint)
-                    {
-                        result = value.GetValue<long>();
-                        return true;
-                    }
-                    else if (descriptor.BaseDbType == NpgsqlDbType.Double)
-                    {
-                        result = value.GetValue<double>();
-                        return true;
-                    }
-                    else if (descriptor.BaseDbType == NpgsqlDbType.Real)
-                    {
-                        result = value.GetValue<float>();
-                        return true;
-                    }
-                    else if (descriptor.BaseDbType == NpgsqlDbType.Numeric || descriptor.BaseDbType == NpgsqlDbType.Money)
-                    {
-                        result = value.GetValue<decimal>();
-                        return true;
-                    }
-                }
-                if ((valueKind == JsonValueKind.True || valueKind == JsonValueKind.False) && descriptor.BaseDbType == NpgsqlDbType.Boolean)
-                {
-                    result = value.GetValue<bool>();
-                    return true;
-                }
-            }
-            catch (Exception ex) when (ex is FormatException || ex is InvalidOperationException)
-            {
-            }
-            result = null!;
-            return false;
-        }
-
-        bool TryGetNonStringValueFromString(
-            ref TypeDescriptor descriptor, 
-            ref string content, 
-            out object result)
-        {
-            if (descriptor.BaseDbType == NpgsqlDbType.Timestamp || descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
-            {
-                if (DateTime.TryParse(content, out var dateTimeValue))
-                {
-                    if (descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
-                    {
-                        result = DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc);
-                    }
-                    else
-                    {
-                        result = dateTimeValue;
-                    }
-                    return true;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Date)
-            {
-                if (DateOnly.TryParse(content, out var dateTimeValue))
-                {
-                    result = dateTimeValue;
-                    return true;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Time || descriptor.BaseDbType == NpgsqlDbType.TimeTz)
-            {
-                if (DateTime.TryParse(content, out var dateTimeValue))
-                {
-                    if (descriptor.BaseDbType == NpgsqlDbType.TimeTz)
-                    {
-                        result = new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc));
-                    }
-                    else
-                    {
-                        result = TimeOnly.FromDateTime(dateTimeValue);
-                    };
-                    return true;
-                }
-            }
-            else if (descriptor.BaseDbType == NpgsqlDbType.Uuid)
-            {
-                if (Guid.TryParse(content, out var guidValue))
-                {
-                    result = guidValue;
-                    return true;
-                }
-            }
-            result = null!;
-            return false;
         }
 
         if (TryGetNonStringValue(ref descriptor, ref value, ref kind, out var nonStringValue))
@@ -433,5 +281,119 @@ internal class ParameterParser
 
         parameter.Value = content;
         return true;
+
+        bool TryGetNonStringValue(
+            ref TypeDescriptor descriptor, 
+            ref JsonNode value, 
+            ref JsonValueKind valueKind, 
+            out object result)
+        {
+            try
+            {
+                if (valueKind == JsonValueKind.Number)
+                {
+                    if (descriptor.BaseDbType == NpgsqlDbType.Smallint)
+                    {
+                        result = value.GetValue<short>();
+                        return true;
+                    }
+
+                    if (descriptor.BaseDbType == NpgsqlDbType.Integer)
+                    {
+                        result = value.GetValue<int>();
+                        return true;
+                    }
+
+                    if (descriptor.BaseDbType == NpgsqlDbType.Bigint)
+                    {
+                        result = value.GetValue<long>();
+                        return true;
+                    }
+
+                    if (descriptor.BaseDbType == NpgsqlDbType.Double)
+                    {
+                        result = value.GetValue<double>();
+                        return true;
+                    }
+
+                    if (descriptor.BaseDbType == NpgsqlDbType.Real)
+                    {
+                        result = value.GetValue<float>();
+                        return true;
+                    }
+
+                    if (descriptor.BaseDbType is NpgsqlDbType.Numeric or NpgsqlDbType.Money)
+                    {
+                        result = value.GetValue<decimal>();
+                        return true;
+                    }
+                }
+                if (valueKind is JsonValueKind.True or JsonValueKind.False && descriptor.BaseDbType == NpgsqlDbType.Boolean)
+                {
+                    result = value.GetValue<bool>();
+                    return true;
+                }
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidOperationException)
+            {
+            }
+            result = null!;
+            return false;
+        }
+
+        bool TryGetNonStringValueFromString(
+            ref TypeDescriptor descriptor, 
+            ref string nonStrContent, 
+            out object result)
+        {
+            if (descriptor.BaseDbType is NpgsqlDbType.Timestamp or NpgsqlDbType.TimestampTz)
+            {
+                if (DateTime.TryParse(nonStrContent, out var dateTimeValue))
+                {
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
+                    {
+                        result = DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc);
+                    }
+                    else
+                    {
+                        result = dateTimeValue;
+                    }
+                    return true;
+                }
+            }
+            else if (descriptor.BaseDbType == NpgsqlDbType.Date)
+            {
+                if (DateOnly.TryParse(nonStrContent, out var dateTimeValue))
+                {
+                    result = dateTimeValue;
+                    return true;
+                }
+            }
+            else if (descriptor.BaseDbType is NpgsqlDbType.Time or NpgsqlDbType.TimeTz)
+            {
+                if (DateTime.TryParse(nonStrContent, out var dateTimeValue))
+                {
+                    if (descriptor.BaseDbType == NpgsqlDbType.TimeTz)
+                    {
+                        result = new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc));
+                    }
+                    else
+                    {
+                        result = TimeOnly.FromDateTime(dateTimeValue);
+                    };
+                    return true;
+                }
+            }
+            else if (descriptor.BaseDbType == NpgsqlDbType.Uuid)
+            {
+                if (Guid.TryParse(nonStrContent, out var guidValue))
+                {
+                    result = guidValue;
+                    return true;
+                }
+            }
+            result = null!;
+            return false;
+        }
     }
 }

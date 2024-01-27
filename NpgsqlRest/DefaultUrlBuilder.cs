@@ -9,19 +9,14 @@ internal static class DefaultUrlBuilder
             .Replace(" ", "-")
             .Replace("\"", "")
             .Trim('/');
-        if (schema == "public")
-        {
-            schema = "";
-        }
-        else
-        {
-            schema = string.Concat(schema, "/");
-        }
+
+        schema = schema == "public" ? "" : string.Concat(schema, "/");
         var name = routine.Name.ToLowerInvariant()
             .Replace("_", "-")
             .Replace(" ", "-")
             .Replace("\"", "")
             .Trim('/');
+
         var prefix = options.UrlPathPrefix is null ? "/" : 
             string.Concat("/", options.UrlPathPrefix
                 .ToLowerInvariant()
@@ -30,7 +25,7 @@ internal static class DefaultUrlBuilder
                 .Replace("\"", "")
                 .Trim('/'),
             "/");
-        //return string.Concat(string.Concat(prefix, schema, name).TrimEnd('/'), '/');
+
         return string.Concat(prefix, schema, name).TrimEnd('/');
     }
 }

@@ -4,35 +4,35 @@ namespace NpgsqlRest;
 
 internal static class Logging
 {
-    private const string info = "INFO";
-    private const string notice = "NOTICE";
-    private const string log = "LOG";
-    private const string warning = "WARNING";
-    private const string debug = "DEBUG";
-    private const string error = "ERROR";
-    private const string panic = "PANIC";
+    private const string Info = "INFO";
+    private const string Notice = "NOTICE";
+    private const string Log = "LOG";
+    private const string Warning = "WARNING";
+    private const string Debug = "DEBUG";
+    private const string Error = "ERROR";
+    private const string Panic = "PANIC";
 
     public static void LogConnectionNotice(ref ILogger? logger, ref NpgsqlRestOptions options, ref NpgsqlNoticeEventArgs args)
     {
         var severity = args.Notice.Severity;
         var msg = $"{args.Notice.Where}:{Environment.NewLine}{args.Notice.MessageText}{Environment.NewLine}";
 
-        if (string.Equals(info, severity, StringComparison.OrdinalIgnoreCase) || 
-            string.Equals(log, severity, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(notice, severity, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Info, severity, StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(Log, severity, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Notice, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogInfo(ref logger, ref options, msg);
         }
-        else if (string.Equals(warning, severity, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(Warning, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogWarning(ref logger, ref options, msg);
         }
-        else if (string.Equals(debug, severity, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(Debug, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogDebug(ref logger, ref options, msg);
         }
-        else if (string.Equals(error, severity, StringComparison.OrdinalIgnoreCase) || 
-            string.Equals(panic, severity, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(Error, severity, StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(Panic, severity, StringComparison.OrdinalIgnoreCase))
         {
             LogError(ref logger, ref options, msg);
         }

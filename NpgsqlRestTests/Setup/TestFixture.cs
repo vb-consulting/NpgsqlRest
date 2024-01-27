@@ -5,23 +5,23 @@ public class TestFixtureCollection : ICollectionFixture<TestFixture> { }
 
 public class TestFixture : IDisposable
 {
-    private readonly WebApplicationFactory<Program> application;
-    private readonly HttpClient client;
+    private readonly WebApplicationFactory<Program> _application;
+    private readonly HttpClient _client;
 
-    public HttpClient Client => client;
+    public HttpClient Client => _client;
 
     public TestFixture()
     {
-        application = new WebApplicationFactory<Program>();
-        client = application.CreateClient();
-        client.Timeout = TimeSpan.FromHours(1);
+        _application = new WebApplicationFactory<Program>();
+        _client = _application.CreateClient();
+        _client.Timeout = TimeSpan.FromHours(1);
     }
 
 #pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
     public void Dispose()
 #pragma warning restore CA1816 // Dispose methods should call SuppressFinalize
     {
-        client.Dispose();
-        application.Dispose();
+        _client.Dispose();
+        _application.Dispose();
     }
 }

@@ -26,7 +26,7 @@ public class NpgsqlRestHttpFileOptions(
     /// </summary>
     public string NamePattern { get; set; } = namePattern;
     /// <summary>
-    /// Adds comment header to above request based on PostrgeSQL routine
+    /// Adds comment header to above request based on PostgreSQL routine
     /// Set None to skip.
     /// Set Simple (default) to add name, parameters and return values to comment header.
     /// Set Full to add the entire routine code as comment header.

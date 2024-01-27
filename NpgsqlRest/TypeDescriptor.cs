@@ -26,12 +26,12 @@ public readonly struct TypeDescriptor
         HasDefault = hasDefault;
         IsArray = type.EndsWith("[]");
         Type = (IsArray ? type[..^2] : type).Trim('"');
-        DbType = this.GetDbType();
+        DbType = GetDbType();
         BaseDbType = DbType;
 
         ActualDbType = CastToText(BaseDbType) ? NpgsqlDbType.Text : BaseDbType;
 
-        if (this.IsArray)
+        if (IsArray)
         {
             DbType |= NpgsqlDbType.Array;
             ActualDbType |= NpgsqlDbType.Array;

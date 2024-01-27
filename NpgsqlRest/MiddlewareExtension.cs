@@ -58,41 +58,10 @@ public static class NpgsqlRestMiddlewareExtensions
 
             JsonObject? jsonObj = null;
             string? body = null;
-            async Task ParseJsonBody()
-            {
-                if (jsonObj is null)
-                {
-                    context.Request.EnableBuffering();
-                    context.Request.Body.Position = 0;
-                    if (body is null)
-                    {
-                        using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-                        body = await reader.ReadToEndAsync();
-                    }
-                    JsonNode? node;
-                    try
-                    {
-                        node = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
-                    }
-                    catch (JsonException)
-                    {
-                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
-                        return;
-                    }
-                    try
-                    {
-                        jsonObj = node?.AsObject();
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
-                    }
-                }
-            }
 
             var len = tupleArray.Length;
             bool overloaded = len > 1;
-            //for (var index = 0; index < len; index++)
+
             for (var index = len - 1; index >= 0; index--)
             {
                 var (routine, endpoint) = tupleArray[index];
@@ -121,14 +90,15 @@ public static class NpgsqlRestMiddlewareExtensions
                                 continue;
                             }
                         }
-                        if (routine.ParamCount != (jsonObj is null ? 0 : jsonObj.Count))
+                        if (routine.ParamCount != (jsonObj?.Count ?? 0))
                         {
                             continue;
                         }
                     }
                 }
 
-                NpgsqlParameter[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
+                NpgsqlParameter?[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
+                bool hasNulls = false;
                 int? headerParameterIndex = null;
                 if (routine.ParamCount > 0)
                 {
@@ -282,7 +252,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                     setCount++;
                                 }
                             }
+                            
+                            if (hasNulls is false && parameter?.Value == DBNull.Value)
+                            {
+                                hasNulls = true;
+                            }
                         }
+                        
                         if (setCount != routine.ParamCount)
                         {
                             continue;
@@ -308,9 +284,8 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 NpgsqlDbType = descriptor.ActualDbType
                             };
-                            if (jsonObj.ContainsKey(p))
+                            if (((IDictionary<string, JsonNode?>)jsonObj).TryGetValue(p, out var value))
                             {
-                                var value = jsonObj[p];
                                 if (ParameterParser.TryParseParameter(ref value, ref descriptor, ref parameter))
                                 {
                                     if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
@@ -417,6 +392,11 @@ public static class NpgsqlRestMiddlewareExtensions
                                     setCount++;
                                 }
                             }
+
+                            if (hasNulls is false && parameter?.Value == DBNull.Value)
+                            {
+                                hasNulls = true;
+                            }
                         }
                         if (setCount != routine.ParamCount)
                         {
@@ -428,6 +408,13 @@ public static class NpgsqlRestMiddlewareExtensions
                 if (endpoint.RequiresAuthorization && context.User?.Identity?.IsAuthenticated is false)
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    await context.Response.CompleteAsync();
+                    return;
+                }
+
+                if (hasNulls && routine.IsStrict)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NoContent;
                     await context.Response.CompleteAsync();
                     return;
                 }
@@ -456,7 +443,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         if (headerParameterIndex.HasValue)
                         {
-                            parameters[headerParameterIndex.Value].Value = headers;
+                            parameters[headerParameterIndex.Value]!.Value = headers;
                         }
                     }
                 }
@@ -525,7 +512,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     else
                     {
                         command.AllResultTypesAreUnknown = true;
-                        using var reader = await command.ExecuteReaderAsync();
+                        await using var reader = await command.ExecuteReaderAsync();
                         if (routine.ReturnsRecord == false)
                         {
                             if (await reader.ReadAsync())
@@ -701,6 +688,39 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             await next(context);
+            return;
+
+            async Task ParseJsonBody()
+            {
+                if (jsonObj is null)
+                {
+                    context.Request.EnableBuffering();
+                    context.Request.Body.Position = 0;
+                    if (body is null)
+                    {
+                        using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+                        body = await reader.ReadToEndAsync();
+                    }
+                    JsonNode? node;
+                    try
+                    {
+                        node = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
+                    }
+                    catch (JsonException)
+                    {
+                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                        return;
+                    }
+                    try
+                    {
+                        jsonObj = node?.AsObject();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                    }
+                }
+            }
         });
 
         return builder;

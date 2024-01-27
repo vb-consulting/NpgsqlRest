@@ -6,11 +6,11 @@ namespace NpgsqlRest;
 
 internal static class DefaultEndpoint
 {
-    internal static readonly char[] newlineSeparator = ['\r', '\n'];
-    internal static readonly char[] wordSeparator = [' '];
-    internal static readonly char[] headerSeparator = [':'];
+    private static readonly char[] newlineSeparator = ['\r', '\n'];
+    private static readonly char[] wordSeparator = [' '];
+    private static readonly char[] headerSeparator = [':'];
 
-    private const string httpKey = "http";
+    private const string HttpKey = "http";
     private static readonly string[] paramTypeKey = [
         "requestparamtype", 
         "paramtype", 
@@ -44,7 +44,7 @@ internal static class DefaultEndpoint
         "command-timeout",
         "timeout"
     ];
-    private const string contentTypeKey = "content-type";
+    private const string ContentTypeKey = "content-type";
     private static readonly string[] requestHeadersModeKey = [
         "requestheadersmode",
         "request_headers_mode",
@@ -53,9 +53,9 @@ internal static class DefaultEndpoint
         "request_headers",
         "request-headers"
     ];
-    private const string ignoreKey = "ignore";
-    private const string contextKey = "context";
-    private const string parameterKey = "parameter";
+    private const string IgnoreKey = "ignore";
+    private const string ContextKey = "context";
+    private const string ParameterKey = "parameter";
     private static readonly string[] requestHeadersParameterNameKey = [
         "requestheadersparametername",
         "requestheadersparamname",
@@ -112,7 +112,23 @@ internal static class DefaultEndpoint
         string requestHeadersParameterName = options.RequestHeadersParameterName;
         string? bodyParameterName = null;
 
-        if (options.CommentsMode != CommentsMode.Ignore)
+        if (options.CommentsMode == CommentsMode.Ignore)
+        {
+            return new(
+                Url: url,
+                Method: method,
+                RequestParamType: requestParamType,
+                RequiresAuthorization: requiresAuthorization,
+                ReturnRecordNames: returnRecordNames,
+                ParamNames: paramNames,
+                CommandTimeout: commandTimeout,
+                ResponseContentType: responseContentType,
+                ResponseHeaders: responseHeaders ?? [],
+                RequestHeadersMode: requestHeadersMode,
+                RequestHeadersParameterName: requestHeadersParameterName,
+                BodyParameterName: bodyParameterName);
+        }
+
         {
             var comment = routine.Comment;
             if (string.IsNullOrEmpty(comment))
@@ -132,7 +148,7 @@ internal static class DefaultEndpoint
                     string[] words = line.Split(wordSeparator, StringSplitOptions.RemoveEmptyEntries);
                     if (words.Length > 0)
                     {
-                        if (StringEquals(ref words[0], httpKey))
+                        if (StringEquals(ref words[0], HttpKey))
                         {
                             hasHttpTag = true;
                             if (words.Length == 2 || words.Length == 3)
@@ -223,15 +239,15 @@ internal static class DefaultEndpoint
 
                         else if (hasHttpTag && StringEqualsToArray(ref words[0], requestHeadersModeKey)) 
                         {
-                            if (StringEquals(ref words[1], ignoreKey))
+                            if (StringEquals(ref words[1], IgnoreKey))
                             {
                                 requestHeadersMode = RequestHeadersMode.Ignore;
                             }
-                            else if (StringEquals(ref words[1], contextKey))
+                            else if (StringEquals(ref words[1], ContextKey))
                             {
                                 requestHeadersMode = RequestHeadersMode.Context;
                             }
-                            else if (StringEquals(ref words[1], parameterKey))
+                            else if (StringEquals(ref words[1], ParameterKey))
                             {
                                 requestHeadersMode = RequestHeadersMode.Parameter;
                             }
@@ -279,7 +295,7 @@ internal static class DefaultEndpoint
                             {
                                 var headerName = parts[0].Trim();
                                 var headerValue = parts[1].Trim();
-                                if (StringEquals(ref headerName, contentTypeKey))
+                                if (StringEquals(ref headerName, ContentTypeKey))
                                 {
                                     if (!string.Equals(responseContentType, headerValue))
                                     {
