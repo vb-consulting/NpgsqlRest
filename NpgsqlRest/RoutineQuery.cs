@@ -237,15 +237,15 @@ from cte
                         expression,
                         string.Join(", ", Enumerable
                             .Range(1, i)
-                            .Select(i =>
+                            .Select(i1 =>
                             {
-                                var descriptor = paramTypeDescriptor[i - 1];
-                                string prefix = hasVariadic && i == paramCount ? "variadic " : "";
+                                var descriptor = paramTypeDescriptor[i1 - 1];
+                                string prefix = hasVariadic && i1 == paramCount ? "variadic " : "";
                                 if (descriptor.IsCastToText())
                                 {
-                                    return $"{prefix}${i}::{descriptor.OriginalType}";
+                                    return $"{prefix}${i1}::{descriptor.OriginalType}";
                                 }
-                                return $"{prefix}${i}";
+                                return $"{prefix}${i1}";
                             })),
                         ")");
             }

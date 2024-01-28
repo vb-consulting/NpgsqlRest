@@ -1,5 +1,237 @@
 # Changelog
 
+## Version [1.6.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.0) (2024-28-01)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.5.1...1.6.0)
+
+### 1) HTTP File Improvements
+
+- HTTP file generation will now consider if the endpoint has configured a `BodyParameterName` - the name of the parameter that is configured to be sent by the request body.
+
+For example, if the function `body_param` has two parameters (`_i` and `_p`), and `_p` is configured to be sent by the request body, the HTTP file builder will create this callable example:
+
+```console
+POST {{host}}/api/body-param?i=1
+
+XYZ
+```
+
+Note, that parameter `_p` is set to request body as `XYZ`.
+
+- HTTP file endpoints with comment header will now optionally include a routine database comment. In the example above comment header is:
+
+```console
+HTTP
+body-param-name _p
+```
+
+And resulting HTTP file generated callable endpoint with comment will now look like this:
+
+```console
+// function public.body_param(
+//     _i integer,
+//     _p text
+// )
+// returns text
+//
+// comment on function public.body_param is '
+// HTTP
+// body-param-name _p';
+POST {{host}}/api/body-param?i=1
+
+XYZ
+```
+
+This also applies to the full header comments.
+
+This feature can be changed with `CommentHeaderIncludeComments` boolean option, in the `HttpFileOptions` options (default is true). Example:
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    HttpFileOptions = new() 
+    { 
+        // turn off http file comments in header
+        CommentHeaderIncludeComments = false
+    }
+});
+```
+
+### 2) Comment Annotation Breaking Change
+
+Comment annotations that are not `HTTP` (for example authorize, etc) don't require `HTTP` line above. 
+
+For example, before:
+
+```sql
+comment on function comment_authorize() is '
+HTTP
+Authorize';
+```
+
+And now it is enough to do:
+
+```sql
+comment on function comment_authorize() is 'Authorize';
+```
+
+Reason: it was really stupid, this is much better.
+
+### 3) Logging Commands
+
+There is a new option named `LogCommands` that, (well, obviously duh), enables logging command text before the execution, together with parameter values. The default is false (since it has a slight performance impact).
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    LogCommands = true,
+});
+```
+
+Examples:
+
+```console
+// function public.case_get_default_params(
+//     _p1 integer,
+//     _p2 integer DEFAULT 2,
+//     _p3 integer DEFAULT 3,
+//     _p4 integer DEFAULT 4
+// )
+// returns json
+GET {{host}}/api/case-get-default-params?p1=1&p2=2&p3=3&p4=4
+```
+
+Execution produces the following log:
+
+```console
+info: NpgsqlRestTestWebApi[0]
+      -- $1 integer = 1
+      -- $2 integer = 2
+      -- $3 integer = 3
+      -- $4 integer = 4
+      select public.case_get_default_params($1, $2, $3, $4)
+```
+
+And of course, complicated and complex types are also supported:
+
+```console
+info: NpgsqlRestTestWebApi[0]
+      -- $1 smallint = 1
+      -- $2 integer = 2
+      -- $3 bigint = 3
+      -- $4 numeric = 4
+      -- $5 text = 'XYZ'
+      -- $6 character varying = 'IJK'
+      -- $7 character = 'ABC'
+      -- $8 json = '{}'
+      -- $9 jsonb = '{}'
+      -- $10 smallint[] = {10,11,12}
+      -- $11 integer[] = {11,12,13}
+      -- $12 bigint[] = {12,13,14}
+      -- $13 numeric[] = {13,14,15}
+      -- $14 text[] = {'XYZ','IJK','ABC'}
+      -- $15 character varying[] = {'IJK','ABC','XYZ'}
+      -- $16 character[] = {'ABC','XYZ','IJK'}
+      -- $17 json[] = {'{}','{}','{}'}
+      -- $18 jsonb[] = {'{}','{}','{}'}
+      select public.case_get_multi_params1($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+```
+```console
+info: NpgsqlRestTestWebApi[0]
+      -- $1 real = 1.2
+      -- $2 double precision = 2.3
+      -- $3 jsonpath = '$.user.addresses[0].city'
+      -- $4 timestamp without time zone = '2024-04-04T03:03:03'
+      -- $5 timestamp with time zone = '2024-05-05T04:04:04.0000000Z'
+      -- $6 date = '2024-06-06'
+      -- $7 time without time zone = '06:06'
+      -- $8 time with time zone = '07:07:00'
+      -- $9 interval = '8 minutes 9 seconds'
+      -- $10 boolean = true
+      -- $11 uuid = '00000000-0000-0000-0000-000000000000'
+      -- $12 bit varying = '101'
+      -- $13 varbit = '010'
+      -- $14 inet = '192.168.5.13'
+      -- $15 macaddr = '00-B0-D0-63-C2-26'
+      -- $16 bytea = '\\xDEADBEEF'
+      select public.case_get_multi_params2($1, $2, $3, $4, $5, $6, $7, $8, $9::interval, $10, $11, $12::bit varying, $13::varbit, $14::inet, $15::macaddr, $16::bytea)
+```
+
+### 3) Command Callback
+
+New feature: 
+Now it's possible to define a lambda callback in options, that, if not null - will be called after every command is created and before it is executed.
+
+This option has the following signature:
+
+```csharp
+/// <summary>
+/// Command callback, if not null, will be called after every command is created and before it is executed.
+/// Setting the the HttpContext response status or start writing response body will the default command execution.
+/// </summary>
+public Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? CommandCallbackAsync { get; set; } = commandCallbackAsync;
+```
+
+- The input parameter is a **named tuple** `(Routine routine, NpgsqlCommand command, HttpContext context)`.
+- The expected result is `Task` since it must be an async function.
+
+If something is written into the `HttpContext` response, execution will skip the default behavior and exit immediately. This provides a chance to write a custom implementation logic.
+
+For example, we have an ordinary function that returns some table:
+
+```sql
+create function get_csv_data() 
+returns table (id int, name text, date timestamp, status boolean)
+language sql as 
+$$
+select * from (
+    values 
+    (1, 'foo', '2024-01-31'::timestamp, true), 
+    (2, 'bar', '2024-01-29'::timestamp, true), 
+    (3, 'xyz', '2024-01-25'::timestamp, false)
+) t;
+$$;
+```
+
+And only for this function, we don't want JSON, we want CSV. We can do this now:
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    CommandCallbackAsync = async p =>
+    {
+        if (string.Equals(p.routine.Name , "get_csv_data"))
+        {
+            p.context.Response.ContentType = "text/csv";
+            await using var reader = await p.command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var line = $"{reader[0]},{reader[1]},{reader.GetDateTime(2):s},{reader.GetBoolean(3).ToString().ToLowerInvariant()}\n";
+                await p.context.Response.WriteAsync(line);
+            }
+        }
+    }
+});
+```
+
+And, when we do the `GET {{host}}/api/get-csv-data`, the response will be:
+
+```console
+HTTP/1.1 200 OK
+Content-Type: text/csv
+Date: Sun, 28 Jan 2024 13:21:57 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+
+1,foo,2024-01-31T00:00:00,true
+2,bar,2024-01-29T00:00:00,true
+3,xyz,2024-01-25T00:00:00,false
+```
+
+This is a bit advanced feature, but a useful one.
+
+-----------
+
 ## Version [1.5.1](https://github.com/vb-consulting/NpgsqlRest/tree/1.5.1) (2024-27-01)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.5.0...1.5.1)
@@ -17,6 +249,8 @@ Now it's fixed:
 ```
 "{\"2024-01-24T00:00:00\",\"2024-01-20T00:00:00\",\"2024-01-21T00:00:00\"}"
 ```
+
+-----------
 
 ## Version [1.5.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.5.0) (2024-27-01)
 
@@ -67,11 +301,13 @@ select returns_null_on_null_input_function(null,null);
 
 Then function will not be executed at all no info will be emitted with `raise info` since nothing is executed. 
 
-In this version NpgsqlRest will return `HTTP 204 NoContent` response if any of the parameters are NULL. and it will avoid calling database in the first place. 
+In this version, NpgsqlRest will return `HTTP 204 NoContent` response if any of the parameters are NULL. and it will avoid calling database in the first place. 
 
 ### 2) Other Improvements
 
-This realase feautures a lot of internal refactoring and code cleanup.
+This release features a lot of internal refactoring and code cleanup.
+
+-----------
 
 ## Version [1.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.4.0) (2024-26-01)
 
@@ -518,3 +754,5 @@ class EmptyLogger : ILogger
     }
 }
 ```
+
+-----------

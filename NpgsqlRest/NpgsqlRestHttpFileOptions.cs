@@ -8,6 +8,7 @@ public class NpgsqlRestHttpFileOptions(
     HttpFileOption option = HttpFileOption.Both,
     string namePattern = "{0}{1}",
     CommentHeader commentHeader = CommentHeader.Simple,
+    bool commentHeaderIncludeComments = true,
     HttpFileMode fileMode = HttpFileMode.Database,
     bool fileOverwrite = false)
 {
@@ -32,6 +33,10 @@ public class NpgsqlRestHttpFileOptions(
     /// Set Full to add the entire routine code as comment header.
     /// </summary>
     public CommentHeader CommentHeader { get; set; } = commentHeader;
+    /// <summary>
+    /// When CommentHeader is set to Simple or Full, set to true to include routine comments in comment header.
+    /// </summary>
+    public bool CommentHeaderIncludeComments { get; set; } = commentHeaderIncludeComments;
     /// <summary>
     /// Set to Database to create one http file for entire database.
     /// Set to Schema to create new http file for every database schema.

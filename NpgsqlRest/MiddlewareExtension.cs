@@ -487,6 +487,8 @@ public static class NpgsqlRestMiddlewareExtensions
                         command.ExecuteNonQuery();
                     }
 
+                    var shouldLog = options.LogCommands && logger != null;
+                    StringBuilder? cmdLog = shouldLog ? new() : null;
                     int paramCount = 0;
                     for (var i = 0; i < parameters.Length; i++)
                     {
@@ -495,13 +497,43 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             command.Parameters.Add(parameter);
                             paramCount++;
+                            
+                            if (shouldLog)
+                            {
+                                object value = parameter.NpgsqlValue!;
+                                var p = ParameterParser.FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
+                                cmdLog!.AppendLine(string.Concat(
+                                    "-- $", 
+                                    paramCount.ToString(), 
+                                    " ", routine.ParamTypeDescriptor[i].OriginalType, 
+                                    " = ",
+                                    p));
+                            }
                         }
                     }
                     command.CommandText = routine.Expressions[paramCount];
+                    
+                    if (shouldLog)
+                    {
+                        cmdLog!.AppendLine(command.CommandText);
+                        LogInfo(ref logger, ref options, cmdLog.ToString());
+                    }
+                    
                     if (endpoint.CommandTimeout.HasValue)
                     {
                         command.CommandTimeout = endpoint.CommandTimeout.Value;
                     }
+                    
+                    //command callback
+                    if (options.CommandCallbackAsync is not null)
+                    {
+                        await options.CommandCallbackAsync((routine, command, context));
+                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                        {
+                            return;
+                        }
+                    }
+                    
                     if (routine.IsVoid)
                     {
                         await command.ExecuteNonQueryAsync();
@@ -536,7 +568,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     foreach ((string headerKey, StringValues headerValue) in endpoint.ResponseHeaders)
                                     {
                                         context.Response.Headers.Append(headerKey, headerValue);
-                                    };
+                                    }
                                 }
                                 context.Response.StatusCode = (int)HttpStatusCode.OK;
                                 if (descriptor.IsArray && value is not null)

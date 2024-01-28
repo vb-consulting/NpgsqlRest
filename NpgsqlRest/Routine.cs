@@ -15,7 +15,7 @@ public readonly struct Routine(
     string signature,
     Language language,
     string languageInfo,
-    string comment,
+    string? comment,
     SecurityType securityType,
     bool isStrict,
     decimal cost,
@@ -46,7 +46,7 @@ public readonly struct Routine(
     public string Signature { get; } = signature;
     public Language Language { get; } = language;
     public string LanguageInfo { get; } = languageInfo;
-    public string Comment { get; } = comment;
+    public string? Comment { get; } = comment;
     public SecurityType SecurityType { get; } = securityType;
     public bool IsStrict { get; } = isStrict;
     public decimal Cost { get; } = cost;

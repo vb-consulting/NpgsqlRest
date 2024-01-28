@@ -81,6 +81,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                         }
                     }
 
+                    WriteComment(sb, routine);
                     break;
                 }
                 case CommentHeader.Full:
@@ -94,6 +95,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                         sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
                     }
 
+                    WriteComment(sb, routine);
                     break;
                 }
             }
@@ -105,9 +107,22 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
 
         if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
         {
-            sb.AppendLine(string.Concat(endpoint.Method, " {{host}}", endpoint.Url, "?",
+            var line = string.Concat(endpoint.Method, " {{host}}", endpoint.Url, "?",
                 string.Join("&", endpoint
                     .ParamNames
+                    .Where((p, i) =>
+                    {
+                        if (endpoint.BodyParameterName is not null)
+                        {
+                            if (string.Equals(p, endpoint.BodyParameterName, StringComparison.Ordinal) ||
+                                string.Equals(routine.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal))
+                            {
+                                return false;
+                            }
+                        }
+                        
+                        return true;
+                    })
                     .Select((p, i) =>
                     {
                         var descriptor = routine.ParamTypeDescriptor[i];
@@ -117,7 +132,23 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                             return string.Join("&", value.Split(',').Select(v => $"{p}={Uri.EscapeDataString(v)}"));
                         }
                         return $"{p}={Uri.EscapeDataString(value)}";
-                    }))));
+                    })));
+
+            sb.AppendLine(line.EndsWith('?') ? line[..^1] : line);
+            
+            if (endpoint.BodyParameterName is not null)
+            {
+                for(int i = 0; i < routine.ParamCount; i++)
+                {
+                    if (string.Equals(endpoint.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal) ||
+                        string.Equals(routine.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal))
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine(SampleValueUnquoted(i, routine.ParamTypeDescriptor[i]));
+                        break;
+                    }
+                }
+            }
         }
 
         if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.BodyJson)
@@ -193,6 +224,43 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                 File.WriteAllText(fullFileName, content.ToString());
                 Logging.LogInfo(ref logger, ref options, "Created HTTP file: {0}", fullFileName);
             }
+        }
+    }
+
+    private void WriteComment(StringBuilder sb, Routine routine)
+    {
+        if (options.HttpFileOptions.CommentHeaderIncludeComments is false || string.IsNullOrEmpty(routine.Comment?.Trim()))
+        {
+            return;
+        }
+        var lines = routine
+            .Comment
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .ToArray();
+        if (lines.Length > 0)
+        {
+            sb.AppendLine("//");
+        }
+        else
+        {
+            return;
+        }
+        foreach (var (line, index) in lines.Select((l, i) => (l, i)))
+        {
+            if (line == "\r" && index > 0)
+            {
+                continue;
+            }
+            var comment = line.Replace("'", "''").TrimEnd('\r');
+            if (index == 0)
+            {
+                comment = string.Concat($"comment on function {routine.Schema}.{routine.Name} is '", comment);
+            }
+            else if (index == lines.Length - 1)
+            {
+                comment = string.Concat(comment, "';");
+            }
+            sb.AppendLine(string.Concat("// ", comment));
         }
     }
 

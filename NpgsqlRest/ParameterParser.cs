@@ -396,4 +396,53 @@ internal static class ParameterParser
             return false;
         }
     }
+
+    internal static string FormatParam(ref object value, ref TypeDescriptor descriptor)
+    {
+        if (value == DBNull.Value)
+        {
+            return "null";
+        }
+        if (descriptor.IsArray && value is IList<object> list)
+        {
+            var d = descriptor;
+            if (descriptor is { IsNumeric: false, IsBoolean: false })
+            {
+                return string.Concat("{", string.Join(",", list.Select(x => string.Concat("'", Format(ref x, ref d), "'"))), "}");
+            }
+            return string.Concat("{", string.Join(",", list.Select(x => Format(ref x, ref d))), "}");
+        }
+        if (descriptor is { IsNumeric: false, IsBoolean: false })
+        {
+            return string.Concat("'", Format(ref value, ref descriptor), "'");
+        }
+
+        return Format(ref value, ref descriptor);
+
+        string Format(ref object v, ref TypeDescriptor descriptor)
+        {
+            if (v is DateTime dt)
+            {
+                if (descriptor.BaseDbType == NpgsqlDbType.TimestampTz)
+                {
+                    return dt.ToString("O");
+                }
+                return dt.ToString("s");
+            }
+            if (v is DateOnly dateOnly)
+            {
+                return dateOnly.ToString("O");
+            }
+            if (v is DateTimeOffset dto)
+            {
+                return dto.DateTime.ToString("T");
+            }
+            
+            if (descriptor.IsBoolean)
+            {
+                return v.ToString()?.ToLowerInvariant() ?? string.Empty;
+            }
+            return v.ToString() ?? string.Empty;
+        }
+    }
 }

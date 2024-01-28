@@ -128,217 +128,217 @@ internal static class DefaultEndpoint
                 RequestHeadersParameterName: requestHeadersParameterName,
                 BodyParameterName: bodyParameterName);
         }
-
+        
+        var comment = routine.Comment;
+        if (string.IsNullOrEmpty(comment))
         {
-            var comment = routine.Comment;
-            if (string.IsNullOrEmpty(comment))
+            if (options.CommentsMode == CommentsMode.OnlyWithHttpTag)
             {
-                if (options.CommentsMode == CommentsMode.OnlyWithHttpTag)
-                {
-                    return null;
-                }
+                return null;
             }
-            else
+        }
+        else
+        {
+            string[] lines = comment.Split(newlineSeparator, StringSplitOptions.RemoveEmptyEntries);
+            bool hasHttpTag = false;
+            for (var i = 0; i < lines.Length; i++)
             {
-                string[] lines = comment.Split(newlineSeparator, StringSplitOptions.RemoveEmptyEntries);
-                bool hasHttpTag = false;
-                for (var i = 0; i < lines.Length; i++)
+                string line = lines[i].Trim();
+                string[] words = line.Split(wordSeparator, StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length > 0)
                 {
-                    string line = lines[i].Trim();
-                    string[] words = line.Split(wordSeparator, StringSplitOptions.RemoveEmptyEntries);
-                    if (words.Length > 0)
+                    if (StringEquals(ref words[0], HttpKey))
                     {
-                        if (StringEquals(ref words[0], HttpKey))
+                        hasHttpTag = true;
+                        if (words.Length == 2 || words.Length == 3)
                         {
-                            hasHttpTag = true;
-                            if (words.Length == 2 || words.Length == 3)
+                            if (Enum.TryParse<Method>(words[1], true, out var parsedMethod))
                             {
-                                if (Enum.TryParse<Method>(words[1], true, out var parsedMethod))
-                                {
-                                    method = parsedMethod;
-                                    requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
-                                }
-                                else
-                                {
-                                    Logging.LogWarning(
-                                        ref logger,
-                                        ref options,
-                                        $"Invalid HTTP method '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{method}'");
-                                }
-                            }
-                            if (words.Length == 3)
-                            {
-                                string urlPathSegment = words[2];
-                                if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
-                                {
-                                    Logging.LogWarning(ref logger, ref options,
-                                        $"Invalid URL path segment '{urlPathSegment}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{url}'");
-                                }
-                                else
-                                {
-                                    url = Uri.EscapeDataString(uri.ToString());
-                                    if (!url.StartsWith('/'))
-                                    {
-                                        url = string.Concat("/", url);
-                                    }
-                                }
-                            }
-                            if (method != originalMethod || !string.Equals(url, originalUrl))
-                            {
-                                Info(ref logger, ref options, ref routine, $"has set HTTP by comment annotations to \"{method} {url}\"");
-                            }
-                        }
-                        
-                        else if (hasHttpTag && words.Length >= 2 && StringEqualsToArray(ref words[0], paramTypeKey))
-                        {
-                            if (StringEqualsToArray(ref words[1], queryKey))
-                            {
-                                requestParamType = RequestParamType.QueryString;
-                            }
-                            else if (StringEqualsToArray(ref words[1], jsonKey))
-                            {
-                                requestParamType = RequestParamType.BodyJson;
+                                method = parsedMethod;
+                                requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
                             }
                             else
                             {
                                 Logging.LogWarning(
                                     ref logger,
                                     ref options,
-                                    $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{requestParamType}'");
-                            }
-
-                            if (originalParamType != requestParamType)
-                            {
-                                Info(ref logger, ref options, ref routine, $"has set REQUEST PARAMETER TYPE by comment annotations to \"{requestParamType}\"");
+                                    $"Invalid HTTP method '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{method}'");
                             }
                         }
-
-                        else if (hasHttpTag && StringEqualsToArray(ref words[0], authorizeKey))
+                        if (words.Length == 3)
                         {
-                            requiresAuthorization = true;
-                            Info(ref logger, ref options, ref routine, $"has set REQUIRED AUTHORIZATION by comment annotations.");
-                        }
-
-                        else if (hasHttpTag && words.Length >= 2 && StringEqualsToArray(ref words[0], timeoutKey))
-                        {
-                            if (int.TryParse(words[1], out var parsedTimeout))
+                            string urlPathSegment = words[2];
+                            if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                             {
-                                if (commandTimeout != parsedTimeout)
-                                {
-                                    Info(ref logger, ref options, ref routine, $"has set COMMAND TIMEOUT by comment annotations to {parsedTimeout} seconds");
-                                }
-                                commandTimeout = parsedTimeout;
+                                Logging.LogWarning(ref logger, ref options,
+                                    $"Invalid URL path segment '{urlPathSegment}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{url}'");
                             }
                             else
                             {
-                                Logging.LogWarning(ref logger,
-                                    ref options,
-                                    $"Invalid command timeout '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default command timeout '{commandTimeout}'");
+                                url = Uri.EscapeDataString(uri.ToString());
+                                if (!url.StartsWith('/'))
+                                {
+                                    url = string.Concat("/", url);
+                                }
                             }
                         }
-
-                        else if (hasHttpTag && StringEqualsToArray(ref words[0], requestHeadersModeKey)) 
+                        if (method != originalMethod || !string.Equals(url, originalUrl))
                         {
-                            if (StringEquals(ref words[1], IgnoreKey))
+                            Info(ref logger, ref options, ref routine, $"has set HTTP by comment annotations to \"{method} {url}\"");
+                        }
+                    }
+                    
+                    else if (/*hasHttpTag && */words.Length >= 2 && StringEqualsToArray(ref words[0], paramTypeKey))
+                    {
+                        if (StringEqualsToArray(ref words[1], queryKey))
+                        {
+                            requestParamType = RequestParamType.QueryString;
+                        }
+                        else if (StringEqualsToArray(ref words[1], jsonKey))
+                        {
+                            requestParamType = RequestParamType.BodyJson;
+                        }
+                        else
+                        {
+                            Logging.LogWarning(
+                                ref logger,
+                                ref options,
+                                $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{requestParamType}'");
+                        }
+
+                        if (originalParamType != requestParamType)
+                        {
+                            Info(ref logger, ref options, ref routine, $"has set REQUEST PARAMETER TYPE by comment annotations to \"{requestParamType}\"");
+                        }
+                    }
+
+                    else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], authorizeKey))
+                    {
+                        requiresAuthorization = true;
+                        Info(ref logger, ref options, ref routine, $"has set REQUIRED AUTHORIZATION by comment annotations.");
+                    }
+
+                    else if (/*hasHttpTag && */words.Length >= 2 && StringEqualsToArray(ref words[0], timeoutKey))
+                    {
+                        if (int.TryParse(words[1], out var parsedTimeout))
+                        {
+                            if (commandTimeout != parsedTimeout)
                             {
-                                requestHeadersMode = RequestHeadersMode.Ignore;
+                                Info(ref logger, ref options, ref routine, $"has set COMMAND TIMEOUT by comment annotations to {parsedTimeout} seconds");
                             }
-                            else if (StringEquals(ref words[1], ContextKey))
+                            commandTimeout = parsedTimeout;
+                        }
+                        else
+                        {
+                            Logging.LogWarning(ref logger,
+                                ref options,
+                                $"Invalid command timeout '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default command timeout '{commandTimeout}'");
+                        }
+                    }
+
+                    else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], requestHeadersModeKey)) 
+                    {
+                        if (StringEquals(ref words[1], IgnoreKey))
+                        {
+                            requestHeadersMode = RequestHeadersMode.Ignore;
+                        }
+                        else if (StringEquals(ref words[1], ContextKey))
+                        {
+                            requestHeadersMode = RequestHeadersMode.Context;
+                        }
+                        else if (StringEquals(ref words[1], ParameterKey))
+                        {
+                            requestHeadersMode = RequestHeadersMode.Parameter;
+                        }
+                        else
+                        {
+                            Logging.LogWarning(
+                                ref logger,
+                                ref options,
+                                $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are Ignore or Context or Parameter. Using default '{requestHeadersMode}'");
+                        }
+                        if (requestHeadersMode != options.RequestHeadersMode)
+                        {
+                            Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS MODE by comment annotations to \"{requestHeadersMode}\"");
+                        }
+                    }
+
+                    else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], requestHeadersParameterNameKey))
+                    { 
+                        if (words.Length == 2)
+                        {
+                            if (!string.Equals(requestHeadersParameterName, words[1]))
                             {
-                                requestHeadersMode = RequestHeadersMode.Context;
+                                Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS PARAMETER NAME by comment annotations to \"{words[1]}\"");
                             }
-                            else if (StringEquals(ref words[1], ParameterKey))
+                            requestHeadersParameterName = words[1];
+                        }
+                    }
+
+                    else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], bodyParameterNameKey))
+                    {
+                        if (words.Length == 2)
+                        {
+                            if (!string.Equals(bodyParameterName, words[1]))
                             {
-                                requestHeadersMode = RequestHeadersMode.Parameter;
+                                Info(ref logger, ref options, ref routine, $"has set BODY PARAMETER NAME by comment annotations to \"{words[1]}\"");
+                            }
+                            bodyParameterName = words[1];
+                        }
+                    }
+
+                    else if (/*hasHttpTag && */line.Contains(':'))
+                    {
+                        var parts = line.Split(headerSeparator, 2);
+                        if (parts.Length == 2)
+                        {
+                            var headerName = parts[0].Trim();
+                            var headerValue = parts[1].Trim();
+                            if (StringEquals(ref headerName, ContentTypeKey))
+                            {
+                                if (!string.Equals(responseContentType, headerValue))
+                                {
+                                    Info(ref logger, ref options, ref routine, $"has set Content-Type HEADER by comment annotations to \"{headerValue}\"");
+                                }
+                                responseContentType = headerValue;
                             }
                             else
                             {
-                                Logging.LogWarning(
-                                    ref logger,
-                                    ref options,
-                                    $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are Ignore or Context or Parameter. Using default '{requestHeadersMode}'");
-                            }
-                            if (requestHeadersMode != options.RequestHeadersMode)
-                            {
-                                Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS MODE by comment annotations to \"{requestHeadersMode}\"");
-                            }
-                        }
-
-                        else if (hasHttpTag && StringEqualsToArray(ref words[0], requestHeadersParameterNameKey))
-                        { 
-                            if (words.Length == 2)
-                            {
-                                if (!string.Equals(requestHeadersParameterName, words[1]))
+                                if (responseHeaders is null)
                                 {
-                                    Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS PARAMETER NAME by comment annotations to \"{words[1]}\"");
-                                }
-                                requestHeadersParameterName = words[1];
-                            }
-                        }
-
-                        else if (hasHttpTag && StringEqualsToArray(ref words[0], bodyParameterNameKey))
-                        {
-                            if (words.Length == 2)
-                            {
-                                if (!string.Equals(bodyParameterName, words[1]))
-                                {
-                                    Info(ref logger, ref options, ref routine, $"has set BODY PARAMETER NAME by comment annotations to \"{words[1]}\"");
-                                }
-                                bodyParameterName = words[1];
-                            }
-                        }
-
-                        else if (hasHttpTag && line.Contains(':'))
-                        {
-                            var parts = line.Split(headerSeparator, 2);
-                            if (parts.Length == 2)
-                            {
-                                var headerName = parts[0].Trim();
-                                var headerValue = parts[1].Trim();
-                                if (StringEquals(ref headerName, ContentTypeKey))
-                                {
-                                    if (!string.Equals(responseContentType, headerValue))
+                                    responseHeaders = new()
                                     {
-                                        Info(ref logger, ref options, ref routine, $"has set Content-Type HEADER by comment annotations to \"{headerValue}\"");
-                                    }
-                                    responseContentType = headerValue;
+                                        [headerName] = new StringValues(headerValue)
+                                    };
                                 }
                                 else
                                 {
-                                    if (responseHeaders is null)
+                                    if (responseHeaders.TryGetValue(headerName, out StringValues values))
                                     {
-                                        responseHeaders = new()
-                                        {
-                                            [headerName] = new StringValues(headerValue)
-                                        };
+                                        responseHeaders[headerName] = StringValues.Concat(values, headerValue);
                                     }
                                     else
                                     {
-                                        if (responseHeaders.TryGetValue(headerName, out StringValues values))
-                                        {
-                                            responseHeaders[headerName] = StringValues.Concat(values, headerValue);
-                                        }
-                                        else
-                                        {
-                                            responseHeaders.Add(headerName, new StringValues(headerValue));
-                                        }
+                                        responseHeaders.Add(headerName, new StringValues(headerValue));
                                     }
-                                    if (!string.Equals(responseContentType, headerValue))
-                                    {
-                                        Info(ref logger, ref options, ref routine, $"has set {headerName} HEADER by comment annotations to \"{headerValue}\"");
-                                    }
+                                }
+                                if (!string.Equals(responseContentType, headerValue))
+                                {
+                                    Info(ref logger, ref options, ref routine, $"has set {headerName} HEADER by comment annotations to \"{headerValue}\"");
                                 }
                             }
                         }
                     }
                 }
-                if (options.CommentsMode == CommentsMode.OnlyWithHttpTag && !hasHttpTag)
-                {
-                    return null;
-                }
+            }
+            if (options.CommentsMode == CommentsMode.OnlyWithHttpTag && !hasHttpTag)
+            {
+                return null;
             }
         }
 
+
+            
         return new(
             Url: url,
             Method: method,

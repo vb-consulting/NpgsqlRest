@@ -169,16 +169,16 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
 Install the package from NuGet by using any of the available methods:
 
 ```console
-dotnet add package NpgsqlRest --version 1.5.0
+dotnet add package NpgsqlRest --version 1.6.0
 ```
 ```console
-NuGet\Install-Package NpgsqlRest -version 1.5.0
+NuGet\Install-Package NpgsqlRest -version 1.6.0
 ```
 ```xml
-<PackageReference Include="NpgsqlRest" Version="1.5.0" />
+<PackageReference Include="NpgsqlRest" Version="1.6.0" />
 ```
 ```console
-#r "nuget: NpgsqlRest, 1.5.0"
+#r "nuget: NpgsqlRest, 1.6.0"
 ```
 
 ### First Use

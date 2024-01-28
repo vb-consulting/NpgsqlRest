@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -40,7 +41,20 @@ public class Program
         app.UseNpgsqlRest(new(connectionString)
         {
             ValidateParameters = Validate,
-            Logger = new EmptyLogger()
+            Logger = new EmptyLogger(),
+            CommandCallbackAsync = async p =>
+            {
+                if (string.Equals(p.routine.Name , "get_csv_data"))
+                {
+                    p.context.Response.ContentType = "text/csv";
+                    await using var reader = await p.command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var line = $"{reader[0]},{reader[1]},{reader.GetDateTime(2):s},{reader.GetBoolean(3).ToString().ToLowerInvariant()}\n";
+                        await p.context.Response.WriteAsync(line);
+                    }
+                }
+            }
         });
         app.Run();
     }

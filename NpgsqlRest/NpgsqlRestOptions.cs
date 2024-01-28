@@ -1,4 +1,6 @@
-﻿namespace NpgsqlRest;
+﻿using Npgsql;
+
+namespace NpgsqlRest;
 
 public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
 public enum RequestParamType { QueryString, BodyJson }
@@ -61,6 +63,7 @@ public class NpgsqlRestOptions(
     bool logEndpointCreatedInfo = true,
     bool logAnnotationSetInfo = true,
     bool logConnectionNoticeEvents = true,
+    bool logCommands = false,
     int? commandTimeout = null,
     bool logParameterMismatchWarnings = true,
     Method? defaultHttpMethod = null,
@@ -70,7 +73,8 @@ public class NpgsqlRestOptions(
     CommentsMode commentsMode = CommentsMode.ParseAll,
     RequestHeadersMode requestHeadersMode = RequestHeadersMode.Ignore,
     string requestHeadersParameterName = "headers",
-    Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null)
+    Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,
+    Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -184,6 +188,10 @@ public class NpgsqlRestOptions(
     /// </summary>
     public bool LogConnectionNoticeEvents { get; set; } = logConnectionNoticeEvents;
     /// <summary>
+    /// Log commands executed on PostgreSQL.
+    /// </summary>
+    public bool LogCommands { get; set; } = logCommands;
+    /// <summary>
     /// Sets the wait time (in seconds) before terminating the attempt  to execute a command and generating an error.
     /// Default value is 30 seconds.
     /// </summary>
@@ -203,11 +211,11 @@ public class NpgsqlRestOptions(
     /// </summary>
     public RequestParamType? DefaultRequestParamType { get; set; } = defaultRequestParamType;
     /// <summary>
-    /// Parameters validation function callback.
+    /// Parameters validation function callback. Set the HttpContext response status or start writing response body to cancel the request.
     /// </summary>
     public Action<ParameterValidationValues>? ValidateParameters { get; set; } = validateParameters;
     /// <summary>
-    /// Parameters validation function async callback.
+    /// Parameters validation function async callback. Set the HttpContext response status or start writing response body to cancel the request.
     /// </summary>
     public Func<ParameterValidationValues, Task>? ValidateParametersAsync { get; set; } = validateParametersAsync;
     /// <summary>
@@ -233,4 +241,9 @@ public class NpgsqlRestOptions(
     /// Callback, if not null, will be called after all endpoints are created.
     /// </summary>
     public Action<(Routine routine, RoutineEndpoint endpoint)[]>? EndpointsCreated { get; set; } = endpointsCreated;
+    /// <summary>
+    /// Command callback, if not null, will be called after every command is created and before it is executed.
+    /// Setting the the HttpContext response status or start writing response body will the default command execution.
+    /// </summary>
+    public Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? CommandCallbackAsync { get; set; } = commandCallbackAsync;
 }

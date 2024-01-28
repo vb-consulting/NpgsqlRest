@@ -47,15 +47,13 @@ public class CommentAuthAttrTests(TestFixture test)
     public async Task Test_comment_authorize3()
     {
         using var response1 = await test.Client.PostAsync("/api/comment-authorize3/", null);
-        //missing leading HTTP tag, authorize should be ignored
-        response1?.StatusCode.Should().Be(HttpStatusCode.OK);
+        response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task Test_comment_authorize4()
     {
         using var response1 = await test.Client.PostAsync("/api/comment-authorize4/", null);
-        //HTTP should precede Authorize
-        response1?.StatusCode.Should().Be(HttpStatusCode.OK);
+        response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }
