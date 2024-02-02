@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using Npgsql;
+using System.Text;
 
 namespace NpgsqlRest;
 
@@ -494,8 +493,6 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         };
     }
 
-    [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
-            Justification = "Configuration.GetValue only uses string type parameters")]
     private static string GetHost(IApplicationBuilder builder)
     {
         string? host = null;
@@ -507,7 +504,11 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             }
             else
             {
-                host = app.Configuration.GetValue<string>("ASPNETCORE_URLS")?.Split(";")?.LastOrDefault();
+                var section = app.Configuration?.GetSection("ASPNETCORE_URLS");
+                if (section?.Value is not null)
+                {
+                    host = section.Value.Split(";")?.LastOrDefault();
+                }
             }
         }
         // default, assumed host

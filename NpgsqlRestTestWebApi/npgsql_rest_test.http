@@ -23,10 +23,6 @@ POST {{host}}/api/my-schema/hello-world
 //     _p text
 // )
 // returns text
-//
-// comment on function public.body_param_name_1p is '
-// HTTP
-// body-param-name p';
 POST {{host}}/api/body-param-name-1p
 
 ABC
@@ -38,10 +34,6 @@ ABC
 //     _p text
 // )
 // returns text
-//
-// comment on function public.body_param_name_2p is '
-// HTTP
-// body-param-name _p';
 POST {{host}}/api/body-param-name-2p?i=1
 
 XYZ
@@ -52,10 +44,6 @@ XYZ
 //     _int integer
 // )
 // returns text
-//
-// comment on function public.body_param_name_int is '
-// HTTP
-// body-param-name int';
 POST {{host}}/api/body-param-name-int
 
 1
@@ -479,18 +467,18 @@ POST {{host}}/api/case-return-table1
 
 // function public.case_return_table2()
 // returns table(
-//     real real,
+//     "real" real,
 //     double double precision,
 //     jsonpath jsonpath,
-//     timestamp timestamp without time zone,
+//     "timestamp" timestamp without time zone,
 //     timestamptz timestamp with time zone,
 //     date date,
-//     time time without time zone,
+//     "time" time without time zone,
 //     timetz time with time zone,
-//     interval interval,
+//     "interval" interval,
 //     uuid uuid,
 //     varbit bit varying,
-//     bit varbit,
+//     "bit" varbit,
 //     inet inet,
 //     macaddr macaddr,
 //     bytea bytea
@@ -565,36 +553,24 @@ POST {{host}}/api/case-void
 
 // function public.comment_authorize1()
 // returns text
-//
-// comment on function public.comment_authorize1 is 'HTTP
-// Authorize';
 POST {{host}}/api/comment-authorize1
 
 ###
 
 // function public.comment_authorize2()
 // returns text
-//
-// comment on function public.comment_authorize2 is 'HTTP
-// RequiresAuthorization';
 POST {{host}}/api/comment-authorize2
 
 ###
 
 // function public.comment_authorize3()
 // returns text
-//
-// comment on function public.comment_authorize3 is '
-// Authorize';
 POST {{host}}/api/comment-authorize3
 
 ###
 
 // function public.comment_authorize4()
 // returns text
-//
-// comment on function public.comment_authorize4 is 'Authorize
-// HTTP';
 POST {{host}}/api/comment-authorize4
 
 ###
@@ -603,10 +579,6 @@ POST {{host}}/api/comment-authorize4
 //     _t text
 // )
 // returns text
-//
-// comment on function public.comment_get_param_type_json1 is '
-// HTTP
-// RequestParamType BodyJson';
 GET {{host}}/api/comment-get-param-type-json1
 content-type: application/json
 
@@ -620,10 +592,6 @@ content-type: application/json
 //     _t text
 // )
 // returns text
-//
-// comment on function public.comment_get_param_type_json2 is '
-// HTTP
-// ParamType Json';
 GET {{host}}/api/comment-get-param-type-json2
 content-type: application/json
 
@@ -637,10 +605,6 @@ content-type: application/json
 //     _t text
 // )
 // returns text
-//
-// comment on function public.comment_param_type_query1 is '
-// HTTP
-// RequestParamType QueryString';
 POST {{host}}/api/comment-param-type-query1?t=ABC
 
 ###
@@ -649,59 +613,36 @@ POST {{host}}/api/comment-param-type-query1?t=ABC
 //     _t text
 // )
 // returns text
-//
-// comment on function public.comment_param_type_query2 is '
-// HTTP
-// ParamType Query';
 POST {{host}}/api/comment-param-type-query2?t=ABC
 
 ###
 
 // function public.comment_response_headers()
 // returns text
-//
-// comment on function public.comment_response_headers is '
-// HTTP
-// Content-Type: application/json
-// CustomHeader: test
-// MultiValueCustomHeader: test1
-// MultiValueCustomHeader: test2
-// cache-control: no-store';
 POST {{host}}/api/comment-response-headers
 
 ###
 
 // function public.comment_verb_test1()
 // returns text
-//
-// comment on function public.comment_verb_test1 is 'HTTP GET
 GET {{host}}/api/comment-verb-test1
 
 ###
 
 // function public.comment_verb_test2()
 // returns text
-//
-// comment on function public.comment_verb_test2 is 'This is some comment.
-// Some other comment.
-// HTTP GET
-// And again some other comment.';
 GET {{host}}/api/comment-verb-test2
 
 ###
 
 // function public.comment_verb_test3()
 // returns text
-//
-// comment on function public.comment_verb_test3 is 'HTTP GET custom_url_from_comment
 GET {{host}}/custom_url_from_comment
 
 ###
 
 // function public.comment_wrong_verb()
 // returns text
-//
-// comment on function public.comment_wrong_verb is 'HTTP wrong-verb
 POST {{host}}/api/comment-wrong-verb
 
 ###
@@ -725,10 +666,6 @@ GET {{host}}/api/get-csv-data
 
 // function public.get_req_headers_context()
 // returns text
-//
-// comment on function public.get_req_headers_context is '
-// HTTP
-// RequestHeaders Context';
 GET {{host}}/api/get-req-headers-context
 
 ###
@@ -743,11 +680,6 @@ GET {{host}}/api/get-req-headers-ignore
 //     _not_default text
 // )
 // returns text
-//
-// comment on function public.get_req_headers_param_not_default is '
-// HTTP
-// request-headers parameter
-// request-headers-parameter-name _not_default';
 GET {{host}}/api/get-req-headers-param-not-default?notDefault=ABC
 
 ###
@@ -756,10 +688,6 @@ GET {{host}}/api/get-req-headers-param-not-default?notDefault=ABC
 //     _headers text DEFAULT NULL::text
 // )
 // returns text
-//
-// comment on function public.get_req_headers_parameter1 is '
-// HTTP
-// request-headers parameter';
 GET {{host}}/api/get-req-headers-parameter1?headers=ABC
 
 ###
@@ -768,10 +696,6 @@ GET {{host}}/api/get-req-headers-parameter1?headers=ABC
 //     headers text DEFAULT NULL::text
 // )
 // returns text
-//
-// comment on function public.get_req_headers_parameter2 is '
-// HTTP
-// request-headers parameter';
 GET {{host}}/api/get-req-headers-parameter2?headers=ABC
 
 ###
@@ -780,11 +704,6 @@ GET {{host}}/api/get-req-headers-parameter2?headers=ABC
 //     h text DEFAULT NULL::text
 // )
 // returns text
-//
-// comment on function public.get_req_headers_parameter3 is '
-// HTTP
-// request-headers parameter
-// request-headers-parameter-name h';
 GET {{host}}/api/get-req-headers-parameter3?h=ABC
 
 ###
@@ -838,10 +757,6 @@ POST {{host}}/api/hello-world
 
 // function public.hello_world_html()
 // returns text
-//
-// comment on function public.hello_world_html is '
-// HTTP GET
-// Content-Type: text/html';
 GET {{host}}/api/hello-world-html
 
 ###
@@ -856,11 +771,6 @@ GET {{host}}/api/immutable-func
 //     _not_default text
 // )
 // returns text
-//
-// comment on function public.req_headers_param_not_default is '
-// HTTP
-// request-headers parameter
-// request-headers-parameter-name _not_default';
 POST {{host}}/api/req-headers-param-not-default
 content-type: application/json
 
@@ -874,10 +784,6 @@ content-type: application/json
 //     _headers text DEFAULT NULL::text
 // )
 // returns text
-//
-// comment on function public.req_headers_parameter1 is '
-// HTTP
-// request_headers parameter';
 POST {{host}}/api/req-headers-parameter1
 content-type: application/json
 
@@ -891,10 +797,6 @@ content-type: application/json
 //     headers text DEFAULT NULL::text
 // )
 // returns text
-//
-// comment on function public.req_headers_parameter2 is '
-// HTTP
-// request_headers parameter';
 POST {{host}}/api/req-headers-parameter2
 content-type: application/json
 
@@ -908,11 +810,6 @@ content-type: application/json
 //     h text DEFAULT NULL::text
 // )
 // returns text
-//
-// comment on function public.req_headers_parameter3 is '
-// HTTP
-// request-headers parameter
-// request_headers_parameter_name h';
 POST {{host}}/api/req-headers-parameter3
 content-type: application/json
 
@@ -933,6 +830,24 @@ content-type: application/json
 {
     "p1": 1,
     "p2": 2
+}
+
+###
+
+// function public."select"(
+//     "group" integer,
+//     "order" integer
+// )
+// returns table(
+//     "from" integer,
+//     "join" integer
+// )
+POST {{host}}/api/select
+content-type: application/json
+
+{
+    "group": 1,
+    "order": 2
 }
 
 ###

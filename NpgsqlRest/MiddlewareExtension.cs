@@ -7,6 +7,8 @@ using System.Text.Json.Nodes;
 using Npgsql;
 using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
+using Microsoft.AspNetCore.Http.Extensions;
+
 using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -27,7 +29,15 @@ public static class NpgsqlRestMiddlewareExtensions
         }
         else if (builder is WebApplication app)
         {
-            logger = app.Logger;
+            var factory = app.Services.GetRequiredService<ILoggerFactory>();
+            if (factory is not null)
+            {
+                logger = factory.CreateLogger(options.LoggerName ?? typeof(NpgsqlRestMiddlewareExtensions).Namespace ?? "NpgsqlRest");
+            }
+            else
+            {
+                logger = app.Logger;
+            }
         }
 
         var dict = BuildDictionary(builder, options, logger);
@@ -488,7 +498,9 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
 
                     var shouldLog = options.LogCommands && logger != null;
-                    StringBuilder? cmdLog = shouldLog ? new() : null;
+                    StringBuilder? cmdLog = shouldLog ? 
+                        new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) : 
+                        null;
                     int paramCount = 0;
                     for (var i = 0; i < parameters.Length; i++)
                     {

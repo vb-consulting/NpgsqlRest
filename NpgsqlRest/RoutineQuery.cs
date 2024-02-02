@@ -9,8 +9,8 @@ internal static class RoutineQuery
 with cte as (
     select
         lower(r.routine_type) as type,
-        r.specific_schema as schema,
-        r.routine_name as name,
+        quote_ident(r.specific_schema) as schema,
+        quote_ident(r.routine_name) as name,
         proc.oid as oid,
         r.specific_name,
         lower(r.external_language) as language,
@@ -31,19 +31,19 @@ with cte as (
         (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
         
         coalesce(
-            array_agg(p.parameter_name::text order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
+            array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
             '{}'::text[]
         ) as in_params,
 
         coalesce(
             case when r.data_type = 'USER-DEFINED' then
                 (
-                    select array_agg(column_name order by col.ordinal_position)
+                    select array_agg(quote_ident(column_name) order by col.ordinal_position)
                     from information_schema.columns col
                     where table_schema = r.type_udt_schema and table_name = r.type_udt_name
                 )
             else
-                array_agg(p.parameter_name::text order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
+                array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
             end,
             
             '{}'::text[]
@@ -285,13 +285,32 @@ from cte
 
         yield break;
 
-        void AddParameter(object? value, bool isArray = false) => command
-            .Parameters
-            .Add(new NpgsqlParameter
+        void AddParameter(object? value, bool isArray = false)
+        {
+            if (value is null)
+            {
+                value = DBNull.Value;
+            }
+            else if (isArray && value is string[] array)
+            {
+                if (array.Length == 0)
+                {
+                    value = DBNull.Value;
+                }
+            }
+            else if (!isArray && value is string str)
+            {
+                if (string.IsNullOrWhiteSpace(str))
+                {
+                    value = DBNull.Value;
+                }
+            }
+            command.Parameters.Add(new NpgsqlParameter
             {
                 NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
-                Value = value ?? DBNull.Value
+                Value = value
             });
+        }
     }
 }
 

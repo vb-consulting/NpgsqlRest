@@ -1,8 +1,8 @@
 ﻿namespace NpgsqlRest;
 
-internal static class DefaultUrlBuilder
+public static class DefaultUrlBuilder
 {
-    internal static string CreateUrl(Routine routine, NpgsqlRestOptions options)
+    public static string CreateUrl(Routine routine, NpgsqlRestOptions options)
     {
         var schema = routine.Schema.ToLowerInvariant()
             .Replace("_", "-")
@@ -26,6 +26,6 @@ internal static class DefaultUrlBuilder
                 .Trim('/'),
             "/");
 
-        return string.Concat(prefix, schema, name).TrimEnd('/');
+        return string.Concat(prefix, schema, name).TrimEnd('/').Trim('"');
     }
 }

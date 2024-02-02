@@ -1,5 +1,102 @@
 # Changelog
 
+## Version [1.6.1](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.1) (2024-02-02)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.0...1.6.1)
+
+### 1) Smaller Options Tweaks
+
+The following options will be ignored under these conditions:
+
+- `SchemaSimilarTo`: ignore if the string is empty.
+- `SchemaNotSimilarTo`: ignore if the string is empty.
+- `IncludeSchemas`: ignore if the array is empty.
+- `ExcludeSchemas`: ignore if the array is empty.
+- `NameSimilarTo`: ignore if the string is empty.
+- `NameNotSimilarTo`: ignore if the string is empty.
+- `IncludeNames`: ignore if the array is empty.
+- `ExcludeNames`: ignore if the array is empty.
+
+Previously, they were ignored only when they were NULL.
+
+### 2) Logging Improvements
+
+NpgsqlRest default logger is now created at the build stage by the default application logger factory. That means when the default ASP.NET application is configured then:
+
+a) The Logger name is now by default the same as the default namespace of the library which is `NpgsqlRest`.
+
+Previously, the default application logger was used and the default name was equal to your application default logger which made it harder to distinguish and configure.
+
+It's possible to set a custom logger name with the new configuration option: `LoggerName`.
+The `LoggerName` when set to null (default) will use the default logger name which is `NpgsqlRest` (the default namespace).
+
+b) Since the logger is created with a different name, now it's possible to apply configuration from the configuration file, such as `appsettings.json` file:
+
+```json
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "NpgsqlRest": "Warning"
+    }
+  }
+```
+
+This example configures the `NpgsqlRest` logger to the warning level only.
+
+### 3) LogCommands Includes Request Info
+
+When logging commands (`LogCommands` option set to true), request info (method and the URL) will be included in log output:
+
+```console
+info: NpgsqlRest[0]
+      -- POST http://localhost:5000/api/perf-test
+      -- $1 integer = 1
+      -- $2 text = 'XYZ'
+      -- $3 integer = 3
+      -- $4 timestamp without time zone = '2024-04-04T03:03:03'
+      -- $5 boolean = false
+      select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from public.perf_test($1, $2, $3, $4, $5)
+
+info: NpgsqlRest[0]
+      -- GET http://localhost:5000/api/get-csv-data
+      select id, name, date, status from public.get_csv_data()
+```
+
+### 3) Fix Using Identifiers
+
+PostgreSQL allows language identifiers to be used as names with double quotes. For example, a function that uses `select`, `group`, `order`, `from`, `join` as names:
+
+```sql
+create function "select"("group" int, "order" int) 
+returns table (
+    "from" int,
+    "join" int
+)
+language plpgsql
+as 
+$$
+begin
+    return query 
+    select t.*
+    from (
+        values 
+        ("group", "order")
+    ) t;
+end;
+$$;
+```
+
+This type of function would cause errors in previous versions. This is now fixed and it works normally.
+
+
+### 4) Other Changes
+
+- `DefaultUrlBuilder` and `DefaultNameConverter` static classes made public.
+- Removed a need for suppression of AOT warning in an HTTP file handler module when getting the host from the configuration.
+
+-----------
+
 ## Version [1.6.0](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.0) (2024-28-01)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.5.1...1.6.0)

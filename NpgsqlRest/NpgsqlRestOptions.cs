@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using System.Threading;
+using Npgsql;
 
 namespace NpgsqlRest;
 
@@ -60,6 +61,7 @@ public class NpgsqlRestOptions(
     bool requiresAuthorization = false,
     LogLevel logLevel = LogLevel.Information,
     ILogger? logger = null,
+    string? loggerName = null,
     bool logEndpointCreatedInfo = true,
     bool logAnnotationSetInfo = true,
     bool logConnectionNoticeEvents = true,
@@ -176,6 +178,10 @@ public class NpgsqlRestOptions(
     /// </summary>
     public ILogger? Logger { get; set; } = logger;
     /// <summary>
+    /// Default logger name. Set to null to use default logger name which is NpgsqlRest (default namespace).
+    /// </summary>
+    public string? LoggerName { get; set; } = loggerName;
+    /// <summary>
     /// Log endpoint created events.
     /// </summary>
     public bool LogEndpointCreatedInfo { get; set; } = logEndpointCreatedInfo;
@@ -201,12 +207,19 @@ public class NpgsqlRestOptions(
     /// </summary>
     public bool LogParameterMismatchWarnings { get; set; } = logParameterMismatchWarnings;
     /// <summary>
-    /// Default HTTP method for all endpoints. 
-    /// NULL is default behavior: if function name contains "get", it is GET, otherwise POST.
+    /// Default HTTP method for all endpoints. NULL is default behavior: 
+    /// 
+    /// The endpoint is always GET if volatility option is STABLE or IMMUTABLE or the routine name either:
+    /// - Starts with `get_` (case insensitive).
+    /// - Ends with `_get` (case insensitive).
+    /// - Contains `_get_` (case insensitive).
+    /// 
+    /// Otherwise, the endpoint is POST (VOLATILE and doesn't contain `get`). 
+    /// 
     /// </summary>
     public Method? DefaultHttpMethod { get; set; } = defaultHttpMethod;
     /// <summary>
-    /// Default parameter position Query String or JSON Body.
+    /// Default parameter position - Query String or JSON Body.
     /// NULL is default behavior: if endpoint is not POST, use Query String, otherwise JSON Body.
     /// </summary>
     public RequestParamType? DefaultRequestParamType { get; set; } = defaultRequestParamType;
