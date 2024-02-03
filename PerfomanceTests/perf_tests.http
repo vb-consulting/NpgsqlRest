@@ -19,7 +19,7 @@
 //     long_foo_bar text,
 //     is_foobar boolean
 // )
-POST {{host}}/api/perf-test
+POST {{host}}/api/perf_test
 content-type: application/json
 
 {
@@ -51,7 +51,7 @@ content-type: application/json
 //     long_foo_bar text[],
 //     is_foobar boolean[]
 // )
-POST {{host}}/api/perf-test-arrays
+POST {{host}}/api/perf_test_arrays
 content-type: application/json
 
 {
@@ -72,7 +72,7 @@ content-type: application/json
 //     _bool_param boolean
 // )
 // returns setof record
-POST {{host}}/api/perf-test-record
+POST {{host}}/api/perf_test_record
 content-type: application/json
 
 {
@@ -93,7 +93,7 @@ content-type: application/json
 //     _bool_param boolean
 // )
 // returns setof record
-POST {{host}}/api/perf-test-record-arrays
+POST {{host}}/api/perf_test_record_arrays
 content-type: application/json
 
 {

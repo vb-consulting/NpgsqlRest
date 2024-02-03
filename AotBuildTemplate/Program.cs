@@ -155,4 +155,3 @@ static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
         "/",
         routine.Name.Trim('"').Trim('/'),
         "/");
-
