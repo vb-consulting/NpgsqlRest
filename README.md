@@ -142,25 +142,20 @@ app.Run();
 
 ### High Performances
 
-K6 performance tests, 10 seconds, 100 virtual users.
+The latest performance comparison with the PostgREST:
 
-PostgREST:
+| Records | Function   | NpgsqlRest Requests | PostgREST Requests | Ratio |
+| ------: | ---------: | ---------: | --------: | --------: |
+| 10 | `perf_test` | 392.212 | 74.621 | 5.26 |
+| 100 | `perf_test` | 407.844 | 60.704 | 6.72 |
+| 10 | `perf_test_arrays` | 292.392 | 50.549 | 5.78 |
+| 100 | `perf_test_arrays` | 240.158 | 50.911 | 4.72 |
+| 10 | `perf_test_record` | 518.515 | 57.665 | 8.99 |
+| 100 | `perf_test_record` | 439.220 | 59.413 | 7.39 |
+| 10 | `perf_test_record_arrays` | 383.549 | 52.951 | 7.24 |
+| 100 | `perf_test_record_arrays` | 338.835 | 51.507 | 6.58 |
 
-```console
-   ✓ http_req_duration..............: avg=37.91ms min=559.1µs  med=1.67ms  max=1.5s    p(90)=113.81ms p(95)=200.96ms
-     http_reqs......................: 13377   1315.56161/s
-```
-
-NpgsqlRest AOT build:
-
-```console
-   ✓ http_req_duration..............: avg=5.65ms   min=524.55µs med=4.61ms  max=77.83ms p(90)=10.9ms   p(95)=13.61ms
-     http_reqs......................: 86458   8624.438772/s
-```
-
-> In simple terms, for a period of a 10 seconds, and for 100 simulated virtual concurrent users, PostgREST has generated 13377 succesful requests with average duration of 37.91ms, and NpgsqlRest AOT build has generated 86458 succesful requests with average duration of 5.65ms.
-
-See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestPerfTest).
+See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/PerfomanceTests).
   
 ## Getting Started
 
