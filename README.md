@@ -164,7 +164,16 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
   
 ## Getting Started
 
-### Installation
+### Using Executables
+
+1) Go to the [release page](https://github.com/vb-consulting/NpgsqlRest/releases).
+2) Download the latest version of the binary for either Windows or Linux.
+3) Set up the desired configuration in [appsettings.json](https://github.com/vb-consulting/NpgsqlRest/blob/master/AotBuildTemplate/appsettings.json). This file is bundled together with the executable in the download package.
+4) Run the executable. REST API is created for you.
+
+### Using Library
+
+#### Library Installation
 
 Install the package from NuGet by using any of the available methods:
 
@@ -181,7 +190,7 @@ NuGet\Install-Package NpgsqlRest -version 1.6.0
 #r "nuget: NpgsqlRest, 1.6.0"
 ```
 
-### First Use
+#### Library First Use
 
 Your application builder code:
 
@@ -193,7 +202,7 @@ app.Run();
 
 For all available build options, please consult a [source code file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/NpgsqlRestOptions.cs), until the documentation website is built.
 
-## Dependencies
+#### Library Dependencies
 
 - net8.0
 - Microsoft.NET.Sdk.Web 8.0
