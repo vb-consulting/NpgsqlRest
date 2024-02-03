@@ -1,5 +1,13 @@
 # Changelog
 
+## Version [1.6.2](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.2) (2024-02-03)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.1...1.6.2)
+
+- Fixed and tested full support for PostgreSQL stored procedures (as opposed to user-defined functions which are used primarily).
+
+-----------
+
 ## Version [1.6.1](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.1) (2024-02-02)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.0...1.6.1)

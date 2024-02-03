@@ -106,7 +106,7 @@ with cte as (
 
         and proc.prokind in ('f', 'p')
         and not lower(r.external_language) = any(array['c', 'internal'])
-        and r.type_udt_name <> 'trigger'
+        and coalesce(r.type_udt_name, '') <> 'trigger'
     group by
         r.routine_type, r.specific_schema, r.routine_name,
         proc.oid, r.specific_name, r.external_language, des.description,
@@ -131,7 +131,7 @@ select
     case when returns_set is true or return_type = 'record' then true else false end as returns_record,
     case
         when returns_set is true and return_type <> 'record' then 'record'
-        else return_type
+        else coalesce(return_type, 'void')
     end as return_type,
 
     case
@@ -219,13 +219,14 @@ from cte
 
             bool hasVariadic = reader.Get<bool>("has_variadic");
             bool isUnnamedRecord = reader.Get<bool>("is_unnamed_record");
+            var routineType = type.GetEnum<RoutineType>();
 
             Dictionary<int, string> expressions = [];
-
+            var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
             var expression = string.Concat(
                 (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet) || isUnnamedRecord)
-                    ? "select "
-                    : string.Concat("select ", string.Join(", ", returnRecordNames), " from "),
+                    ? callIdent
+                    : string.Concat(callIdent, string.Join(", ", returnRecordNames), " from "),
                 schema,
                 ".",
                 name,
@@ -251,7 +252,7 @@ from cte
             }
 
             yield return new Routine(
-                type: type.GetEnum<RoutineType>(),
+                type: routineType,
                 typeInfo: type,
                 schema: schema,
                 name: name,
