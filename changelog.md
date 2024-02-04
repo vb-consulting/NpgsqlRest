@@ -262,7 +262,7 @@ info: NpgsqlRestTestWebApi[0]
       select public.case_get_multi_params2($1, $2, $3, $4, $5, $6, $7, $8, $9::interval, $10, $11, $12::bit varying, $13::varbit, $14::inet, $15::macaddr, $16::bytea)
 ```
 
-### 3) Command Callback
+### 4) Command Callback
 
 New feature: 
 Now it's possible to define a lambda callback in options, that, if not null - will be called after every command is created and before it is executed.
