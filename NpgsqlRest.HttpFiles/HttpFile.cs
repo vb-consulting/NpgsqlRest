@@ -1,10 +1,9 @@
-﻿using System;
+﻿using System.Text;
 using Npgsql;
-using System.Text;
 
-namespace NpgsqlRest;
+namespace NpgsqlRest.HttpFiles;
 
-internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, ILogger? logger)
+public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
 {
     private readonly HashSet<string> _initializedFiles = [];
     private readonly Dictionary<string, StringBuilder> _fileContent = [];
@@ -12,30 +11,39 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
     private bool _endpoint = false;
     private bool _file = false;
 
-    internal void HandleEntry(Routine routine, RoutineEndpoint endpoint)
+    private IApplicationBuilder _builder = default!;
+    private ILogger? _logger;
+    
+    public void Setup(IApplicationBuilder builder, ILogger? logger)
     {
-        if (options.HttpFileOptions.Option == HttpFileOption.Disabled)
+        _builder = builder;
+        _logger = logger;
+    }
+
+    public void Handle(Routine routine, RoutineEndpoint endpoint)
+    {
+        if (httpFileOptions.Option == HttpFileOption.Disabled)
         {
             return;
         }
 
-        _endpoint = options.HttpFileOptions.Option == HttpFileOption.Endpoint || options.HttpFileOptions.Option == HttpFileOption.Both;
-        _file = options.HttpFileOptions.Option == HttpFileOption.File || options.HttpFileOptions.Option == HttpFileOption.Both;
+        _endpoint = httpFileOptions.Option is HttpFileOption.Endpoint or HttpFileOption.Both;
+        _file = httpFileOptions.Option is HttpFileOption.File or HttpFileOption.Both;
 
         var fileName = FormatFileName();
         if (_initializedFiles.Add(fileName))
         {
             StringBuilder content = new();
-            content.AppendLine(string.Concat("@host=", GetHost(builder)));
+            content.AppendLine(string.Concat("@host=", GetHost()));
             content.AppendLine();
             _fileContent[fileName] = content;
         }
 
         StringBuilder sb = new();
 
-        if (options.HttpFileOptions.CommentHeader != CommentHeader.None)
+        if (httpFileOptions.CommentHeader != CommentHeader.None)
         {
-            switch (options.HttpFileOptions.CommentHeader)
+            switch (httpFileOptions.CommentHeader)
             {
                 case CommentHeader.Simple:
                 {
@@ -175,15 +183,15 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
 
         string FormatFileName()
         {
-            var name = GetName(options);
-            var schema = options.HttpFileOptions.FileMode != HttpFileMode.Schema ? "" : string.Concat("_", routine.Schema);
-            return string.Concat(string.Format(options.HttpFileOptions.NamePattern, name, schema), ".http");
+            var name = GetName();
+            var schema = httpFileOptions.FileMode != HttpFileMode.Schema ? "" : string.Concat("_", routine.Schema);
+            return string.Concat(string.Format(httpFileOptions.NamePattern, name, schema), ".http");
         }
     }
 
-    internal void FinalizeHttpFile()
+    public void Cleanup()
     {
-        if (options.HttpFileOptions.Option == HttpFileOption.Disabled)
+        if (httpFileOptions.Option == HttpFileOption.Disabled)
         {
             return;
         }
@@ -193,7 +201,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             foreach(var (fileName, content) in _fileContent)
             {
                 var path = $"/{fileName}";
-                builder.Use(async (context, next) =>
+                _builder.Use(async (context, next) =>
                 {
                     if (!(string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase) && 
                         string.Equals(context.Request.Path, path, StringComparison.Ordinal)))
@@ -207,7 +215,7 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
                     await context.Response.WriteAsync(content.ToString());
                 });
 
-                Logging.LogInfo(ref logger, ref options, "Exposed HTTP file content on URL: {0}{1}", GetHost(builder), path);
+                _logger?.LogInformation("Exposed HTTP file content on URL: {0}{1}", GetHost(), path);
             }
         }
 
@@ -216,19 +224,19 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             foreach(var (fileName, content) in _fileContent)
             {
                 var fullFileName = Path.Combine(Environment.CurrentDirectory, fileName);
-                if (!options.HttpFileOptions.FileOverwrite && File.Exists(fullFileName))
+                if (!httpFileOptions.FileOverwrite && File.Exists(fullFileName))
                 {
                     continue;
                 }
                 File.WriteAllText(fullFileName, content.ToString());
-                Logging.LogInfo(ref logger, ref options, "Created HTTP file: {0}", fullFileName);
+                _logger?.LogInformation("Created HTTP file: {0}", fullFileName);
             }
         }
     }
 
     private void WriteComment(StringBuilder sb, Routine routine)
     {
-        if (options.HttpFileOptions.CommentHeaderIncludeComments is false || string.IsNullOrEmpty(routine.Comment?.Trim()))
+        if (httpFileOptions.CommentHeaderIncludeComments is false || string.IsNullOrEmpty(routine.Comment?.Trim()))
         {
             return;
         }
@@ -445,9 +453,9 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             if (type.IsArray)
             {
                 return GetArray(
-                    $"00-B0-D0-63-C2-26",
-                    $"00-B0-D0-63-C2-26",
-                    $"00-B0-D0-63-C2-26",
+                    "00-B0-D0-63-C2-26",
+                    "00-B0-D0-63-C2-26",
+                    "00-B0-D0-63-C2-26",
                 true);
             }
             return Quote($"00-B0-D0-63-C2-26");
@@ -458,9 +466,9 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
             if (type.IsArray)
             {
                 return GetArray(
-                    $"\\\\xFEADBAEF",
-                    $"\\\\xAEADBDEF",
-                    $"\\\\xEEADEEEF",
+                    "\\\\xFEADBAEF",
+                    "\\\\xAEADBDEF",
+                    "\\\\xEEADEEEF",
                 true);
             }
             return Quote($"\\\\xDEADBEEF");
@@ -493,10 +501,10 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         };
     }
 
-    private static string GetHost(IApplicationBuilder builder)
+    private string GetHost()
     {
         string? host = null;
-        if (builder is WebApplication app)
+        if (_builder is WebApplication app)
         {
             if (app.Urls.Count != 0)
             {
@@ -516,10 +524,18 @@ internal class HttpFile(IApplicationBuilder builder, NpgsqlRestOptions options, 
         return host;
     }
 
-    private static string GetName(NpgsqlRestOptions options)
+    private string GetName()
     {
-        return new NpgsqlConnectionStringBuilder(options.ConnectionString).Database ??
-            options?.ConnectionString?.Split(";").Where(s => s.StartsWith("Database=")).FirstOrDefault()?.Split("=")?.Last() ??
-            "npgsql";
+        if (httpFileOptions.Name is not null)
+        {
+            return httpFileOptions.Name;
+        }
+        if (httpFileOptions.ConnectionString is not null)
+        {
+            return new NpgsqlConnectionStringBuilder(httpFileOptions.ConnectionString).Database ??
+                   httpFileOptions.ConnectionString?.Split(";").Where(s => s.StartsWith("Database=")).FirstOrDefault()
+                       ?.Split("=")?.Last() ?? "npgsqlrest";
+        }
+        return "npgsqlrest";
     }
 }

@@ -10,6 +10,7 @@
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
 
     <GenerateProgramFile>false</GenerateProgramFile>
+    <RootNamespace>NpgsqlRestTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

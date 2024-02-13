@@ -13,7 +13,7 @@
     <Company>VB-Consulting</Company>
     <Copyright>VB-Consulting</Copyright>
     <Description>Automatic REST API for Any Postgres Database as NET8 Middleware</Description>
-    <PackageTags>api;api-rest;restful-api;http;postgres;;dotnet;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
+    <PackageTags>api;api-rest;restful-api;http;postgres;dotnet;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
     <PackageProjectUrl>https://github.com/vb-consulting/NpgsqlRest</PackageProjectUrl>
     <RepositoryUrl>https://github.com/vb-consulting/NpgsqlRest</RepositoryUrl>
     <PackageReleaseNotes>https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md</PackageReleaseNotes>
@@ -28,15 +28,11 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.MD</PackageReadmeFile>
     <DocumentationFile>bin\$(Configuration)\$(AssemblyName).xml</DocumentationFile>
-    <Version>1.6.2</Version>
-    <AssemblyVersion>1.6.2</AssemblyVersion>
-    <FileVersion>1.6.2</FileVersion>
-    <PackageVersion>1.6.2</PackageVersion>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0</AssemblyVersion>
+    <FileVersion>2.0.0</FileVersion>
+    <PackageVersion>2.0.0</PackageVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Npgsql" Version="8.0.1" />
-  </ItemGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
@@ -44,6 +40,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Npgsql" Version="8.0.2" />
     <PackageReferenceFiles Include="bin\$(Configuration)\$(AssemblyName).xml" />
   </ItemGroup>
 

@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Primitives;
-using Microsoft.Net.Http.Headers;
+﻿using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest;
 
@@ -159,10 +157,7 @@ internal static class DefaultEndpoint
                             }
                             else
                             {
-                                Logging.LogWarning(
-                                    ref logger,
-                                    ref options,
-                                    $"Invalid HTTP method '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{method}'");
+                                logger?.LogWarning($"Invalid HTTP method '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{method}'");
                             }
                         }
                         if (words.Length == 3)
@@ -170,8 +165,7 @@ internal static class DefaultEndpoint
                             string urlPathSegment = words[2];
                             if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                             {
-                                Logging.LogWarning(ref logger, ref options,
-                                    $"Invalid URL path segment '{urlPathSegment}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{url}'");
+                                logger?.LogWarning($"Invalid URL path segment '{urlPathSegment}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{url}'");
                             }
                             else
                             {
@@ -200,10 +194,7 @@ internal static class DefaultEndpoint
                         }
                         else
                         {
-                            Logging.LogWarning(
-                                ref logger,
-                                ref options,
-                                $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{requestParamType}'");
+                            logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{requestParamType}'");
                         }
 
                         if (originalParamType != requestParamType)
@@ -230,9 +221,7 @@ internal static class DefaultEndpoint
                         }
                         else
                         {
-                            Logging.LogWarning(ref logger,
-                                ref options,
-                                $"Invalid command timeout '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default command timeout '{commandTimeout}'");
+                            logger?.LogWarning($"Invalid command timeout '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default command timeout '{commandTimeout}'");
                         }
                     }
 
@@ -252,10 +241,7 @@ internal static class DefaultEndpoint
                         }
                         else
                         {
-                            Logging.LogWarning(
-                                ref logger,
-                                ref options,
-                                $"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are Ignore or Context or Parameter. Using default '{requestHeadersMode}'");
+                            logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are Ignore or Context or Parameter. Using default '{requestHeadersMode}'");
                         }
                         if (requestHeadersMode != options.RequestHeadersMode)
                         {
@@ -360,7 +346,7 @@ internal static class DefaultEndpoint
         {
             return;
         }
-        Logging.LogInfo(ref logger, ref options, string.Concat($"{routine.Type} {routine.Schema}.{routine.Name} ", message));
+        logger?.LogInformation( string.Concat($"{routine.Type} {routine.Schema}.{routine.Name} ", message));
     }
 
     private static bool StringEquals(ref string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);

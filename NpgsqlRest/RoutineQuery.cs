@@ -3,7 +3,7 @@ using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
-internal static class RoutineQuery
+public class RoutineQuery : IRoutineSource
 {
     private const string Query = """
 with cte as (
@@ -162,7 +162,7 @@ select
 from cte
 """;
 
-    internal static IEnumerable<Routine> Run(NpgsqlRestOptions options)
+    public IEnumerable<Routine> Read(NpgsqlRestOptions options)
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();

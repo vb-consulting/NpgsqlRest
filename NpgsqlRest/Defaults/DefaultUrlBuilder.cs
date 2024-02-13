@@ -1,4 +1,4 @@
-﻿namespace NpgsqlRest;
+﻿namespace NpgsqlRest.Defaults;
 
 public static class DefaultUrlBuilder
 {

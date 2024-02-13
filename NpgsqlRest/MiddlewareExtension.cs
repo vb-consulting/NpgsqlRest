@@ -8,8 +8,6 @@ using Npgsql;
 using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http.Extensions;
-
-using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace NpgsqlRest;
@@ -22,6 +20,7 @@ public static class NpgsqlRestMiddlewareExtensions
         {
             throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
         }
+        
         ILogger? logger = null;
         if (options.Logger is not null)
         {
@@ -166,9 +165,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     // parameters don't match, continuing to another overload
                                     if (options.LogParameterMismatchWarnings)
                                     {
-                                        LogWarning(
-                                            ref logger,
-                                            ref options,
+                                        logger?.LogWarning(
                                             "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
                                             routine.ParamTypeDescriptor[0].DbType,
                                             qsValue.ToString(),
@@ -197,9 +194,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                                 // parameters don't match, continuing to another overload
                                                 if (options.LogParameterMismatchWarnings)
                                                 {
-                                                    LogWarning(
-                                                        ref logger,
-                                                        ref options,
+                                                    logger?.LogWarning(
                                                         "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
                                                         routine.ParamTypeDescriptor[0].DbType,
                                                         qsValue.ToString(),
@@ -337,9 +332,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     // parameters don't match, continuing to another overload
                                     if (options.LogParameterMismatchWarnings)
                                     {
-                                        LogWarning(
-                                            ref logger,
-                                            ref options,
+                                        logger?.LogWarning(
                                             "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
                                             routine.ParamTypeDescriptor[0].DbType,
                                             value,
@@ -480,7 +473,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         connection.Notice += (sender, args) =>
                         {
-                            LogConnectionNotice(ref logger, ref options, ref args);
+                            Logger.LogConnectionNotice(ref logger, ref args);
                         };
                     }
 
@@ -528,7 +521,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     if (shouldLog)
                     {
                         cmdLog!.AppendLine(command.CommandText);
-                        LogInfo(ref logger, ref options, cmdLog.ToString());
+                        logger?.LogInformation(cmdLog.ToString());
                     }
                     
                     if (endpoint.CommandTimeout.HasValue)
@@ -596,7 +589,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             else
                             {
-                                LogError(ref logger, ref options, 
+                                logger?.LogError( 
                                     "Could not read a value from {0} \"{1}\" mapped to {2} {3} ", 
                                     routine.Type.ToString().ToLower(), 
                                     command.CommandText,
@@ -627,6 +620,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             context.Response.StatusCode = (int)HttpStatusCode.OK;
                             await context.Response.WriteAsync("[");
                             bool first = true;
+                            var routineReturnRecordCount = routine.ReturnRecordCount;
                             while (await reader.ReadAsync())
                             {
                                 if (!first)
@@ -637,7 +631,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     first = false;
                                 }
-                                for (var i = 0; i < routine.ReturnRecordCount; i++)
+
+                                for (var i = 0; i < routineReturnRecordCount; i++)
                                 {
                                     object value = reader.GetValue(i);
                                     // AllResultTypesAreUnknown = true always returns string, except for null
@@ -714,8 +709,9 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         await context.Response.WriteAsync(",");
                                     }
-                                }
-                            }
+                                } // end for
+
+                            } // end while
                             await context.Response.WriteAsync("]");
                             await context.Response.CompleteAsync();
                             return;
@@ -752,7 +748,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     catch (JsonException)
                     {
-                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                        logger?.LogWarning("Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
                         return;
                     }
                     try
@@ -761,7 +757,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     catch (InvalidOperationException)
                     {
-                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                        logger?.LogWarning("Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
                     }
                 }
             }
@@ -776,53 +772,71 @@ public static class NpgsqlRestMiddlewareExtensions
         ILogger? logger)
     {
         var dict = new Dictionary<string, List<(Routine routine, RoutineEndpoint endpoint)>>();
-        var httpFile = new HttpFile(builder, options, logger);
-        foreach (var routine in RoutineQuery.Run(options))
+
+        foreach (var handler in options.EndpointCreateHandlers)
         {
-            RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);
+            handler.Setup(builder, logger);
+        }
 
-            if (result is null)
+        foreach (var source in options.RoutineSources)
+        {
+            foreach (var routine in source.Read(options))
             {
-                continue;
-            }
+                RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);
 
-            if (options.EndpointCreated is not null)
-            {
-                result = options.EndpointCreated(routine, result.Value);
-            }
+                if (result is null)
+                {
+                    continue;
+                }
 
-            if (result is null)
-            {
-                continue;
-            }
+                if (options.EndpointCreated is not null)
+                {
+                    result = options.EndpointCreated(routine, result.Value);
+                }
 
-            RoutineEndpoint endpoint = result.Value;
+                if (result is null)
+                {
+                    continue;
+                }
 
-            if (endpoint.BodyParameterName is not null && endpoint.RequestParamType == RequestParamType.BodyJson)
-            {
-                endpoint = endpoint with { RequestParamType = RequestParamType.QueryString };
-                LogWarning(ref logger, ref options, 
-                    "Endpoint {0} {1} changed request parameter type from body to query string because body will be used for parameter named `{2}`.", 
-                    endpoint.Method.ToString(), 
-                    endpoint.Url,
-                    endpoint.BodyParameterName);
-            }
+                RoutineEndpoint endpoint = result.Value;
 
-            List<(Routine routine, RoutineEndpoint meta)> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
-            list.Add((routine, endpoint));
-            dict[endpoint.Url] = list;
+                if (endpoint.BodyParameterName is not null && endpoint.RequestParamType == RequestParamType.BodyJson)
+                {
+                    endpoint = endpoint with { RequestParamType = RequestParamType.QueryString };
+                    logger?.LogWarning( 
+                        "Endpoint {0} {1} changed request parameter type from body to query string because body will be used for parameter named `{2}`.", 
+                        endpoint.Method.ToString(), 
+                        endpoint.Url,
+                        endpoint.BodyParameterName);
+                }
 
-            httpFile.HandleEntry(routine, endpoint);
-            if (options.LogEndpointCreatedInfo)
-            {
-                LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.Method.ToString(), endpoint.Url);
+                List<(Routine routine, RoutineEndpoint meta)> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
+                list.Add((routine, endpoint));
+                dict[endpoint.Url] = list;
+            
+                foreach (var handler in options.EndpointCreateHandlers)
+                {
+                    handler.Handle(routine, endpoint);
+                }
+            
+                if (options.LogEndpointCreatedInfo)
+                {
+                    logger?.LogInformation("Created endpoint {0} {1}", endpoint.Method.ToString(), endpoint.Url);
+                }
             }
         }
+
         if (options.EndpointsCreated is not null)
         {
             options.EndpointsCreated(dict.Values.SelectMany(x => x).ToArray());
         }
-        httpFile.FinalizeHttpFile();
+
+        foreach (var handler in options.EndpointCreateHandlers)
+        {
+            handler.Cleanup();
+        }
+
         return dict
             .ToDictionary(
                 x => x.Key,

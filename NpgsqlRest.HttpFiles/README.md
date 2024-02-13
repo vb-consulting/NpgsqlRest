@@ -1,0 +1,2 @@
+﻿# NpgsqlRest.HttpFiles.csproj
+

@@ -1,4 +1,6 @@
 using NpgsqlRest;
+using NpgsqlRest.Defaults;
+using NpgsqlRest.HttpFiles;
 
 var builder = WebApplication.CreateEmptyBuilder(new ());
 builder.WebHost.UseKestrelCore();
@@ -46,7 +48,7 @@ if (urls != null)
 
 var httpFileOptions = config?.GetSection("HttpFileOptions");
 
-app.UseNpgsqlRest(new()
+var npgsqlRestOptions = new NpgsqlRestOptions()
 {
     ConnectionString = connectionString,
 
@@ -62,7 +64,7 @@ app.UseNpgsqlRest(new()
     UrlPathBuilder = GetBool("KebabCaseUrls") ? DefaultUrlBuilder.CreateUrl : CreateUrl,
 
     NameConverter = GetBool("CamelCaseNames") ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
-    RequiresAuthorization = GetBool( "RequiresAuthorization"),
+    RequiresAuthorization = GetBool("RequiresAuthorization"),
 
     LoggerName = GetStr("LoggerName"),
     LogEndpointCreatedInfo = GetBool("LogEndpointCreatedInfo"),
@@ -78,16 +80,23 @@ app.UseNpgsqlRest(new()
     RequestHeadersMode = GetEnum<RequestHeadersMode>("RequestHeadersMode"),
     RequestHeadersParameterName = GetStr("RequestHeadersParameterName") ?? "headers",
 
-    HttpFileOptions = new()
-    {
-        Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
-        NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
-        CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
-        CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
-        FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
-        FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
-    }
-});
+    EndpointCreateHandlers = [
+        new HttpFile(new HttpFileOptions
+        {
+            Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
+            NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
+            CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
+            CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
+            FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
+            FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
+            ConnectionString = connectionString
+        })
+    ]
+};
+
+//npgsqlRestOptions.RoutineSources.Add(new )
+
+app.UseNpgsqlRest(npgsqlRestOptions);
 app.Run();
 return;
 

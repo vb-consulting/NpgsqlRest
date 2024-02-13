@@ -1,4 +1,6 @@
 using NpgsqlRest;
+using NpgsqlRest.Defaults;
+using NpgsqlRest.HttpFiles;
 
 var builder = WebApplication.CreateEmptyBuilder(new ());
 builder.WebHost.UseKestrelCore();
@@ -36,15 +38,12 @@ if (GetBool("UseLogging"))
 var app = builder.Build();
 
 var urls = GetArray("Urls");
-if (urls != null)
+foreach (var url in urls)
 {
-    foreach (var url in urls)
-    {
-        app.Urls.Add(url);
-    }
+    app.Urls.Add(url);
 }
 
-var httpFileOptions = config?.GetSection("HttpFileOptions");
+var httpFileOptions = config.GetSection("HttpFileOptions");
 
 app.UseNpgsqlRest(new()
 {
@@ -78,46 +77,45 @@ app.UseNpgsqlRest(new()
     RequestHeadersMode = GetEnum<RequestHeadersMode>("RequestHeadersMode"),
     RequestHeadersParameterName = GetStr("RequestHeadersParameterName") ?? "headers",
 
-    HttpFileOptions = new()
-    {
-        Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
-        NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
-        CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
-        CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
-        FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
-        FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
-    }
+    EndpointCreateHandlers = [ 
+        new HttpFile(new HttpFileOptions 
+        {
+            Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
+            NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
+            CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
+            CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
+            FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
+            FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
+            ConnectionString = connectionString
+        })
+    ]
 });
 app.Run();
 return;
 
 string? GetStr(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
-    return string.IsNullOrEmpty(section?.Value) ? null : section.Value;
+    var section = subsection?.GetSection(key) ?? config.GetSection(key);
+    return string.IsNullOrEmpty(section.Value) ? null : section.Value;
 }
 
 bool GetBool(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
-    return string.Equals(section?.Value, "true", StringComparison.OrdinalIgnoreCase);
+    var section = subsection?.GetSection(key) ?? config.GetSection(key);
+    return string.Equals(section.Value, "true", StringComparison.OrdinalIgnoreCase);
 }
 
-string[]? GetArray(string key, IConfiguration? subsection = null)
+string[] GetArray(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
-    var children = section?.GetChildren();
-    if (children is null)
-    {
-        return null;
-    }
+    var section = subsection?.GetSection(key) ?? config.GetSection(key);
+    var children = section.GetChildren();
     return children.Select(c => c.Value ?? "").ToArray();
 }
 
 int? GetInt(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
-    if (section?.Value is null)
+    var section = subsection?.GetSection(key) ?? config.GetSection(key);
+    if (section.Value is null)
     {
         return null;
     }
@@ -130,8 +128,8 @@ int? GetInt(string key, IConfiguration? subsection = null)
 
 T? GetEnum<T>(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
-    if (string.IsNullOrEmpty(section?.Value))
+    var section = subsection?.GetSection(key) ?? config.GetSection(key);
+    if (string.IsNullOrEmpty(section.Value))
     {
         return default;
     }

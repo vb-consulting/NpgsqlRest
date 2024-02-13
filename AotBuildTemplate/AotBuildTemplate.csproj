@@ -8,9 +8,10 @@
     <PublishAot>true</PublishAot>
     <AssemblyName>npgsqlrest-win64</AssemblyName>
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <PackageReference Include="NpgsqlRest" Version="1.6.2" />
+    <PackageReference Include="NpgsqlRest" Version="2.0.0" />
+    <PackageReference Include="NpgsqlRest.HttpFiles" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

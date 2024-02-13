@@ -8,13 +8,9 @@
     <PublishAot>true</PublishAot>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
   </PropertyGroup>
-
+  
   <ItemGroup>
-    <InternalsVisibleTo Include="NpgsqlRestTests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\NpgsqlRestTests\NpgsqlRestTests.csproj" />
+    <ProjectReference Include="..\NpgsqlRest.HttpFiles\NpgsqlRest.HttpFiles.csproj" />
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
   </ItemGroup>
 

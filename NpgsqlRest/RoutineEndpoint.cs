@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Primitives;
-
 namespace NpgsqlRest;
 
 public readonly record struct RoutineEndpoint(

@@ -1,42 +1,7 @@
-﻿using System.Threading;
-using Npgsql;
+﻿using Npgsql;
+using NpgsqlRest.Defaults;
 
 namespace NpgsqlRest;
-
-public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
-public enum RequestParamType { QueryString, BodyJson }
-public enum CommentsMode 
-{ 
-    /// <summary>
-    /// Routine comments are ignored.
-    /// </summary>
-    Ignore,
-    /// <summary>
-    /// Creates all endpoints and parses comments for to configure endpoint meta data.
-    /// </summary>
-    ParseAll,
-    /// <summary>
-    /// Creates only endpoints from routines containing a comment with HTTP tag and and configures endpoint meta data.
-    /// </summary>
-    OnlyWithHttpTag
-}
-
-public enum RequestHeadersMode
-{
-    /// <summary>
-    /// Ignore request headers, don't send them to PostgreSQL (default).
-    /// </summary>
-    Ignore,
-    /// <summary>
-    /// Send all request headers as json object to PostgreSQL by executing set_config('context.headers', headers, false) before routine call.
-    /// </summary>
-    Context,
-    /// <summary>
-    /// Send all request headers as json object to PostgreSQL as default routine parameter with name set by RequestHeadersParameterName option.
-    /// This parameter has to have the default value (null) in the routine and have to be text or json type.
-    /// </summary>
-    Parameter
-}
 
 /// <summary>
 /// Options for the NpgsqlRest middleware.
@@ -55,11 +20,9 @@ public class NpgsqlRestOptions(
     string? urlPathPrefix = "/api",
     Func<Routine, NpgsqlRestOptions, string>? urlPathBuilder = null,
     bool connectionFromServiceProvider = false,
-    NpgsqlRestHttpFileOptions? httpFileOptions = null,
     Func<Routine, RoutineEndpoint, RoutineEndpoint?>? endpointCreated = null,
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
-    LogLevel logLevel = LogLevel.Information,
     ILogger? logger = null,
     string? loggerName = null,
     bool logEndpointCreatedInfo = true,
@@ -76,7 +39,9 @@ public class NpgsqlRestOptions(
     RequestHeadersMode requestHeadersMode = RequestHeadersMode.Ignore,
     string requestHeadersParameterName = "headers",
     Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,
-    Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null)
+    Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null,
+    IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
+    IList<IRoutineSource>? routineSources = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -150,10 +115,6 @@ public class NpgsqlRestOptions(
     /// </summary>
     public bool ConnectionFromServiceProvider { get; set; } = connectionFromServiceProvider;
     /// <summary>
-    /// Configure creation of the .http file on service build.
-    /// </summary>
-    public NpgsqlRestHttpFileOptions HttpFileOptions { get; set; } = httpFileOptions ?? new NpgsqlRestHttpFileOptions(HttpFileOption.Disabled);
-    /// <summary>
     /// Callback, if not null, will be called after endpoint meta data is created.
     /// Use this to do custom configuration over routine endpoints. 
     /// Return null to disable this endpoint.
@@ -169,10 +130,6 @@ public class NpgsqlRestOptions(
     /// Set to true to require authorization for all endpoints.
     /// </summary>
     public bool RequiresAuthorization { get; set;  } = requiresAuthorization;
-    /// <summary>
-    /// Set the minimal level of log messages or LogLevel.None to disable logging.
-    /// </summary>
-    public LogLevel LogLevel { get; set; } = logLevel;
     /// <summary>
     /// Use this logger instead of the default logger.
     /// </summary>
@@ -259,4 +216,12 @@ public class NpgsqlRestOptions(
     /// Setting the the HttpContext response status or start writing response body will the default command execution.
     /// </summary>
     public Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? CommandCallbackAsync { get; set; } = commandCallbackAsync;
+    /// <summary>
+    /// Array of endpoint create handlers (such as HttpFiles or custom handlers)
+    /// </summary>
+    public IEnumerable<IEndpointCreateHandler> EndpointCreateHandlers { get; set; } = endpointCreateHandlers ?? Array.Empty<IEndpointCreateHandler>();
+    /// <summary>
+    /// List of routine sources to use to get the routines. Default is routines (functions and procedures) source.
+    /// </summary>
+    public IList<IRoutineSource> RoutineSources { get; set; } = routineSources ?? [new RoutineQuery()];
 }

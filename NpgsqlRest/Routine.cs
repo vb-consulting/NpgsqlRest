@@ -1,11 +1,5 @@
 ﻿namespace NpgsqlRest;
 
-public enum RoutineType { Other, Function, Procedure }
-public enum Language { Other, Plpgsql, Sql }
-public enum SecurityType { Definer, Invoker }
-public enum ParallelOption { Unsafe, Safe, Restricted }
-public enum VolatilityOption { Immutable, Stable, Volatile }
-
 public readonly struct Routine(
     RoutineType type, 
     string typeInfo,
