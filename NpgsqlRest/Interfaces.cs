@@ -16,7 +16,6 @@ public interface IRoutineSourceParameterFormatter
 
 public interface IRoutineSource
 {
-    string Query { get; set; }
     IEnumerable<Routine> Read(NpgsqlRestOptions options);
     IRoutineSourceParameterFormatter GetRoutineSourceParameterFormatter();
 }

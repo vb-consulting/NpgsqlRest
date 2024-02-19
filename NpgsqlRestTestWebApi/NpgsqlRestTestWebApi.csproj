@@ -10,6 +10,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\NpgsqlRest.CrudSource\NpgsqlRest.CrudSource.csproj" />
     <ProjectReference Include="..\NpgsqlRest.HttpFiles\NpgsqlRest.HttpFiles.csproj" />
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
   </ItemGroup>

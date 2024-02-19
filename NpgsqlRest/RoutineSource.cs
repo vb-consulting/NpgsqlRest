@@ -4,11 +4,26 @@ using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
-public class RoutineSource : IRoutineSource
+public class RoutineSource(
+        string? schemaSimilarTo = null,
+        string? schemaNotSimilarTo = null,
+        string[]? includeSchemas = null,
+        string[]? excludeSchemas = null,
+        string? nameSimilarTo = null,
+        string? nameNotSimilarTo = null,
+        string[]? includeNames = null,
+        string[]? excludeNames = null,
+        string? query = null) : IRoutineSource
 {
-    private string _query = RoutineSourceQuery.Query;
-
-    public string Query { get => _query; set { _query = value; } }
+    public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
+    public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
+    public string[]? IncludeSchemas { get; init; } = includeSchemas;
+    public string[]? ExcludeSchemas { get; init; } = excludeSchemas;
+    public string? NameSimilarTo { get; init; } = nameSimilarTo;
+    public string? NameNotSimilarTo { get; init; } = nameNotSimilarTo;
+    public string[]? IncludeNames { get; init; } = includeNames;
+    public string[]? ExcludeNames { get; init; } = excludeNames;
+    public string Query { get; init; } = query ?? RoutineSourceQuery.Query;
 
     public IRoutineSourceParameterFormatter GetRoutineSourceParameterFormatter()
     {
@@ -20,16 +35,15 @@ public class RoutineSource : IRoutineSource
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
         command.CommandText = Query;
+        AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
+        AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
+        AddParameter(IncludeSchemas ?? options.IncludeSchemas, true); // $3
+        AddParameter(ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
+        AddParameter(NameSimilarTo ?? options.NameSimilarTo); // $5
+        AddParameter(NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
+        AddParameter(IncludeNames ?? options.IncludeNames, true); // $7
+        AddParameter(ExcludeNames ?? options.ExcludeNames, true); // $8
 
-        AddParameter(options.SchemaSimilarTo); // $1
-        AddParameter(options.SchemaNotSimilarTo); // $2
-        AddParameter(options.IncludeSchemas, true); // $3
-        AddParameter(options.ExcludeSchemas, true); // $4
-        AddParameter(options.NameSimilarTo); // $5
-        AddParameter(options.NameNotSimilarTo); // $6
-        AddParameter(options.IncludeNames, true); // $7
-        AddParameter(options.ExcludeNames, true); // $8
-        
         connection.Open();
         using NpgsqlDataReader reader = command.ExecuteReader();
         while (reader.Read())
@@ -74,7 +88,8 @@ public class RoutineSource : IRoutineSource
             bool isUnnamedRecord = reader.Get<bool>("is_unnamed_record");
             var routineType = type.GetEnum<RoutineType>();
             var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
-
+            var paramCount = reader.Get<int>("param_count");
+            var returnRecordCount = reader.Get<int>("return_record_count");
             var variadic = reader.Get<bool>("has_variadic");
             var expression = string.Concat(
                 (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet) || isUnnamedRecord)
@@ -84,10 +99,7 @@ public class RoutineSource : IRoutineSource
                 ".",
                 name,
                 "(",
-                variadic ? "variadic " : "");
-
-            var paramCount = reader.Get<int>("param_count");
-            var returnRecordCount = reader.Get<int>("return_record_count");
+                variadic && paramCount > 0 ? "variadic " : "");
 
             var simpleDefinition = new StringBuilder();
             simpleDefinition.AppendLine(string.Concat(
@@ -140,21 +152,22 @@ public class RoutineSource : IRoutineSource
                 comment: reader.Get<string>("comment"),
                 isStrict: reader.Get<bool>("is_strict"),
                 crudType: crudType,
+                
                 returnsRecord: returnsRecord,
                 returnType: returnType,
                 returnRecordCount: returnRecordCount,
                 returnRecordNames: returnRecordNames,
                 returnRecordTypes: returnRecordTypes,
                 returnsUnnamedSet: returnsUnnamedSet || isUnnamedRecord,
+                returnTypeDescriptor: returnTypeDescriptor,
+                isVoid: isVoid,
+
                 paramCount: paramCount,
                 paramNames: paramNames,
-                paramTypes: paramTypes,
-                paramDefaults: paramDefaults,
                 paramTypeDescriptor: paramTypes
                     .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
                     .ToArray(),
-                isVoid: isVoid,
-                returnTypeDescriptor: returnTypeDescriptor,
+
                 expression: expression,
                 fullDefinition: reader.Get<string>("definition"),
                 simpleDefinition: simpleDefinition.ToString(),
@@ -204,11 +217,6 @@ internal static class Extensions
         return (T)value;
     }
     
-    internal static T GetEnum<T>(this NpgsqlDataReader reader, string name) where T : struct
-    {
-        return reader.Get<string?>(name).GetEnum<T>();
-    }
-
     internal static T GetEnum<T>(this string? value) where T : struct
     {
         Enum.TryParse<T>(value, true, out var result);

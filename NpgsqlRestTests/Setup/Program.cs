@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NpgsqlRest.CrudSource;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -55,7 +56,12 @@ public class Program
                         await p.context.Response.WriteAsync(line);
                     }
                 }
-            }
+            },
+
+            SourceCreated = sources =>
+            {
+                sources.Add(new CrudSource());
+            },
         });
         app.Run();
     }

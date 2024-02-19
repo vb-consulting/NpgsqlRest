@@ -1,4 +1,5 @@
 using NpgsqlRest;
+using NpgsqlRest.CrudSource;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
 
@@ -93,10 +94,10 @@ app.UseNpgsqlRest(new()
         })
     ],
 
-    //SourceCreated = sources =>
-    //{
-    //    sources.Add(new RoutineQuery());
-    //},
+    SourceCreated = sources =>
+    {
+        sources.Add(new CrudSource());
+    },
 });
 app.Run();
 return;

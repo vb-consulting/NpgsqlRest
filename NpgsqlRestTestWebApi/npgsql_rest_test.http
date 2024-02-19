@@ -1014,3 +1014,13 @@ content-type: application/json
 
 ###
 
+// select public.proc_test_tbl
+GET {{host}}/api/proc-test-tbl?i=1&t=XYZ
+
+###
+
+// select public.test_table
+GET {{host}}/api/test-table?id=1&name=XYZ
+
+###
+
