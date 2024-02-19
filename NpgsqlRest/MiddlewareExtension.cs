@@ -10,6 +10,8 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http.Extensions;
 using static System.Net.Mime.MediaTypeNames;
 
+using Tuple = (NpgsqlRest.Routine routine, NpgsqlRest.RoutineEndpoint endpoint, NpgsqlRest.IRoutineSourceParameterFormatter formatter);
+
 namespace NpgsqlRest;
 
 public static class NpgsqlRestMiddlewareExtensions
@@ -44,7 +46,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
         builder.Use(async (context, next) =>
         {
-            if (!dict.TryGetValue(context.Request.Path, out (Routine routine, RoutineEndpoint endpoint)[]? tupleArray))
+            if (!dict.TryGetValue(context.Request.Path, out Tuple[]? tupleArray))
             {
                 var path = context.Request.Path.ToString();
                 if (path.EndsWith('/'))
@@ -73,7 +75,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
             for (var index = len - 1; index >= 0; index--)
             {
-                var (routine, endpoint) = tupleArray[index];
+                var (routine, endpoint, formatter) = tupleArray[index];
                 if (!string.Equals(context.Request.Method, endpoint.Method.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -106,7 +108,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
 
-                NpgsqlParameter?[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
+                List<NpgsqlRestParameter> paramsList = new(routine.ParamCount);
                 bool hasNulls = false;
                 int? headerParameterIndex = null;
                 if (routine.ParamCount > 0)
@@ -118,9 +120,11 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             string p = endpoint.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
-                            var parameter = new NpgsqlParameter
+                            var parameter = new NpgsqlRestParameter
                             {
-                                NpgsqlDbType = descriptor.ActualDbType
+                                NpgsqlDbType = descriptor.ActualDbType,
+                                ActualName = routine.ParamNames[i],
+                                TypeDescriptor = descriptor
                             };
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
@@ -157,7 +161,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             return;
                                         }
                                     }
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
                                 }
                                 else
@@ -242,14 +246,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                         if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
                                             string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
                                         {
-                                            parameters[i] = parameter;
                                             headerParameterIndex = i;
                                         }
                                     }
                                 }
                                 if (parameter.Value is not null || headerParameterIndex is not null)
                                 {
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
                                 }
                                 else if (descriptor.HasDefault)
@@ -285,9 +288,11 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             string p = endpoint.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
-                            var parameter = new NpgsqlParameter
+                            var parameter = new NpgsqlRestParameter
                             {
-                                NpgsqlDbType = descriptor.ActualDbType
+                                NpgsqlDbType = descriptor.ActualDbType,
+                                ActualName = routine.ParamNames[i],
+                                TypeDescriptor = descriptor
                             };
                             if (((IDictionary<string, JsonNode?>)jsonObj).TryGetValue(p, out var value))
                             {
@@ -324,7 +329,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             return;
                                         }
                                     }
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
                                 }
                                 else
@@ -380,14 +385,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                         if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
                                             string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
                                         {
-                                            parameters[i] = parameter;
                                             headerParameterIndex = i;
                                         }
                                     }
                                 }
                                 if (parameter.Value is not null || headerParameterIndex is not null)
                                 {
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
                                 }
                                 else if (descriptor.HasDefault)
@@ -446,7 +450,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         if (headerParameterIndex.HasValue)
                         {
-                            parameters[headerParameterIndex.Value]!.Value = headers;
+                            paramsList[headerParameterIndex.Value].Value = headers;
                         }
                     }
                 }
@@ -492,32 +496,41 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     var shouldLog = options.LogCommands && logger != null;
                     StringBuilder? cmdLog = shouldLog ? 
-                        new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) : 
+                        new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) :
                         null;
-                    int paramCount = 0;
-                    for (var i = 0; i < parameters.Length; i++)
+
+                    int paramCount = paramsList.Count;
+                    var commandText = routine.Expression;
+                    if (paramCount == 0)
                     {
-                        var parameter = parameters[i];
-                        if (parameter is not null)
+                        commandText = string.Concat(commandText, formatter.FormatEmpty());
+                    } 
+                    else
+                    {
+                        for (var i = 0; i < paramCount; i++)
                         {
+                            var parameter = paramsList[i];
                             command.Parameters.Add(parameter);
-                            paramCount++;
-                            
+
+                            commandText = string.Concat(commandText, 
+                                formatter.Format(ref routine, ref parameter, ref i, ref paramCount));
+
                             if (shouldLog)
                             {
                                 object value = parameter.NpgsqlValue!;
                                 var p = ParameterParser.FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
                                 cmdLog!.AppendLine(string.Concat(
-                                    "-- $", 
-                                    paramCount.ToString(), 
-                                    " ", routine.ParamTypeDescriptor[i].OriginalType, 
+                                    "-- $",
+                                    paramCount.ToString(),
+                                    " ", routine.ParamTypeDescriptor[i].OriginalType,
                                     " = ",
                                     p));
                             }
-                        }
+
+                        } // end for parameters
                     }
-                    command.CommandText = routine.Expressions[paramCount];
-                    
+                    command.CommandText = commandText;
+
                     if (shouldLog)
                     {
                         cmdLog!.AppendLine(command.CommandText);
@@ -546,7 +559,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         await context.Response.CompleteAsync();
                         return;
                     }
-                    else
+                    else // end if (routine.IsVoid)
                     {
                         command.AllResultTypesAreUnknown = true;
                         await using var reader = await command.ExecuteReaderAsync();
@@ -600,7 +613,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 return;
                             }
                         }
-                        else
+                        else // end if (routine.ReturnsRecord == false)
                         {
                             if (endpoint.ResponseContentType is not null)
                             {
@@ -715,8 +728,8 @@ public static class NpgsqlRestMiddlewareExtensions
                             await context.Response.WriteAsync("]");
                             await context.Response.CompleteAsync();
                             return;
-                        }
-                    }
+                        } // end if (routine.ReturnsRecord == true)
+                    } // end if (routine.IsVoid is false)
                 }
                 finally
                 {
@@ -766,20 +779,23 @@ public static class NpgsqlRestMiddlewareExtensions
         return builder;
     }
 
-    private static FrozenDictionary<string, (Routine routine, RoutineEndpoint endpoint)[]> BuildDictionary(
+    private static FrozenDictionary<string, Tuple[]> BuildDictionary(
         IApplicationBuilder builder,
         NpgsqlRestOptions options,
         ILogger? logger)
     {
-        var dict = new Dictionary<string, List<(Routine routine, RoutineEndpoint endpoint)>>();
+        var dict = new Dictionary<string, List<Tuple>>();
 
         foreach (var handler in options.EndpointCreateHandlers)
         {
             handler.Setup(builder, logger);
         }
 
+        options.SourceCreated(options.RoutineSources);
+
         foreach (var source in options.RoutineSources)
         {
+            var formatter = source.GetRoutineSourceParameterFormatter();
             foreach (var routine in source.Read(options))
             {
                 RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);
@@ -811,8 +827,8 @@ public static class NpgsqlRestMiddlewareExtensions
                         endpoint.BodyParameterName);
                 }
 
-                List<(Routine routine, RoutineEndpoint meta)> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
-                list.Add((routine, endpoint));
+                List<Tuple> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
+                list.Add((routine, endpoint, formatter));
                 dict[endpoint.Url] = list;
             
                 foreach (var handler in options.EndpointCreateHandlers)
@@ -829,7 +845,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
         if (options.EndpointsCreated is not null)
         {
-            options.EndpointsCreated(dict.Values.SelectMany(x => x).ToArray());
+            options.EndpointsCreated(dict.Values.SelectMany(x => x).Select(x => (x.routine, x.endpoint)).ToArray());
         }
 
         foreach (var handler in options.EndpointCreateHandlers)

@@ -48,7 +48,7 @@ if (urls != null)
 
 var httpFileOptions = config?.GetSection("HttpFileOptions");
 
-var npgsqlRestOptions = new NpgsqlRestOptions()
+app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
 
@@ -91,12 +91,13 @@ var npgsqlRestOptions = new NpgsqlRestOptions()
             FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
             ConnectionString = connectionString
         })
-    ]
-};
+    ],
 
-//npgsqlRestOptions.RoutineSources.Add(new )
-
-app.UseNpgsqlRest(npgsqlRestOptions);
+    //SourceCreated = sources =>
+    //{
+    //    sources.Add(new RoutineQuery());
+    //},
+});
 app.Run();
 return;
 

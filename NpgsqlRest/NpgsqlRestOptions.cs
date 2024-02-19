@@ -8,7 +8,6 @@ namespace NpgsqlRest;
 /// </summary>
 public class NpgsqlRestOptions(
     string? connectionString,
-    string? customRoutineCommand = null,
     string? schemaSimilarTo = null,
     string? schemaNotSimilarTo = null,
     string[]? includeSchemas = null,
@@ -41,7 +40,7 @@ public class NpgsqlRestOptions(
     Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,
     Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null,
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
-    IList<IRoutineSource>? routineSources = null)
+    Action<List<IRoutineSource>>? sourceCreated = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -65,11 +64,6 @@ public class NpgsqlRestOptions(
     /// Note: must run as superuser or have select permissions on information_schema.routines, information_schema.parameters, pg_catalog.pg_proc, pg_catalog.pg_description, pg_catalog.pg_namespace
     /// </summary>
     public string? ConnectionString { get; set; } = connectionString;
-    /// <summary>
-    /// When not null, this is a command to use to get the routines.
-    /// Note: If you need to replace a default query from RoutineQuery.cs module, for example with security definer function, set this property to a custom command.
-    /// </summary>
-    public string? CustomRoutineCommand { get; set; } = customRoutineCommand;
     /// <summary>
     /// Filter schema names similar to this parameters or null for all schemas.
     /// </summary>
@@ -221,7 +215,10 @@ public class NpgsqlRestOptions(
     /// </summary>
     public IEnumerable<IEndpointCreateHandler> EndpointCreateHandlers { get; set; } = endpointCreateHandlers ?? Array.Empty<IEndpointCreateHandler>();
     /// <summary>
-    /// List of routine sources to use to get the routines. Default is routines (functions and procedures) source.
+    /// Action called after routine sources are created. 
+    /// Use this callback to add or remove custom routine sources.
+    /// Default routine source is PostgreSQL routines (functions and procedure).
     /// </summary>
-    public IList<IRoutineSource> RoutineSources { get; set; } = routineSources ?? [new RoutineQuery()];
+    public Action<List<IRoutineSource>> SourceCreated { get; set; } = sourceCreated ?? (s => {});
+    internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

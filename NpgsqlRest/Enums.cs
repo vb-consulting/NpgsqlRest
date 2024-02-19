@@ -1,13 +1,13 @@
 ﻿namespace NpgsqlRest;
 
-public enum RoutineType { Other, Function, Procedure }
-public enum Language { Other, Plpgsql, Sql }
-public enum SecurityType { Definer, Invoker }
-public enum ParallelOption { Unsafe, Safe, Restricted }
+public enum RoutineType { Table, View, Function, Procedure, Other }
+
 public enum VolatilityOption { Immutable, Stable, Volatile }
 
 public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
+
 public enum RequestParamType { QueryString, BodyJson }
+
 public enum CommentsMode 
 { 
     /// <summary>

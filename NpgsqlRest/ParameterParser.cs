@@ -14,7 +14,7 @@ internal static class ParameterParser
     internal static bool TryParseParameter(
         ref StringValues values, 
         ref TypeDescriptor descriptor,
-        ref NpgsqlParameter parameter)
+        ref NpgsqlRestParameter parameter)
     {
         if (descriptor.IsArray == false)
         {
@@ -215,7 +215,7 @@ internal static class ParameterParser
     internal static bool TryParseParameter(
         ref JsonNode? value, 
         ref TypeDescriptor descriptor,
-        ref NpgsqlParameter parameter)
+        ref NpgsqlRestParameter parameter)
     {
         if (value is null)
         {

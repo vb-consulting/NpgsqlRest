@@ -43,67 +43,71 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
 
         if (httpFileOptions.CommentHeader != CommentHeader.None)
         {
-            switch (httpFileOptions.CommentHeader)
+            // http comment header
+            if (routine.Type == RoutineType.Function || routine.Type == RoutineType.Procedure)
             {
-                case CommentHeader.Simple:
+                switch (httpFileOptions.CommentHeader)
                 {
-                    sb.AppendLine(string.Concat("// ",
-                        routine.TypeInfo, " ",
-                        routine.Schema, ".",
-                        routine.Name, "(",
-                        routine.ParamCount == 0 ? ")" : ""));
-                    if (routine.ParamCount > 0)
-                    {
-                        for (var i = 0; i < routine.ParamCount; i++)
+                    case CommentHeader.Simple:
                         {
-                            var name = routine.ParamNames[i];
-                            var defaultValue = routine.ParamDefaults[i];
-                            var paramType = routine.ParamTypes[i];
-                            var type = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
-                            sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ParamCount - 1 ? "" : ","));
-                        }
-                        sb.AppendLine("// )");
-                    }
-                    if (!routine.ReturnsRecord)
-                    {
-                        sb.AppendLine(string.Concat("// returns ", routine.ReturnType));
-                    }
-                    else
-                    {
-                        if (routine.ReturnsUnnamedSet)
-                        {
-                            sb.AppendLine(string.Concat("// returns setof ", routine.ReturnRecordTypes[0]));
-                        }
-                        else
-                        {
-                            sb.AppendLine("// returns table(");
-
-                            for (var i = 0; i < routine.ReturnRecordCount; i++)
+                            sb.AppendLine(string.Concat("// ",
+                                routine.Type.ToString(), " ",
+                                routine.Schema, ".",
+                                routine.Name, "(",
+                                routine.ParamCount == 0 ? ")" : ""));
+                            if (routine.ParamCount > 0)
                             {
-                                var name = routine.ReturnRecordNames[i];
-                                var type = routine.ReturnRecordTypes[i];
-                                sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ReturnRecordCount - 1 ? "" : ","));
+                                for (var i = 0; i < routine.ParamCount; i++)
+                                {
+                                    var name = routine.ParamNames[i];
+                                    var defaultValue = routine.ParamDefaults[i];
+                                    var paramType = routine.ParamTypes[i];
+                                    var type = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
+                                    sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ParamCount - 1 ? "" : ","));
+                                }
+                                sb.AppendLine("// )");
                             }
-                            sb.AppendLine("// )");
-                        }
-                    }
+                            if (!routine.ReturnsRecord)
+                            {
+                                sb.AppendLine(string.Concat("// returns ", routine.ReturnType));
+                            }
+                            else
+                            {
+                                if (routine.ReturnsUnnamedSet)
+                                {
+                                    sb.AppendLine(string.Concat("// returns setof ", routine.ReturnRecordTypes[0]));
+                                }
+                                else
+                                {
+                                    sb.AppendLine("// returns table(");
 
-                    WriteComment(sb, routine);
-                    break;
-                }
-                case CommentHeader.Full:
-                {
-                    foreach (var line in routine.Definition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        if (line == "\r")
+                                    for (var i = 0; i < routine.ReturnRecordCount; i++)
+                                    {
+                                        var name = routine.ReturnRecordNames[i];
+                                        var type = routine.ReturnRecordTypes[i];
+                                        sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ReturnRecordCount - 1 ? "" : ","));
+                                    }
+                                    sb.AppendLine("// )");
+                                }
+                            }
+
+                            WriteComment(sb, routine);
+                            break;
+                        }
+                    case CommentHeader.Full:
                         {
-                            continue;
-                        }
-                        sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
-                    }
+                            foreach (var line in routine.Definition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                if (line == "\r")
+                                {
+                                    continue;
+                                }
+                                sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
+                            }
 
-                    WriteComment(sb, routine);
-                    break;
+                            WriteComment(sb, routine);
+                            break;
+                        }
                 }
             }
         }
