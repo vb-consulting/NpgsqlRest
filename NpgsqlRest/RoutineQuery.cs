@@ -29,23 +29,18 @@ with cte as (
         else '' end volatility_option,
         proc.proretset as returns_set,
         (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
-        
+
         coalesce(
             array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
             '{}'::text[]
         ) as in_params,
 
         coalesce(
-            case when r.data_type = 'USER-DEFINED' then
-                (
-                    select array_agg(quote_ident(column_name) order by col.ordinal_position)
-                    from information_schema.columns col
-                    where table_schema = r.type_udt_schema and table_name = r.type_udt_name
-                )
+            case when r.data_type = 'USER-DEFINED' then cols.out_params
             else
                 array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
             end,
-            
+        
             '{}'::text[]
         ) as out_params,
 
@@ -58,15 +53,7 @@ with cte as (
         ) as in_param_types,
 
         coalesce(
-            case when r.data_type = 'USER-DEFINED' then
-                (
-                    select array_agg(
-                        case when col.data_type = 'bit' then 'varbit' else (col.udt_schema || '.' || col.udt_name)::regtype::text end
-                        order by col.ordinal_position
-                    )
-                    from information_schema.columns col
-                    where table_schema = r.type_udt_schema and table_name = r.type_udt_name
-                )
+            case when r.data_type = 'USER-DEFINED' then cols.out_params_types
             else
                 array_agg(
                     case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
@@ -85,6 +72,24 @@ with cte as (
         join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
         left join pg_catalog.pg_description des on proc.oid = des.objoid
         left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
+        left join lateral (
+            select 
+                col.table_schema,
+                col.table_name,
+                array_agg(quote_ident(col.column_name) order by col.ordinal_position) as out_params,
+                array_agg(
+                    case when col.data_type = 'bit' then 'varbit' else (col.udt_schema || '.' || col.udt_name)::regtype::text end
+                    order by col.ordinal_position
+                ) as out_params_types
+            from information_schema.columns col
+            where
+                r.data_type = 'USER-DEFINED' 
+                and col.table_schema = r.type_udt_schema 
+                and col.table_name = r.type_udt_name
+            group by
+                col.table_schema,
+                col.table_name
+        ) cols on true
     where
         r.specific_schema = any(
             select
@@ -112,7 +117,8 @@ with cte as (
         proc.oid, r.specific_name, r.external_language, des.description,
         r.security_type, r.data_type, r.type_udt_schema, r.type_udt_name,
         proc.proisstrict, proc.procost, proc.prorows, proc.proparallel, proc.provolatile,
-        proc.proretset, proc.provariadic
+        proc.proretset, proc.provariadic,
+        cols.out_params, cols.out_params_types
 )
 select
     type,
