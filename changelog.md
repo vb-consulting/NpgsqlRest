@@ -1,5 +1,21 @@
 # Changelog
 
+## Version [1.6.3](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.3) (2024-02-19)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.2...1.6.3)
+
+## Uptime Improved
+
+The query that returns metadata for existing routines is heavily optimized. There were some problematic subqueries that caused execution to run more then one second.
+
+As a result, uptime is slashed from more than one second to milliseconds.
+
+## Npgsql Reference Update
+
+- Npgsql 8.0.1 -> 8.0.2
+
+Any dependency shall require an upgrade too.
+
 ## Version [1.6.2](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.2) (2024-02-03)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.1...1.6.2)
