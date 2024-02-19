@@ -77,11 +77,15 @@ internal static class DefaultEndpoint
         ILogger? logger)
     {
         var url = options.UrlPathBuilder(routine, options);
-        var hasGet = 
-            routine.Name.Contains("_get_", StringComparison.OrdinalIgnoreCase) ||
-            routine.Name.StartsWith("get_", StringComparison.OrdinalIgnoreCase) ||
-            routine.Name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
-        var method = hasGet ? Method.GET : (routine.VolatilityOption == VolatilityOption.Volatile ? Method.POST : Method.GET);
+
+        var method = routine.CrudType switch
+        {
+            CrudType.Select => Method.GET,
+            CrudType.Update => Method.POST,
+            CrudType.Insert => Method.PUT,
+            CrudType.Delete => Method.DELETE,
+            _ => Method.POST
+        };
         var requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
 
         var originalUrl = url;

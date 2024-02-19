@@ -500,7 +500,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         null;
 
                     int paramCount = paramsList.Count;
-                    var commandText = routine.Expression;
+                    var commandText = routine.FormattableCommand ? 
+                        formatter.FormatCommand(ref routine, ref paramsList) : 
+                        routine.Expression;
                     if (paramCount == 0)
                     {
                         commandText = string.Concat(commandText, formatter.FormatEmpty());
@@ -512,8 +514,11 @@ public static class NpgsqlRestMiddlewareExtensions
                             var parameter = paramsList[i];
                             command.Parameters.Add(parameter);
 
-                            commandText = string.Concat(commandText, 
-                                formatter.Format(ref routine, ref parameter, ref i, ref paramCount));
+                            if (routine.FormattableCommand is false)
+                            {
+                                commandText = string.Concat(commandText,
+                                    formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount));
+                            }
 
                             if (shouldLog)
                             {

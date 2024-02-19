@@ -1,181 +1,8 @@
-﻿using Npgsql;
+﻿using System.Text;
+using Npgsql;
 using NpgsqlTypes;
 
 namespace NpgsqlRest;
-
-internal class RoutineSourceQuery
-{
-    public const string Query = """
-    with cte as (
-        select
-            lower(r.routine_type) as type,
-            quote_ident(r.specific_schema) as schema,
-            quote_ident(r.routine_name) as name,
-            proc.oid as oid,
-            r.specific_name,
-            des.description as comment,
-            proc.proisstrict as is_strict,
-            case when proc.provolatile = 'i' then 'IMMUTABLE'
-                when proc.provolatile = 's' then 'STABLE'
-                when proc.provolatile = 'v' then 'VOLATILE'
-            else '' end volatility_option,
-            proc.proretset as returns_set,
-            (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
-
-            coalesce(
-                array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
-                '{}'::text[]
-            ) as in_params,
-
-            coalesce(
-                case when r.data_type = 'USER-DEFINED' then cols.out_params
-                else
-                    array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
-                end,
-            
-                '{}'::text[]
-            ) as out_params,
-
-            coalesce(
-                array_agg(
-                    case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
-                    order by p.ordinal_position
-                ) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
-                '{}'::text[]
-            ) as in_param_types,
-
-            coalesce(
-                case when r.data_type = 'USER-DEFINED' then cols.out_params_types
-                else
-                    array_agg(
-                        case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
-                        order by p.ordinal_position) filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')
-                end, '{}'::text[]
-            ) as out_param_types,
-
-            coalesce(
-                array_agg(p.parameter_default order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
-                '{}'::text[]
-            ) as in_param_defaults,
-
-            case when proc.provariadic <> 0 then true else false end as has_variadic
-        from
-            information_schema.routines r
-            join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
-            left join pg_catalog.pg_description des on proc.oid = des.objoid
-            left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
-            left join lateral (
-                select 
-                    col.table_schema,
-                    col.table_name,
-                    array_agg(quote_ident(col.column_name) order by col.ordinal_position) as out_params,
-                    array_agg(
-                        case when col.data_type = 'bit' then 'varbit' else (col.udt_schema || '.' || col.udt_name)::regtype::text end
-                        order by col.ordinal_position
-                    ) as out_params_types
-                from information_schema.columns col
-                where
-                    r.data_type = 'USER-DEFINED' 
-                    and col.table_schema = r.type_udt_schema 
-                    and col.table_name = r.type_udt_name
-                group by
-                    col.table_schema,
-                    col.table_name
-            ) cols on true
-        where
-            r.specific_schema = any(
-                select
-                    nspname
-                from
-                    pg_catalog.pg_namespace
-                where
-                    nspname not like 'pg_%'
-                    and nspname <> 'information_schema'
-                    and ($1 is null or nspname similar to $1)
-                    and ($2 is null or nspname not similar to $2)
-                    and ($3 is null or nspname = any($3))
-                    and ($4 is null or not nspname = any($4))
-            )
-            and ($5 is null or r.routine_name similar to $5)
-            and ($6 is null or r.routine_name not similar to $6)
-            and ($7 is null or r.routine_name = any($7))
-            and ($8 is null or not r.routine_name = any($8))
-
-            and proc.prokind in ('f', 'p')
-            and not lower(r.external_language) = any(array['c', 'internal'])
-            and coalesce(r.type_udt_name, '') <> 'trigger'
-        group by
-            r.routine_type, r.specific_schema, r.routine_name,
-            proc.oid, r.specific_name, des.description,
-            r.data_type, r.type_udt_schema, r.type_udt_name,
-            proc.proisstrict, proc.procost, proc.prorows, proc.proparallel, proc.provolatile,
-            proc.proretset, proc.provariadic,
-            cols.out_params, cols.out_params_types
-    )
-    select
-        type,
-        schema,
-        name,
-        comment,
-        is_strict,
-        volatility_option,
-        case when returns_set is true or return_type = 'record' then true else false end as returns_record,
-        case
-            when returns_set is true and return_type <> 'record' then 'record'
-            else coalesce(return_type, 'void')
-        end as return_type,
-
-        case
-            when case when returns_set is true or return_type = 'record' then true else false end then
-                case when array_length(out_params, 1) is null then 1 else array_length(out_params, 1) end
-            else 0
-        end as return_record_count,
-        case
-            when case when returns_set is true or return_type = 'record' then true else false end then
-                case when array_length(out_params, 1) is null then array[name]::text[] else out_params end
-            else array[]::text[]
-        end as return_record_names,
-        case
-            when case when returns_set is true or return_type = 'record' then true else false end then
-                case when array_length(out_params, 1) is null then array[return_type]::text[] else out_param_types end
-            else array[]::text[]
-        end as return_record_types,
-
-        returns_set is true and return_type <> 'record' and array_length(out_params, 1) is null as returns_unnamed_set,
-        returns_set is true and return_type = 'record' and array_length(out_params, 1) is null as is_unnamed_record,
-
-        array_length(in_params, 1) as param_count,
-        in_params as param_names,
-        in_param_types as param_types,
-        in_param_defaults as param_defaults,
-        has_variadic,
-        pg_get_functiondef(oid) as definition
-    from cte
-    """;
-}
-
-public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
-{
-    public string Format(ref Routine routine, ref NpgsqlRestParameter parameter, ref int index, ref int count)
-    {
-        var suffix = parameter.TypeDescriptor.IsCastToText() ? $"::{parameter.TypeDescriptor.OriginalType}" : "";
-        if (index == 0)
-        {
-            if (count == 1)
-            {
-                return string.Concat(routine.IsVariadic ? "variadic " : "", "$1", suffix, ")");
-            }
-            return string.Concat(routine.IsVariadic ? "variadic " : "", "$1", suffix);
-        }
-        if (index == count - 1)
-        {
-            return string.Concat(",$", (index + 1).ToString(), suffix, ")");
-        }
-        return string.Concat(",$", (index + 1).ToString(), suffix);
-    }
-
-    public string? FormatEmpty() => ")";
-}
 
 public class RoutineSource : IRoutineSource
 {
@@ -211,6 +38,14 @@ public class RoutineSource : IRoutineSource
             var paramTypes = reader.Get<string[]>("param_types");
             var returnType = reader.Get<string>("return_type");
             var name = reader.Get<string>("name");
+
+            var volatility = reader.Get<char>("volatility_option");
+            var hasGet =
+                name.Contains("_get_", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("get_", StringComparison.OrdinalIgnoreCase) ||
+                name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
+            var crudType = hasGet ? CrudType.Select : (volatility == 'v' ? CrudType.Update : CrudType.Select);
+
             var paramNames = reader.Get<string[]>("param_names");
             var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
             var schema = reader.Get<string>("schema");
@@ -239,6 +74,8 @@ public class RoutineSource : IRoutineSource
             bool isUnnamedRecord = reader.Get<bool>("is_unnamed_record");
             var routineType = type.GetEnum<RoutineType>();
             var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
+
+            var variadic = reader.Get<bool>("has_variadic");
             var expression = string.Concat(
                 (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet) || isUnnamedRecord)
                     ? callIdent
@@ -246,7 +83,55 @@ public class RoutineSource : IRoutineSource
                 schema,
                 ".",
                 name,
-                "(");
+                "(",
+                variadic ? "variadic " : "");
+
+            var paramCount = reader.Get<int>("param_count");
+            var returnRecordCount = reader.Get<int>("return_record_count");
+
+            var simpleDefinition = new StringBuilder();
+            simpleDefinition.AppendLine(string.Concat(
+                routineType.ToString().ToLower(), " ",
+                schema, ".",
+                name, "(",
+                paramCount == 0 ? ")" : ""));
+            if (paramCount > 0)
+            {
+                for (var i = 0; i < paramCount; i++)
+                {
+                    var paramName = paramNames[i];
+                    var defaultValue = paramDefaults[i];
+                    var paramType = paramTypes[i];
+                    var fullParamType = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
+                    simpleDefinition
+                        .AppendLine(string.Concat("    ", paramName, " ", fullParamType, i == paramCount - 1 ? "" : ","));
+                }
+                simpleDefinition.AppendLine(")");
+            }
+            if (!returnsRecord)
+            {
+                simpleDefinition.AppendLine(string.Concat("returns ", returnType));
+            }
+            else
+            {
+                if (returnsUnnamedSet || isUnnamedRecord)
+                {
+                    simpleDefinition.AppendLine(string.Concat("returns setof ", returnRecordTypes[0]));
+                }
+                else
+                {
+                    simpleDefinition.AppendLine("returns table(");
+
+                    for (var i = 0; i < returnRecordCount; i++)
+                    {
+                        var returnParamName = returnRecordNames[i];
+                        var returnParamType = returnRecordTypes[i];
+                        simpleDefinition
+                            .AppendLine(string.Concat("    ", returnParamName, " ", returnParamType, i == returnRecordCount - 1 ? "" : ","));
+                    }
+                    simpleDefinition.AppendLine(")");
+                }
+            }
 
             yield return new Routine(
                 type: routineType,
@@ -254,25 +139,26 @@ public class RoutineSource : IRoutineSource
                 name: name,
                 comment: reader.Get<string>("comment"),
                 isStrict: reader.Get<bool>("is_strict"),
-                volatilityOption: reader.GetEnum<VolatilityOption>("volatility_option"),
+                crudType: crudType,
                 returnsRecord: returnsRecord,
                 returnType: returnType,
-                returnRecordCount: reader.Get<int>("return_record_count"),
+                returnRecordCount: returnRecordCount,
                 returnRecordNames: returnRecordNames,
                 returnRecordTypes: returnRecordTypes,
                 returnsUnnamedSet: returnsUnnamedSet || isUnnamedRecord,
-                paramCount: reader.Get<int>("param_count"),
+                paramCount: paramCount,
                 paramNames: paramNames,
                 paramTypes: paramTypes,
                 paramDefaults: paramDefaults,
-                definition: reader.Get<string>("definition"),
                 paramTypeDescriptor: paramTypes
                     .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
                     .ToArray(),
                 isVoid: isVoid,
                 returnTypeDescriptor: returnTypeDescriptor,
                 expression: expression,
-                variadic: reader.Get<bool>("has_variadic"));
+                fullDefinition: reader.Get<string>("definition"),
+                simpleDefinition: simpleDefinition.ToString(),
+                formattableCommand: false);
         }
 
         yield break;

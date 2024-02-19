@@ -9,7 +9,8 @@ public interface IEndpointCreateHandler
 
 public interface IRoutineSourceParameterFormatter
 {
-    string Format(ref Routine routine, ref NpgsqlRestParameter parameter, ref int index, ref int count);
+    string? AppendCommandParameter(ref NpgsqlRestParameter parameter, ref int index, ref int count) => null;
+    string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters) => null;
     string? FormatEmpty() => null;
 }
 

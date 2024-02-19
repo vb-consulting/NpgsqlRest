@@ -43,72 +43,36 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
 
         if (httpFileOptions.CommentHeader != CommentHeader.None)
         {
-            // http comment header
-            if (routine.Type == RoutineType.Function || routine.Type == RoutineType.Procedure)
+            switch (httpFileOptions.CommentHeader)
             {
-                switch (httpFileOptions.CommentHeader)
-                {
-                    case CommentHeader.Simple:
+                case CommentHeader.Simple:
+                    {
+                        foreach (var line in routine.SimpleDefinition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                         {
-                            sb.AppendLine(string.Concat("// ",
-                                routine.Type.ToString(), " ",
-                                routine.Schema, ".",
-                                routine.Name, "(",
-                                routine.ParamCount == 0 ? ")" : ""));
-                            if (routine.ParamCount > 0)
+                            if (line == "\r")
                             {
-                                for (var i = 0; i < routine.ParamCount; i++)
-                                {
-                                    var name = routine.ParamNames[i];
-                                    var defaultValue = routine.ParamDefaults[i];
-                                    var paramType = routine.ParamTypes[i];
-                                    var type = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
-                                    sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ParamCount - 1 ? "" : ","));
-                                }
-                                sb.AppendLine("// )");
+                                continue;
                             }
-                            if (!routine.ReturnsRecord)
-                            {
-                                sb.AppendLine(string.Concat("// returns ", routine.ReturnType));
-                            }
-                            else
-                            {
-                                if (routine.ReturnsUnnamedSet)
-                                {
-                                    sb.AppendLine(string.Concat("// returns setof ", routine.ReturnRecordTypes[0]));
-                                }
-                                else
-                                {
-                                    sb.AppendLine("// returns table(");
-
-                                    for (var i = 0; i < routine.ReturnRecordCount; i++)
-                                    {
-                                        var name = routine.ReturnRecordNames[i];
-                                        var type = routine.ReturnRecordTypes[i];
-                                        sb.AppendLine(string.Concat("//     ", name, " ", type, i == routine.ReturnRecordCount - 1 ? "" : ","));
-                                    }
-                                    sb.AppendLine("// )");
-                                }
-                            }
-
-                            WriteComment(sb, routine);
-                            break;
+                            sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
                         }
-                    case CommentHeader.Full:
+
+                        WriteComment(sb, routine);
+                        break;
+                    }
+                case CommentHeader.Full:
+                    {
+                        foreach (var line in routine.FullDefinition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                         {
-                            foreach (var line in routine.Definition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                            if (line == "\r")
                             {
-                                if (line == "\r")
-                                {
-                                    continue;
-                                }
-                                sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
+                                continue;
                             }
-
-                            WriteComment(sb, routine);
-                            break;
+                            sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
                         }
-                }
+
+                        WriteComment(sb, routine);
+                        break;
+                    }
             }
         }
         if (endpoint.ParamNames.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)

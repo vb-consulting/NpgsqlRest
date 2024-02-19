@@ -6,7 +6,7 @@ public readonly struct Routine(
     string name,
     string? comment,
     bool isStrict,
-    VolatilityOption volatilityOption,
+    CrudType crudType,
     bool returnsRecord,
     string returnType,
     int returnRecordCount,
@@ -17,19 +17,20 @@ public readonly struct Routine(
     string[] paramNames,
     string[] paramTypes,
     string?[] paramDefaults,
-    string definition,
     TypeDescriptor[] paramTypeDescriptor,
     bool isVoid,
     TypeDescriptor[] returnTypeDescriptor,
     string expression,
-    bool variadic)
+    string fullDefinition,
+    string simpleDefinition,
+    bool formattableCommand)
 {
     public RoutineType Type { get; } = type;
     public string Schema { get; } = schema;
     public string Name { get; } = name;
     public string? Comment { get; } = comment;
     public bool IsStrict { get; } = isStrict;
-    public VolatilityOption VolatilityOption { get; } = volatilityOption;
+    public CrudType CrudType { get; } = crudType;
     public bool ReturnsRecord { get; } = returnsRecord;
     public string ReturnType { get; } = returnType;
     public int ReturnRecordCount { get; } = returnRecordCount;
@@ -40,10 +41,11 @@ public readonly struct Routine(
     public string[] ParamNames { get; } = paramNames;
     public string[] ParamTypes { get; } = paramTypes;
     public string?[] ParamDefaults { get; } = paramDefaults;
-    public string Definition { get; } = definition;
     public TypeDescriptor[] ParamTypeDescriptor { get; } = paramTypeDescriptor;
     public bool IsVoid { get; } = isVoid;
     public TypeDescriptor[] ReturnTypeDescriptor { get; } = returnTypeDescriptor;
     public string Expression { get; } = expression;
-    public bool IsVariadic { get; } = variadic;
+    public string FullDefinition { get; } = fullDefinition;
+    public string SimpleDefinition { get; } = simpleDefinition;
+    public bool FormattableCommand { get; } = formattableCommand;
 }
