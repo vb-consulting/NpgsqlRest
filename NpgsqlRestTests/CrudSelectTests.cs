@@ -207,4 +207,13 @@ public class CrudSelectTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Test_crud_select_tests_TryUpdate()
+    {
+        using var body = new StringContent("{\"id\":1,\"status\":false}", Encoding.UTF8, "application/json");
+        using var response = await test.Client.PostAsync("/api/crud-select-tests/", body);
+        // no primary keys, no update
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

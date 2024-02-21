@@ -53,7 +53,17 @@ internal class CrudSourceQuery
             '{}'::text[]
         ) as column_types,
 
-        _cte2.primary_keys,
+        coalesce(
+            array_agg(c.is_updatable = 'YES' order by c.ordinal_position),
+            '{}'::boolean[]
+        ) as updatable_columns,
+
+        coalesce(
+            array_agg(coalesce(c.identity_generation, '') = 'ALWAYS' order by c.ordinal_position),
+            '{}'::boolean[]
+        ) as identity_columns,
+
+        coalesce(_cte2.primary_keys, '{}'::text[]) as primary_keys,
         pgdesc.description as comment
     from
         information_schema.columns c

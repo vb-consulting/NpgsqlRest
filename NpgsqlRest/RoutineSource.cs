@@ -15,6 +15,7 @@ public class RoutineSource(
         string[]? excludeNames = null,
         string? query = null) : IRoutineSource
 {
+    private readonly IRoutineSourceParameterFormatter _formatter = new RoutineSourceParameterFormatter();
     public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
     public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
     public string[]? IncludeSchemas { get; init; } = includeSchemas;
@@ -25,12 +26,7 @@ public class RoutineSource(
     public string[]? ExcludeNames { get; init; } = excludeNames;
     public string Query { get; init; } = query ?? RoutineSourceQuery.Query;
 
-    public IRoutineSourceParameterFormatter GetRoutineSourceParameterFormatter()
-    {
-        return new RoutineSourceParameterFormatter();
-    }
-
-    public IEnumerable<Routine> Read(NpgsqlRestOptions options)
+    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
@@ -145,33 +141,34 @@ public class RoutineSource(
                 }
             }
 
-            yield return new Routine(
-                type: routineType,
-                schema: schema,
-                name: name,
-                comment: reader.Get<string>("comment"),
-                isStrict: reader.Get<bool>("is_strict"),
-                crudType: crudType,
+            yield return (
+                new Routine(
+                    type: routineType,
+                    schema: schema,
+                    name: name,
+                    comment: reader.Get<string>("comment"),
+                    isStrict: reader.Get<bool>("is_strict"),
+                    crudType: crudType,
                 
-                returnsRecord: returnsRecord,
-                returnType: returnType,
-                returnRecordCount: returnRecordCount,
-                returnRecordNames: returnRecordNames,
-                returnRecordTypes: returnRecordTypes,
-                returnsUnnamedSet: returnsUnnamedSet || isUnnamedRecord,
-                returnTypeDescriptor: returnTypeDescriptor,
-                isVoid: isVoid,
+                    returnsRecord: returnsRecord,
+                    returnType: returnType,
+                    returnRecordCount: returnRecordCount,
+                    returnRecordNames: returnRecordNames,
+                    returnRecordTypes: returnRecordTypes,
+                    returnsUnnamedSet: returnsUnnamedSet || isUnnamedRecord,
+                    returnTypeDescriptor: returnTypeDescriptor,
+                    isVoid: isVoid,
 
-                paramCount: paramCount,
-                paramNames: paramNames,
-                paramTypeDescriptor: paramTypes
-                    .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
-                    .ToArray(),
+                    paramCount: paramCount,
+                    paramNames: paramNames,
+                    paramTypeDescriptor: paramTypes
+                        .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
+                        .ToArray(),
 
-                expression: expression,
-                fullDefinition: reader.Get<string>("definition"),
-                simpleDefinition: simpleDefinition.ToString(),
-                formattableCommand: false);
+                    expression: expression,
+                    fullDefinition: reader.Get<string>("definition"),
+                    simpleDefinition: simpleDefinition.ToString()), 
+                _formatter);
         }
 
         yield break;

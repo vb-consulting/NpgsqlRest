@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Primitives;
 
-namespace NpgsqlRest;
+namespace NpgsqlRest.Defaults;
 
 internal static class DefaultEndpoint
 {
@@ -10,8 +10,8 @@ internal static class DefaultEndpoint
 
     private const string HttpKey = "http";
     private static readonly string[] paramTypeKey = [
-        "requestparamtype", 
-        "paramtype", 
+        "requestparamtype",
+        "paramtype",
         "request_param_type",
         "param_type",
         "request-param-type",
@@ -72,11 +72,15 @@ internal static class DefaultEndpoint
     ];
 
     internal static RoutineEndpoint? Create(
-        Routine routine, 
-        NpgsqlRestOptions options, 
+        Routine routine,
+        NpgsqlRestOptions options,
         ILogger? logger)
     {
         var url = options.UrlPathBuilder(routine, options);
+        if (routine.FormatUrlPattern is not null)
+        {
+            url = string.Format(routine.FormatUrlPattern, url);
+        }
 
         var method = routine.CrudType switch
         {
@@ -130,7 +134,7 @@ internal static class DefaultEndpoint
                 RequestHeadersParameterName: requestHeadersParameterName,
                 BodyParameterName: bodyParameterName);
         }
-        
+
         var comment = routine.Comment;
         if (string.IsNullOrEmpty(comment))
         {
@@ -185,7 +189,7 @@ internal static class DefaultEndpoint
                             Info(ref logger, ref options, ref routine, $"has set HTTP by comment annotations to \"{method} {url}\"");
                         }
                     }
-                    
+
                     else if (/*hasHttpTag && */words.Length >= 2 && StringEqualsToArray(ref words[0], paramTypeKey))
                     {
                         if (StringEqualsToArray(ref words[1], queryKey))
@@ -229,7 +233,7 @@ internal static class DefaultEndpoint
                         }
                     }
 
-                    else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], requestHeadersModeKey)) 
+                    else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], requestHeadersModeKey))
                     {
                         if (StringEquals(ref words[1], IgnoreKey))
                         {
@@ -254,7 +258,7 @@ internal static class DefaultEndpoint
                     }
 
                     else if (/*hasHttpTag && */StringEqualsToArray(ref words[0], requestHeadersParameterNameKey))
-                    { 
+                    {
                         if (words.Length == 2)
                         {
                             if (!string.Equals(requestHeadersParameterName, words[1]))
@@ -327,8 +331,6 @@ internal static class DefaultEndpoint
             }
         }
 
-
-            
         return new(
             Url: url,
             Method: method,
@@ -350,7 +352,7 @@ internal static class DefaultEndpoint
         {
             return;
         }
-        logger?.LogInformation( string.Concat($"{routine.Type} {routine.Schema}.{routine.Name} ", message));
+        logger?.LogInformation(string.Concat($"{routine.Type} {routine.Schema}.{routine.Name} ", message));
     }
 
     private static bool StringEquals(ref string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);

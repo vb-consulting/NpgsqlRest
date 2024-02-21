@@ -723,6 +723,15 @@ GET {{host}}/api/get-csv-data
 
 ###
 
+// function public.get_none_existing_params(
+//     _p1 integer,
+//     _p2 integer
+// )
+// returns text
+GET {{host}}/api/get-none-existing-params?p1=1&p2=2
+
+###
+
 // function public.get_proc_test_tbl()
 // returns text
 GET {{host}}/api/get-proc-test-tbl
@@ -855,6 +864,21 @@ GET {{host}}/api/hello-world-html
 // function public.immutable_func()
 // returns text
 GET {{host}}/api/immutable-func
+
+###
+
+// function public.post_none_existing_params(
+//     _p1 integer,
+//     _p2 integer
+// )
+// returns text
+POST {{host}}/api/post-none-existing-params
+content-type: application/json
+
+{
+    "p1": 1,
+    "p2": 2
+}
 
 ###
 
@@ -1010,6 +1034,29 @@ content-type: application/json
 
 {
     "t": "ABC"
+}
+
+###
+
+// select public.crud_select_tests
+GET {{host}}/api/crud-select-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// select public.crud_update_tests
+GET {{host}}/api/crud-update-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// update public.crud_update_tests
+POST {{host}}/api/crud-update-tests
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
 }
 
 ###

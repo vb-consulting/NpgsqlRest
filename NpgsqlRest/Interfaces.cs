@@ -9,6 +9,7 @@ public interface IEndpointCreateHandler
 
 public interface IRoutineSourceParameterFormatter
 {
+    bool IsFormattable { get; }
     string? AppendCommandParameter(ref NpgsqlRestParameter parameter, ref int index, ref int count) => null;
     string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters) => null;
     string? FormatEmpty() => null;
@@ -16,6 +17,5 @@ public interface IRoutineSourceParameterFormatter
 
 public interface IRoutineSource
 {
-    IEnumerable<Routine> Read(NpgsqlRestOptions options);
-    IRoutineSourceParameterFormatter GetRoutineSourceParameterFormatter();
+    IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options);
 }

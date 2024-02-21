@@ -220,5 +220,6 @@ public class NpgsqlRestOptions(
     /// Default routine source is PostgreSQL routines (functions and procedure).
     /// </summary>
     public Action<List<IRoutineSource>> SourceCreated { get; set; } = sourceCreated ?? (s => {});
+
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

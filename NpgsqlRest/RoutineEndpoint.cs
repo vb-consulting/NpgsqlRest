@@ -13,4 +13,7 @@ public readonly record struct RoutineEndpoint(
     Dictionary<string, StringValues> ResponseHeaders,
     RequestHeadersMode RequestHeadersMode,
     string RequestHeadersParameterName,
-    string? BodyParameterName);
+    string? BodyParameterName)
+{
+    internal HashSet<string> ParamsNameHash { get; } = new(ParamNames);
+}

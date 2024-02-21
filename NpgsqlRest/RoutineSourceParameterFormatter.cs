@@ -2,6 +2,8 @@
 
 public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
 {
+    public bool IsFormattable { get; } = false;
+
     public string AppendCommandParameter(ref NpgsqlRestParameter parameter, ref int index, ref int count)
     {
         var suffix = parameter.TypeDescriptor.IsCastToText() ? $"::{parameter.TypeDescriptor.OriginalType}" : "";
