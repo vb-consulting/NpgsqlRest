@@ -8,16 +8,16 @@
         <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
         <NoWarn>$(NoWarn);1591</NoWarn>
         <IsPackable>true</IsPackable>
-        <Title>NpgsqlRest.HttpFiles</Title>
+        <Title>NpgsqlRest.CrudSource</Title>
         <Authors>VB-Consulting</Authors>
         <Company>VB-Consulting</Company>
         <Copyright>VB-Consulting</Copyright>
-        <Description>Automatic HTTP Files Generation for NpgsqlRest</Description>
-        <PackageTags>api;api-rest;restful-api;http;postgres;dotnet;http;httpfiles;http-files;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
-        <PackageProjectUrl>https://github.com/vb-consulting/NpgsqlRest/NpgsqlRest.HttpFiles</PackageProjectUrl>
+        <Description>CRUD Source for NpgsqlRest</Description>
+        <PackageTags>api;api-rest;restful-api;http;postgres;dotnet;crud;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
+        <PackageProjectUrl>https://github.com/vb-consulting/NpgsqlRest/NpgsqlRest.CrudSource</PackageProjectUrl>
         <RepositoryUrl>https://github.com/vb-consulting/NpgsqlRest</RepositoryUrl>
         <PackageReleaseNotes>https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md</PackageReleaseNotes>
-        <PackageId>NpgsqlRest.HttpFiles</PackageId>
+        <PackageId>NpgsqlRest.CrudSource</PackageId>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
@@ -44,7 +44,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\LICENSE">
+        <None Include="..\..\LICENSE">
             <Pack>True</Pack>
             <PackagePath></PackagePath>
         </None>
@@ -58,6 +58,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
+      <ProjectReference Include="..\..\NpgsqlRest\NpgsqlRest.csproj" />
     </ItemGroup>
 </Project>

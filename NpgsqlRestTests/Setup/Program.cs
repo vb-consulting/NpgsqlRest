@@ -60,9 +60,9 @@ public class Program
 
             SourceCreated = sources =>
             {
-                //sources.Add(new CrudSource());
-                sources.Clear();
-                sources.Add(new CrudSource(nameSimilarTo: "crud_insert_returning1"));
+                sources.Add(new CrudSource());
+                //sources.Clear();
+                //sources.Add(new CrudSource(nameSimilarTo: "crud_insert_returning1"));
             },
         });
         app.Run();

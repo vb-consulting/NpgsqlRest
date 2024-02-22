@@ -42,7 +42,12 @@ public class CrudSource(
     string[]? includeNames = null,
     string[]? excludeNames = null,
     string? query = null,
-    CrudCommandType crudTypes = CrudCommandType.All) : IRoutineSource
+    CrudCommandType crudTypes = CrudCommandType.All,
+    string returningUrlPattern = "{0}/returning",
+    string onConflictDoNothingUrlPattern = "{0}/on-conflict-do-nothing",
+    string onConflictDoNothingReturningUrlPattern = "{0}/on-conflict-do-nothing/returning",
+    string onConflictDoUpdateUrlPattern = "{0}/on-conflict-do-update",
+    string onConflictDoUpdateReturningUrlPattern = "{0}/on-conflict-do-update/returning") : IRoutineSource
 {
     private readonly IRoutineSourceParameterFormatter _selectParameterFormatter = new SelectParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _updateParameterFormatter = new UpdateParameterFormatter();
@@ -69,6 +74,11 @@ public class CrudSource(
     public bool InsertOnConflictDoUpdateReturning { get; init; } = (crudTypes & CrudCommandType.InsertOnConflictDoUpdateReturning) == CrudCommandType.InsertOnConflictDoUpdateReturning;
     public bool Delete { get; init; } = (crudTypes & CrudCommandType.Delete) == CrudCommandType.Delete;
     public bool DeleteReturning { get; init; } = (crudTypes & CrudCommandType.DeleteReturning) == CrudCommandType.DeleteReturning;
+    public string ReturningUrlPattern { get; init; } = returningUrlPattern;
+    public string OnConflictDoNothingUrlPattern { get; init; } = onConflictDoNothingUrlPattern;
+    public string OnConflictDoNothingReturningUrlPattern { get; init; } = onConflictDoNothingReturningUrlPattern;
+    public string OnConflictDoUpdateUrlPattern { get; init; } = onConflictDoUpdateUrlPattern;
+    public string OnConflictDoUpdateReturningUrlPattern { get; init; } = onConflictDoUpdateReturningUrlPattern;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
@@ -232,7 +242,7 @@ public class CrudSource(
                         fullDefinition: string.Concat(updateDef, returningExp),
                         simpleDefinition: string.Concat(updateSimple, returningExp),
                         isVoid: false,
-                        formatUrlPattern: "{0}/returning"),
+                        formatUrlPattern: ReturningUrlPattern),
                     _updateParameterFormatter);
             }
 
@@ -272,7 +282,7 @@ public class CrudSource(
                         fullDefinition: string.Concat(insertDef, returningExp),
                         simpleDefinition: string.Concat(insertSimple, returningExp),
                         isVoid: false,
-                        formatUrlPattern: "{0}/returning"),
+                        formatUrlPattern: ReturningUrlPattern),
                     _insertParameterFormatter);
             }
             
@@ -296,7 +306,7 @@ public class CrudSource(
                         fullDefinition: string.Concat(insertDef, onConflict, "do nothing"),
                         simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing"),
                         isVoid: true,
-                        formatUrlPattern: "{0}/on-conflict-do-nothing"),
+                        formatUrlPattern: OnConflictDoNothingUrlPattern),
                     _insertParameterFormatter);
             }
 
@@ -309,7 +319,7 @@ public class CrudSource(
                         fullDefinition: string.Concat(insertDef, onConflict, "do nothing", returningExp),
                         simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing", returningExp),
                         isVoid: false,
-                        formatUrlPattern: "{0}/on-conflict-do-nothing/returning"),
+                        formatUrlPattern: OnConflictDoNothingReturningUrlPattern),
                     _insertParameterFormatter);
             }
 
@@ -328,7 +338,7 @@ public class CrudSource(
                         fullDefinition: string.Concat(insertDef, onConflict, doUpdate),
                         simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate),
                         isVoid: true,
-                        formatUrlPattern: "{0}/on-conflict-do-update"),
+                        formatUrlPattern: OnConflictDoUpdateUrlPattern),
                     _insertParameterFormatter);
             }
 
@@ -341,7 +351,7 @@ public class CrudSource(
                         fullDefinition: string.Concat(insertDef, onConflict, doUpdate, returningExp),
                         simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate, returningExp),
                         isVoid: false,
-                        formatUrlPattern: "{0}/on-conflict-do-update/returning"),
+                        formatUrlPattern: OnConflictDoUpdateReturningUrlPattern),
                     _insertParameterFormatter);
             }
         }

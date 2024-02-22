@@ -29,8 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NpgsqlRest.CrudSource\NpgsqlRest.CrudSource.csproj" />
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
+    <ProjectReference Include="..\plugins\NpgsqlRest.CrudSource\NpgsqlRest.CrudSource.csproj" />
   </ItemGroup>
 
 </Project>
