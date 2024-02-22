@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -47,11 +46,13 @@ public class CrudSource(
     string onConflictDoNothingUrlPattern = "{0}/on-conflict-do-nothing",
     string onConflictDoNothingReturningUrlPattern = "{0}/on-conflict-do-nothing/returning",
     string onConflictDoUpdateUrlPattern = "{0}/on-conflict-do-update",
-    string onConflictDoUpdateReturningUrlPattern = "{0}/on-conflict-do-update/returning") : IRoutineSource
+    string onConflictDoUpdateReturningUrlPattern = "{0}/on-conflict-do-update/returning",
+    Func<Routine, CrudCommandType, bool>? created = null) : IRoutineSource
 {
     private readonly IRoutineSourceParameterFormatter _selectParameterFormatter = new SelectParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _updateParameterFormatter = new UpdateParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _insertParameterFormatter = new InsertParameterFormatter();
+    private readonly IRoutineSourceParameterFormatter _deleteParameterFormatter = new DeleteParameterFormatter();
     private readonly string NL = Environment.NewLine;
 
     public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
@@ -79,8 +80,22 @@ public class CrudSource(
     public string OnConflictDoNothingReturningUrlPattern { get; init; } = onConflictDoNothingReturningUrlPattern;
     public string OnConflictDoUpdateUrlPattern { get; init; } = onConflictDoUpdateUrlPattern;
     public string OnConflictDoUpdateReturningUrlPattern { get; init; } = onConflictDoUpdateReturningUrlPattern;
+    public Func<Routine, CrudCommandType, bool>? Created { get; init; } = created;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
+    {
+        foreach(var (routine, formatter, type) in ReadInternal(options))
+        {
+            if (Created is not null && !Created(routine, type))
+            {
+                continue;
+            }
+            yield return (routine, formatter);
+        }
+    }
+
+    private IEnumerable<(Routine routine, IRoutineSourceParameterFormatter formatter, CrudCommandType type)> ReadInternal(
+        NpgsqlRestOptions options)
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
@@ -138,7 +153,7 @@ public class CrudSource(
             bool doesReturnings = (UpdateReturning && doesUpdates) || 
                 ((InsertOnConflictDoNothingReturning ||
                 InsertOnConflictDoUpdateReturning ||
-                InsertReturning) && doesInserts);
+                InsertReturning) && doesInserts) || DeleteReturning;
 
             Routine CreateRoutine(
                 CrudType crudType, 
@@ -193,7 +208,8 @@ public class CrudSource(
                         fullDefinition, 
                         simpleDefinition,
                         isVoid: false),
-                    _selectParameterFormatter);
+                    _selectParameterFormatter,
+                    CrudCommandType.Select);
             }
 
             string updateExp = default!, updateDef = default!, updateSimple = default!;
@@ -220,7 +236,8 @@ public class CrudSource(
                         fullDefinition: updateDef,
                         simpleDefinition: updateSimple,
                         isVoid: true), 
-                    _updateParameterFormatter);
+                    _updateParameterFormatter,
+                    CrudCommandType.Update);
             }
 
             string returningExp = default!;
@@ -243,7 +260,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(updateSimple, returningExp),
                         isVoid: false,
                         formatUrlPattern: ReturningUrlPattern),
-                    _updateParameterFormatter);
+                    _updateParameterFormatter,
+                    CrudCommandType.UpdateReturning);
             }
 
             string insertExp = default!, insertDef = default!, insertSimple = default!;
@@ -270,7 +288,8 @@ public class CrudSource(
                         fullDefinition: insertDef,
                         simpleDefinition: insertSimple,
                         isVoid: true),
-                    _insertParameterFormatter);
+                    _insertParameterFormatter,
+                    CrudCommandType.Insert);
             }
 
             if (InsertReturning && doesInserts)
@@ -283,10 +302,9 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, returningExp),
                         isVoid: false,
                         formatUrlPattern: ReturningUrlPattern),
-                    _insertParameterFormatter);
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertReturning);
             }
-            
-            // untested
 
             string onConflict = default!;
             if (doesInserts && hasPks && (InsertOnConflictDoNothing || 
@@ -307,7 +325,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing"),
                         isVoid: true,
                         formatUrlPattern: OnConflictDoNothingUrlPattern),
-                    _insertParameterFormatter);
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoNothing);
             }
 
             if (InsertOnConflictDoNothingReturning && doesInserts && hasPks)
@@ -320,7 +339,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing", returningExp),
                         isVoid: false,
                         formatUrlPattern: OnConflictDoNothingReturningUrlPattern),
-                    _insertParameterFormatter);
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoNothingReturning);
             }
 
             string doUpdate = default!;
@@ -339,7 +359,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate),
                         isVoid: true,
                         formatUrlPattern: OnConflictDoUpdateUrlPattern),
-                    _insertParameterFormatter);
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoUpdate);
             }
 
             if (InsertOnConflictDoUpdateReturning && doesInserts && hasPks)
@@ -352,7 +373,43 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate, returningExp),
                         isVoid: false,
                         formatUrlPattern: OnConflictDoUpdateReturningUrlPattern),
-                    _insertParameterFormatter);
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoUpdateReturning);
+            }
+
+            string deleteExp = default!, deleteDef = default!, deleteSimple = default!;
+            if (Delete || DeleteReturning)
+            {
+                deleteExp = string.Concat("delete from ", schema, ".", name, NL, "{0}");
+                deleteDef = string.Concat("delete from ", schema, ".", name);
+                deleteSimple = string.Concat("delete from ", schema, ".", name);
+            }
+
+            if (Delete)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Delete,
+                        expression: deleteExp,
+                        fullDefinition: deleteDef,
+                        simpleDefinition: deleteDef,
+                        isVoid: true),
+                    _deleteParameterFormatter,
+                    CrudCommandType.Delete);
+            }
+
+            if (DeleteReturning)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Delete,
+                        expression: string.Concat(deleteExp, returningExp),
+                        fullDefinition: string.Concat(deleteDef, returningExp),
+                        simpleDefinition: string.Concat(deleteDef, returningExp),
+                        isVoid: false,
+                        formatUrlPattern: ReturningUrlPattern),
+                    _deleteParameterFormatter,
+                    CrudCommandType.DeleteReturning);
             }
         }
 

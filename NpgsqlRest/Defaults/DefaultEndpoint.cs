@@ -90,7 +90,9 @@ internal static class DefaultEndpoint
             CrudType.Delete => Method.DELETE,
             _ => Method.POST
         };
-        var requestParamType = method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
+        var requestParamType = method == Method.GET || method == Method.DELETE ? 
+            RequestParamType.QueryString : 
+            RequestParamType.BodyJson;
 
         var originalUrl = url;
         var originalMethod = method;

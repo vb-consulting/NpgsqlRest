@@ -73,6 +73,7 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             JsonObject? jsonObj = null;
+            IDictionary<string, JsonNode?> bodyDict = default!;
             string? body = null;
 
             var len = tupleArray.Length;
@@ -300,8 +301,6 @@ public static class NpgsqlRestMiddlewareExtensions
                                 continue;
                             }
                         }
-
-                        var bodyDict = (IDictionary<string, JsonNode?>)jsonObj;
                         bool shouldContinue = false;
                         foreach (var key in bodyDict.Keys)
                         {
@@ -811,10 +810,14 @@ public static class NpgsqlRestMiddlewareExtensions
                     try
                     {
                         jsonObj = node?.AsObject();
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                        bodyDict = jsonObj?.ToDictionary();
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                     }
-                    catch (InvalidOperationException)
+                    catch (Exception e)
                     {
-                        logger?.LogWarning("Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                        logger?.LogWarning("Could not parse JSON body {0}, skipping path {1}. Error: {2}", 
+                            body, context.Request.Path, e.Message);
                     }
                 }
             }

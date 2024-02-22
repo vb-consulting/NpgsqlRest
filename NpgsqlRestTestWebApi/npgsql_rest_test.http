@@ -1038,8 +1038,1927 @@ content-type: application/json
 
 ###
 
+// select public.crud_delete1
+GET {{host}}/api/crud-delete1?id=1&name=XYZ
+
+###
+
+// insert into public.crud_delete1
+PUT {{host}}/api/crud-delete1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_delete1
+// returning
+//     id, name
+PUT {{host}}/api/crud-delete1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_delete1
+DELETE {{host}}/api/crud-delete1?id=1&name=XYZ
+
+###
+
+// delete from public.crud_delete1
+// returning
+//     id, name
+DELETE {{host}}/api/crud-delete1/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_delete2
+GET {{host}}/api/crud-delete2?id=1&name=XYZ
+
+###
+
+// insert into public.crud_delete2
+PUT {{host}}/api/crud-delete2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_delete2
+// returning
+//     id, name
+PUT {{host}}/api/crud-delete2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_delete2
+DELETE {{host}}/api/crud-delete2?id=1&name=XYZ
+
+###
+
+// delete from public.crud_delete2
+// returning
+//     id, name
+DELETE {{host}}/api/crud-delete2/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert1
+GET {{host}}/api/crud-insert1?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// insert into public.crud_insert1
+PUT {{host}}/api/crud-insert1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_insert1
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-insert1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// delete from public.crud_insert1
+DELETE {{host}}/api/crud-insert1?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// delete from public.crud_insert1
+// returning
+//     id, name, some_date, status
+DELETE {{host}}/api/crud-insert1/returning?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// select public.crud_insert2
+GET {{host}}/api/crud-insert2?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// insert into public.crud_insert2
+PUT {{host}}/api/crud-insert2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_insert2
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-insert2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// delete from public.crud_insert2
+DELETE {{host}}/api/crud-insert2?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// delete from public.crud_insert2
+// returning
+//     id, name, some_date, status
+DELETE {{host}}/api/crud-insert2/returning?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// select public.crud_insert3
+GET {{host}}/api/crud-insert3?id=1&name=XYZ
+
+###
+
+// insert into public.crud_insert3
+PUT {{host}}/api/crud-insert3
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert3
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert3/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert3
+DELETE {{host}}/api/crud-insert3?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert3
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert3/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_nothing_returning_test1
+GET {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_returning_test1
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_returning_test1
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test1
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test1
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test1
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test1
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_returning_test1
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_returning_test1
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_nothing_returning_test2
+GET {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_returning_test2
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_returning_test2
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test2
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test2
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test2
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test2
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_returning_test2
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_returning_test2
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_nothing_returning_test3
+GET {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3?id1=1&id2=2&name=IJK
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_returning_test3
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_returning_test3
+// returning
+//     id1, id2, name
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test3
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test3
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test3
+// on conflict (id1, id2) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test3
+// on conflict (id1, id2) do nothing
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/on-conflict-do-update
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_returning_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_returning_test3
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3?id1=1&id2=2&name=IJK
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_returning_test3
+// returning
+//     id1, id2, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/returning?id1=1&id2=2&name=IJK
+
+###
+
+// select public.crud_insert_on_conflict_do_nothing_test1
+GET {{host}}/api/crud-insert-on-conflict-do-nothing-test1?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_test1
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_test1
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test1
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test1
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test1
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test1
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_test1
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-test1?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_test1
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-test1/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_nothing_test2
+GET {{host}}/api/crud-insert-on-conflict-do-nothing-test2?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_test2
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_test2
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test2
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test2
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test2
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test2
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_test2
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-test2?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_test2
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-test2/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_nothing_test3
+GET {{host}}/api/crud-insert-on-conflict-do-nothing-test3?id1=1&id2=2&name=IJK
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_test3
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_nothing_test3
+// returning
+//     id1, id2, name
+POST {{host}}/api/crud-insert-on-conflict-do-nothing-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test3
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test3
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test3
+// on conflict (id1, id2) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test3
+// on conflict (id1, id2) do nothing
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/on-conflict-do-update
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_nothing_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_test3
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-test3?id1=1&id2=2&name=IJK
+
+###
+
+// delete from public.crud_insert_on_conflict_do_nothing_test3
+// returning
+//     id1, id2, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-nothing-test3/returning?id1=1&id2=2&name=IJK
+
+###
+
+// select public.crud_insert_on_conflict_do_update_returning_test1
+GET {{host}}/api/crud-insert-on-conflict-do-update-returning-test1?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_update_returning_test1
+POST {{host}}/api/crud-insert-on-conflict-do-update-returning-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_update_returning_test1
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test1
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test1
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test1
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test1
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_returning_test1
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-returning-test1?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_returning_test1
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_update_returning_test2
+GET {{host}}/api/crud-insert-on-conflict-do-update-returning-test2?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_update_returning_test2
+POST {{host}}/api/crud-insert-on-conflict-do-update-returning-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_update_returning_test2
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test2
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test2
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test2
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test2
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_returning_test2
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-returning-test2?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_returning_test2
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_update_returning_test3
+GET {{host}}/api/crud-insert-on-conflict-do-update-returning-test3?id1=1&id2=2&name=IJK
+
+###
+
+// update public.crud_insert_on_conflict_do_update_returning_test3
+POST {{host}}/api/crud-insert-on-conflict-do-update-returning-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_update_returning_test3
+// returning
+//     id1, id2, name
+POST {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test3
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test3
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test3
+// on conflict (id1, id2) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test3
+// on conflict (id1, id2) do nothing
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-update
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_returning_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_returning_test3
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-returning-test3?id1=1&id2=2&name=IJK
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_returning_test3
+// returning
+//     id1, id2, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/returning?id1=1&id2=2&name=IJK
+
+###
+
+// select public.crud_insert_on_conflict_do_update_test1
+GET {{host}}/api/crud-insert-on-conflict-do-update-test1?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_update_test1
+POST {{host}}/api/crud-insert-on-conflict-do-update-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_update_test1
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-update-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test1
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test1
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test1
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test1
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test1
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_test1
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-test1?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_test1
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-test1/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_update_test2
+GET {{host}}/api/crud-insert-on-conflict-do-update-test2?id=1&name=XYZ
+
+###
+
+// update public.crud_insert_on_conflict_do_update_test2
+POST {{host}}/api/crud-insert-on-conflict-do-update-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_update_test2
+// returning
+//     id, name
+POST {{host}}/api/crud-insert-on-conflict-do-update-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test2
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test2
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test2
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test2
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test2
+// on conflict (id) do nothing
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test2
+// on conflict (id) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_test2
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-test2?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_test2
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-test2/returning?id=1&name=XYZ
+
+###
+
+// select public.crud_insert_on_conflict_do_update_test3
+GET {{host}}/api/crud-insert-on-conflict-do-update-test3?id1=1&id2=2&name=IJK
+
+###
+
+// update public.crud_insert_on_conflict_do_update_test3
+POST {{host}}/api/crud-insert-on-conflict-do-update-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// update public.crud_insert_on_conflict_do_update_test3
+// returning
+//     id1, id2, name
+POST {{host}}/api/crud-insert-on-conflict-do-update-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test3
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test3
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test3
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test3
+// on conflict (id1, id2) do nothing
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test3
+// on conflict (id1, id2) do nothing
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/on-conflict-do-update
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// insert into public.crud_insert_on_conflict_do_update_test3
+// on conflict (id1, id2) 
+// do update set 
+//     name = excluded.name
+// returning
+//     id1, id2, name
+PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id1": 1,
+    "id2": 2,
+    "name": "IJK"
+}
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_test3
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-test3?id1=1&id2=2&name=IJK
+
+###
+
+// delete from public.crud_insert_on_conflict_do_update_test3
+// returning
+//     id1, id2, name
+DELETE {{host}}/api/crud-insert-on-conflict-do-update-test3/returning?id1=1&id2=2&name=IJK
+
+###
+
+// select public.crud_insert_returning1
+GET {{host}}/api/crud-insert-returning1?id=1&name=XYZ
+
+###
+
+// insert into public.crud_insert_returning1
+PUT {{host}}/api/crud-insert-returning1
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.crud_insert_returning1
+// returning
+//     id, name
+PUT {{host}}/api/crud-insert-returning1/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.crud_insert_returning1
+DELETE {{host}}/api/crud-insert-returning1?id=1&name=XYZ
+
+###
+
+// delete from public.crud_insert_returning1
+// returning
+//     id, name
+DELETE {{host}}/api/crud-insert-returning1/returning?id=1&name=XYZ
+
+###
+
 // select public.crud_select_tests
 GET {{host}}/api/crud-select-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// insert into public.crud_select_tests
+PUT {{host}}/api/crud-select-tests
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_select_tests
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-select-tests/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// delete from public.crud_select_tests
+DELETE {{host}}/api/crud-select-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// delete from public.crud_select_tests
+// returning
+//     id, name, some_date, status
+DELETE {{host}}/api/crud-select-tests/returning?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// select public.crud_update_returning_tests
+GET {{host}}/api/crud-update-returning-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// update public.crud_update_returning_tests
+POST {{host}}/api/crud-update-returning-tests
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// update public.crud_update_returning_tests
+// returning
+//     id, name, some_date, status
+POST {{host}}/api/crud-update-returning-tests/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_returning_tests
+PUT {{host}}/api/crud-update-returning-tests
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_returning_tests
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-update-returning-tests/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_returning_tests
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-update-returning-tests/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_returning_tests
+// on conflict (id) do nothing
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-update-returning-tests/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_returning_tests
+// on conflict (id) 
+// do update set 
+//     name = excluded.name, 
+//     some_date = excluded.some_date, 
+//     status = excluded.status
+PUT {{host}}/api/crud-update-returning-tests/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_returning_tests
+// on conflict (id) 
+// do update set 
+//     name = excluded.name, 
+//     some_date = excluded.some_date, 
+//     status = excluded.status
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-update-returning-tests/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// delete from public.crud_update_returning_tests
+DELETE {{host}}/api/crud-update-returning-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// delete from public.crud_update_returning_tests
+// returning
+//     id, name, some_date, status
+DELETE {{host}}/api/crud-update-returning-tests/returning?id=1&name=XYZ&someDate=2024-03-03&status=true
 
 ###
 
@@ -1061,13 +2980,208 @@ content-type: application/json
 
 ###
 
+// update public.crud_update_tests
+// returning
+//     id, name, some_date, status
+POST {{host}}/api/crud-update-tests/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_tests
+PUT {{host}}/api/crud-update-tests
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_tests
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-update-tests/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_tests
+// on conflict (id) do nothing
+PUT {{host}}/api/crud-update-tests/on-conflict-do-nothing
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_tests
+// on conflict (id) do nothing
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-update-tests/on-conflict-do-nothing/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_tests
+// on conflict (id) 
+// do update set 
+//     name = excluded.name, 
+//     some_date = excluded.some_date, 
+//     status = excluded.status
+PUT {{host}}/api/crud-update-tests/on-conflict-do-update
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_update_tests
+// on conflict (id) 
+// do update set 
+//     name = excluded.name, 
+//     some_date = excluded.some_date, 
+//     status = excluded.status
+// returning
+//     id, name, some_date, status
+PUT {{host}}/api/crud-update-tests/on-conflict-do-update/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "someDate": "2024-03-03",
+    "status": true
+}
+
+###
+
+// delete from public.crud_update_tests
+DELETE {{host}}/api/crud-update-tests?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
+// delete from public.crud_update_tests
+// returning
+//     id, name, some_date, status
+DELETE {{host}}/api/crud-update-tests/returning?id=1&name=XYZ&someDate=2024-03-03&status=true
+
+###
+
 // select public.proc_test_tbl
 GET {{host}}/api/proc-test-tbl?i=1&t=XYZ
 
 ###
 
+// insert into public.proc_test_tbl
+PUT {{host}}/api/proc-test-tbl
+content-type: application/json
+
+{
+    "i": 1,
+    "t": "XYZ"
+}
+
+###
+
+// insert into public.proc_test_tbl
+// returning
+//     i, t
+PUT {{host}}/api/proc-test-tbl/returning
+content-type: application/json
+
+{
+    "i": 1,
+    "t": "XYZ"
+}
+
+###
+
+// delete from public.proc_test_tbl
+DELETE {{host}}/api/proc-test-tbl?i=1&t=XYZ
+
+###
+
+// delete from public.proc_test_tbl
+// returning
+//     i, t
+DELETE {{host}}/api/proc-test-tbl/returning?i=1&t=XYZ
+
+###
+
 // select public.test_table
 GET {{host}}/api/test-table?id=1&name=XYZ
+
+###
+
+// insert into public.test_table
+PUT {{host}}/api/test-table
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// insert into public.test_table
+// returning
+//     id, name
+PUT {{host}}/api/test-table/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ"
+}
+
+###
+
+// delete from public.test_table
+DELETE {{host}}/api/test-table?id=1&name=XYZ
+
+###
+
+// delete from public.test_table
+// returning
+//     id, name
+DELETE {{host}}/api/test-table/returning?id=1&name=XYZ
 
 ###
 

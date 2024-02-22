@@ -108,3 +108,35 @@ public class InsertParameterFormatter : IRoutineSourceParameterFormatter
 
     public string? FormatEmpty() => null;
 }
+
+public class DeleteParameterFormatter : IRoutineSourceParameterFormatter
+{
+    public bool IsFormattable { get; } = true;
+
+    public string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters)
+    {
+        if (parameters.Count == 0)
+        {
+            return string.Format(routine.Expression, "");
+        }
+
+        string f1 = "where";
+
+        for (int i = 0; i < parameters.Count; i++)
+        {
+            var param = parameters[i];
+            if (i == 0)
+            {
+                f1 = string.Concat(f1, Environment.NewLine, "    ", param.ActualName, " = $1");
+            }
+            else
+            {
+                f1 = string.Concat(f1, Environment.NewLine, "    and ", param.ActualName, " = $", (i+1).ToString());
+            }
+        }
+
+        return string.Format(routine.Expression, f1);
+    }
+
+    public string? FormatEmpty() => null;
+}
