@@ -1,5 +1,20 @@
 @host=http://localhost:5000
 
+// function public.none_existing_params(
+//     _p1 integer,
+//     _p2 integer
+// )
+// returns void
+POST {{host}}/api/none-existing-params
+content-type: application/json
+
+{
+    "p1": 1,
+    "p2": 2
+}
+
+###
+
 // function public.perf_test(
 //     _records integer,
 //     _text_param text,
@@ -102,6 +117,87 @@ content-type: application/json
     "intParam": 3,
     "tsParam": "2024-04-04T03:03:03.00",
     "boolParam": false
+}
+
+###
+
+// function public.sql_func()
+// returns text
+POST {{host}}/api/sql-func
+
+###
+
+// procedure public.proc_test(
+//     _t text
+// )
+// returns void
+POST {{host}}/api/proc-test
+content-type: application/json
+
+{
+    "t": "ABC"
+}
+
+###
+
+// select public.crud_select_tests
+GET {{host}}/api/crud-select-tests?id=1&name=XYZ&date=2024-03-03&status=true
+
+###
+
+// insert into public.crud_select_tests
+PUT {{host}}/api/crud-select-tests
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "date": "2024-03-03",
+    "status": true
+}
+
+###
+
+// insert into public.crud_select_tests
+// returning
+//     id, name, date, status
+PUT {{host}}/api/crud-select-tests/returning
+content-type: application/json
+
+{
+    "id": 1,
+    "name": "XYZ",
+    "date": "2024-03-03",
+    "status": true
+}
+
+###
+
+// select public.proc_test_tbl
+GET {{host}}/api/proc-test-tbl?i=1&t=XYZ
+
+###
+
+// insert into public.proc_test_tbl
+PUT {{host}}/api/proc-test-tbl
+content-type: application/json
+
+{
+    "i": 1,
+    "t": "XYZ"
+}
+
+###
+
+// insert into public.proc_test_tbl
+// returning
+//     i, t
+PUT {{host}}/api/proc-test-tbl/returning
+content-type: application/json
+
+{
+    "i": 1,
+    "t": "XYZ"
 }
 
 ###
