@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using System.ComponentModel;
+using System.Linq;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -47,7 +49,8 @@ public class CrudSource(
     string onConflictDoNothingReturningUrlPattern = "{0}/on-conflict-do-nothing/returning",
     string onConflictDoUpdateUrlPattern = "{0}/on-conflict-do-update",
     string onConflictDoUpdateReturningUrlPattern = "{0}/on-conflict-do-update/returning",
-    Func<Routine, CrudCommandType, bool>? created = null) : IRoutineSource
+    Func<Routine, CrudCommandType, bool>? created = null,
+    CommentsMode? commentsMode = null) : IRoutineSource
 {
     private readonly IRoutineSourceParameterFormatter _selectParameterFormatter = new SelectParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _updateParameterFormatter = new UpdateParameterFormatter();
@@ -81,6 +84,7 @@ public class CrudSource(
     public string OnConflictDoUpdateUrlPattern { get; init; } = onConflictDoUpdateUrlPattern;
     public string OnConflictDoUpdateReturningUrlPattern { get; init; } = onConflictDoUpdateReturningUrlPattern;
     public Func<Routine, CrudCommandType, bool>? Created { get; init; } = created;
+    public CommentsMode? CommentsMode { get; } = commentsMode;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
@@ -161,7 +165,8 @@ public class CrudSource(
                 string fullDefinition, 
                 string simpleDefinition,
                 bool isVoid,
-                string? formatUrlPattern = null) => new(
+                string? formatUrlPattern = null,
+                TypeDescriptor[]? typeDescriptors = null) => new(
                     type: type,
                     schema: schema,
                     name: name,
@@ -174,11 +179,11 @@ public class CrudSource(
                     returnRecordNames: columnNames,
                     returnRecordTypes: columnTypes,
                     returnsUnnamedSet: false,
-                    returnTypeDescriptor: descriptors,
+                    returnTypeDescriptor: typeDescriptors ?? descriptors,
                     isVoid: isVoid,
                     paramCount: columnCount,
                     paramNames: columnNames,
-                    paramTypeDescriptor: descriptors,
+                    paramTypeDescriptor: typeDescriptors ?? descriptors,
                     expression: expression,
                     fullDefinition: fullDefinition,
                     simpleDefinition: simpleDefinition,
@@ -264,119 +269,6 @@ public class CrudSource(
                     CrudCommandType.UpdateReturning);
             }
 
-            string insertExp = default!, insertDef = default!, insertSimple = default!;
-            if (doesInserts)
-            {
-                insertExp = string.Concat("insert into ", schema, ".", name, 
-                    NL, "({0})",
-                    "{1}",
-                    NL, "values",
-                    NL, "({2})");
-                insertDef = string.Format(insertExp,
-                    string.Join(", ", columnNames),
-                    "",
-                    string.Join(", ", columnNames.Select(c => "?")));
-                insertSimple = string.Concat("insert into ", schema, ".", name);
-            }
-
-            if (Insert && doesInserts)
-            {
-                yield return (
-                    CreateRoutine(
-                        CrudType.Insert,
-                        expression: insertExp,
-                        fullDefinition: insertDef,
-                        simpleDefinition: insertSimple,
-                        isVoid: true),
-                    _insertParameterFormatter,
-                    CrudCommandType.Insert);
-            }
-
-            if (InsertReturning && doesInserts)
-            {
-                yield return (
-                    CreateRoutine(
-                        CrudType.Insert,
-                        expression: string.Concat(insertExp, returningExp),
-                        fullDefinition: string.Concat(insertDef, returningExp),
-                        simpleDefinition: string.Concat(insertSimple, returningExp),
-                        isVoid: false,
-                        formatUrlPattern: ReturningUrlPattern),
-                    _insertParameterFormatter,
-                    CrudCommandType.InsertReturning);
-            }
-
-            string onConflict = default!;
-            if (doesInserts && hasPks && (InsertOnConflictDoNothing || 
-                InsertOnConflictDoNothingReturning ||
-                InsertOnConflictDoUpdate ||
-                InsertOnConflictDoUpdateReturning))
-            {
-                onConflict = string.Concat(NL, "on conflict (", string.Join(", ", primaryKeys), ") ");
-            }
-
-            if (InsertOnConflictDoNothing && doesInserts && hasPks)
-            {
-                yield return (
-                    CreateRoutine(
-                        CrudType.Insert,
-                        expression: string.Concat(insertExp, onConflict , "do nothing"),
-                        fullDefinition: string.Concat(insertDef, onConflict, "do nothing"),
-                        simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing"),
-                        isVoid: true,
-                        formatUrlPattern: OnConflictDoNothingUrlPattern),
-                    _insertParameterFormatter,
-                    CrudCommandType.InsertOnConflictDoNothing);
-            }
-
-            if (InsertOnConflictDoNothingReturning && doesInserts && hasPks)
-            {
-                yield return (
-                    CreateRoutine(
-                        CrudType.Insert,
-                        expression: string.Concat(insertExp, onConflict,  "do nothing", returningExp),
-                        fullDefinition: string.Concat(insertDef, onConflict, "do nothing", returningExp),
-                        simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing", returningExp),
-                        isVoid: false,
-                        formatUrlPattern: OnConflictDoNothingReturningUrlPattern),
-                    _insertParameterFormatter,
-                    CrudCommandType.InsertOnConflictDoNothingReturning);
-            }
-
-            string doUpdate = default!;
-            if (doesInserts && hasPks && (InsertOnConflictDoUpdate || InsertOnConflictDoUpdateReturning))
-            {
-                doUpdate = string.Concat(NL, "do update set ", string.Join(", ", notPrimaryKeys.Select(n => $"{NL}    {n} = excluded.{n}")));
-            }
-
-            if (InsertOnConflictDoUpdate && doesInserts && hasPks)
-            {
-                yield return (
-                    CreateRoutine(
-                        CrudType.Insert,
-                        expression: string.Concat(insertExp, onConflict, doUpdate),
-                        fullDefinition: string.Concat(insertDef, onConflict, doUpdate),
-                        simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate),
-                        isVoid: true,
-                        formatUrlPattern: OnConflictDoUpdateUrlPattern),
-                    _insertParameterFormatter,
-                    CrudCommandType.InsertOnConflictDoUpdate);
-            }
-
-            if (InsertOnConflictDoUpdateReturning && doesInserts && hasPks)
-            {
-                yield return (
-                    CreateRoutine(
-                        CrudType.Insert,
-                        expression: string.Concat(insertExp, onConflict, doUpdate, returningExp),
-                        fullDefinition: string.Concat(insertDef, onConflict, doUpdate, returningExp),
-                        simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate, returningExp),
-                        isVoid: false,
-                        formatUrlPattern: OnConflictDoUpdateReturningUrlPattern),
-                    _insertParameterFormatter,
-                    CrudCommandType.InsertOnConflictDoUpdateReturning);
-            }
-
             string deleteExp = default!, deleteDef = default!, deleteSimple = default!;
             if (Delete || DeleteReturning)
             {
@@ -410,6 +302,134 @@ public class CrudSource(
                         formatUrlPattern: ReturningUrlPattern),
                     _deleteParameterFormatter,
                     CrudCommandType.DeleteReturning);
+            }
+
+            if (doesInserts is false)
+            {
+                yield break;
+            }
+            
+            var insertExp = string.Concat("insert into ", schema, ".", name,
+                NL, "({0})",
+                "{1}",
+                NL, "values",
+                NL, "({2})");
+            var insertDef = string.Format(insertExp,
+                string.Join(", ", columnNames),
+                "",
+                string.Join(", ", columnNames.Select(c => "?")));
+            var insertSimple = string.Concat("insert into ", schema, ".", name);
+
+            var hasDefaults = reader.Get<bool[]>("has_defaults");
+            var insertTypeDescriptors = columnTypes
+                .Select((x, i) =>
+                    new TypeDescriptor(x,
+                        hasDefault: hasDefaults[i],
+                        isPk: primaryKeys.Contains(columnNames[i]),
+                        isIdentity: identityColumns[i]))
+                .ToArray();
+
+            if (Insert && doesInserts)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Insert,
+                        expression: insertExp,
+                        fullDefinition: insertDef,
+                        simpleDefinition: insertSimple,
+                        isVoid: true,
+                        typeDescriptors: insertTypeDescriptors),
+                    _insertParameterFormatter,
+                    CrudCommandType.Insert);
+            }
+
+            if (InsertReturning && doesInserts)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Insert,
+                        expression: string.Concat(insertExp, returningExp),
+                        fullDefinition: string.Concat(insertDef, returningExp),
+                        simpleDefinition: string.Concat(insertSimple, returningExp),
+                        isVoid: false,
+                        formatUrlPattern: ReturningUrlPattern),
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertReturning);
+            }
+
+            string onConflict = default!;
+            if (doesInserts && hasPks && (InsertOnConflictDoNothing ||
+                InsertOnConflictDoNothingReturning ||
+                InsertOnConflictDoUpdate ||
+                InsertOnConflictDoUpdateReturning))
+            {
+                onConflict = string.Concat(NL, "on conflict (", string.Join(", ", primaryKeys), ") ");
+            }
+
+            if (InsertOnConflictDoNothing && doesInserts && hasPks)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Insert,
+                        expression: string.Concat(insertExp, onConflict, "do nothing"),
+                        fullDefinition: string.Concat(insertDef, onConflict, "do nothing"),
+                        simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing"),
+                        isVoid: true,
+                        formatUrlPattern: OnConflictDoNothingUrlPattern,
+                        typeDescriptors: insertTypeDescriptors),
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoNothing);
+            }
+
+            if (InsertOnConflictDoNothingReturning && doesInserts && hasPks)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Insert,
+                        expression: string.Concat(insertExp, onConflict, "do nothing", returningExp),
+                        fullDefinition: string.Concat(insertDef, onConflict, "do nothing", returningExp),
+                        simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing", returningExp),
+                        isVoid: false,
+                        formatUrlPattern: OnConflictDoNothingReturningUrlPattern,
+                        typeDescriptors: insertTypeDescriptors),
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoNothingReturning);
+            }
+
+            string doUpdate = default!;
+            if (doesInserts && hasPks && (InsertOnConflictDoUpdate || InsertOnConflictDoUpdateReturning))
+            {
+                doUpdate = string.Concat(NL, "do update set ", string.Join(", ", notPrimaryKeys.Select(n => $"{NL}    {n} = excluded.{n}")));
+            }
+
+            if (InsertOnConflictDoUpdate && doesInserts && hasPks)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Insert,
+                        expression: string.Concat(insertExp, onConflict, doUpdate),
+                        fullDefinition: string.Concat(insertDef, onConflict, doUpdate),
+                        simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate),
+                        isVoid: true,
+                        formatUrlPattern: OnConflictDoUpdateUrlPattern,
+                        typeDescriptors: insertTypeDescriptors),
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoUpdate);
+            }
+
+            if (InsertOnConflictDoUpdateReturning && doesInserts && hasPks)
+            {
+                yield return (
+                    CreateRoutine(
+                        CrudType.Insert,
+                        expression: string.Concat(insertExp, onConflict, doUpdate, returningExp),
+                        fullDefinition: string.Concat(insertDef, onConflict, doUpdate, returningExp),
+                        simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate, returningExp),
+                        isVoid: false,
+                        formatUrlPattern: OnConflictDoUpdateReturningUrlPattern,
+                        typeDescriptors: insertTypeDescriptors),
+                    _insertParameterFormatter,
+                    CrudCommandType.InsertOnConflictDoUpdateReturning);
             }
         }
 

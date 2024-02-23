@@ -537,7 +537,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         routine.Expression;
                     if (paramCount == 0)
                     {
-                        commandText = string.Concat(commandText, formatter.FormatEmpty());
+                        commandText = formatter.IsFormattable ?
+                            formatter.FormatEmpty(ref routine) :
+                            string.Concat(commandText, formatter.AppendEmpty());
                     } 
                     else
                     {
@@ -568,8 +570,9 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     if (commandText is null)
                     {
-                        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        await context.Response.CompleteAsync();
+                        //context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        //await context.Response.CompleteAsync();
+                        await next(context);
                         return;
                     }
                     command.CommandText = commandText;
@@ -840,8 +843,17 @@ public static class NpgsqlRestMiddlewareExtensions
 
         options.SourceCreated(options.RoutineSources);
 
+        CommentsMode optionsCommentsMode = options.CommentsMode;
         foreach (var source in options.RoutineSources)
         {
+            if (source.CommentsMode.HasValue)
+            {
+                options.CommentsMode = source.CommentsMode.Value;
+            }
+            else
+            {
+                options.CommentsMode = optionsCommentsMode;
+            }
             foreach (var (routine, formatter) in source.Read(options))
             {
                 RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);

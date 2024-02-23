@@ -22,5 +22,5 @@ public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
         return string.Concat(",$", (index + 1).ToString(), suffix);
     }
 
-    public string? FormatEmpty() => ")";
+    public string? AppendEmpty() => ")";
 }

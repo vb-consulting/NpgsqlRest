@@ -13,7 +13,8 @@ public class RoutineSource(
         string? nameNotSimilarTo = null,
         string[]? includeNames = null,
         string[]? excludeNames = null,
-        string? query = null) : IRoutineSource
+        string? query = null,
+        CommentsMode? commentsMode = null) : IRoutineSource
 {
     private readonly IRoutineSourceParameterFormatter _formatter = new RoutineSourceParameterFormatter();
     public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
@@ -25,6 +26,7 @@ public class RoutineSource(
     public string[]? IncludeNames { get; init; } = includeNames;
     public string[]? ExcludeNames { get; init; } = excludeNames;
     public string Query { get; init; } = query ?? RoutineSourceQuery.Query;
+    public CommentsMode? CommentsMode { get; } = commentsMode;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {

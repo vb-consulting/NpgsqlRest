@@ -63,6 +63,19 @@ internal class CrudSourceQuery
             '{}'::boolean[]
         ) as identity_columns,
 
+        coalesce(
+            array_agg( 
+                (
+                    c.is_nullable = 'YES'
+                    or c.column_default is not null
+                    or c.is_identity = 'YES'
+                    or c.is_generated <> 'NEVER'
+                )::boolean
+                order by c.ordinal_position
+            ),
+            '{}'::boolean[]
+        ) as has_defaults,
+
         coalesce(_cte2.primary_keys, '{}'::text[]) as primary_keys,
         pgdesc.description as comment
     from

@@ -57,7 +57,7 @@ public class CrudUpdateReturningTests(TestFixture test)
     {
         using var body = new StringContent("{\"name\":\"updated1\",\"status\":false}", Encoding.UTF8, "application/json");
         using var response = await test.Client.PostAsync("/api/crud-update-returning-tests/returning/", body);
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -65,6 +65,6 @@ public class CrudUpdateReturningTests(TestFixture test)
     {
         using var body = new StringContent("{\"name\":\"updated1\",\"status\":false}", Encoding.UTF8, "application/json");
         using var response = await test.Client.PostAsync("/api/crud-update-returning-tests/returning/", body);
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
