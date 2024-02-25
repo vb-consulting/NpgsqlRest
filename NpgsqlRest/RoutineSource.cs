@@ -169,7 +169,15 @@ public class RoutineSource(
 
                     expression: expression,
                     fullDefinition: reader.Get<string>("definition"),
-                    simpleDefinition: simpleDefinition.ToString()), 
+                    simpleDefinition: simpleDefinition.ToString(),
+                    
+                    tags: [routineType.ToString().ToLowerInvariant(), volatility switch
+                    {
+                        'v' => "volatile",
+                        's' => "stable",
+                        'i' => "immutable",
+                        _ => "other"
+                    }]), 
                 _formatter);
         }
 

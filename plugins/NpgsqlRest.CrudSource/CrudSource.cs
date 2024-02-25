@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Linq;
-using Microsoft.Extensions.Hosting;
-using Npgsql;
+﻿using Npgsql;
 using NpgsqlTypes;
 
 namespace NpgsqlRest.CrudSource;
@@ -57,6 +54,63 @@ public class CrudSource(
     private readonly IRoutineSourceParameterFormatter _insertParameterFormatter = new InsertParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _deleteParameterFormatter = new DeleteParameterFormatter();
     private readonly string NL = Environment.NewLine;
+
+    private readonly string[] _selectTags = ["select", "read", "get"];
+    private readonly string[] _updateTags = ["update", "post"];
+    private readonly string[] _updateReturningTags = [
+        "update", "post",
+        "updatereturning",
+        "update-returning",
+        "update_returning",
+        "returning"];
+    private readonly string[] _deleteTags = ["delete"];
+    private readonly string[] _deleteReturningTags = [
+        "delete", 
+        "deletereturning", 
+        "delete-returning", 
+        "delete_returning", 
+        "returning"];
+    private readonly string[] _insertTags = ["insert", "put", "create"];
+    private readonly string[] _insertReturningTags = [
+        "insert", "put", "create",
+        "insertreturning",
+        "insert-returning",
+        "insert_returning",
+        "returning"];
+    private readonly string[] _insertOnConflictDoNothingTags = [
+        "insert", "put", "create",
+        "insertonconflictdonothing",
+        "insert-on-conflict-do-nothing",
+        "insert_on_conflict_do_nothing",
+        "onconflictdonothing",
+        "on-conflict-do-nothing",
+        "on_conflict_do_nothing"];
+    private readonly string[] _insertOnConflictDoNothingReturningTags = [
+        "insert", "put", "create",
+        "insertonconflictdonothingreturning",
+        "insert-on-conflict-do-nothing-returning",
+        "insert_on_conflict_do_nothing-returning",
+        "onconflictdonothing",
+        "on-conflict-do-nothing",
+        "on_conflict_do_nothing",
+        "returning"];
+    private readonly string[] _insertOnConflictDoUpdateTags = [
+        "insert", "put", "create",
+        "insertonconflictdoupdate",
+        "insert-on-conflict-do-update",
+        "insert_on_conflict_do_update",
+        "onconflictdoupdate",
+        "on-conflict-do-update",
+        "on_conflict_do_update"];
+    private readonly string[] _insertOnConflictDoUpdateReturningTags = [
+        "insert", "put", "create",
+        "insertonconflictdoupdatereturning",
+        "insert-on-conflict-do-update-returning",
+        "insert_on_conflict_do_update_returning",
+        "onconflictdoupdate",
+        "on-conflict-do-update",
+        "on_conflict_do_update",
+        "returning"];
 
     public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
     public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
@@ -166,7 +220,8 @@ public class CrudSource(
                 string simpleDefinition,
                 bool isVoid,
                 string? formatUrlPattern = null,
-                TypeDescriptor[]? typeDescriptors = null) => new(
+                TypeDescriptor[]? typeDescriptors = null,
+                string[]? tags = null) => new(
                     type: type,
                     schema: schema,
                     name: name,
@@ -187,7 +242,8 @@ public class CrudSource(
                     expression: expression,
                     fullDefinition: fullDefinition,
                     simpleDefinition: simpleDefinition,
-                    formatUrlPattern: formatUrlPattern);
+                    formatUrlPattern: formatUrlPattern,
+                    tags: tags);
 
             if (Select)
             {
@@ -212,7 +268,8 @@ public class CrudSource(
                         expression, 
                         fullDefinition, 
                         simpleDefinition,
-                        isVoid: false),
+                        isVoid: false,
+                        tags: _selectTags),
                     _selectParameterFormatter,
                     CrudCommandType.Select);
             }
@@ -240,7 +297,8 @@ public class CrudSource(
                         expression: updateExp,
                         fullDefinition: updateDef,
                         simpleDefinition: updateSimple,
-                        isVoid: true), 
+                        isVoid: true,
+                        tags: _updateTags), 
                     _updateParameterFormatter,
                     CrudCommandType.Update);
             }
@@ -264,7 +322,8 @@ public class CrudSource(
                         fullDefinition: string.Concat(updateDef, returningExp),
                         simpleDefinition: string.Concat(updateSimple, returningExp),
                         isVoid: false,
-                        formatUrlPattern: ReturningUrlPattern),
+                        formatUrlPattern: ReturningUrlPattern,
+                        tags: _updateReturningTags),
                     _updateParameterFormatter,
                     CrudCommandType.UpdateReturning);
             }
@@ -285,7 +344,8 @@ public class CrudSource(
                         expression: deleteExp,
                         fullDefinition: deleteDef,
                         simpleDefinition: deleteDef,
-                        isVoid: true),
+                        isVoid: true,
+                        tags: _deleteTags),
                     _deleteParameterFormatter,
                     CrudCommandType.Delete);
             }
@@ -299,7 +359,8 @@ public class CrudSource(
                         fullDefinition: string.Concat(deleteDef, returningExp),
                         simpleDefinition: string.Concat(deleteDef, returningExp),
                         isVoid: false,
-                        formatUrlPattern: ReturningUrlPattern),
+                        formatUrlPattern: ReturningUrlPattern,
+                        tags: _deleteReturningTags),
                     _deleteParameterFormatter,
                     CrudCommandType.DeleteReturning);
             }
@@ -338,7 +399,8 @@ public class CrudSource(
                         fullDefinition: insertDef,
                         simpleDefinition: insertSimple,
                         isVoid: true,
-                        typeDescriptors: insertTypeDescriptors),
+                        typeDescriptors: insertTypeDescriptors,
+                        tags: _insertTags),
                     _insertParameterFormatter,
                     CrudCommandType.Insert);
             }
@@ -352,7 +414,8 @@ public class CrudSource(
                         fullDefinition: string.Concat(insertDef, returningExp),
                         simpleDefinition: string.Concat(insertSimple, returningExp),
                         isVoid: false,
-                        formatUrlPattern: ReturningUrlPattern),
+                        formatUrlPattern: ReturningUrlPattern,
+                        tags: _insertReturningTags),
                     _insertParameterFormatter,
                     CrudCommandType.InsertReturning);
             }
@@ -376,7 +439,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing"),
                         isVoid: true,
                         formatUrlPattern: OnConflictDoNothingUrlPattern,
-                        typeDescriptors: insertTypeDescriptors),
+                        typeDescriptors: insertTypeDescriptors,
+                        tags: _insertOnConflictDoNothingTags),
                     _insertParameterFormatter,
                     CrudCommandType.InsertOnConflictDoNothing);
             }
@@ -391,7 +455,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, "do nothing", returningExp),
                         isVoid: false,
                         formatUrlPattern: OnConflictDoNothingReturningUrlPattern,
-                        typeDescriptors: insertTypeDescriptors),
+                        typeDescriptors: insertTypeDescriptors,
+                        tags: _insertOnConflictDoNothingReturningTags),
                     _insertParameterFormatter,
                     CrudCommandType.InsertOnConflictDoNothingReturning);
             }
@@ -412,7 +477,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate),
                         isVoid: true,
                         formatUrlPattern: OnConflictDoUpdateUrlPattern,
-                        typeDescriptors: insertTypeDescriptors),
+                        typeDescriptors: insertTypeDescriptors,
+                        tags: _insertOnConflictDoUpdateTags),
                     _insertParameterFormatter,
                     CrudCommandType.InsertOnConflictDoUpdate);
             }
@@ -427,7 +493,8 @@ public class CrudSource(
                         simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate, returningExp),
                         isVoid: false,
                         formatUrlPattern: OnConflictDoUpdateReturningUrlPattern,
-                        typeDescriptors: insertTypeDescriptors),
+                        typeDescriptors: insertTypeDescriptors,
+                        tags: _insertOnConflictDoUpdateReturningTags),
                     _insertParameterFormatter,
                     CrudCommandType.InsertOnConflictDoUpdateReturning);
             }

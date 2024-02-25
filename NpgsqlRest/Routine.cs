@@ -21,7 +21,8 @@ public readonly struct Routine(
     string expression,
     string fullDefinition,
     string simpleDefinition,
-    string? formatUrlPattern = null)
+    string? formatUrlPattern = null,
+    string[]? tags = null)
 {
     public RoutineType Type { get; } = type;
     public string Schema { get; } = schema;
@@ -44,4 +45,5 @@ public readonly struct Routine(
     public string FullDefinition { get; } = fullDefinition;
     public string SimpleDefinition { get; } = simpleDefinition;
     public string? FormatUrlPattern { get; } = formatUrlPattern;
+    public string[]? Tags { get; } = tags;
 }
