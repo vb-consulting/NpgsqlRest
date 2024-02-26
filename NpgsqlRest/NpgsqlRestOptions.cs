@@ -40,7 +40,7 @@ public class NpgsqlRestOptions(
     Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,
     Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null,
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
-    Action<List<IRoutineSource>>? sourceCreated = null)
+    Action<List<IRoutineSource>>? sourcesCreated = null)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -65,35 +65,35 @@ public class NpgsqlRestOptions(
     /// </summary>
     public string? ConnectionString { get; set; } = connectionString;
     /// <summary>
-    /// Filter schema names similar to this parameters or null for all schemas.
+    /// Filter schema names similar to this parameters or null to ignore this parameter.
     /// </summary>
     public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
     /// <summary>
-    /// Filter schema names not similar to this parameters or null for all schemas.
+    /// Filter schema names not similar to this parameters  or null to ignore this parameter.
     /// </summary>
     public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
     /// <summary>
-    /// List of schema names to be included.
+    /// List of schema names to be included or null to ignore this parameter.
     /// </summary>
     public string[]? IncludeSchemas { get; set; } = includeSchemas;
     /// <summary>
-    /// List of schema names to be excluded.
+    /// List of schema names to be excluded or null to ignore this parameter.
     /// </summary>
     public string[]? ExcludeSchemas { get; set; } = excludeSchemas;
     /// <summary>
-    /// Filter routine names similar to this parameters or null for all routines.
+    /// Filter routine names similar to this parameters or null to ignore this parameter.
     /// </summary>
     public string? NameSimilarTo { get; set; } = nameSimilarTo;
     /// <summary>
-    /// Filter routine names not similar to this parameters or null for all routines.
+    /// Filter routine names not similar to this parameters or null to ignore this parameter.
     /// </summary>
     public string? NameNotSimilarTo { get; set; } = nameNotSimilarTo;
     /// <summary>
-    /// List of routine names to be included.
+    /// List of routine names to be included or null to ignore this parameter.
     /// </summary>
     public string[]? IncludeNames { get; set; } = includeNames;
     /// <summary>
-    /// List of routine names to be excluded.
+    /// List of routine names to be excluded or null to ignore this parameter.
     /// </summary>
     public string[]? ExcludeNames { get; set; } = excludeNames;
     /// <summary>
@@ -219,7 +219,7 @@ public class NpgsqlRestOptions(
     /// Use this callback to add or remove custom routine sources.
     /// Default routine source is PostgreSQL routines (functions and procedure).
     /// </summary>
-    public Action<List<IRoutineSource>> SourceCreated { get; set; } = sourceCreated ?? (s => {});
+    public Action<List<IRoutineSource>> SourcesCreated { get; set; } = sourcesCreated ?? (s => {});
 
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

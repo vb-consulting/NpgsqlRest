@@ -58,9 +58,11 @@ public class Program
                 }
             },
 
-            SourceCreated = sources =>
+            SourcesCreated = sources =>
             {
-                sources.Add(new CrudSource());
+                sources.Add(new CrudSource
+                {
+                });
             },
         });
         app.Run();

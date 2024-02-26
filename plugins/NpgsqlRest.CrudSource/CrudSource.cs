@@ -49,6 +49,24 @@ public class CrudSource(
     Func<Routine, CrudCommandType, bool>? created = null,
     CommentsMode? commentsMode = null) : IRoutineSource
 {
+    public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
+    public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
+    public string[]? IncludeSchemas { get; init; } = includeSchemas;
+    public string[]? ExcludeSchemas { get; init; } = excludeSchemas;
+    public string? NameSimilarTo { get; init; } = nameSimilarTo;
+    public string? NameNotSimilarTo { get; init; } = nameNotSimilarTo;
+    public string[]? IncludeNames { get; init; } = includeNames;
+    public string[]? ExcludeNames { get; init; } = excludeNames;
+    public string Query { get; init; } = query ?? CrudSourceQuery.Query;
+    public CrudCommandType CrudTypes { get; init; } = crudTypes;
+    public string ReturningUrlPattern { get; init; } = returningUrlPattern;
+    public string OnConflictDoNothingUrlPattern { get; init; } = onConflictDoNothingUrlPattern;
+    public string OnConflictDoNothingReturningUrlPattern { get; init; } = onConflictDoNothingReturningUrlPattern;
+    public string OnConflictDoUpdateUrlPattern { get; init; } = onConflictDoUpdateUrlPattern;
+    public string OnConflictDoUpdateReturningUrlPattern { get; init; } = onConflictDoUpdateReturningUrlPattern;
+    public Func<Routine, CrudCommandType, bool>? Created { get; init; } = created;
+    public CommentsMode? CommentsMode { get; } = commentsMode;
+
     private readonly IRoutineSourceParameterFormatter _selectParameterFormatter = new SelectParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _updateParameterFormatter = new UpdateParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _insertParameterFormatter = new InsertParameterFormatter();
@@ -65,10 +83,10 @@ public class CrudSource(
         "returning"];
     private readonly string[] _deleteTags = ["delete"];
     private readonly string[] _deleteReturningTags = [
-        "delete", 
-        "deletereturning", 
-        "delete-returning", 
-        "delete_returning", 
+        "delete",
+        "deletereturning",
+        "delete-returning",
+        "delete_returning",
         "returning"];
     private readonly string[] _insertTags = ["insert", "put", "create"];
     private readonly string[] _insertReturningTags = [
@@ -111,34 +129,17 @@ public class CrudSource(
         "on-conflict-do-update",
         "on_conflict_do_update",
         "returning"];
-
-    public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
-    public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
-    public string[]? IncludeSchemas { get; init; } = includeSchemas;
-    public string[]? ExcludeSchemas { get; init; } = excludeSchemas;
-    public string? NameSimilarTo { get; init; } = nameSimilarTo;
-    public string? NameNotSimilarTo { get; init; } = nameNotSimilarTo;
-    public string[]? IncludeNames { get; init; } = includeNames;
-    public string[]? ExcludeNames { get; init; } = excludeNames;
-    public string Query { get; init; } = query ?? CrudSourceQuery.Query;
-    public bool Select { get; init; } = (crudTypes & CrudCommandType.Select) == CrudCommandType.Select;
-    public bool Update { get; init; } = (crudTypes & CrudCommandType.Update) == CrudCommandType.Update;
-    public bool UpdateReturning { get; init; } = (crudTypes & CrudCommandType.UpdateReturning) == CrudCommandType.UpdateReturning;
-    public bool Insert { get; init; } = (crudTypes & CrudCommandType.Insert) == CrudCommandType.Insert;
-    public bool InsertReturning { get; init; } = (crudTypes & CrudCommandType.InsertReturning) == CrudCommandType.InsertReturning;
-    public bool InsertOnConflictDoNothing { get; init; } = (crudTypes & CrudCommandType.InsertOnConflictDoNothing) == CrudCommandType.InsertOnConflictDoNothing;
-    public bool InsertOnConflictDoUpdate { get; init; } = (crudTypes & CrudCommandType.InsertOnConflictDoUpdate) == CrudCommandType.InsertOnConflictDoUpdate;
-    public bool InsertOnConflictDoNothingReturning { get; init; } = (crudTypes & CrudCommandType.InsertOnConflictDoNothingReturning) == CrudCommandType.InsertOnConflictDoNothingReturning;
-    public bool InsertOnConflictDoUpdateReturning { get; init; } = (crudTypes & CrudCommandType.InsertOnConflictDoUpdateReturning) == CrudCommandType.InsertOnConflictDoUpdateReturning;
-    public bool Delete { get; init; } = (crudTypes & CrudCommandType.Delete) == CrudCommandType.Delete;
-    public bool DeleteReturning { get; init; } = (crudTypes & CrudCommandType.DeleteReturning) == CrudCommandType.DeleteReturning;
-    public string ReturningUrlPattern { get; init; } = returningUrlPattern;
-    public string OnConflictDoNothingUrlPattern { get; init; } = onConflictDoNothingUrlPattern;
-    public string OnConflictDoNothingReturningUrlPattern { get; init; } = onConflictDoNothingReturningUrlPattern;
-    public string OnConflictDoUpdateUrlPattern { get; init; } = onConflictDoUpdateUrlPattern;
-    public string OnConflictDoUpdateReturningUrlPattern { get; init; } = onConflictDoUpdateReturningUrlPattern;
-    public Func<Routine, CrudCommandType, bool>? Created { get; init; } = created;
-    public CommentsMode? CommentsMode { get; } = commentsMode;
+    private bool Select { get => (CrudTypes & CrudCommandType.Select) == CrudCommandType.Select; }
+    private bool Update { get => (CrudTypes & CrudCommandType.Update) == CrudCommandType.Update; }
+    private bool UpdateReturning { get => (CrudTypes & CrudCommandType.UpdateReturning) == CrudCommandType.UpdateReturning; }
+    private bool Insert { get => (CrudTypes & CrudCommandType.Insert) == CrudCommandType.Insert; }
+    private bool InsertReturning { get => (CrudTypes & CrudCommandType.InsertReturning) == CrudCommandType.InsertReturning; }
+    private bool InsertOnConflictDoNothing { get => (CrudTypes & CrudCommandType.InsertOnConflictDoNothing) == CrudCommandType.InsertOnConflictDoNothing; }
+    private bool InsertOnConflictDoUpdate { get => (CrudTypes & CrudCommandType.InsertOnConflictDoUpdate) == CrudCommandType.InsertOnConflictDoUpdate; }
+    private bool InsertOnConflictDoNothingReturning { get => (CrudTypes & CrudCommandType.InsertOnConflictDoNothingReturning) == CrudCommandType.InsertOnConflictDoNothingReturning; }
+    private bool InsertOnConflictDoUpdateReturning { get => (CrudTypes & CrudCommandType.InsertOnConflictDoUpdateReturning) == CrudCommandType.InsertOnConflictDoUpdateReturning; }
+    private bool Delete { get => (CrudTypes & CrudCommandType.Delete) == CrudCommandType.Delete; }
+    private bool DeleteReturning { get => (CrudTypes & CrudCommandType.DeleteReturning) == CrudCommandType.DeleteReturning; }
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {

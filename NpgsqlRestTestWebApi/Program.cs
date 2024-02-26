@@ -94,7 +94,7 @@ app.UseNpgsqlRest(new()
         })
     ],
 
-    SourceCreated = sources =>
+    SourcesCreated = sources =>
     {
         sources.Add(new CrudSource()); 
     },

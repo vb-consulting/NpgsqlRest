@@ -841,7 +841,7 @@ public static class NpgsqlRestMiddlewareExtensions
             handler.Setup(builder, logger);
         }
 
-        options.SourceCreated(options.RoutineSources);
+        options.SourcesCreated(options.RoutineSources);
 
         CommentsMode optionsCommentsMode = options.CommentsMode;
         foreach (var source in options.RoutineSources)

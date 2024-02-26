@@ -5,6 +5,8 @@ namespace NpgsqlRest.HttpFiles;
 
 public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
 {
+    public HttpFile() : this (new HttpFileOptions()) { }
+
     private readonly HashSet<string> _initializedFiles = [];
     private readonly Dictionary<string, StringBuilder> _fileContent = [];
 

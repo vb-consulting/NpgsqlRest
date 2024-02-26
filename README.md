@@ -5,7 +5,7 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-**Automatic REST API** for PostgreSQL Databases implemented as **AOT Ready .NET8 Middleware**
+**Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8 Middleware**
 
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
 
@@ -22,7 +22,7 @@ select 'Hello World'
 $$;
 ```
 
-#### 2) .NET8 AOT Ready Web App
+#### 2) .NET8 AOT-Ready Web App
 
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -58,7 +58,7 @@ Hello World
 ## Features
 
 - Automatic **generation of the HTTP REST endpoints** from PostgreSQL functions and procedures.
-- **Native AOT Ready**. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
+- **Native AOT-Ready**. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
 - **Customization** of endpoints with comment annotations. You can easily configure any endpoint by adding annotation labels to routine comments. Like for example HTTP GET if you want to change the method verb to GET.
 - **Automatic HTTP files**. Create ready-to-run HTTP files easily, for testing, debugging and discovery.
 - Interact seamlessly with **.NET8 backend** and take advantage of .NET8 features.
@@ -68,7 +68,7 @@ Hello World
 
 See the introductory example above. Automatically build HTTP REST endpoints from PostgreSQL functions and procedures and configure them the way you like.
 
-### Native AOT Ready
+### Native AOT-Ready
 
 With the NET8 you can build into native code code (ahead-of-time (AOT) compilation). 
 
@@ -173,16 +173,16 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
 Install the package from NuGet by using any of the available methods:
 
 ```console
-dotnet add package NpgsqlRest --version 1.6.2
+dotnet add package NpgsqlRest --version 2.0.0
 ```
 ```console
-NuGet\Install-Package NpgsqlRest -version 1.6.2
+NuGet\Install-Package NpgsqlRest -version 2.0.0
 ```
 ```xml
-<PackageReference Include="NpgsqlRest" Version="1.6.2" />
+<PackageReference Include="NpgsqlRest" Version="2.0.0" />
 ```
 ```console
-#r "nuget: NpgsqlRest, 1.6.2"
+#r "nuget: NpgsqlRest, 2.0.0"
 ```
 
 #### Library First Use
