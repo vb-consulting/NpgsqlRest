@@ -90,3 +90,16 @@ app.UseNpgsqlRest(new()
 });
 app.Run();
 ```
+
+#### Library Dependencies
+
+- NpgsqlRest 2.0.0
+
+## Contributing
+
+Contributions from the community are welcomed.
+Please make a pull request with a description if you wish to contribute.
+
+## License
+
+This project is licensed under the terms of the MIT license.

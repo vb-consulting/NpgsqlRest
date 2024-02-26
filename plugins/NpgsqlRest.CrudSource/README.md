@@ -492,3 +492,16 @@ app.Run();
 | `string OnConflictDoUpdateReturningUrlPattern` | `"{0}/on-conflict-do-update/returning"` | URL pattern for all "do update returning" endpoints. Parameter is the original URL. |
 | `Func<Routine, CrudCommandType, bool>? Created` | `null` | Callback function, when not null it is evaluated when Routine object is created for a certain type. Return true or false to disable or enable endpoints. |
 | `CommentsMode? CommentsMode` | `null` | Comments mode (`Ignore`, `ParseAll`, `OnlyWithHttpTag`), when not null overrides the `CommentsMode` from the main options. |
+
+#### Library Dependencies
+
+- NpgsqlRest 2.0.0
+
+## Contributing
+
+Contributions from the community are welcomed.
+Please make a pull request with a description if you wish to contribute.
+
+## License
+
+This project is licensed under the terms of the MIT license.
