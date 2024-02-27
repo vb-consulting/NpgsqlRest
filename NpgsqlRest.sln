@@ -21,8 +21,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkTests", "BenchmarkTests\BenchmarkTests.csproj", "{2D8EAE94-E992-4CA0-BB86-91738ABB429B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AotBuildTemplate", "AotBuildTemplate\AotBuildTemplate.csproj", "{E05A79A7-C55A-4BD4-B62B-345A7DD1F80A}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "plugins", "plugins", "{168D4570-4DD0-4E85-83E4-889B7495370A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRest.HttpFiles", "plugins\NpgsqlRest.HttpFiles\NpgsqlRest.HttpFiles.csproj", "{9D0D7807-9633-49A7-81D6-F2DD722DCC04}"

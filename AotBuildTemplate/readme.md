@@ -10,11 +10,11 @@ You can use this project to customize your build.
 To publish Windows AOT build use:
 
 ```console
-dotnet publish -r win-x64 -c Release --outoput [output dir]
+dotnet publish -r win-x64 -c Release --output [output dir]
 ```
 
 To publish Linux AOT build use:
 
 ```console
-dotnet publish -r linux-x64 -c Release --outoput [output dir]
+dotnet publish -r linux-x64 -c Release --output [output dir]
 ```

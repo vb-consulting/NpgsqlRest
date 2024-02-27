@@ -48,6 +48,7 @@ if (urls != null)
 }
 
 var httpFileOptions = config?.GetSection("HttpFileOptions");
+var crudSource = config?.GetSection("CrudSource");
 
 app.UseNpgsqlRest(new()
 {
@@ -96,7 +97,27 @@ app.UseNpgsqlRest(new()
 
     SourcesCreated = sources =>
     {
-        sources.Add(new CrudSource()); 
+        if (crudSource is not null)
+        {
+            sources.Add(new CrudSource
+            {
+                SchemaSimilarTo = GetStr("SchemaSimilarTo", crudSource),
+                SchemaNotSimilarTo = GetStr("SchemaNotSimilarTo", crudSource),
+                IncludeSchemas = GetArray("IncludeSchemas", crudSource),
+                ExcludeSchemas = GetArray("ExcludeSchemas", crudSource),
+                NameSimilarTo = GetStr("NameSimilarTo", crudSource),
+                NameNotSimilarTo = GetStr("NameNotSimilarTo", crudSource),
+                IncludeNames = GetArray("IncludeNames", crudSource),
+                ExcludeNames = GetArray("ExcludeNames", crudSource),
+                CrudTypes = GetFlag<CrudCommandType>("CrudTypes", crudSource),
+                ReturningUrlPattern = GetStr("ReturningUrlPattern", crudSource) ?? "{0}/returning",
+                OnConflictDoNothingUrlPattern = GetStr("OnConflictDoNothingUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing",
+                OnConflictDoNothingReturningUrlPattern = GetStr("OnConflictDoNothingReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing/returning",
+                OnConflictDoUpdateUrlPattern = GetStr("OnConflictDoUpdateUrlPattern", crudSource) ?? "{0}/on-conflict-do-update",
+                OnConflictDoUpdateReturningUrlPattern = GetStr("OnConflictDoUpdateReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-update/returning",
+                CommentsMode = GetEnum<CommentsMode>("CommentsMode", crudSource),
+            });
+        }
     },
 });
 app.Run();
@@ -157,6 +178,40 @@ T? GetEnum<T>(string key, IConfiguration? subsection = null)
         }
     }
     return default;
+}
+
+T? GetFlag<T>(string key, IConfiguration? subsection = null)
+{
+    var array = GetArray(key, subsection);
+    if (array is null)
+    {
+        return default;
+    }
+
+    var type = typeof(T);
+    var nullable = Nullable.GetUnderlyingType(type);
+    var names = Enum.GetNames(nullable ?? type);
+
+    T? result = default;
+    foreach(var value in array)
+    {
+        foreach (var name in names)
+        {
+            if (string.Equals(value, name, StringComparison.OrdinalIgnoreCase))
+            {
+                var e = (T)Enum.Parse(nullable ?? type, name);
+                if (result is null)
+                {
+                    result = e;
+                }
+                else
+                {
+                    result = (T)Enum.ToObject(type, Convert.ToInt32(result) | Convert.ToInt32(e));
+                }
+            }
+        }
+    }
+    return result;
 }
 
 static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>

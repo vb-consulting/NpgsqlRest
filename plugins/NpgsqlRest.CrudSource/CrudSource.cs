@@ -49,23 +49,74 @@ public class CrudSource(
     Func<Routine, CrudCommandType, bool>? created = null,
     CommentsMode? commentsMode = null) : IRoutineSource
 {
+    //
+    // When not NULL, overrides the main option SchemaSimilarTo. It filters schemas similar to this or null to ignore this parameter.
+    //
     public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
+    //
+    // When not NULL, overrides the main option SchemaNotSimilarTo. It filters schemas not similar to this or null to ignore this parameter.
+    //
     public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
+    //
+    // When not NULL, overrides the main option IncludeSchemas. List of schema names to be included or null to ignore this parameter.
+    //
     public string[]? IncludeSchemas { get; init; } = includeSchemas;
+    //
+    // When not NULL, overrides the main option ExcludeSchemas. List of schema names to be excluded or null to ignore this parameter.
+    //
     public string[]? ExcludeSchemas { get; init; } = excludeSchemas;
+    //
+    // When not NULL, overrides the main option NameSimilarTo. It filters names similar to this or null to ignore this parameter.
+    //
     public string? NameSimilarTo { get; init; } = nameSimilarTo;
+    //
+    // When not NULL, overrides the main option NameNotSimilarTo. It filters names not similar to this or null to ignore this parameter.
+    //
     public string? NameNotSimilarTo { get; init; } = nameNotSimilarTo;
+    //
+    // 	When not NULL, overrides the main option IncludeNames. List of names to be included or null to ignore this parameter.
+    //
     public string[]? IncludeNames { get; init; } = includeNames;
+    //
+    // 	When not NULL, overrides the main option ExcludeNames. List of names to be excluded or null to ignore this parameter.
+    //
     public string[]? ExcludeNames { get; init; } = excludeNames;
+    //
+    // Custom query instead of the default one. See default in CrudSourceQuery.cs
+    //
     public string Query { get; init; } = query ?? CrudSourceQuery.Query;
+    //
+    // Type of CRUD queries and commands to create.
+    //
     public CrudCommandType CrudTypes { get; init; } = crudTypes;
+    //
+    // URL pattern for all "returning" endpoints. Parameter is the original URL. Default is "{0}/returning".
+    //
     public string ReturningUrlPattern { get; init; } = returningUrlPattern;
+    //
+    // URL pattern for all "do nothing" endpoints. Parameter is the original URL. Default is "{0}/on-conflict-do-nothing".
+    //
     public string OnConflictDoNothingUrlPattern { get; init; } = onConflictDoNothingUrlPattern;
+    //
+    // URL pattern for all "do nothing returning " endpoints. Parameter is the original URL. Default is "{0}/on-conflict-do-nothing/returning".
+    //
     public string OnConflictDoNothingReturningUrlPattern { get; init; } = onConflictDoNothingReturningUrlPattern;
+    //
+    // URL pattern for all "do update" endpoints. Parameter is the original URL. Default is "{0}/on-conflict-do-update".
+    //
     public string OnConflictDoUpdateUrlPattern { get; init; } = onConflictDoUpdateUrlPattern;
+    //
+    // URL pattern for all "do update returning" endpoints. Parameter is the original URL. Default the "{0}/on-conflict-do-update/returning".
+    //
     public string OnConflictDoUpdateReturningUrlPattern { get; init; } = onConflictDoUpdateReturningUrlPattern;
+    //
+    // Callback function, when not null it is evaluated when Routine object is created for a certain type. Return true or false to disable or enable endpoints.
+    //
     public Func<Routine, CrudCommandType, bool>? Created { get; init; } = created;
-    public CommentsMode? CommentsMode { get; } = commentsMode;
+    //
+    // Comments mode (`Ignore`, `ParseAll`, `OnlyWithHttpTag`), when not null overrides the `CommentsMode` from the main options.
+    //
+    public CommentsMode? CommentsMode { get; set; } = commentsMode;
 
     private readonly IRoutineSourceParameterFormatter _selectParameterFormatter = new SelectParameterFormatter();
     private readonly IRoutineSourceParameterFormatter _updateParameterFormatter = new UpdateParameterFormatter();

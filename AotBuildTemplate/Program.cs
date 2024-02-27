@@ -1,8 +1,9 @@
 using NpgsqlRest;
+using NpgsqlRest.CrudSource;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
 
-var builder = WebApplication.CreateEmptyBuilder(new ());
+var builder = WebApplication.CreateEmptyBuilder(new());
 builder.WebHost.UseKestrelCore();
 
 var config = new ConfigurationBuilder()
@@ -38,12 +39,16 @@ if (GetBool("UseLogging"))
 var app = builder.Build();
 
 var urls = GetArray("Urls");
-foreach (var url in urls)
+if (urls != null)
 {
-    app.Urls.Add(url);
+    foreach (var url in urls)
+    {
+        app.Urls.Add(url);
+    }
 }
 
-var httpFileOptions = config.GetSection("HttpFileOptions");
+var httpFileOptions = config?.GetSection("HttpFileOptions");
+var crudSource = config?.GetSection("CrudSource");
 
 app.UseNpgsqlRest(new()
 {
@@ -61,7 +66,7 @@ app.UseNpgsqlRest(new()
     UrlPathBuilder = GetBool("KebabCaseUrls") ? DefaultUrlBuilder.CreateUrl : CreateUrl,
 
     NameConverter = GetBool("CamelCaseNames") ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
-    RequiresAuthorization = GetBool( "RequiresAuthorization"),
+    RequiresAuthorization = GetBool("RequiresAuthorization"),
 
     LoggerName = GetStr("LoggerName"),
     LogEndpointCreatedInfo = GetBool("LogEndpointCreatedInfo"),
@@ -77,8 +82,8 @@ app.UseNpgsqlRest(new()
     RequestHeadersMode = GetEnum<RequestHeadersMode>("RequestHeadersMode"),
     RequestHeadersParameterName = GetStr("RequestHeadersParameterName") ?? "headers",
 
-    EndpointCreateHandlers = [ 
-        new HttpFile(new HttpFileOptions 
+    EndpointCreateHandlers = [
+        new HttpFile(new HttpFileOptions
         {
             Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
             NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
@@ -88,34 +93,63 @@ app.UseNpgsqlRest(new()
             FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
             ConnectionString = connectionString
         })
-    ]
+    ],
+
+    SourcesCreated = sources =>
+    {
+        if (crudSource is not null)
+        {
+            sources.Add(new CrudSource
+            {
+                SchemaSimilarTo = GetStr("SchemaSimilarTo", crudSource),
+                SchemaNotSimilarTo = GetStr("SchemaNotSimilarTo", crudSource),
+                IncludeSchemas = GetArray("IncludeSchemas", crudSource),
+                ExcludeSchemas = GetArray("ExcludeSchemas", crudSource),
+                NameSimilarTo = GetStr("NameSimilarTo", crudSource),
+                NameNotSimilarTo = GetStr("NameNotSimilarTo", crudSource),
+                IncludeNames = GetArray("IncludeNames", crudSource),
+                ExcludeNames = GetArray("ExcludeNames", crudSource),
+                CrudTypes = GetFlag<CrudCommandType>("CrudTypes", crudSource),
+                ReturningUrlPattern = GetStr("ReturningUrlPattern", crudSource) ?? "{0}/returning",
+                OnConflictDoNothingUrlPattern = GetStr("OnConflictDoNothingUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing",
+                OnConflictDoNothingReturningUrlPattern = GetStr("OnConflictDoNothingReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing/returning",
+                OnConflictDoUpdateUrlPattern = GetStr("OnConflictDoUpdateUrlPattern", crudSource) ?? "{0}/on-conflict-do-update",
+                OnConflictDoUpdateReturningUrlPattern = GetStr("OnConflictDoUpdateReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-update/returning",
+                CommentsMode = GetEnum<CommentsMode>("CommentsMode", crudSource),
+            });
+        }
+    },
 });
 app.Run();
 return;
 
 string? GetStr(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config.GetSection(key);
-    return string.IsNullOrEmpty(section.Value) ? null : section.Value;
+    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
+    return string.IsNullOrEmpty(section?.Value) ? null : section.Value;
 }
 
 bool GetBool(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config.GetSection(key);
-    return string.Equals(section.Value, "true", StringComparison.OrdinalIgnoreCase);
+    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
+    return string.Equals(section?.Value, "true", StringComparison.OrdinalIgnoreCase);
 }
 
-string[] GetArray(string key, IConfiguration? subsection = null)
+string[]? GetArray(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config.GetSection(key);
-    var children = section.GetChildren();
+    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
+    var children = section?.GetChildren();
+    if (children is null)
+    {
+        return null;
+    }
     return children.Select(c => c.Value ?? "").ToArray();
 }
 
 int? GetInt(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config.GetSection(key);
-    if (section.Value is null)
+    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
+    if (section?.Value is null)
     {
         return null;
     }
@@ -128,8 +162,8 @@ int? GetInt(string key, IConfiguration? subsection = null)
 
 T? GetEnum<T>(string key, IConfiguration? subsection = null)
 {
-    var section = subsection?.GetSection(key) ?? config.GetSection(key);
-    if (string.IsNullOrEmpty(section.Value))
+    var section = subsection?.GetSection(key) ?? config?.GetSection(key);
+    if (string.IsNullOrEmpty(section?.Value))
     {
         return default;
     }
@@ -146,6 +180,40 @@ T? GetEnum<T>(string key, IConfiguration? subsection = null)
     return default;
 }
 
+T? GetFlag<T>(string key, IConfiguration? subsection = null)
+{
+    var array = GetArray(key, subsection);
+    if (array is null)
+    {
+        return default;
+    }
+
+    var type = typeof(T);
+    var nullable = Nullable.GetUnderlyingType(type);
+    var names = Enum.GetNames(nullable ?? type);
+
+    T? result = default;
+    foreach (var value in array)
+    {
+        foreach (var name in names)
+        {
+            if (string.Equals(value, name, StringComparison.OrdinalIgnoreCase))
+            {
+                var e = (T)Enum.Parse(nullable ?? type, name);
+                if (result is null)
+                {
+                    result = e;
+                }
+                else
+                {
+                    result = (T)Enum.ToObject(type, Convert.ToInt32(result) | Convert.ToInt32(e));
+                }
+            }
+        }
+    }
+    return result;
+}
+
 static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
     string.Concat(
         string.IsNullOrEmpty(options.UrlPathPrefix) ? "/" : string.Concat("/", options.UrlPathPrefix.Trim('/')),
@@ -153,3 +221,4 @@ static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
         "/",
         routine.Name.Trim('"').Trim('/'),
         "/");
+
