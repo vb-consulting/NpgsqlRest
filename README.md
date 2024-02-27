@@ -146,17 +146,17 @@ The latest performance comparison with the PostgREST:
 
 | Records | Function   | NpgsqlRest Requests | PostgREST Requests | Ratio |
 | ------: | ---------: | ---------: | --------: | --------: |
-| 10 | `perf_test` | 392.212 | 74.621 | 5.26 |
-| 100 | `perf_test` | 407.844 | 60.704 | 6.72 |
-| 10 | `perf_test_arrays` | 292.392 | 50.549 | 5.78 |
-| 100 | `perf_test_arrays` | 240.158 | 50.911 | 4.72 |
-| 10 | `perf_test_record` | 518.515 | 57.665 | 8.99 |
-| 100 | `perf_test_record` | 439.220 | 59.413 | 7.39 |
-| 10 | `perf_test_record_arrays` | 383.549 | 52.951 | 7.24 |
-| 100 | `perf_test_record_arrays` | 338.835 | 51.507 | 6.58 |
+| 10 | `perf_test` | 362,790 | 68,021 | 5.33 |
+| 100 | `perf_test` | 390,928 | 59,749 | 6.54 |
+| 10 | `perf_test_arrays` | 296,016 | 51,704 | 5.73 |
+| 100 | `perf_test_arrays` | 296,873 | 49,760 | 5.97 |
+| 10 | `perf_test_record` | 514,633 | 62,392 | 8.25 |
+| 100 | `perf_test_record` | 518,993 | 64,619 | 8.03 |
+| 10 | `perf_test_record_arrays` | 363,380 | 55,602 | 6.54 |
+| 100 | `perf_test_record_arrays` | 383,719 | 51,401 | 7.45 |
 
 See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/PerfomanceTests).
-  
+
 ## Getting Started
 
 ### Using Executables

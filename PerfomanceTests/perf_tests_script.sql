@@ -35,7 +35,7 @@ select
     (i % 2)::boolean and _bool_param as is_foobar
 from
     generate_series(1, _records) as i
-    $$;
+$$;
 /*
 select * from perf_test(
     _records => 10,
@@ -81,7 +81,7 @@ select
     array[(i % 2)::boolean and _bool_param, ((i+1) % 2)::boolean and _bool_param, ((i+2) % 2)::boolean and _bool_param] as is_foobar
 from
     generate_series(1, _records) as i
-    $$;
+$$;
 /*
 select * from perf_test_arrays(
     _records => 10,
@@ -116,7 +116,7 @@ select
     (i % 2)::boolean and _bool_param as is_foobar
 from
     generate_series(1, _records) as i
-    $$;
+$$;
 /*
 select perf_test_record(
     _records => 10,
@@ -151,7 +151,7 @@ select
     array[(i % 2)::boolean and _bool_param, ((i+1) % 2)::boolean and _bool_param, ((i+2) % 2)::boolean and _bool_param] as is_foobar
 from
     generate_series(1, _records) as i
-    $$;
+$$;
 /*
 select perf_test_record_arrays(
     _records => 10,
