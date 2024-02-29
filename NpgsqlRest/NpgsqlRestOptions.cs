@@ -40,7 +40,9 @@ public class NpgsqlRestOptions(
     Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,
     Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null,
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
-    Action<List<IRoutineSource>>? sourcesCreated = null)
+    Action<List<IRoutineSource>>? sourcesCreated = null,
+    TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
+    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -220,6 +222,19 @@ public class NpgsqlRestOptions(
     /// Default routine source is PostgreSQL routines (functions and procedure).
     /// </summary>
     public Action<List<IRoutineSource>> SourcesCreated { get; set; } = sourcesCreated ?? (s => {});
-
+    /// <summary>
+    /// When response type is text and the result is null, this option defines how to handle the null value.
+    /// - EmptyString: Returns an empty string.
+    /// - NullLiteral: Returns the null literal: "null".
+    /// - NoContent: Returns no content with status code 204.
+    /// </summary>
+    public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
+    /// <summary>
+    /// How to interpret null values in the query string:
+    /// - EmptyString: empty string is used as a value for null parameters.
+    /// - NullLiteral: null literal "null" is used as a value for null parameters.
+    /// - Ignore: null parameters are ignored.
+    /// </summary>
+    public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

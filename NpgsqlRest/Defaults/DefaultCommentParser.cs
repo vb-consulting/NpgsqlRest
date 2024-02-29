@@ -54,6 +54,7 @@ internal static class DefaultCommentParser
     private const string IgnoreKey = "ignore";
     private const string ContextKey = "context";
     private const string ParameterKey = "parameter";
+
     private static readonly string[] requestHeadersParameterNameKey = [
         "requestheadersparametername",
         "requestheadersparamname",
@@ -74,6 +75,21 @@ internal static class DefaultCommentParser
 
     private const string DisabledKey = "disabled";
     private const string EnabledKey = "enabled";
+
+    private static readonly string[] textResponseNullHandlingKey = [
+        "responsenullhandling",
+        "response_null_handling",
+        "response-null-handling",
+    ];
+    private const string EmptyStringKey = "emptystring";
+    private const string NullLiteral = "nullliteral";
+    private const string NoContentKey = "nocontent";
+
+    private static readonly string[] queryStringNullHandlingKey = [
+        "querystringnullhandling",
+        "query-string-null-handling",
+        "query_string_null_handling",
+    ];
 
     public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
     {
@@ -335,6 +351,60 @@ internal static class DefaultCommentParser
                             Info(ref logger, ref options, ref routine, $"has set BODY PARAMETER NAME by comment annotations to \"{words[1]}\"");
                         }
                         routineEndpoint.BodyParameterName = words[1];
+                    }
+                }
+
+                // responsenullhandling [ emptystring | nullliteral | nocontent ]
+                // response_null_handling [ emptystring | nullliteral | nocontent ]
+                // response-null-handling [ emptystring | nullliteral | nocontent ]
+                else if (haveTag is true && StrEqualsToArray(ref words[0], textResponseNullHandlingKey))
+                {
+                    if (StrEquals(ref words[1], EmptyStringKey))
+                    {
+                        routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.EmptyString;
+                    }
+                    else if (StrEquals(ref words[1], NullLiteral))
+                    {
+                        routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NullLiteral;
+                    }
+                    else if (StrEquals(ref words[1], NoContentKey))
+                    {
+                        routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NoContent;
+                    }
+                    else
+                    {
+                        logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are EmptyString or NullLiteral or NoContent. Using default '{routineEndpoint.TextResponseNullHandling}'");
+                    }
+                    if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
+                    {
+                        Info(ref logger, ref options, ref routine, $"has set TEXT RESPONSE HANDLING by comment annotations to \"{routineEndpoint.TextResponseNullHandling}\"");
+                    }
+                }
+
+                // querystringnullhandling [ emptystring | nullliteral | ignore ]
+                // query_string_null_handling [ emptystring | nullliteral | ignore ]
+                // query-string-null-handling [ emptystring | nullliteral | ignore ]
+                else if (haveTag is true && StrEqualsToArray(ref words[0], queryStringNullHandlingKey))
+                {
+                    if (StrEquals(ref words[1], EmptyStringKey))
+                    {
+                        routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.EmptyString;
+                    }
+                    else if (StrEquals(ref words[1], NullLiteral))
+                    {
+                        routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.NullLiteral;
+                    }
+                    else if (StrEquals(ref words[1], IgnoreKey))
+                    {
+                        routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.Ignore;
+                    }
+                    else
+                    {
+                        logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are EmptyString or NullLiteral or Ignore. Using default '{routineEndpoint.QueryStringNullHandling}'");
+                    }
+                    if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
+                    {
+                        Info(ref logger, ref options, ref routine, $"has set QUERY STRING NULL HANDLING by comment annotations to \"{routineEndpoint.QueryStringNullHandling}\"");
                     }
                 }
 

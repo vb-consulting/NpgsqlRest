@@ -22,14 +22,16 @@ public static partial class Database
         (1, 'test', 'email@email.com');
 
 
-        create function get_latest_customer() returns customers language sql as $$
+        create function get_latest_customer() returns customers language sql 
+        as $$
         select * 
         from customers
         order by created_at
         limit 1
         $$;
 
-        create function get_latest_customer_record() returns record language sql as $$
+        create function get_latest_customer_record() returns record language sql 
+        as $$
         select * 
         from customers
         order by created_at
@@ -46,22 +48,22 @@ public class SingleRecordTests(TestFixture test)
     [Fact]
     public async Task Test_get_latest_customer()
     {
-        using var respopnse = await test.Client.GetAsync($"/api/get-latest-customer/");
-        var content = await respopnse.Content.ReadAsStringAsync();
+        using var response = await test.Client.GetAsync($"/api/get-latest-customer/");
+        var content = await response.Content.ReadAsStringAsync();
 
-        respopnse.StatusCode.Should().Be(HttpStatusCode.OK);
-        respopnse.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
-        content.Should().StartWith("{\"customerId\":1,\"name\":\"test\",\"email\":\"email@email.com\",\"createdAt\":\"2024-02-29T00:00:00\"}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        content.Should().Be("{\"customerId\":1,\"name\":\"test\",\"email\":\"email@email.com\",\"createdAt\":\"2024-02-29T00:00:00\"}");
     }
 
     [Fact]
     public async Task Test_get_latest_customer_record()
     {
-        using var respopnse = await test.Client.GetAsync($"/api/get-latest-customer-record/");
-        var content = await respopnse.Content.ReadAsStringAsync();
+        using var response = await test.Client.GetAsync($"/api/get-latest-customer-record/");
+        var content = await response.Content.ReadAsStringAsync();
 
-        respopnse.StatusCode.Should().Be(HttpStatusCode.OK);
-        respopnse.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
-        content.Should().StartWith("[\"1\",\"test\",\"email@email.com\",\"2024-02-29 00:00:00\"]");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        content.Should().Be("[\"1\",\"test\",\"email@email.com\",\"2024-02-29 00:00:00\"]");
     }
 }

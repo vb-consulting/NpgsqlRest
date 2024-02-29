@@ -13,7 +13,9 @@ public struct RoutineEndpoint(
     Dictionary<string, StringValues> responseHeaders,
     RequestHeadersMode requestHeadersMode,
     string requestHeadersParameterName,
-    string? bodyParameterName)
+    string? bodyParameterName,
+    TextResponseNullHandling textResponseNullHandling,
+    QueryStringNullHandling queryStringNullHandling)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
     public string Url { get; set; } = url;
@@ -28,4 +30,6 @@ public struct RoutineEndpoint(
     public RequestHeadersMode RequestHeadersMode { get; set; } = requestHeadersMode;
     public string RequestHeadersParameterName { get; set; } = requestHeadersParameterName;
     public string? BodyParameterName { get; set; } = bodyParameterName;
+    public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
+    public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
 }

@@ -147,7 +147,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             };
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
-                                if (ParameterParser.TryParseParameter(ref qsValue, ref descriptor, ref parameter))
+                                if (ParameterParser.TryParseParameter(ref qsValue, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
                                 {
                                     if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                     {
@@ -212,7 +212,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         else
                                         {
                                             StringValues bodyStringValues = body;
-                                            if (!ParameterParser.TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter))
+                                            if (!ParameterParser.TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
                                             {
                                                 // parameters don't match, continuing to another overload
                                                 if (options.LogParameterMismatchWarnings)
@@ -640,6 +640,18 @@ public static class NpgsqlRestMiddlewareExtensions
                                 if (value is not null)
                                 {
                                     await context.Response.WriteAsync(value);
+                                }
+                                else
+                                {
+                                    if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
+                                    {
+                                        await context.Response.WriteAsync("null");
+                                    }
+                                    else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
+                                    {
+                                        context.Response.StatusCode = (int)HttpStatusCode.NoContent;
+                                    }
+                                    // else OK empty string
                                 }
                                 await context.Response.CompleteAsync();
                                 return;

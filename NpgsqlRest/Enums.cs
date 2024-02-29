@@ -1,14 +1,12 @@
 ﻿namespace NpgsqlRest;
 
 public enum RoutineType { Table, View, Function, Procedure, Other }
-
 public enum CrudType { Select, Insert, Update, Delete }
-
 public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNECT }
-
 public enum RequestParamType { QueryString, BodyJson }
-
 public enum CommentHeader { None, Simple, Full }
+public enum TextResponseNullHandling { EmptyString, NullLiteral, NoContent }
+public enum QueryStringNullHandling { EmptyString, NullLiteral, Ignore }
 
 public enum CommentsMode 
 { 

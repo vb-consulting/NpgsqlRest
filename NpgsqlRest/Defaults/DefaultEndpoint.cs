@@ -41,27 +41,21 @@ internal static class DefaultEndpoint
             })
             .ToArray();
 
-        var requiresAuthorization = options.RequiresAuthorization;
-        var commandTimeout = options.CommandTimeout;
-        string? responseContentType = null;
-        Dictionary<string, StringValues>? responseHeaders = null;
-        RequestHeadersMode requestHeadersMode = options.RequestHeadersMode;
-        string requestHeadersParameterName = options.RequestHeadersParameterName;
-        string? bodyParameterName = null;
-
         RoutineEndpoint routineEndpoint = new(
                 url: url,
                 method: method,
                 requestParamType: requestParamType,
-                requiresAuthorization: requiresAuthorization,
+                requiresAuthorization: options.RequiresAuthorization,
                 returnRecordNames: returnRecordNames,
                 paramNames: paramNames,
-                commandTimeout: commandTimeout,
-                responseContentType: responseContentType,
-                responseHeaders: responseHeaders ?? [],
-                requestHeadersMode: requestHeadersMode,
-                requestHeadersParameterName: requestHeadersParameterName,
-                bodyParameterName: bodyParameterName);
+                commandTimeout: options.CommandTimeout,
+                responseContentType: null,
+                responseHeaders: [],
+                requestHeadersMode: options.RequestHeadersMode,
+                requestHeadersParameterName: options.RequestHeadersParameterName,
+                bodyParameterName: null,
+                textResponseNullHandling: options.TextResponseNullHandling,
+                queryStringNullHandling: options.QueryStringNullHandling);
 
 
         return DefaultCommentParser.Parse(
