@@ -8,6 +8,8 @@ public enum Method { GET, PUT, POST, DELETE, HEAD, OPTIONS, TRACE, PATCH, CONNEC
 
 public enum RequestParamType { QueryString, BodyJson }
 
+public enum CommentHeader { None, Simple, Full }
+
 public enum CommentsMode 
 { 
     /// <summary>

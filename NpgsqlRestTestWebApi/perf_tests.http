@@ -145,6 +145,18 @@ GET {{host}}/api/crud-select-tests?id=1&name=XYZ&date=2024-03-03&status=true
 
 ###
 
+// delete from public.crud_select_tests
+DELETE {{host}}/api/crud-select-tests?id=1&name=XYZ&date=2024-03-03&status=true
+
+###
+
+// delete from public.crud_select_tests
+// returning
+//     id, name, date, status
+DELETE {{host}}/api/crud-select-tests/returning?id=1&name=XYZ&date=2024-03-03&status=true
+
+###
+
 // insert into public.crud_select_tests
 PUT {{host}}/api/crud-select-tests
 content-type: application/json
@@ -175,6 +187,18 @@ content-type: application/json
 
 // select public.proc_test_tbl
 GET {{host}}/api/proc-test-tbl?i=1&t=XYZ
+
+###
+
+// delete from public.proc_test_tbl
+DELETE {{host}}/api/proc-test-tbl?i=1&t=XYZ
+
+###
+
+// delete from public.proc_test_tbl
+// returning
+//     i, t
+DELETE {{host}}/api/proc-test-tbl/returning?i=1&t=XYZ
 
 ###
 

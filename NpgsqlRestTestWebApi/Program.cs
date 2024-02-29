@@ -2,6 +2,7 @@ using NpgsqlRest;
 using NpgsqlRest.CrudSource;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
+using NpgsqlRest.TsClient;
 
 var builder = WebApplication.CreateEmptyBuilder(new ());
 builder.WebHost.UseKestrelCore();
@@ -92,32 +93,35 @@ app.UseNpgsqlRest(new()
             FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
             FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
             ConnectionString = connectionString
+        }),
+        new TsClient(new TsClientOptions
+        {
+            FilePath = "../../RazorSvelte/RazorSvelte/App/test2.ts",
+            FileOverwrite = true,
+            IncludeHost = true,
         })
     ],
 
     SourcesCreated = sources =>
     {
-        if (crudSource is not null)
+        sources.Add(new CrudSource
         {
-            sources.Add(new CrudSource
-            {
-                SchemaSimilarTo = GetStr("SchemaSimilarTo", crudSource),
-                SchemaNotSimilarTo = GetStr("SchemaNotSimilarTo", crudSource),
-                IncludeSchemas = GetArray("IncludeSchemas", crudSource),
-                ExcludeSchemas = GetArray("ExcludeSchemas", crudSource),
-                NameSimilarTo = GetStr("NameSimilarTo", crudSource),
-                NameNotSimilarTo = GetStr("NameNotSimilarTo", crudSource),
-                IncludeNames = GetArray("IncludeNames", crudSource),
-                ExcludeNames = GetArray("ExcludeNames", crudSource),
-                CrudTypes = GetFlag<CrudCommandType>("CrudTypes", crudSource),
-                ReturningUrlPattern = GetStr("ReturningUrlPattern", crudSource) ?? "{0}/returning",
-                OnConflictDoNothingUrlPattern = GetStr("OnConflictDoNothingUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing",
-                OnConflictDoNothingReturningUrlPattern = GetStr("OnConflictDoNothingReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing/returning",
-                OnConflictDoUpdateUrlPattern = GetStr("OnConflictDoUpdateUrlPattern", crudSource) ?? "{0}/on-conflict-do-update",
-                OnConflictDoUpdateReturningUrlPattern = GetStr("OnConflictDoUpdateReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-update/returning",
-                CommentsMode = GetEnum<CommentsMode>("CommentsMode", crudSource),
-            });
-        }
+            SchemaSimilarTo = GetStr("SchemaSimilarTo", crudSource),
+            SchemaNotSimilarTo = GetStr("SchemaNotSimilarTo", crudSource),
+            IncludeSchemas = GetArray("IncludeSchemas", crudSource),
+            ExcludeSchemas = GetArray("ExcludeSchemas", crudSource),
+            NameSimilarTo = GetStr("NameSimilarTo", crudSource),
+            NameNotSimilarTo = GetStr("NameNotSimilarTo", crudSource),
+            IncludeNames = GetArray("IncludeNames", crudSource),
+            ExcludeNames = GetArray("ExcludeNames", crudSource),
+            CrudTypes = GetFlag<CrudCommandType>("CrudTypes", crudSource),
+            ReturningUrlPattern = GetStr("ReturningUrlPattern", crudSource) ?? "{0}/returning",
+            OnConflictDoNothingUrlPattern = GetStr("OnConflictDoNothingUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing",
+            OnConflictDoNothingReturningUrlPattern = GetStr("OnConflictDoNothingReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing/returning",
+            OnConflictDoUpdateUrlPattern = GetStr("OnConflictDoUpdateUrlPattern", crudSource) ?? "{0}/on-conflict-do-update",
+            OnConflictDoUpdateReturningUrlPattern = GetStr("OnConflictDoUpdateReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-update/returning",
+            CommentsMode = GetEnum<CommentsMode>("CommentsMode", crudSource),
+        });
     },
 });
 app.Run();

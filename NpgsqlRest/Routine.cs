@@ -8,10 +8,8 @@ public readonly struct Routine(
     bool isStrict,
     CrudType crudType,
     bool returnsRecord,
-    string returnType,
     int returnRecordCount,
     string[] returnRecordNames,
-    string[] returnRecordTypes,
     TypeDescriptor[] returnTypeDescriptor,
     bool returnsUnnamedSet,
     bool isVoid,
@@ -31,10 +29,8 @@ public readonly struct Routine(
     public bool IsStrict { get; } = isStrict;
     public CrudType CrudType { get; } = crudType;
     public bool ReturnsRecord { get; } = returnsRecord;
-    public string ReturnType { get; } = returnType;
     public int ReturnRecordCount { get; } = returnRecordCount;
     public string[] ReturnRecordNames { get; } = returnRecordNames;
-    public string[] ReturnRecordTypes { get; } = returnRecordTypes;
     public TypeDescriptor[] ReturnTypeDescriptor { get; } = returnTypeDescriptor;
     public bool ReturnsUnnamedSet { get; } = returnsUnnamedSet;
     public bool IsVoid { get; } = isVoid;

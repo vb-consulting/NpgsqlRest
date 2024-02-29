@@ -223,7 +223,7 @@ public class CrudSource(
         using NpgsqlDataReader reader = command.ExecuteReader();
         while (reader.Read())
         {
-            var type = reader.Get<string>("comment") switch
+            var type = reader.Get<string>("type") switch
             {
                 "BASE TABLE" => RoutineType.Table,
                 "VIEW" => RoutineType.View,
@@ -281,10 +281,8 @@ public class CrudSource(
                     isStrict: false,
                     crudType: crudType,
                     returnsRecord: true,
-                    returnType: name,
                     returnRecordCount: columnCount,
                     returnRecordNames: columnNames,
-                    returnRecordTypes: columnTypes,
                     returnsUnnamedSet: false,
                     returnTypeDescriptor: typeDescriptors ?? descriptors,
                     isVoid: isVoid,
@@ -526,7 +524,7 @@ public class CrudSource(
                         CrudType.Insert,
                         expression: string.Concat(insertExp, onConflict, doUpdate),
                         fullDefinition: string.Concat(insertDef, onConflict, doUpdate),
-                        simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate),
+                        simpleDefinition: string.Concat(insertSimple, onConflict, "do update"),
                         isVoid: true,
                         formatUrlPattern: OnConflictDoUpdateUrlPattern,
                         typeDescriptors: insertTypeDescriptors,
@@ -542,7 +540,7 @@ public class CrudSource(
                         CrudType.Insert,
                         expression: string.Concat(insertExp, onConflict, doUpdate, returningExp),
                         fullDefinition: string.Concat(insertDef, onConflict, doUpdate, returningExp),
-                        simpleDefinition: string.Concat(insertSimple, onConflict, doUpdate, returningExp),
+                        simpleDefinition: string.Concat(insertSimple, onConflict, "do update", returningExp),
                         isVoid: false,
                         formatUrlPattern: OnConflictDoUpdateReturningUrlPattern,
                         typeDescriptors: insertTypeDescriptors,

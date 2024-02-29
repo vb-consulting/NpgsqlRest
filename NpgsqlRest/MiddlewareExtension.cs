@@ -570,8 +570,6 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     if (commandText is null)
                     {
-                        //context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        //await context.Response.CompleteAsync();
                         await next(context);
                         return;
                     }

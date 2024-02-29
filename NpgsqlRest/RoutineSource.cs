@@ -62,7 +62,6 @@ public class RoutineSource(
             var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
             var schema = reader.Get<string>("schema");
             var returnsRecord = reader.Get<bool>("returns_record");
-            var returnsUnnamedSet = reader.Get<bool>("returns_unnamed_set");
 
             var returnRecordTypes = reader.Get<string[]>("return_record_types");
             TypeDescriptor[] returnTypeDescriptor;
@@ -90,7 +89,7 @@ public class RoutineSource(
             var returnRecordCount = reader.Get<int>("return_record_count");
             var variadic = reader.Get<bool>("has_variadic");
             var expression = string.Concat(
-                (isVoid || !returnsRecord || (returnsRecord && returnsUnnamedSet) || isUnnamedRecord)
+                (isVoid || returnRecordCount == 1)
                     ? callIdent
                     : string.Concat(callIdent, string.Join(", ", returnRecordNames), " from "),
                 schema,
@@ -124,9 +123,9 @@ public class RoutineSource(
             }
             else
             {
-                if (returnsUnnamedSet || isUnnamedRecord)
+                if (isUnnamedRecord)
                 {
-                    simpleDefinition.AppendLine(string.Concat("returns setof ", returnRecordTypes[0]));
+                    simpleDefinition.AppendLine(string.Concat("returns setof record"));
                 }
                 else
                 {
@@ -153,11 +152,9 @@ public class RoutineSource(
                     crudType: crudType,
                 
                     returnsRecord: returnsRecord,
-                    returnType: returnType,
                     returnRecordCount: returnRecordCount,
                     returnRecordNames: returnRecordNames,
-                    returnRecordTypes: returnRecordTypes,
-                    returnsUnnamedSet: returnsUnnamedSet || isUnnamedRecord,
+                    returnsUnnamedSet: isUnnamedRecord,
                     returnTypeDescriptor: returnTypeDescriptor,
                     isVoid: isVoid,
 
