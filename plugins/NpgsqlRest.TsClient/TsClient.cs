@@ -78,7 +78,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         string? returnExp = null;
         if (routine.IsVoid is false)
         {
-            if (routine.ReturnsRecord is false)
+            if (routine.ReturnsSet is false)
             {
                 var descriptor = routine.ReturnTypeDescriptor[0];
                 responseName = GetTsType(descriptor, true);

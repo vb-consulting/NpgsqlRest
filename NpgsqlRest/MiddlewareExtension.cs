@@ -607,7 +607,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         command.AllResultTypesAreUnknown = true;
                         await using var reader = await command.ExecuteReaderAsync();
-                        if (routine.ReturnsRecord == false)
+                        if (routine.ReturnsSet == false && routine.ReturnRecordCount == 1 && routine.ReturnsRecordType is false)
                         {
                             if (await reader.ReadAsync())
                             {
@@ -675,7 +675,10 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                             }
                             context.Response.StatusCode = (int)HttpStatusCode.OK;
-                            await context.Response.WriteAsync("[");
+                            if (routine.ReturnsSet)
+                            {
+                                await context.Response.WriteAsync("[");
+                            }
                             bool first = true;
                             var routineReturnRecordCount = routine.ReturnRecordCount;
                             while (await reader.ReadAsync())
@@ -769,7 +772,10 @@ public static class NpgsqlRestMiddlewareExtensions
                                 } // end for
 
                             } // end while
-                            await context.Response.WriteAsync("]");
+                            if (routine.ReturnsSet)
+                            {
+                                await context.Response.WriteAsync("]");
+                            }
                             await context.Response.CompleteAsync();
                             return;
                         } // end if (routine.ReturnsRecord == true)

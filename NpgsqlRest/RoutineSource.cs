@@ -61,7 +61,7 @@ public class RoutineSource(
             var paramNames = reader.Get<string[]>("param_names");
             var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
             var schema = reader.Get<string>("schema");
-            var returnsRecord = reader.Get<bool>("returns_record");
+            var returnsSet = reader.Get<bool>("returns_set");
 
             var returnRecordTypes = reader.Get<string[]>("return_record_types");
             TypeDescriptor[] returnTypeDescriptor;
@@ -71,14 +71,7 @@ public class RoutineSource(
             }
             else
             {
-                if (returnsRecord == false)
-                {
-                    returnTypeDescriptor = [new TypeDescriptor(returnType)];
-                }
-                else
-                {
-                    returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
-                }
+                returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
             }
             var returnRecordNames = reader.Get<string[]>("return_record_names");
             var paramDefaults = reader.Get<string?[]>("param_defaults");
@@ -117,7 +110,7 @@ public class RoutineSource(
                 }
                 simpleDefinition.AppendLine(")");
             }
-            if (!returnsRecord)
+            if (!returnsSet)
             {
                 simpleDefinition.AppendLine(string.Concat("returns ", returnType));
             }
@@ -125,7 +118,7 @@ public class RoutineSource(
             {
                 if (isUnnamedRecord)
                 {
-                    simpleDefinition.AppendLine(string.Concat("returns setof record"));
+                    simpleDefinition.AppendLine(string.Concat($"returns setof {returnType}"));
                 }
                 else
                 {
@@ -150,8 +143,9 @@ public class RoutineSource(
                     comment: reader.Get<string>("comment"),
                     isStrict: reader.Get<bool>("is_strict"),
                     crudType: crudType,
-                
-                    returnsRecord: returnsRecord,
+
+                    returnsRecordType: string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
+                    returnsSet: returnsSet,
                     returnRecordCount: returnRecordCount,
                     returnRecordNames: returnRecordNames,
                     returnsUnnamedSet: isUnnamedRecord,

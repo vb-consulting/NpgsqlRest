@@ -11,7 +11,7 @@ public static partial class Database
           customer_id bigint not null PRIMARY KEY, 
           name text NOT NULL, 
           email text NULL, 
-          created_at TIMESTAMP NOT NULL default now()
+          created_at TIMESTAMP NOT NULL default '2024-02-29'
         );
 
         comment on table customers is 'disabled';
@@ -22,14 +22,16 @@ public static partial class Database
         (1, 'test', 'email@email.com');
 
 
-        create function get_latest_customer(/*_before timestamp*/) 
-        returns customers 
-        language sql
-        as $$
+        create function get_latest_customer() returns customers language sql as $$
         select * 
         from customers
-        --where
-        --    _before is null or created_at < _before
+        order by created_at
+        limit 1
+        $$;
+
+        create function get_latest_customer_record() returns record language sql as $$
+        select * 
+        from customers
         order by created_at
         limit 1
         $$;
@@ -41,21 +43,25 @@ public static partial class Database
 [Collection("TestFixture")]
 public class SingleRecordTests(TestFixture test)
 {
-    /*
     [Fact]
     public async Task Test_get_latest_customer()
     {
-        //var query = new QueryBuilder
-        //{
-        //    { "before", "" },
-        //};
-        //using var result = await test.Client.GetAsync($"/api/get-latest-customer/{query}");
+        using var respopnse = await test.Client.GetAsync($"/api/get-latest-customer/");
+        var content = await respopnse.Content.ReadAsStringAsync();
 
-        using var result = await test.Client.GetAsync($"/api/get-latest-customer/");
-        var response = await result.Content.ReadAsStringAsync();
-
-        result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        respopnse.StatusCode.Should().Be(HttpStatusCode.OK);
+        respopnse.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        content.Should().StartWith("{\"customerId\":1,\"name\":\"test\",\"email\":\"email@email.com\",\"createdAt\":\"2024-02-29T00:00:00\"}");
     }
-    */
+
+    [Fact]
+    public async Task Test_get_latest_customer_record()
+    {
+        using var respopnse = await test.Client.GetAsync($"/api/get-latest-customer-record/");
+        var content = await respopnse.Content.ReadAsStringAsync();
+
+        respopnse.StatusCode.Should().Be(HttpStatusCode.OK);
+        respopnse.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        content.Should().StartWith("[\"1\",\"test\",\"email@email.com\",\"2024-02-29 00:00:00\"]");
+    }
 }

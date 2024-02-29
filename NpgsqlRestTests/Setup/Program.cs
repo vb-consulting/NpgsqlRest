@@ -42,6 +42,7 @@ public class Program
         var app = builder.Build();
         app.UseNpgsqlRest(new(connectionString)
         {
+            //NameSimilarTo = "get_latest_customer",
             ValidateParameters = Validate,
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async p =>

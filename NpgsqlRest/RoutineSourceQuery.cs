@@ -119,7 +119,7 @@ internal class RoutineSourceQuery
         is_strict,
         volatility_option,
 
-        returns_set as returns_record,
+        returns_set,
         coalesce(return_type, 'void') as return_type,
 
         coalesce(array_length(coalesce(cte1.out_params, cte2.out_params), 1), 1) as return_record_count,
