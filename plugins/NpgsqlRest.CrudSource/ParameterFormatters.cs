@@ -8,7 +8,7 @@ public class SelectParameterFormatter : IRoutineSourceParameterFormatter
     {
         if (index == 0)
         {
-            return string.Concat("where ", parameter.ActualName, " = $1");
+            return string.Concat("where ", Environment.NewLine, "    ", parameter.ActualName, " = $1");
         }
         return string.Concat(" and ", parameter.ActualName, " = $", (index+1).ToString());
     }

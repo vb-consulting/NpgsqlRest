@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace NpgsqlRest.HttpFiles;
@@ -16,7 +17,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
     private IApplicationBuilder _builder = default!;
     private ILogger? _logger;
     
-    public void Setup(IApplicationBuilder builder, ILogger? logger)
+    public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
         _builder = builder;
         _logger = logger;

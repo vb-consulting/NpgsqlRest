@@ -4,189 +4,269 @@ namespace NpgsqlRest.TsClient;
 
 public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 {
-    private readonly StringBuilder _content = new();
     private IApplicationBuilder _builder = default!;
     private ILogger? _logger;
-    private readonly HashSet<string> _models = [];
-    private readonly Dictionary<string, int> _names = [];
+    private NpgsqlRestOptions _options;
 
-    public void Setup(IApplicationBuilder builder, ILogger? logger)
+    public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
         _builder = builder;
         _logger = logger;
-        _models.Clear();
-        _content.Clear();
-        _names.Clear();
-        _content.AppendLine(
-            """
-            const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
-                .map(key => {
-                    const value = query[key] ? query[key] : "";
-                    if (Array.isArray(value)) {
-                        return value.map(s => s ? `${key}=${encodeURIComponent(s)}` : `${key}=`).join("&");
-                    }
-                    return `${key}=${encodeURIComponent(value)}`;
-                })
-                .join("&");
-
-            """);
-
-        _content.AppendFormat("const baseUrl = \"{0}\";", GetHost());
-        _content.AppendLine();
+        _options = options;
     }
 
-    public void Handle(Routine routine, RoutineEndpoint endpoint)
+    public void Cleanup(ref (Routine routine, RoutineEndpoint endpoint)[] endpoints)
     {
-        var name = string.Concat(endpoint.Url, "-", endpoint.Method.ToString().ToLowerInvariant());
-        if (_names.TryGetValue(name, out var count))
-        {
-            _names[name] = count + 1;
-            name = string.Concat(name, "-", count);
-        }
-        else
-        {
-            _names.Add(name, 1);
-        }
-        var pascal = ConvertToPascalCase(name);
-        var camel = ConvertToCamelCase(name);
+        HashSet<string> models___ = [];
+        Dictionary<string, string> modelsDict = [];
+        Dictionary<string, int> names = [];
+        StringBuilder content = new();
+        StringBuilder interfaces = new();
 
-        _content.AppendLine();
+        content.AppendLine(string.Format(
+            """
+            const _baseUrl = "{0}";
 
-        string? requestName = null;
-        if (routine.ParamCount > 0)
+            const _parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
+                .map(key => {{
+                    const value = query[key] ? query[key] : "";
+                    if (Array.isArray(value)) {{
+                        return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
+                    }}
+                    return `${{key}}=${{encodeURIComponent(value)}}`;
+                }})
+                .join("&");
+            """, GetHost())
+        );
+
+        foreach (var (routine, endpoint) in endpoints
+            .Where(e => e.routine.Type == RoutineType.Table || e.routine.Type == RoutineType.View)
+            .OrderBy(e => e.routine.Schema)
+            .ThenBy(e => e.routine.Type)
+            .ThenBy(e => e.routine.Name))
         {
-            requestName = $"I{pascal}Request";
-            if (_models.Contains(requestName) is false)
+            Handle(routine, endpoint);
+        }
+
+        foreach (var (routine, endpoint) in endpoints
+            .Where(e => (e.routine.Type == RoutineType.Table || e.routine.Type == RoutineType.View) is false)
+            .OrderBy(e => e.routine.Schema)
+            .ThenBy(e => e.routine.Name))
+        {
+            Handle(routine, endpoint);
+        }
+
+        if (!options.FileOverwrite && File.Exists(options.FilePath))
+        {
+            return;
+        }
+        interfaces.AppendLine(content.ToString());
+        File.WriteAllText(options.FilePath, interfaces.ToString());
+        _logger?.LogInformation("Created Typescript file: {0}", options.FilePath);
+
+        return;
+
+        void Handle(Routine routine, RoutineEndpoint endpoint)
+        {
+            var name = string.IsNullOrEmpty(_options.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_options.UrlPathPrefix.Length..];
+            if (routine.Type == RoutineType.Table || routine.Type == RoutineType.View)
             {
-                _content.AppendLine($"interface {requestName} {{");
+                name = string.Concat(name, "-", endpoint.Method.ToString().ToLowerInvariant());
+            }
+
+            if (names.TryGetValue(name, out var count))
+            {
+                names[name] = count + 1;
+                name = string.Concat(name, "-", count);
+            }
+            else
+            {
+                names.Add(name, 1);
+            }
+            var pascal = ConvertToPascalCase(name);
+            var camel = ConvertToCamelCase(name);
+
+            content.AppendLine();
+
+            string? requestName = null;
+            if (routine.ParamCount > 0)
+            {
+                StringBuilder req = new();
+                requestName = $"I{pascal}Request";
+
                 for (var i = 0; i < routine.ParamCount; i++)
                 {
                     var descriptor = routine.ParamTypeDescriptor[i];
                     var nameSuffix = descriptor.HasDefault ? "?" : "";
                     var type = GetTsType(descriptor, true);
 
-                    _content.AppendLine($"    {endpoint.ParamNames[i]}{nameSuffix}: {type} | null;");
+                    req.AppendLine($"    {endpoint.ParamNames[i]}{nameSuffix}: {type} | null;");
                 }
-                _content.AppendLine("}");
-                _content.AppendLine();
-                _models.Add(requestName);
-            }
-        }
 
-        string responseName = "void";
-        bool json = false;
-        string? returnExp = null;
-        if (routine.IsVoid is false)
-        {
-            if (routine.ReturnsSet is false)
-            {
-                var descriptor = routine.ReturnTypeDescriptor[0];
-                responseName = GetTsType(descriptor, true);
-                if (descriptor.IsArray)
+                if (modelsDict.TryGetValue(req.ToString(), out var newName))
                 {
-                    json = true;
-                    returnExp = $"return await response.json() as {responseName}[];";
+                    requestName = newName;
                 }
                 else
                 {
-                    if (descriptor.IsDate || descriptor.IsDateTime)
+                    modelsDict.Add(req.ToString(), requestName);
+                    req.Insert(0, $"interface {requestName} {{{Environment.NewLine}");
+                    req.AppendLine("}");
+                    req.AppendLine();
+                    interfaces.Append(req);
+                }
+            }
+
+            string responseName = "void";
+            bool json = false;
+            string? returnExp = null;
+            if (routine.IsVoid is false)
+            {
+                if (routine.ReturnsSet == false && routine.ReturnRecordCount == 1 && routine.ReturnsRecordType is false)
+                {
+                    var descriptor = routine.ReturnTypeDescriptor[0];
+                    responseName = GetTsType(descriptor, true);
+                    if (descriptor.IsArray)
                     {
-                        returnExp = "return new Date(await response.text());";
-                    }
-                    else if (descriptor.IsNumeric)
-                    {
-                        returnExp = "return Number(await response.text());";
-                    }
-                    else if (descriptor.IsBoolean)
-                    {
-                        returnExp = "return (await response.text()).toLowerCase() == \"true\";";
+                        json = true;
+                        returnExp = $"return await response.json() as {responseName}[];";
                     }
                     else
                     {
-                        returnExp = "return await response.text();";
+                        if (descriptor.IsDate || descriptor.IsDateTime)
+                        {
+                            returnExp = "return new Date(await response.text());";
+                        }
+                        else if (descriptor.IsNumeric)
+                        {
+                            returnExp = "return Number(await response.text());";
+                        }
+                        else if (descriptor.IsBoolean)
+                        {
+                            returnExp = "return (await response.text()).toLowerCase() == \"true\";";
+                        }
+                        else
+                        {
+                            returnExp = "return await response.text();";
+                        }
                     }
-                }
-            }
-            else
-            {
-                json = true;
-                if (routine.ReturnsUnnamedSet)
-                {
-                    responseName = "string[][]";
-                    returnExp = "return await response.json() as string[][];";
                 }
                 else
                 {
-                    responseName = $"I{pascal}Response";
-                    returnExp = $"return await response.json() as {responseName};";
-
-                    if (_models.Contains(responseName) is false)
+                    json = true;
+                    if (routine.ReturnsUnnamedSet)
                     {
-                        _content.AppendLine($"interface {responseName} {{");
+                        responseName = "string[]";
+                    }
+                    else
+                    {
+                        StringBuilder resp = new();
+                        responseName = $"I{pascal}Response";
+
                         for (var i = 0; i < routine.ReturnRecordCount; i++)
                         {
                             var descriptor = routine.ReturnTypeDescriptor[i];
                             var type = GetTsType(descriptor, false);
 
-                            _content.AppendLine($"    {endpoint.ReturnRecordNames[i]}: {type} | null;");
+                            resp.AppendLine($"    {endpoint.ReturnRecordNames[i]}: {type} | null;");
                         }
-                        _content.AppendLine("}");
-                        _content.AppendLine();
-                        _models.Add(responseName);
+
+                        if (modelsDict.TryGetValue(resp.ToString(), out var newName))
+                        {
+                            responseName = newName;
+                        }
+                        else
+                        {
+                            modelsDict.Add(resp.ToString(), responseName);
+                            resp.Insert(0, $"interface {responseName} {{{Environment.NewLine}");
+                            resp.AppendLine("}");
+                            resp.AppendLine();
+                            interfaces.Append(resp);
+                        }
                     }
-                }
+                    if (routine.ReturnsSet)
+                    {
+                        responseName = string.Concat(responseName, "[]");
+                    }
+                    returnExp = $"return await response.json() as {responseName};";
+                    /*
+                    if (routine.ReturnsUnnamedSet)
+                    {
+                        responseName = "string[][]";
+                        returnExp = "return await response.json() as string[][];";
+                    }
+                    else
+                    {
+                        StringBuilder resp = new();
+                        responseName = $"I{pascal}Response";
+
+                        for (var i = 0; i < routine.ReturnRecordCount; i++)
+                        {
+                            var descriptor = routine.ReturnTypeDescriptor[i];
+                            var type = GetTsType(descriptor, false);
+
+                            resp.AppendLine($"    {endpoint.ReturnRecordNames[i]}: {type} | null;");
+                        }
+
+                        if (modelsDict.TryGetValue(resp.ToString(), out var newName))
+                        {
+                            responseName = newName;
+                        }
+                        else
+                        {
+                            modelsDict.Add(resp.ToString(), responseName);
+                            resp.Insert(0, $"interface {responseName} {{{Environment.NewLine}");
+                            resp.AppendLine("}");
+                            resp.AppendLine();
+                            interfaces.Append(resp);
+                        }
+                        returnExp = $"return await response.json() as {responseName};";
+                    }
+                    */
+                } 
             }
-        }
 
-        string NewLine(string? input, int ident) => 
-            input is null ? "" : string.Concat(Environment.NewLine, string.Concat(Enumerable.Repeat("    ", ident)), input);
+            string NewLine(string? input, int ident) =>
+                input is null ? "" : string.Concat(Environment.NewLine, string.Concat(Enumerable.Repeat("    ", ident)), input);
 
-        var headers = json ? 
-            @"headers: { ""Content-Type"": ""application/json"" }," : null;
+            var headers = json ?
+                @"headers: { ""Content-Type"": ""application/json"" }," : null;
 
-        var body = endpoint.RequestParamType == RequestParamType.BodyJson && requestName is not null ?
-            @"body: JSON.stringify(request)" : null;
+            var body = endpoint.RequestParamType == RequestParamType.BodyJson && requestName is not null ?
+                @"body: JSON.stringify(request)" : null;
 
-        var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ? " + parseQuery(request)" : "";
+            var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ? " + _parseQuery(request)" : "";
 
-        var funcBody = string.Format(
-            """
-                {0}await fetch(baseUrl + "{1}"{2}, {{
+            var funcBody = string.Format(
+                """
+                {0}await fetch(_baseUrl + "{1}"{2}, {{
                     method: "{3}",{4}{5}
                 }});{6}
-            """, 
-            routine.IsVoid ? "" : "const response = ",
-            endpoint.Url,
-            qs,
-            endpoint.Method,
-            NewLine(headers, 2),
-            NewLine(body, 2),
-            NewLine(returnExp, 1));
+            """,
+                routine.IsVoid ? "" : "const response = ",
+                endpoint.Url,
+                qs,
+                endpoint.Method,
+                NewLine(headers, 2),
+                NewLine(body, 2),
+                NewLine(returnExp, 1));
 
-        _content.AppendLine(string.Format(
-            """
+            content.AppendLine(string.Format(
+                """
             /**
             {0}
             */
             export async function {1}({2}) : Promise<{3}> {{
             {4}
             """,
-            GetComment(routine, endpoint),
-            camel,
-            requestName is null ? "" : string.Concat("request: ", requestName),
-            responseName,
-            funcBody));
-        _content.AppendLine("}");
-    }
+                GetComment(routine, endpoint),
+                camel,
+                requestName is null ? "" : string.Concat("request: ", requestName),
+                responseName,
+                funcBody));
+            content.AppendLine("}");
 
-    public void Cleanup()
-    {
-        if (!options.FileOverwrite && File.Exists(options.FilePath))
-        {
-            return;
-        }
-        File.WriteAllText(options.FilePath, _content.ToString());
-        _logger?.LogInformation("Created Typescript file: {0}", options.FilePath);
+        } // void Handle
     }
 
     private string GetComment(Routine routine, RoutineEndpoint endpoint)

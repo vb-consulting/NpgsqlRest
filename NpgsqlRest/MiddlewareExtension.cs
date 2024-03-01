@@ -560,7 +560,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 var p = ParameterParser.FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
                                 cmdLog!.AppendLine(string.Concat(
                                     "-- $",
-                                    paramCount.ToString(),
+                                    (i+1).ToString(),
                                     " ", routine.ParamTypeDescriptor[i].OriginalType,
                                     " = ",
                                     p));
@@ -854,7 +854,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
         foreach (var handler in options.EndpointCreateHandlers)
         {
-            handler.Setup(builder, logger);
+            handler.Setup(builder, logger, options);
         }
 
         options.SourcesCreated(options.RoutineSources);
@@ -922,8 +922,11 @@ public static class NpgsqlRestMiddlewareExtensions
             options.EndpointsCreated(dict.Values.SelectMany(x => x).Select(x => (x.routine, x.endpoint)).ToArray());
         }
 
+        (Routine routine, RoutineEndpoint endpoint)[]? array = null;
         foreach (var handler in options.EndpointCreateHandlers)
         {
+            array ??= dict.Values.SelectMany(x => x).Select(x => (x.routine, x.endpoint)).ToArray();
+            handler.Cleanup(ref array);
             handler.Cleanup();
         }
 
