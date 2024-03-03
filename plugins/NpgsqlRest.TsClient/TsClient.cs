@@ -122,9 +122,9 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             string? returnExp = null;
             if (routine.IsVoid is false)
             {
-                if (routine.ReturnsSet == false && routine.ReturnRecordCount == 1 && routine.ReturnsRecordType is false)
+                if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
                 {
-                    var descriptor = routine.ReturnTypeDescriptor[0];
+                    var descriptor = routine.ColumnsTypeDescriptor[0];
                     responseName = GetTsType(descriptor, true);
                     if (descriptor.IsArray)
                     {
@@ -163,9 +163,9 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         StringBuilder resp = new();
                         responseName = $"I{pascal}Response";
 
-                        for (var i = 0; i < routine.ReturnRecordCount; i++)
+                        for (var i = 0; i < routine.ColumnCount; i++)
                         {
-                            var descriptor = routine.ReturnTypeDescriptor[i];
+                            var descriptor = routine.ColumnsTypeDescriptor[i];
                             var type = GetTsType(descriptor, false);
 
                             resp.AppendLine($"    {endpoint.ReturnRecordNames[i]}: {type} | null;");

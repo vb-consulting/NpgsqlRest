@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Primitives;
-
-namespace NpgsqlRest.Defaults;
+﻿namespace NpgsqlRest.Defaults;
 
 internal static class DefaultEndpoint
 {
@@ -27,7 +25,7 @@ internal static class DefaultEndpoint
             RequestParamType.QueryString :
             RequestParamType.BodyJson;
 
-        string[] returnRecordNames = routine.ReturnRecordNames.Select(s => options.NameConverter(s) ?? "").ToArray();
+        string[] returnRecordNames = routine.ColumnNames.Select(s => options.NameConverter(s) ?? "").ToArray();
         string[] paramNames = routine
             .ParamNames
             .Select((s, i) =>
@@ -57,7 +55,17 @@ internal static class DefaultEndpoint
                 textResponseNullHandling: options.TextResponseNullHandling,
                 queryStringNullHandling: options.QueryStringNullHandling);
 
-
+        if (routine.EndpointHandler is not null)
+        {
+            var parsed = DefaultCommentParser.Parse(
+                ref routine,
+                ref options,
+                ref logger,
+                ref routineEndpoint);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            return routine.EndpointHandler(parsed);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        }
         return DefaultCommentParser.Parse(
             ref routine, 
             ref options, 

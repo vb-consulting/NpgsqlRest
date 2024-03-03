@@ -66,99 +66,122 @@ public class NpgsqlRestOptions(
     /// Note: must run as superuser or have select permissions on information_schema.routines, information_schema.parameters, pg_catalog.pg_proc, pg_catalog.pg_description, pg_catalog.pg_namespace
     /// </summary>
     public string? ConnectionString { get; set; } = connectionString;
+
     /// <summary>
     /// Filter schema names similar to this parameters or null to ignore this parameter.
     /// </summary>
     public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
+
     /// <summary>
     /// Filter schema names not similar to this parameters  or null to ignore this parameter.
     /// </summary>
     public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
+
     /// <summary>
     /// List of schema names to be included or null to ignore this parameter.
     /// </summary>
     public string[]? IncludeSchemas { get; set; } = includeSchemas;
+
     /// <summary>
     /// List of schema names to be excluded or null to ignore this parameter.
     /// </summary>
     public string[]? ExcludeSchemas { get; set; } = excludeSchemas;
+
     /// <summary>
     /// Filter routine names similar to this parameters or null to ignore this parameter.
     /// </summary>
     public string? NameSimilarTo { get; set; } = nameSimilarTo;
+
     /// <summary>
     /// Filter routine names not similar to this parameters or null to ignore this parameter.
     /// </summary>
     public string? NameNotSimilarTo { get; set; } = nameNotSimilarTo;
+
     /// <summary>
     /// List of routine names to be included or null to ignore this parameter.
     /// </summary>
     public string[]? IncludeNames { get; set; } = includeNames;
+
     /// <summary>
     /// List of routine names to be excluded or null to ignore this parameter.
     /// </summary>
     public string[]? ExcludeNames { get; set; } = excludeNames;
+
     /// <summary>
     /// Url prefix for every url created by the default url builder.
     /// </summary>
     public string? UrlPathPrefix { get; set; } = urlPathPrefix;
+
     /// <summary>
     /// A custom function delegate that returns a string that will be used as the url path for routine from the first parameter.
     /// </summary>
     public Func<Routine, NpgsqlRestOptions, string> UrlPathBuilder { get; set; } = urlPathBuilder ?? DefaultUrlBuilder.CreateUrl;
+
     /// <summary>
     /// Set to true to get the PostgreSQL connection from the service provider. Otherwise, it will be created from the connection string property.
     /// </summary>
     public bool ConnectionFromServiceProvider { get; set; } = connectionFromServiceProvider;
+
     /// <summary>
     /// Callback, if not null, will be called after endpoint meta data is created.
     /// Use this to do custom configuration over routine endpoints. 
     /// Return null to disable this endpoint.
     /// </summary>
     public Func<Routine, RoutineEndpoint, RoutineEndpoint?>? EndpointCreated { get; set; } = endpointCreated;
+
     /// <summary>
     /// Method that converts names for parameters and return fields. 
     /// By default it is a lower camel case.
     /// Use NameConverter = name => name to preserve original names.
     /// </summary>
     public Func<string?, string?> NameConverter { get; set; } = nameConverter ?? DefaultNameConverter.ConvertToCamelCase;
+
     /// <summary>
     /// Set to true to require authorization for all endpoints.
     /// </summary>
     public bool RequiresAuthorization { get; set;  } = requiresAuthorization;
+
     /// <summary>
     /// Use this logger instead of the default logger.
     /// </summary>
     public ILogger? Logger { get; set; } = logger;
+
     /// <summary>
     /// Default logger name. Set to null to use default logger name which is NpgsqlRest (default namespace).
     /// </summary>
     public string? LoggerName { get; set; } = loggerName;
+
     /// <summary>
     /// Log endpoint created events.
     /// </summary>
     public bool LogEndpointCreatedInfo { get; set; } = logEndpointCreatedInfo;
+
     /// <summary>
     /// Log annotation set events. When endpoint properties are set from comment annotations.
     /// </summary>
     public bool LogAnnotationSetInfo { get; set; } = logAnnotationSetInfo;
+
     /// <summary>
     /// Set to true to log connection notice events.
     /// </summary>
     public bool LogConnectionNoticeEvents { get; set; } = logConnectionNoticeEvents;
+
     /// <summary>
     /// Log commands executed on PostgreSQL.
     /// </summary>
     public bool LogCommands { get; set; } = logCommands;
+
     /// <summary>
     /// Sets the wait time (in seconds) before terminating the attempt  to execute a command and generating an error.
     /// Default value is 30 seconds.
     /// </summary>
     public int? CommandTimeout { get; set; } = commandTimeout;
+
     /// <summary>
     /// Set to true to log parameter mismatch warnings. These mismatches occur regularly when using functions with parameter overloads with different types.
     /// </summary>
     public bool LogParameterMismatchWarnings { get; set; } = logParameterMismatchWarnings;
+
     /// <summary>
     /// Default HTTP method for all endpoints. NULL is default behavior: 
     /// 
@@ -171,19 +194,23 @@ public class NpgsqlRestOptions(
     /// 
     /// </summary>
     public Method? DefaultHttpMethod { get; set; } = defaultHttpMethod;
+
     /// <summary>
     /// Default parameter position - Query String or JSON Body.
     /// NULL is default behavior: if endpoint is not POST, use Query String, otherwise JSON Body.
     /// </summary>
     public RequestParamType? DefaultRequestParamType { get; set; } = defaultRequestParamType;
+
     /// <summary>
     /// Parameters validation function callback. Set the HttpContext response status or start writing response body to cancel the request.
     /// </summary>
     public Action<ParameterValidationValues>? ValidateParameters { get; set; } = validateParameters;
+
     /// <summary>
     /// Parameters validation function async callback. Set the HttpContext response status or start writing response body to cancel the request.
     /// </summary>
     public Func<ParameterValidationValues, Task>? ValidateParametersAsync { get; set; } = validateParametersAsync;
+
     /// <summary>
     /// Configure how to parse comments:
     /// Ignore: Routine comments are ignored.
@@ -191,6 +218,7 @@ public class NpgsqlRestOptions(
     /// OnlyWithHttpTag: Creates only endpoints from routines containing a comment with HTTP tag and and configures endpoint meta data.
     /// </summary>
     public CommentsMode CommentsMode { get; set; } = commentsMode;
+
     /// <summary>
     /// Configure how to send request headers to PostgreSQL:
     /// Ignore: Ignore request headers, don't send them to PostgreSQL (default).
@@ -198,30 +226,36 @@ public class NpgsqlRestOptions(
     /// AsDefaultParameter: Send all request headers as json object to PostgreSQL as default routine parameter with name set by RequestHeadersParameterName option.
     /// </summary>
     public RequestHeadersMode RequestHeadersMode { get; set; } = requestHeadersMode;
+
     /// <summary>
     /// The name of the default routine parameter (text or json) to send request headers to PostgreSQL (parsed or unparsed).
     /// This is only used when RequestHeadersMode is set to AsDefaultParameter.
     /// </summary>
     public string RequestHeadersParameterName { get; set; } = requestHeadersParameterName;
+
     /// <summary>
     /// Callback, if not null, will be called after all endpoints are created.
     /// </summary>
     public Action<(Routine routine, RoutineEndpoint endpoint)[]>? EndpointsCreated { get; set; } = endpointsCreated;
+
     /// <summary>
     /// Command callback, if not null, will be called after every command is created and before it is executed.
     /// Setting the the HttpContext response status or start writing response body will the default command execution.
     /// </summary>
     public Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? CommandCallbackAsync { get; set; } = commandCallbackAsync;
+
     /// <summary>
     /// Array of endpoint create handlers (such as HttpFiles or custom handlers)
     /// </summary>
     public IEnumerable<IEndpointCreateHandler> EndpointCreateHandlers { get; set; } = endpointCreateHandlers ?? Array.Empty<IEndpointCreateHandler>();
+
     /// <summary>
     /// Action called after routine sources are created. 
     /// Use this callback to add or remove custom routine sources.
     /// Default routine source is PostgreSQL routines (functions and procedure).
     /// </summary>
     public Action<List<IRoutineSource>> SourcesCreated { get; set; } = sourcesCreated ?? (s => {});
+
     /// <summary>
     /// When response type is text and the result is null, this option defines how to handle the null value.
     /// - EmptyString: Returns an empty string.
@@ -229,6 +263,7 @@ public class NpgsqlRestOptions(
     /// - NoContent: Returns no content with status code 204.
     /// </summary>
     public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
+
     /// <summary>
     /// How to interpret null values in the query string:
     /// - EmptyString: empty string is used as a value for null parameters.

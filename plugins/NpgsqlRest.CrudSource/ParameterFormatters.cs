@@ -65,7 +65,6 @@ public class UpdateParameterFormatter : IRoutineSourceParameterFormatter
 
         return string.Format(routine.Expression, set, where);
     }
-    public string? FormatEmpty(ref Routine routine) => null;
 }
 
 public class InsertParameterFormatter : IRoutineSourceParameterFormatter
@@ -104,8 +103,6 @@ public class InsertParameterFormatter : IRoutineSourceParameterFormatter
 
         return string.Format(routine.Expression, f1, f2, f3);
     }
-
-    public string? FormatEmpty(ref Routine routine) => null;
 }
 
 public class DeleteParameterFormatter : IRoutineSourceParameterFormatter
@@ -136,6 +133,4 @@ public class DeleteParameterFormatter : IRoutineSourceParameterFormatter
 
         return string.Format(routine.Expression, f1);
     }
-
-    public string? FormatEmpty(ref Routine routine) => string.Format(routine.Expression, "");
 }

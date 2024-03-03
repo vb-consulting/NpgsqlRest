@@ -60,9 +60,9 @@ public class Program
 
             SourcesCreated = sources =>
             {
-                sources.Add(new CrudSource
-                {
-                });
+                //sources.Clear();
+                sources.Add(new CrudSource());
+                sources.Add(new TestSource());
             },
         });
         app.Run();

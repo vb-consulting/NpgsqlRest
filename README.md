@@ -64,7 +64,7 @@ Hello World
 - **Customization** of endpoints with comment annotations. You can easily configure any endpoint by adding comment annotation labels to [PostgreSQL Comments](https://www.postgresql.org/docs/current/sql-comment.html). 
 - Interact seamlessly with **.NET8 backend** and take advantage of .NET8 features.
 - **High performance** with or without native AOT, up to 6 times higher throughput than similar solutions.
-- Plug-in system with additional functionalities: table CRUD support, code generation for HTTP Files and Typescript client and more.
+- **Plug-in system** with additional functionalities: table CRUD support, code generation for HTTP Files and Typescript client and more.
 
 ### Automatic Generation of REST Endpoints
 
@@ -159,9 +159,9 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
 
 NpgsqlRest has a plug-in system that allows you to extend the functionality of the generated REST API from your PostgreSQL database. Currently, the following plug-ins are available:
 
-- **Table CRUD support**. Automatically generate CRUD endpoints for your PostgreSQL tables.
-- **HTTP File generation**. Automatically generate HTTP files for testing, with the list of available endpoints.
-- **Typescript client generation**. Automatically generate Typescript client code from the NpgsqlRest endpoints for your Typescript projects.
+- **[Table CRUD support](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.CrudSource)**. Automatically generate CRUD endpoints for your PostgreSQL tables.
+- **[HTTP File generation](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.HttpFiles)**. Automatically generate HTTP files for testing, with the list of available endpoints.
+- **[Typescript client generation](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient)**. Automatically generate Typescript client code from the NpgsqlRest endpoints for your Typescript projects.
 
 ## Getting Started
 

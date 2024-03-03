@@ -532,14 +532,44 @@ public static class NpgsqlRestMiddlewareExtensions
                         null;
 
                     int paramCount = paramsList.Count;
-                    var commandText = formatter.IsFormattable ? 
-                        formatter.FormatCommand(ref routine, ref paramsList) : 
-                        routine.Expression;
-                    if (paramCount == 0)
+                    string? commandText;
+                    if (formatter.RefContext)
                     {
-                        commandText = formatter.IsFormattable ?
-                            formatter.FormatEmpty(ref routine) :
-                            string.Concat(commandText, formatter.AppendEmpty());
+                        commandText = formatter.IsFormattable ? 
+                            formatter.FormatCommand(ref routine, ref paramsList, ref context) : 
+                            routine.Expression;
+                        if (formatter.IsFormattable)
+                        {
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        commandText = formatter.IsFormattable ? 
+                            formatter.FormatCommand(ref routine, ref paramsList) : 
+                            routine.Expression;
+                    }
+
+                    if (paramCount == 0 && formatter.IsFormattable is false)
+                    {
+                        if (formatter.RefContext)
+                        {
+                            commandText = string.Concat(commandText, formatter.AppendEmpty(ref context));
+                            if (formatter.IsFormattable)
+                            {
+                                if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            commandText = string.Concat(commandText, formatter.AppendEmpty());
+                        }
                     } 
                     else
                     {
@@ -550,8 +580,21 @@ public static class NpgsqlRestMiddlewareExtensions
 
                             if (formatter.IsFormattable is false)
                             {
-                                commandText = string.Concat(commandText,
-                                    formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount));
+                                if (formatter.RefContext)
+                                {
+                                    commandText = string.Concat(commandText,
+                                        formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount, ref context));
+                                    if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                    {
+                                        return;
+                                    }
+                                }
+                                else
+                                {
+                                    commandText = string.Concat(commandText,
+                                        formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount));
+                                }
+                                    
                             }
 
                             if (shouldLog)
@@ -607,12 +650,12 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         command.AllResultTypesAreUnknown = true;
                         await using var reader = await command.ExecuteReaderAsync();
-                        if (routine.ReturnsSet == false && routine.ReturnRecordCount == 1 && routine.ReturnsRecordType is false)
+                        if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
                         {
                             if (await reader.ReadAsync())
                             {
                                 string? value = reader.GetValue(0) as string;
-                                TypeDescriptor descriptor = routine.ReturnTypeDescriptor[0];
+                                TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
                                 if (endpoint.ResponseContentType is not null)
                                 {
                                     context.Response.ContentType = endpoint.ResponseContentType;
@@ -692,7 +735,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 await context.Response.WriteAsync("[");
                             }
                             bool first = true;
-                            var routineReturnRecordCount = routine.ReturnRecordCount;
+                            var routineReturnRecordCount = routine.ColumnCount;
                             while (await reader.ReadAsync())
                             {
                                 if (!first)
@@ -718,7 +761,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         await context.Response.WriteAsync(string.Concat("\"", endpoint.ReturnRecordNames[i], "\":"));
                                     }
 
-                                    var descriptor = routine.ReturnTypeDescriptor[i];
+                                    var descriptor = routine.ColumnsTypeDescriptor[i];
                                     if (value == DBNull.Value)
                                     {
                                         await context.Response.WriteAsync("null");
@@ -773,11 +816,11 @@ public static class NpgsqlRestMiddlewareExtensions
                                             }
                                         }
                                     }
-                                    if (routine.ReturnsUnnamedSet == false && i == routine.ReturnRecordCount - 1)
+                                    if (routine.ReturnsUnnamedSet == false && i == routine.ColumnCount - 1)
                                     {
                                         await context.Response.WriteAsync("}");
                                     }
-                                    if (i < routine.ReturnRecordCount - 1)
+                                    if (i < routine.ColumnCount - 1)
                                     {
                                         await context.Response.WriteAsync(",");
                                     }
