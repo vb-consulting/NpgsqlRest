@@ -6,7 +6,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 {
     private IApplicationBuilder _builder = default!;
     private ILogger? _logger;
-    private NpgsqlRestOptions _options;
+    private NpgsqlRestOptions? _options;
 
     public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
@@ -68,7 +68,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         void Handle(Routine routine, RoutineEndpoint endpoint)
         {
-            var name = string.IsNullOrEmpty(_options.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_options.UrlPathPrefix.Length..];
+            var name = string.IsNullOrEmpty(_options?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_options.UrlPathPrefix.Length..];
             if (routine.Type == RoutineType.Table || routine.Type == RoutineType.View)
             {
                 name = string.Concat(name, "-", endpoint.Method.ToString().ToLowerInvariant());
@@ -189,40 +189,6 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         responseName = string.Concat(responseName, "[]");
                     }
                     returnExp = $"return await response.json() as {responseName};";
-                    /*
-                    if (routine.ReturnsUnnamedSet)
-                    {
-                        responseName = "string[][]";
-                        returnExp = "return await response.json() as string[][];";
-                    }
-                    else
-                    {
-                        StringBuilder resp = new();
-                        responseName = $"I{pascal}Response";
-
-                        for (var i = 0; i < routine.ReturnRecordCount; i++)
-                        {
-                            var descriptor = routine.ReturnTypeDescriptor[i];
-                            var type = GetTsType(descriptor, false);
-
-                            resp.AppendLine($"    {endpoint.ReturnRecordNames[i]}: {type} | null;");
-                        }
-
-                        if (modelsDict.TryGetValue(resp.ToString(), out var newName))
-                        {
-                            responseName = newName;
-                        }
-                        else
-                        {
-                            modelsDict.Add(resp.ToString(), responseName);
-                            resp.Insert(0, $"interface {responseName} {{{Environment.NewLine}");
-                            resp.AppendLine("}");
-                            resp.AppendLine();
-                            interfaces.Append(resp);
-                        }
-                        returnExp = $"return await response.json() as {responseName};";
-                    }
-                    */
                 } 
             }
 
