@@ -1,8 +1,12 @@
+using System.Diagnostics;
 using NpgsqlRest;
 using NpgsqlRest.CrudSource;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
+
+Stopwatch sw = new();
+sw.Start();
 
 var builder = WebApplication.CreateEmptyBuilder(new ());
 builder.WebHost.UseKestrelCore();
@@ -38,6 +42,11 @@ if (GetBool("UseLogging"))
 }
 
 var app = builder.Build();
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    sw.Stop();
+    app.Logger.LogInformation("Application started in {0}", sw.Elapsed);
+});
 
 var urls = GetArray("Urls");
 if (urls != null)
