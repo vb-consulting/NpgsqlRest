@@ -23,7 +23,7 @@ Used API's are from:
 Number of successful requests in 50 seconds (higher is better).
 
 | Records | Function   | NpgsqlRest AOT (1) | NpgsqlRest JIT (2) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
-| ------: | ---------: | ---------: | --------: | --------: | --------: |
+| ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
 | 10 | `perf_test` | 370,415 | 423,408 | 68,021 | 5.45 | 6.22 |
 | 100 | `perf_test` | 352,021 | 400,924 | 59,749 | 5.89 | 6.71 |
 | 10 | `perf_test_arrays` | 276,115 | 310,398 | 51,704 | 5.34 | 6.00 |
@@ -39,7 +39,7 @@ Number of successful requests in 50 seconds (higher is better).
 ### Other Platforms
 
 | Records | Function   | NpgsqlRest AOT | NpgsqlRest JIT | Django REST Framework 4.2.10 on Python 3.8 |
-| ------: | ---------: | ---------: | --------: |
+| ------: | ---------: | ---------: | --------: | --------: |
 | 10 | `perf_test` | 370,415 | 423,408 | 11,476 |
 | 100 | `perf_test` | 352,021 | 400,924 | 11,695 |
 | 10 | `perf_test_arrays` | 276,115| 310,398 | 11,784 |
