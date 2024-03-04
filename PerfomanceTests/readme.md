@@ -22,7 +22,7 @@ Used API's are from:
 
 Number of successful requests in 50 seconds **(higher is better)**.
 
-| Records | Function   | AOT [1]() | JIT [2](2) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
+| Records | Function   | AOT [1](#1-aot) | JIT [2](#2-jit) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
 | ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
 | 10 | `perf_test` | 423,515 | 606,410 | 72,305 | 5.86 | 8.39 |
 | 100 | `perf_test` | 100,542 | 126,154 | 40,456 | 2.49 | 3.12 |
@@ -35,8 +35,8 @@ Number of successful requests in 50 seconds **(higher is better)**.
 
 ### Other Platforms
 
-| Records | Function   | AOT (1) | JIT (2) | EF | ADO | Django |
-| ------: | ---------: | ---------: | --------: | --------: | --------: |
+| Records | Function | AOT [1](#1-aot) | JIT [2](#2-jit) | EF [3](#3-ef) | ADO [4](#4-ado) | Djang [5](#5-django) |
+| ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
 | 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 |
 | 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 |
 | 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 |
