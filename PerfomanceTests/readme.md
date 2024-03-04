@@ -20,30 +20,191 @@ Used API's are from:
 
 ## Results
 
-Number of successful requests in 50 seconds (higher is better).
+Number of successful requests in 50 seconds **(higher is better)**.
 
-| Records | Function   | NpgsqlRest AOT (1) | NpgsqlRest JIT (2) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
+| Records | Function   | AOT [1]() | JIT [2](2) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
 | ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
-| 10 | `perf_test` | 370,415 | 423,408 | 68,021 | 5.45 | 6.22 |
-| 100 | `perf_test` | 352,021 | 400,924 | 59,749 | 5.89 | 6.71 |
-| 10 | `perf_test_arrays` | 276,115 | 310,398 | 51,704 | 5.34 | 6.00 |
-| 100 | `perf_test_arrays` | 275,891 | 289,838 | 49,760 | 5.54 | 5.82 |
-| 10 | `perf_test_record` | 477,001 | 522,165 | 62,392 | 7.65 | 8.37 |
-| 100 | `perf_test_record` | 480,127 | 493,580 | 64,619 | 7.43 | 7.64 |
-| 10 | `perf_test_record_arrays` | 349,336 | 379,135 | 55,602 | 6.28 | 6.82 |
-| 100 | `perf_test_record_arrays` | 356,748 | 362,237 | 51,401 | 6.94 | 7.05 |
-
-1) NpgsqlRest AOT is ahead-of-time (AOT) compiled to native code. AOT has an average **startup time of between 180 to 200 milliseconds.**
-2) NpgsqlRest JIT is a Just-In-Time (JIT) compilation of Common Intermediate Language (CIL). JIT has an average **startup time of between 360 to 400 milliseconds.**
+| 10 | `perf_test` | 423,515 | 606,410 | 72,305 | 5.86 | 8.39 |
+| 100 | `perf_test` | 100,542 | 126,154 | 40,456 | 2.49 | 3.12 |
+| 10 | `perf_test_arrays` | 292,489 | 419707 | 55,331 | 5.29 | 7.59 |
+| 100 | `perf_test_arrays` | 68,316 | 80,906 | 32,418 | 2.10 | 2.50 |
+| 10 | `perf_test_record` | 482,936 | 657,250 | 61,825 | 7.81 | 10.63 |
+| 100 | `perf_test_record` | 203,461 | 223,474 | 36,642 | 5.55 | 6.10 |
+| 10 | `perf_test_record_arrays` | 380,624 | 474,948 | 50,579 | 7.53 | 9.39 |
+| 100 | `perf_test_record_arrays` | 112,542 | 116,399 | 32,619 | 3.45 | 3.57 |
 
 ### Other Platforms
 
-| Records | Function   | NpgsqlRest AOT | NpgsqlRest JIT | Django REST Framework 4.2.10 on Python 3.8 |
-| ------: | ---------: | ---------: | --------: | --------: |
-| 10 | `perf_test` | 370,415 | 423,408 | 11,476 |
-| 100 | `perf_test` | 352,021 | 400,924 | 11,695 |
-| 10 | `perf_test_arrays` | 276,115| 310,398 | 11,784 |
-| 100 | `perf_test_arrays` | 275,891| 289,838 | 9,575 |
+| Records | Function   | AOT (1) | JIT (2) | EF | ADO | Django |
+| ------: | ---------: | ---------: | --------: | --------: | --------: |
+| 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 |
+| 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 |
+| 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 |
+| 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 |
+
+#### 1) AOT
+
+NpgsqlRest .NET8 AOT build is ahead-of-time (AOT) compiled to native code. AOT has an average **startup time of between 180 to 200 milliseconds.**
+
+#### 2) JIT
+
+NpgsqlRest JIT build is a Just-In-Time (JIT) compilation of Common Intermediate Language (CIL). JIT has an average **startup time of between 360 to 400 milliseconds.**
+
+#### 3) EF
+
+.NET8 Npgsql.EntityFrameworkCore.PostgreSQL 8.0.2
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+builder.Services.AddDbContext<DbContext>(options => 
+    options.UseNpgsql(connectionString));
+
+var app = builder.Build();
+
+
+app.MapPost("/api/perf_test", (DbContext dbContext, [FromBody]Params p) => dbContext.Database.SqlQuery<Table>(
+        $"select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test(_records => {p._records}, _text_param => {p._text_param}, _int_param => {p._int_param}, _ts_param => {p._ts_param}, _bool_param => {p._bool_param})"));
+
+app.MapPost("/api/perf_test_arrays", (DbContext dbContext, [FromBody]Params p) => dbContext.Database.SqlQuery<TableWithArrays>(
+        $"select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test_arrays(_records => {p._records}, _text_param => {p._text_param}, _int_param => {p._int_param}, _ts_param => {p._ts_param}, _bool_param => {p._bool_param})"));
+
+app.Run();
+```
+
+#### 4) ADO
+
+.NET8 Raw Data ADO Reader:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+var app = builder.Build();
+
+
+app.MapPost("/api/perf_test", (DbContext dbContext, [FromBody]Params p) => Data.GetTableData(p));
+app.MapPost("/api/perf_test_arrays", (DbContext dbContext, [FromBody]Params p) => Data.GetTableArrayData(p));
+
+app.Run();
+
+static class Data
+{
+    public static async IAsyncEnumerable<Table> GetTableData(Params p)
+    {
+        using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = $"select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test(@_records, @_text_param, @_int_param, @_ts_param, @_bool_param)";
+
+        command.Parameters.AddWithValue("_records", p._records);
+        command.Parameters.AddWithValue("_text_param", p._text_param);
+        command.Parameters.AddWithValue("_int_param", p._int_param);
+        command.Parameters.AddWithValue("_ts_param", p._ts_param);
+        command.Parameters.AddWithValue("_bool_param", p._bool_param);
+
+        using var reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            yield return new Table
+            {
+                id1 = reader.GetInt32(0),
+                foo1 = reader.IsDBNull(1) ? null : reader.GetString(1),
+                bar1 = reader.IsDBNull(2) ? null : reader.GetString(2),
+                datetime1 = reader.GetDateTime(3),
+                id2 = reader.GetInt32(4),
+                foo2 = reader.IsDBNull(5) ? null : reader.GetString(5),
+                bar2 = reader.IsDBNull(6) ? null : reader.GetString(6),
+                datetime2 = reader.GetDateTime(7),
+                long_foo_bar = reader.IsDBNull(8) ? null : reader.GetString(8),
+                is_foobar = reader.GetBoolean(9)
+            };
+        }
+    }
+
+    public static async IAsyncEnumerable<TableWithArrays> GetTableArrayData(Params p)
+    {
+        using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = $"select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test_arrays(@_records, @_text_param, @_int_param, @_ts_param, @_bool_param)";
+
+        command.Parameters.AddWithValue("_records", p._records);
+        command.Parameters.AddWithValue("_text_param", p._text_param);
+        command.Parameters.AddWithValue("_int_param", p._int_param);
+        command.Parameters.AddWithValue("_ts_param", p._ts_param);
+        command.Parameters.AddWithValue("_bool_param", p._bool_param);
+
+        using var reader = await command.ExecuteReaderAsync();
+        var result = new List<TableWithArrays>();
+
+        while (await reader.ReadAsync())
+        {
+            yield return new TableWithArrays
+            {
+                id1 = reader.IsDBNull(0) ? null : (int[])reader.GetValue(0),
+                foo1 = reader.IsDBNull(1) ? null : (string[])reader.GetValue(1),
+                bar1 = reader.IsDBNull(2) ? null : (string[])reader.GetValue(2),
+                datetime1 = reader.IsDBNull(3) ? null : (DateTime[])reader.GetValue(3),
+                id2 = reader.IsDBNull(4) ? null : (int[])reader.GetValue(4),
+                foo2 = reader.IsDBNull(5) ? null : (string[])reader.GetValue(5),
+                bar2 = reader.IsDBNull(6) ? null : (string[])reader.GetValue(6),
+                datetime2 = reader.IsDBNull(7) ? null : (DateTime[])reader.GetValue(7),
+                long_foo_bar = reader.IsDBNull(8) ? null : (string[])reader.GetValue(8),
+                is_foobar = reader.IsDBNull(9) ? null : (bool[])reader.GetValue(9)
+            };
+        }
+    }
+}
+```
+
+#### 5) Django
+
+Django REST Framework 4.2.10 on Python 3.8
+
+```py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.db import connection
+
+class PerfTestView(APIView):
+    def post(self, request):
+        records = request.data.get('_records', 10)
+        text_param = request.data.get('_text_param', 'abcxyz')
+        int_param = request.data.get('_int_param', 999)
+        ts_param = request.data.get('_ts_param', '2024-01-01')
+        bool_param = request.data.get('_bool_param', True)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test(_records => %s, _text_param => %s, _int_param => %s, _ts_param => %s, _bool_param => %s)",
+                [records, text_param, int_param, ts_param, bool_param])
+            data = cursor.fetchall()
+
+        columns = [col[0] for col in cursor.description]
+        return Response([dict(zip(columns, row)) for row in data])
+
+class PerfTestArrays(APIView):
+    def post(self, request):
+        records = request.data.get('_records', 10)
+        text_param = request.data.get('_text_param', 'abcxyz')
+        int_param = request.data.get('_int_param', 999)
+        ts_param = request.data.get('_ts_param', '2024-01-01')
+        bool_param = request.data.get('_bool_param', True)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test_arrays(_records => %s, _text_param => %s, _int_param => %s, _ts_param => %s, _bool_param => %s)",
+                [records, text_param, int_param, ts_param, bool_param])
+            data = cursor.fetchall()
+
+        columns = [col[0] for col in cursor.description]
+        return Response([dict(zip(columns, row)) for row in data])
+```
 
 ## Tests Functions
 

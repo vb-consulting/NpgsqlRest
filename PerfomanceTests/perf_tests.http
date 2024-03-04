@@ -189,7 +189,9 @@ content-type: application/json
 
 ###
 
-POST http://127.0.0.1:8000/perf_test_record/
+// ef endpoint test
+
+POST http://127.0.0.1:5247/api/perf_test/
 content-type: application/json
 
 {
@@ -202,7 +204,7 @@ content-type: application/json
 
 ###
 
-POST http://127.0.0.1:8000/perf_test_record_arrays/
+POST http://127.0.0.1:5247/api/perf_test_arrays
 content-type: application/json
 
 {
