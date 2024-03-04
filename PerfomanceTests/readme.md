@@ -22,29 +22,28 @@ Used API's are from:
 
 Number of successful requests in 50 seconds (higher is better).
 
-| Records | Function   | NpgsqlRest | PostgREST | Ratio |
-| ------: | ---------: | ---------: | --------: | --------: |
-| 10 | `perf_test` | 362,790 | 68,021 | 5.33 |
-| 100 | `perf_test` | 390,928 | 59,749 | 6.54 |
-| 10 | `perf_test_arrays` | 296,016 | 51,704 | 5.73 |
-| 100 | `perf_test_arrays` | 296,873 | 49,760 | 5.97 |
-| 10 | `perf_test_record` | 514,633 | 62,392 | 8.25 |
-| 100 | `perf_test_record` | 518,993 | 64,619 | 8.03 |
-| 10 | `perf_test_record_arrays` | 363,380 | 55,602 | 6.54 |
-| 100 | `perf_test_record_arrays` | 383,719 | 51,401 | 7.45 |
+| Records | Function   | NpgsqlRest AOT (1) | NpgsqlRest JIT (2) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
+| ------: | ---------: | ---------: | --------: | --------: | --------: |
+| 10 | `perf_test` | 370,415 | 423,408 | 68,021 | 5.45 | 6.22 |
+| 100 | `perf_test` | 352,021 | 400,924 | 59,749 | 5.89 | 6.71 |
+| 10 | `perf_test_arrays` | 276,115 | 310,398 | 51,704 | 5.34 | 6.00 |
+| 100 | `perf_test_arrays` | 275,891 | 289,838 | 49,760 | 5.54 | 5.82 |
+| 10 | `perf_test_record` | 477,001 | 522,165 | 62,392 | 7.65 | 8.37 |
+| 100 | `perf_test_record` | 480,127 | 493,580 | 64,619 | 7.43 | 7.64 |
+| 10 | `perf_test_record_arrays` | 349,336 | 379,135 | 55,602 | 6.28 | 6.82 |
+| 100 | `perf_test_record_arrays` | 356,748 | 362,237 | 51,401 | 6.94 | 7.05 |
+
+1) NpgsqlRest AOT is ahead-of-time (AOT) compiled to native code. AOT has an average **startup time of between 180 to 200 milliseconds.**
+2) NpgsqlRest JIT is a Just-In-Time (JIT) compilation of Common Intermediate Language (CIL). JIT has an average **startup time of between 360 to 400 milliseconds.**
 
 ### Other Platforms
 
-| Records | Function   | NpgsqlRest AOT Build | Django REST Framework 4.2.10 on Python 3.8 |
+| Records | Function   | NpgsqlRest AOT | NpgsqlRest JIT | Django REST Framework 4.2.10 on Python 3.8 |
 | ------: | ---------: | ---------: | --------: |
-| 10 | `perf_test` | 362,790 | 11,476 |
-| 100 | `perf_test` | 390,928 | 11,695 |
-| 10 | `perf_test_arrays` | 296,016 | 11,784 |
-| 100 | `perf_test_arrays` | 296,873 | 9,575 |
-| 10 | `perf_test_record` | 514,633 | 12,664 |
-| 100 | `perf_test_record` | 518,993 | 12,661 |
-| 10 | `perf_test_record_arrays` | 363,380 | 12,381 |
-| 100 | `perf_test_record_arrays` | 383,719 | 12,400 |
+| 10 | `perf_test` | 370,415 | 423,408 | 11,476 |
+| 100 | `perf_test` | 352,021 | 400,924 | 11,695 |
+| 10 | `perf_test_arrays` | 276,115| 310,398 | 11,784 |
+| 100 | `perf_test_arrays` | 275,891| 289,838 | 9,575 |
 
 ## Tests Functions
 
