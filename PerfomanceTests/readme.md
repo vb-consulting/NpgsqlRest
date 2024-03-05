@@ -35,12 +35,12 @@ Number of successful requests in 50 seconds **(higher is better)**.
 
 ### Other Platforms
 
-| Records | Function | AOT [1](#1-aot) | JIT [2](#2-jit) | EF [3](#3-ef) | ADO [4](#4-ado) | Django [5](#5-django) | Express [6](#6-express) | GO [6](#6-go) |
-| ------: | ---------: | ---------: | --------: | --------: | --------: | --------: | --------: | --------: |
-| 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 | 160,241 | 78,530 |
-| 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 | 58,130 | 55,119 |
-| 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 | 91,987 | N/A |
-| 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 | 17,896 | N/A |
+| Records | Function | AOT [1](#1-aot) | JIT [2](#2-jit) | EF [3](#3-ef) | ADO [4](#4-ado) | Django [5](#5-django) | Express [6](#6-express) | GO [7](#7-go) | FastAPI [8](#8-fastapi) |
+| ------: | ---------: | ---------: | --------: | --------: | --------: | --------: | --------: | --------: | --------: |
+| 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 | 160,241 | 78,530 | 13,650 |
+| 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 | 58,130 | 55,119 | 9,666 |
+| 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 | 91,987 | N/A | 11,881 |
+| 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 | 17,896 | N/A | 6,192 |
 
 #### 1) AOT
 
@@ -240,6 +240,8 @@ app.post('/api/perf_test_arrays', async (req, res) => {
 
 go version go1.13.8
 
+Note: array function endpoint tests are skipped.
+
 ```go
 package main
 
@@ -345,6 +347,34 @@ func PerfTestFunction(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     w.Write(jsonResponse)
 }
+```
+
+#### 7) FastAPI
+
+FastAPI 0.110.0 on Python 3.8
+
+```py
+@app.post("/api/perf_test")
+async def perf_test(request: Request):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    json = await request.json()
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test(_records => %s, _text_param => %s, _int_param => %s, _ts_param => %s, _bool_param => %s)",
+            [json["_records"], json["_text_param"], json["_int_param"], json["_ts_param"], json["_bool_param"]])
+        return cursor.fetchall()
+
+@app.post("/api/perf_test_arrays")
+async def perf_test(request: Request):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    json = await request.json()
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test_arrays(_records => %s, _text_param => %s, _int_param => %s, _ts_param => %s, _bool_param => %s)",
+            [json["_records"], json["_text_param"], json["_int_param"], json["_ts_param"], json["_bool_param"]])
+        return cursor.fetchall()
 ```
 
 ## Tests Functions
