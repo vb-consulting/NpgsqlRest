@@ -7,6 +7,10 @@
 
 **Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8 Middleware**
 
+>
+> If you have a PostgreSQL database - based on your configuration, NpgsqlRest can create blazing fast REST API automatically and write client code for your project.
+> 
+
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
 
 See the changelog for the latest release changes [changelog.md](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md).
@@ -44,7 +48,31 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-#### 4) Endpoint Response
+#### 4) Optionally, Typescript Client Module
+
+```ts
+const _baseUrl = "http://localhost:5000";                        
+
+
+/**
+* function public.get_latest_customer()
+* returns customers
+* 
+* @remarks
+* GET /api/get-latest-customer
+* 
+* @see FUNCTION public.get_latest_customer
+*/
+export async function getHelloWorld() : Promise<string> {
+    const response = await fetch(_baseUrl + "/api/hello-world", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+    });
+    return await response.text() as string;
+}
+```
+
+#### 5) Endpoint Response
 
 ```console
 HTTP/1.1 200 OK                                                  
@@ -140,18 +168,19 @@ app.Run();
 
 ### High Performances
 
-The latest performance comparison with the PostgREST:
+NpgsqlRest has an extremely high throughput API:
 
-| Records | Function   | NpgsqlRest Requests | PostgREST Requests | Ratio |
-| ------: | ---------: | ---------: | --------: | --------: |
-| 10 | `perf_test` | 362,790 | 68,021 | 5.33 |
-| 100 | `perf_test` | 390,928 | 59,749 | 6.54 |
-| 10 | `perf_test_arrays` | 296,016 | 51,704 | 5.73 |
-| 100 | `perf_test_arrays` | 296,873 | 49,760 | 5.97 |
-| 10 | `perf_test_record` | 514,633 | 62,392 | 8.25 |
-| 100 | `perf_test_record` | 518,993 | 64,619 | 8.03 |
-| 10 | `perf_test_record_arrays` | 363,380 | 55,602 | 6.54 |
-| 100 | `perf_test_record_arrays` | 383,719 | 51,401 | 7.45 |
+| Platform | Numer of Requests in 60 seconds |
+| -- | --: |
+| NpgsqlRest AOT | 423,515 |
+| NpgsqlRest JIT | 606,410 |
+| PostgREST | 72,305 |
+| .NET8 EF | 337,612 |
+| .NET8 ADO | 440,896 |
+| Django | 21,193 |
+| Express | 160,241 |
+| GO | 78,530 |
+| FastAPI | 13,650 |
 
 See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/PerfomanceTests).
 
@@ -164,13 +193,6 @@ NpgsqlRest has a plug-in system that allows you to extend the functionality of t
 - **[Typescript client generation](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient)**. Automatically generate Typescript client code from the NpgsqlRest endpoints for your Typescript projects.
 
 ## Getting Started
-
-### Using Executables
-
-1) Go to the [release page](https://github.com/vb-consulting/NpgsqlRest/releases).
-2) Download the latest version of the binary for either Windows or Linux.
-3) Set up the desired configuration in [appsettings.json](https://github.com/vb-consulting/NpgsqlRest/blob/master/AotBuildTemplate/appsettings.json). This file is bundled together with the executable in the download package.
-4) Run the executable. REST API is created for you.
 
 ### Using Library
 
