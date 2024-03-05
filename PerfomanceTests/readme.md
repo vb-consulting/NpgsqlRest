@@ -35,12 +35,12 @@ Number of successful requests in 50 seconds **(higher is better)**.
 
 ### Other Platforms
 
-| Records | Function | AOT [1](#1-aot) | JIT [2](#2-jit) | EF [3](#3-ef) | ADO [4](#4-ado) | Djang [5](#5-django) |
-| ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
-| 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 |
-| 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 |
-| 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 |
-| 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 |
+| Records | Function | AOT [1](#1-aot) | JIT [2](#2-jit) | EF [3](#3-ef) | ADO [4](#4-ado) | Django [5](#5-django) | Express [6](#6-express) | GO [6](#6-go) |
+| ------: | ---------: | ---------: | --------: | --------: | --------: | --------: | --------: | --------: |
+| 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 | 160,241 | 78,530 |
+| 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 | 58,130 | 55,119 |
+| 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 | 91,987 | N/A |
+| 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 | 17,896 | N/A |
 
 #### 1) AOT
 
@@ -204,6 +204,147 @@ class PerfTestArrays(APIView):
 
         columns = [col[0] for col in cursor.description]
         return Response([dict(zip(columns, row)) for row in data])
+```
+
+#### 6) Express
+
+NodeJS v20.11.1, express v4.18.3, pg 8.11.3
+
+```js
+app.post('/api/perf_test', async (req, res) => {
+  try {
+    const { _records, _text_param, _int_param, _ts_param, _bool_param } = req.body;
+    const queryResult = await pool.query(
+      'select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test($1, $2, $3, $4, $5)', 
+      [_records, _text_param, _int_param, _ts_param, _bool_param]);
+    res.json(queryResult.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/perf_test_arrays', async (req, res) => {
+  try {
+    const { _records, _text_param, _int_param, _ts_param, _bool_param } = req.body;
+    const queryResult = await pool.query(
+      'select id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test_arrays($1, $2, $3, $4, $5)', 
+      [_records, _text_param, _int_param, _ts_param, _bool_param]);
+    res.json(queryResult.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+#### 7) GO
+
+go version go1.13.8
+
+```go
+package main
+
+import (
+    "database/sql"
+    "encoding/json"
+    "log"
+    "net/http"
+
+    "github.com/gorilla/mux"
+    _ "github.com/lib/pq"
+)
+
+const (
+    host     = "127.0.0.1"
+    port     = "5432"
+    user     = "postgres"
+    password = "postgres"
+    dbname   = "perf_tests"
+)
+
+type PerfTestResult struct {
+    ID1           int     `json:"id1"`
+    Foo1          string  `json:"foo1"`
+    Bar1          string  `json:"bar1"`
+    Datetime1     string  `json:"datetime1"`
+    ID2           int     `json:"id2"`
+    Foo2          string  `json:"foo2"`
+    Bar2          string  `json:"bar2"`
+    Datetime2     string  `json:"datetime2"`
+    LongFooBar    string  `json:"long_foo_bar"`
+    IsFooBar      bool    `json:"is_foobar"`
+}
+
+func main() {
+    // Initialize a new router
+    router := mux.NewRouter()
+
+    // Define your endpoint
+    router.HandleFunc("/api/perf_test", PerfTestFunction).Methods("POST")
+
+    // Start the server
+    log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func PerfTestFunction(w http.ResponseWriter, r *http.Request) {
+    // Parse JSON parameters from request body
+    var params map[string]interface{}
+    if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Connect to PostgreSQL database
+    connStr := "host=" + host + " port=" + port + " user=" + user + " password=" + password + " dbname=" + dbname + " sslmode=disable"
+    db, err := sql.Open("postgres", connStr)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer db.Close()
+
+    // Call PostgreSQL function
+    rows, err := db.Query("SELECT id1, foo1, bar1, datetime1, id2, foo2, bar2, datetime2, long_foo_bar, is_foobar from perf_test($1, $2, $3, $4, $5)", 
+        params["_records"], params["_text_param"], params["_int_param"], params["_ts_param"], params["_bool_param"])
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
+
+    // Prepare the result slice
+    var results []PerfTestResult
+
+    // Iterate over the rows returned by the query
+    for rows.Next() {
+        var result PerfTestResult
+        if err := rows.Scan(
+            &result.ID1, &result.Foo1, &result.Bar1, &result.Datetime1,
+            &result.ID2, &result.Foo2, &result.Bar2, &result.Datetime2,
+            &result.LongFooBar, &result.IsFooBar,
+        ); err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+        }
+        results = append(results, result)
+    }
+
+    // Check for errors during row iteration
+    if err := rows.Err(); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Convert the result slice to JSON
+    jsonResponse, err := json.Marshal(results)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Set Content-Type header and write response
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(jsonResponse)
+}
 ```
 
 ## Tests Functions
