@@ -61,18 +61,17 @@ public class NpgsqlRestOptions(
     }
 
     /// <summary>
-    /// The connection string to the database. This is optional value if the `ConnectionFromServiceProvider` option is set to true.
-    /// Note: connection string must run as superuser or have select permissions on `information_schema` and `pg_catalog` system tables.
+    /// The connection string to the database. This is the optional value if the `ConnectionFromServiceProvider` option is set to true. Note: the connection string must run as a super user or have select permissions on `information_schema` and `pg_catalog` system tables. If the `ConnectionFromServiceProvider` option is false and `ConnectionString` is `null`, the middleware will raise an `ArgumentException` error.
     /// </summary>
     public string? ConnectionString { get; set; } = connectionString;
 
     /// <summary>
-    /// Filter schema names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameters or `null` to ignore this parameter.
+    /// Filter schema names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.
     /// </summary>
     public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
 
     /// <summary>
-    /// Filter schema names NOT [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameters or `null` to ignore this parameter.
+    /// Filter schema names NOT [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.
     /// </summary>
     public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
 
@@ -87,22 +86,22 @@ public class NpgsqlRestOptions(
     public string[]? ExcludeSchemas { get; set; } = excludeSchemas;
 
     /// <summary>
-    /// Filter names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameters or `null` to ignore this parameter.
+    /// Filter names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.
     /// </summary>
     public string? NameSimilarTo { get; set; } = nameSimilarTo;
 
     /// <summary>
-    /// Filter names NOT [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameters or `null` to ignore this parameter.
+    /// Filter names NOT [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.
     /// </summary>
     public string? NameNotSimilarTo { get; set; } = nameNotSimilarTo;
 
     /// <summary>
-    /// List of schema names to be included or `null` to ignore this parameter.
+    /// List of names to be included or `null` to ignore this parameter.
     /// </summary>
     public string[]? IncludeNames { get; set; } = includeNames;
 
     /// <summary>
-    /// List of schema names to be excluded or `null` to ignore this parameter.
+    /// List of names to be excluded or `null` to ignore this parameter.
     /// </summary>
     public string[]? ExcludeNames { get; set; } = excludeNames;
 
