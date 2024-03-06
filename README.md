@@ -14,7 +14,7 @@
 - [High Performance](#high-performances)
 
 <p style="text-align: center; width: 100%">
-    <img src="/chart.png" />
+    <img src="/chart.png?v2" />
 </p>
 
 - Modular Design
@@ -183,7 +183,7 @@ app.Run();
 
 NpgsqlRest has an extremely high throughput:
 
-| Platform | Numer of Requests in 60 seconds |
+| Platform | Number of Requests in 60 seconds |
 | -- | --: |
 | NpgsqlRest AOT | 423,515 |
 | NpgsqlRest JIT | 606,410 |
