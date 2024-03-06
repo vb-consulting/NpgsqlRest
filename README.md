@@ -17,7 +17,7 @@
 
 - Modular Design
 
-<img src="/chart.design.png?v3" style="width: 75%;"/>
+<img src="/design.png?v3" style="width: 75%;"/>
 
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
 
