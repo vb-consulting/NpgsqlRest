@@ -13,16 +13,11 @@
 
 - [High Performance](#high-performances)
 
-<p style="text-align: center; width: 100%">
-    <img src="/chart.png?v2" />
-</p>
+<img src="/chart.png?v3" style="width: 75%;"/>
 
 - Modular Design
 
-<p style="text-align: center; width: 100%">
-    <img src="/design.png" />
-</p>
-
+<img src="/chart.design?v3" style="width: 75%;"/>
 
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
 
