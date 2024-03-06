@@ -8,8 +8,21 @@
 **Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8 Middleware**
 
 >
-> If you have a PostgreSQL database - based on your configuration, NpgsqlRest can create blazing fast REST API automatically and write client code for your project.
-> 
+> If you have a PostgreSQL database - based on your configuration, NpgsqlRest can create **blazing fast REST API automatically** and **write client code** for your project.
+>
+
+- [High Performance](#high-performances)
+
+<p style="text-align: center; width: 100%">
+    <img src="/chart.png" />
+</p>
+
+- Modular Design
+
+<p style="text-align: center; width: 100%">
+    <img src="/design.png" />
+</p>
+
 
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
 
@@ -168,7 +181,7 @@ app.Run();
 
 ### High Performances
 
-NpgsqlRest has an extremely high throughput API:
+NpgsqlRest has an extremely high throughput:
 
 | Platform | Numer of Requests in 60 seconds |
 | -- | --: |
