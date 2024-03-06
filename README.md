@@ -17,19 +17,22 @@ Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlres
 See the changelog for the latest release changes [changelog.md](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md).
 -->
 
-## [High Performance](#high-performances)
+#### High Performance
+
+[See More](#high-performances)
 
 <p style="text-align: center; width: 100%">
-    <img src="/npgsqlrest-chart.png?v3" style="width: 75%;"/>
+    <img src="/npgsqlrest-chart.png?v3" style="width: 70%;"/>
 </p>
 
 
-## [Modular Design](#plug-in-system)
+#### Modular Design 
+
+[See More](#plug-in-system)
 
 <p style="text-align: center; width: 100%">
     <img src="/npgsqlrest-design.png?v3" style="width: 75%;"/>
 </p>
-
 
 ## Quick Example
 
@@ -64,7 +67,7 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-#### 4) Optionally, Typescript Client Module
+#### 4) Optionally, Auto-Generated Typescript Client Module
 
 ```ts
 const _baseUrl = "http://localhost:5000";                        
@@ -239,7 +242,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-For all available build options, please consult a [source code file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/NpgsqlRestOptions.cs), until the documentation website is built.
+For all available build options, see
 
 #### Library Dependencies
 

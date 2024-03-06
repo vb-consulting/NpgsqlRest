@@ -16,6 +16,166 @@ It provides data source access to PostgreSQL tables and views to create CRUD end
 - `PUT table/on-conflict-do-update` for the `INSERT ON CONFLICT DO UPDATE` operations.
 - `PUT table/on-conflict-do-update/returning` for the `INSERT ON CONFLICT DO NOTHING UPDATE` operations.
 
+## Install 
+
+```console
+dotnet add package NpgsqlRest.CrudSource --version 1.0.0
+```
+
+## Usages
+
+Initialize `SourcesCreated` callback function that receives an initialized list of sources to add `CrudSource` source:
+
+```csharp
+using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+
+var app = builder.Build();
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    SourcesCreated = sources =>
+    {
+        sources.Add(new CrudSource());
+    },
+});
+app.Run();
+```
+
+To run only `CrudSource`, clear all others:
+
+```csharp
+using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+
+var app = builder.Build();
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    SourcesCreated = sources =>
+    {
+        sources.Clear();
+        sources.Add(new CrudSource());
+    },
+});
+app.Run();
+```
+
+To run initialize `CrudSource`, only for `SELECT` and `DELETE RETURNING`, for example, use the `CrudTypes` flag:
+
+```csharp
+using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+
+var app = builder.Build();
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    SourcesCreated = sources =>
+    {
+        sources.Add(new CrudSource
+        {
+            CrudTypes = CrudCommandType.Select | CrudCommandType.DeleteReturning
+        });
+    },
+});
+app.Run();
+```
+
+To run initialize `CrudSource`, only for tables `my_crud_table` and `other_table`, you can use the `IncludeNames` array property:
+
+```csharp
+using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+
+var app = builder.Build();
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    SourcesCreated = sources =>
+    {
+        sources.Add(new CrudSource
+        {
+            IncludeNames = ["my_crud_table", "other_table"],
+        });
+    },
+});
+app.Run();
+```
+
+To run initialize `CrudSource`, only for tables containing a pattern, use the `NameSimilarTo` or `NameNotSimilarTo` properties. For example, the name starts with `crud`:
+
+```csharp
+using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+
+var app = builder.Build();
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    SourcesCreated = sources =>
+    {
+        sources.Add(new CrudSource
+        {
+            NameSimilarTo = "crud%",
+        });
+    },
+});
+app.Run();
+```
+
+To fine-tune what routines and what types you need, use the `Created` callback and return `true` or `false` to disable or enable:
+
+```csharp
+using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+
+var app = builder.Build();
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    SourcesCreated = sources =>
+    {
+        Created = (routine, type) =>
+        {
+            if (routine.Name == "my_crud_table")
+            {
+                return type switch
+                {
+                    CrudCommandType.Select => true,
+                    CrudCommandType.DeleteReturning => true,
+                    _ => false
+                };
+            }
+            return true;
+        }
+    },
+});
+app.Run();
+```
+
+## Options
+
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `string? SchemaSimilarTo` | `null` | When not NULL, overrides the main option `SchemaSimilarTo`. It filters schemas similar to this or null to ignore this parameter. |
+| `string? SchemaNotSimilarTo` | `null` | When not NULL, overrides the main option `SchemaNotSimilarTo`. It filters schemas not similar to this or null to ignore this parameter. |
+| `string[]? IncludeSchemas` | `null` | When not NULL, overrides the main option `IncludeSchemas`. List of schema names to be included or null to ignore this parameter. |
+| `string[]? ExcludeSchemas` | `null` | When not NULL, overrides the main option `ExcludeSchemas`. List of schema names to be excluded or null to ignore this parameter. |
+| `string? NameSimilarTo` | `null` | When not NULL, overrides the main option `NameSimilarTo`. It filters names similar to this or null to ignore this parameter. |
+| `string? NameNotSimilarTo` | `null` | When not NULL, overrides the main option `NameNotSimilarTo`. It filters names not similar to this or null to ignore this parameter. |
+| `string[]? IncludeNames` | `null` | When not NULL, overrides the main option `IncludeNames`. List of names to be included or null to ignore this parameter. |
+| `string[]? ExcludeNames` | `null` | When not NULL, overrides the main option `ExcludeNames`. List of names to be excluded or null to ignore this parameter. |
+| `string Query` | `null` | Custom query to return list of tables and views or null to use the default. |
+| `CrudCommandType CrudTypes` | `CrudCommandType.All` | Type of CRUD queries and commands to create. |
+| `string ReturningUrlPattern` | `"{0}/returning"` | URL pattern for all "returning" endpoints. Parameter is the original URL. |
+| `string OnConflictDoNothingUrlPattern` | `"{0}/on-conflict-do-nothing"` | URL pattern for all "do nothing" endpoints. Parameter is the original URL. |
+| `string OnConflictDoNothingReturningUrlPattern` | `"{0}/on-conflict-do-nothing/returning"` | URL pattern for all "do nothing returning " endpoints. Parameter is the original URL. |
+| `string OnConflictDoUpdateUrlPattern` | `"{0}/on-conflict-do-update"` | URL pattern for all "do update" endpoints. Parameter is the original URL. |
+| `string OnConflictDoUpdateReturningUrlPattern` | `"{0}/on-conflict-do-update/returning"` | URL pattern for all "do update returning" endpoints. Parameter is the original URL. |
+| `Func<Routine, CrudCommandType, bool>? Created` | `null` | Callback function, when not null it is evaluated when Routine object is created for a certain type. Return true or false to disable or enable endpoints. |
+| `CommentsMode? CommentsMode` | `null` | Comments mode (`Ignore`, `ParseAll`, `OnlyWithHttpTag`), when not null overrides the `CommentsMode` from the main options. |
+
 ## Example
 
 Following table:
@@ -333,167 +493,7 @@ Otherwise, the successful execution returns status `200 OK` with the `applicatio
 
 Tags for this endpoint are `insert`, `put`, `create`, `InsertOnConflictDoUpdateReturning`, `insert-on-conflict-do-update-returning`, `insert_on_conflict_do_update-returning`, `OnConflictDoUpdate`, `on-conflict-do-update`, `on_conflict_do_update` and `returning`.
 
-## Install 
-
-```console
-dotnet add package NpgsqlRest.CrudSource --version 1.0.0
-```
-
-## Minimal Usages
-
-Initialize `SourcesCreated` callback function that receives an initialized list of sources to add `CrudSource` source:
-
-```csharp
-using NpgsqlRest;
-using NpgsqlRest.CrudSource;
-
-var app = builder.Build();
-app.UseNpgsqlRest(new()
-{
-    ConnectionString = connectionString,
-    SourcesCreated = sources =>
-    {
-        sources.Add(new CrudSource());
-    },
-});
-app.Run();
-```
-
-To run only `CrudSource`, clear all others:
-
-```csharp
-using NpgsqlRest;
-using NpgsqlRest.CrudSource;
-
-var app = builder.Build();
-app.UseNpgsqlRest(new()
-{
-    ConnectionString = connectionString,
-    SourcesCreated = sources =>
-    {
-        sources.Clear();
-        sources.Add(new CrudSource());
-    },
-});
-app.Run();
-```
-
-To run initialize `CrudSource`, only for `SELECT` and `DELETE RETURNING`, for example, use the `CrudTypes` flag:
-
-```csharp
-using NpgsqlRest;
-using NpgsqlRest.CrudSource;
-
-var app = builder.Build();
-app.UseNpgsqlRest(new()
-{
-    ConnectionString = connectionString,
-    SourcesCreated = sources =>
-    {
-        sources.Add(new CrudSource
-        {
-            CrudTypes = CrudCommandType.Select | CrudCommandType.DeleteReturning
-        });
-    },
-});
-app.Run();
-```
-
-To run initialize `CrudSource`, only for tables `my_crud_table` and `other_table`, you can use the `IncludeNames` array property:
-
-```csharp
-using NpgsqlRest;
-using NpgsqlRest.CrudSource;
-
-var app = builder.Build();
-app.UseNpgsqlRest(new()
-{
-    ConnectionString = connectionString,
-    SourcesCreated = sources =>
-    {
-        sources.Add(new CrudSource
-        {
-            IncludeNames = ["my_crud_table", "other_table"],
-        });
-    },
-});
-app.Run();
-```
-
-To run initialize `CrudSource`, only for tables containing a pattern, use the `NameSimilarTo` or `NameNotSimilarTo` properties. For example, the name starts with `crud`:
-
-```csharp
-using NpgsqlRest;
-using NpgsqlRest.CrudSource;
-
-var app = builder.Build();
-app.UseNpgsqlRest(new()
-{
-    ConnectionString = connectionString,
-    SourcesCreated = sources =>
-    {
-        sources.Add(new CrudSource
-        {
-            NameSimilarTo = "crud%",
-        });
-    },
-});
-app.Run();
-```
-
-To fine-tune what routines and what types you need, use the `Created` callback and return `true` or `false` to disable or enable:
-
-```csharp
-using NpgsqlRest;
-using NpgsqlRest.CrudSource;
-
-var app = builder.Build();
-app.UseNpgsqlRest(new()
-{
-    ConnectionString = connectionString,
-    SourcesCreated = sources =>
-    {
-        Created = (routine, type) =>
-        {
-            if (routine.Name == "my_crud_table")
-            {
-                return type switch
-                {
-                    CrudCommandType.Select => true,
-                    CrudCommandType.DeleteReturning => true,
-                    _ => false
-                };
-            }
-            return true;
-        }
-    },
-});
-app.Run();
-```
-
-## Options
-
-| Option | Default | Description |
-| ------ | ------- | ----------- |
-| `string? SchemaSimilarTo` | `null` | When not NULL, overrides the main option `SchemaSimilarTo`. It filters schemas similar to this or null to ignore this parameter. |
-| `string? SchemaNotSimilarTo` | `null` | When not NULL, overrides the main option `SchemaNotSimilarTo`. It filters schemas not similar to this or null to ignore this parameter. |
-| `string[]? IncludeSchemas` | `null` | When not NULL, overrides the main option `IncludeSchemas`. List of schema names to be included or null to ignore this parameter. |
-| `string[]? ExcludeSchemas` | `null` | When not NULL, overrides the main option `ExcludeSchemas`. List of schema names to be excluded or null to ignore this parameter. |
-| `string? NameSimilarTo` | `null` | When not NULL, overrides the main option `NameSimilarTo`. It filters names similar to this or null to ignore this parameter. |
-| `string? NameNotSimilarTo` | `null` | When not NULL, overrides the main option `NameNotSimilarTo`. It filters names not similar to this or null to ignore this parameter. |
-| `string[]? IncludeNames` | `null` | When not NULL, overrides the main option `IncludeNames`. List of names to be included or null to ignore this parameter. |
-| `string[]? ExcludeNames` | `null` | When not NULL, overrides the main option `ExcludeNames`. List of names to be excluded or null to ignore this parameter. |
-| `string Query` | `null` | Custom query to return list of tables and views or null to use the default. |
-| `CrudCommandType CrudTypes` | `CrudCommandType.All` | Type of CRUD queries and commands to create. |
-| `string ReturningUrlPattern` | `"{0}/returning"` | URL pattern for all "returning" endpoints. Parameter is the original URL. |
-| `string OnConflictDoNothingUrlPattern` | `"{0}/on-conflict-do-nothing"` | URL pattern for all "do nothing" endpoints. Parameter is the original URL. |
-| `string OnConflictDoNothingReturningUrlPattern` | `"{0}/on-conflict-do-nothing/returning"` | URL pattern for all "do nothing returning " endpoints. Parameter is the original URL. |
-| `string OnConflictDoUpdateUrlPattern` | `"{0}/on-conflict-do-update"` | URL pattern for all "do update" endpoints. Parameter is the original URL. |
-| `string OnConflictDoUpdateReturningUrlPattern` | `"{0}/on-conflict-do-update/returning"` | URL pattern for all "do update returning" endpoints. Parameter is the original URL. |
-| `Func<Routine, CrudCommandType, bool>? Created` | `null` | Callback function, when not null it is evaluated when Routine object is created for a certain type. Return true or false to disable or enable endpoints. |
-| `CommentsMode? CommentsMode` | `null` | Comments mode (`Ignore`, `ParseAll`, `OnlyWithHttpTag`), when not null overrides the `CommentsMode` from the main options. |
-
-#### Library Dependencies
+## Library Dependencies
 
 - NpgsqlRest 2.0.0
 
