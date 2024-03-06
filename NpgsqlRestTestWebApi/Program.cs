@@ -83,7 +83,6 @@ app.UseNpgsqlRest(new()
     LogAnnotationSetInfo = GetBool("LogAnnotationSetInfo"),
     LogConnectionNoticeEvents = GetBool("LogConnectionNoticeEvents"),
     LogCommands = GetBool("LogCommands"),
-    LogParameterMismatchWarnings = GetBool("LogParameterMismatchWarnings"),
 
     CommandTimeout = GetInt("CommandTimeout"),
     DefaultHttpMethod = GetEnum<Method?>("DefaultHttpMethod"),

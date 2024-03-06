@@ -8,14 +8,16 @@ using Npgsql;
 using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http.Extensions;
+using NpgsqlRest.Defaults;
+
 using static System.Net.Mime.MediaTypeNames;
+using static NpgsqlRest.ParameterParser;
 
 using Tuple = (
     NpgsqlRest.Routine routine,
     NpgsqlRest.RoutineEndpoint endpoint,
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
-using NpgsqlRest.Defaults;
 
 namespace NpgsqlRest;
 
@@ -147,7 +149,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             };
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
-                                if (ParameterParser.TryParseParameter(ref qsValue, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
+                                if (TryParseParameter(ref qsValue, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
                                 {
                                     if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                     {
@@ -183,18 +185,6 @@ public static class NpgsqlRestMiddlewareExtensions
                                     paramsList.Add(parameter);
                                     setCount++;
                                 }
-                                else
-                                {
-                                    // parameters don't match, continuing to another overload
-                                    if (options.LogParameterMismatchWarnings)
-                                    {
-                                        logger?.LogWarning(
-                                            "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
-                                            routine.ParamTypeDescriptor[0].DbType,
-                                            qsValue.ToString(),
-                                            context.Request.Path);
-                                    }
-                                }
                             }
                             else
                             {
@@ -212,18 +202,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         else
                                         {
                                             StringValues bodyStringValues = body;
-                                            if (!ParameterParser.TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
-                                            {
-                                                // parameters don't match, continuing to another overload
-                                                if (options.LogParameterMismatchWarnings)
-                                                {
-                                                    logger?.LogWarning(
-                                                        "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
-                                                        routine.ParamTypeDescriptor[0].DbType,
-                                                        qsValue.ToString(),
-                                                        context.Request.Path);
-                                                }
-                                            }
+                                            TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter, endpoint.QueryStringNullHandling);
                                         }
                                     }
                                 }
@@ -328,7 +307,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             };
                             if (bodyDict.TryGetValue(p, out var value))
                             {
-                                if (ParameterParser.TryParseParameter(ref value, ref descriptor, ref parameter))
+                                if (TryParseParameter(ref value, ref descriptor, ref parameter))
                                 {
                                     if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                     {
@@ -363,18 +342,6 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                     paramsList.Add(parameter);
                                     setCount++;
-                                }
-                                else
-                                {
-                                    // parameters don't match, continuing to another overload
-                                    if (options.LogParameterMismatchWarnings)
-                                    {
-                                        logger?.LogWarning(
-                                            "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
-                                            routine.ParamTypeDescriptor[0].DbType,
-                                            value,
-                                            context.Request.Path);
-                                    }
                                 }
                             }
                             else
@@ -600,7 +567,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             if (shouldLog)
                             {
                                 object value = parameter.NpgsqlValue!;
-                                var p = ParameterParser.FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
+                                var p = FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
                                 cmdLog!.AppendLine(string.Concat(
                                     "-- $",
                                     (i+1).ToString(),

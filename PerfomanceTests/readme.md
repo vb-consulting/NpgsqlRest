@@ -166,7 +166,7 @@ static class Data
 
 Django REST Framework 4.2.10 on Python 3.8
 
-```py
+```python
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db import connection
@@ -353,7 +353,7 @@ func PerfTestFunction(w http.ResponseWriter, r *http.Request) {
 
 FastAPI 0.110.0 on Python 3.8
 
-```py
+```python
 @app.post("/api/perf_test")
 async def perf_test(request: Request):
     conn = get_db_connection()

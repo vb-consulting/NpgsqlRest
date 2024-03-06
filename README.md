@@ -11,19 +11,27 @@
 > If you have a PostgreSQL database - based on your configuration, NpgsqlRest can create **blazing fast REST API automatically** and **write client code** for your project.
 >
 
-- [High Performance](#high-performances)
-
-<img src="/chart.png?v3" style="width: 75%;"/>
-
-- Modular Design
-
-<img src="/design.png?v3" style="width: 75%;"/>
-
+<!---
 Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
 
 See the changelog for the latest release changes [changelog.md](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md).
+-->
 
-# Quick Example
+## [High Performance](#high-performances)
+
+<p style="text-align: center; width: 100%">
+    <img src="/npgsqlrest-chart.png?v3" style="width: 75%;"/>
+</p>
+
+
+## [Modular Design](#plug-in-system)
+
+<p style="text-align: center; width: 100%">
+    <img src="/npgsqlrest-design.png?v3" style="width: 75%;"/>
+</p>
+
+
+## Quick Example
 
 #### 1) Your PostgreSQL Function
 
