@@ -276,7 +276,7 @@ Execution for parameter value "ABC" will produce the following log:
 
 ```console
 info: NpgsqlRest[0]
-      -- POST http://localhost:5000/api/case-return-text
+      -- POST http://localhost:5000/api/return-text
       -- $1 text = 'ABC'
       select public.return_text($1)
 ```

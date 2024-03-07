@@ -11,27 +11,24 @@
 > If you have a PostgreSQL database - based on your configuration, NpgsqlRest can create **blazing fast REST API automatically** and **write client code** for your project.
 >
 
-<!---
-Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
+Read the **[NpgsqlRest Version 2 Blog Post](https://vb-consulting.github.io/blog/npgsqlrest-v2/).**
 
-See the changelog for the latest release changes [changelog.md](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md).
--->
+See the changelog for the latest release changes in the **[Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/).**
 
 #### High Performance
 
-[See More](#high-performances)
+[See More](https://vb-consulting.github.io/npgsqlrest/perfomance-tests/)
 
 <p style="text-align: center; width: 100%">
     <img src="/npgsqlrest-chart.png?v3" style="width: 70%;"/>
 </p>
-
 
 #### Modular Design 
 
 [See More](#plug-in-system)
 
 <p style="text-align: center; width: 100%">
-    <img src="/npgsqlrest-design.png?v3" style="width: 75%;"/>
+    <img src="/npgsqlrest-design.png?v3" style="width: 350px;"/>
 </p>
 
 ## Quick Example
@@ -57,7 +54,7 @@ app.UseNpgsqlRest(new(connectionStr));
 app.Run();
 ```
 
-#### 3) Optionally, Auto-Generated HTTP File
+#### 3) Auto-Generated HTTP File
 
 ```console
 @host=http://localhost:5000                                      
@@ -67,7 +64,7 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-#### 4) Optionally, Auto-Generated Typescript Client Module
+#### 4) Auto-Generated Typescript Client Module
 
 ```ts
 const _baseUrl = "http://localhost:5000";                        
@@ -190,7 +187,7 @@ app.Run();
 NpgsqlRest has an extremely high throughput:
 
 | Platform | Number of Requests in 60 seconds |
-| -- | --: |
+| -- | -- |
 | NpgsqlRest AOT | 423,515 |
 | NpgsqlRest JIT | 606,410 |
 | PostgREST | 72,305 |
@@ -200,6 +197,10 @@ NpgsqlRest has an extremely high throughput:
 | Express | 160,241 |
 | GO | 78,530 |
 | FastAPI | 13,650 |
+
+<p style="text-align: center; width: 100%">
+    <img src="/npgsqlrest-chart.png?v3" style="width: 70%;"/>
+</p>
 
 See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/PerfomanceTests).
 
@@ -228,9 +229,6 @@ NuGet\Install-Package NpgsqlRest -version 2.0.0
 ```xml
 <PackageReference Include="NpgsqlRest" Version="2.0.0" />
 ```
-```console
-#r "nuget: NpgsqlRest, 2.0.0"
-```
 
 #### Library First Use
 
@@ -242,7 +240,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-For all available build options, see
+For all available build options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
 
 #### Library Dependencies
 
@@ -251,7 +249,7 @@ For all available build options, see
 - Npgsql 8.0.1
 - PostgreSQL >= 13
 
-Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs#L9C9-L9C49). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
+Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
 
 ## Contributing
 

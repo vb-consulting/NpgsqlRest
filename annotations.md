@@ -2,7 +2,7 @@
 
 ## Tags
 
-```
+```console
 for tag1, tag2, tag3 [, ...]
 tag tag1, tag2, tag3 [, ...]
 tags tag1, tag2, tag3 [, ...]
@@ -12,7 +12,7 @@ All annotations in lines below this line apply only to tags in the argument list
 
 ## Disabled
 
-```
+```console
 disabled
 disabled tag1, tag2, tag3 [, ...]
 ```
@@ -21,7 +21,7 @@ The endpoint is disabled. Optional tag list disabled only for tags in the argume
 
 ## Enabled
 
-```
+```console
 enabled
 enabled [ tag1, tag2, tag3 [, ...] ]
 ```
@@ -30,7 +30,7 @@ The endpoint is enabled. Optional tag list enabled only for tags in the argument
 
 ## HTTP
 
-```
+```console
 HTTP 
 HTTP [ GET | POST | PUT | DELETE ]
 HTTP [ GET | POST | PUT | DELETE ] path
@@ -43,20 +43,20 @@ HTTP settings:
 
 ## RequestParamType
 
-```
-requestparamtype [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-paramtype  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-request_param_type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-param_type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-request-param-type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-param-type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
+```console
+requestparamtype [ [ querystring | query_string | query-string | query ]   |   [ bodyjson | body_json | body-json | json | body ] ]
+paramtype  [ [ querystring | query_string | query-string | query ]   |   [ bodyjson | body_json | body-json | json | body ] ]
+request_param_type  [ [ querystring | query_string | query-string | query ]   |   [ bodyjson | body_json | body-json | json | body ] ]
+param_type  [ [ querystring | query_string | query-string | query ]   |   [ bodyjson | body_json | body-json | json | body ] ]
+request-param-type  [ [ querystring | query_string | query-string | query ]   |   [ bodyjson | body_json | body-json | json | body ] ]
+param-type  [ [ querystring | query_string | query-string | query ]   |   [ bodyjson | body_json | body-json | json | body ] ]
 ```
 
 Set how request parameters are sent - query string or JSON body.
 
 ## RequiresAuthorization
 
-```
+```console
 requiresauthorization
 authorize
 requires_authorization
@@ -67,7 +67,7 @@ Require authorization for this endpoint.
 
 ## CommandTimeout
 
-```
+```console
 commandtimeout seconds
 command_timeout seconds
 command-timeout seconds
@@ -78,7 +78,7 @@ Set the command execution timeout in seconds.
 
 ## RequestHeadersMode
 
-```
+```console
 requestheadersmode [ ignore | context | parameter ]
 request_headers_mode [ ignore | context | parameter ]
 request-headers-mode [ ignore | context | parameter ]
@@ -94,7 +94,7 @@ Set how request parameters are handled:
 
 ## RequestHeadersParameterName
 
-```
+```console
 requestheadersparametername name
 requestheadersparamname name
 request_headers_parameter_name name
@@ -107,7 +107,7 @@ When `RequestHeadersMode` is set to send request headers as a parameter, set the
 
 ## BodyParameterName
 
-```
+```console
 bodyparametername name
 body-parameter-name name
 body_parameter_name name
@@ -120,7 +120,7 @@ Set the name of the existing parameter which is sent as body content. When the `
 
 ## ResponseNullHandling
 
-```
+```console
 responsenullhandling [ emptystring | nullliteral | nocontent ]
 response_null_handling [ emptystring | nullliteral | nocontent ]
 response-null-handling [ emptystring | nullliteral | nocontent ]
@@ -134,7 +134,7 @@ Sets the response NULL handling option for a single function results other than 
 
 ## QueryStringNullHandling
 
-```
+```console
 querystringnullhandling [ emptystring | nullliteral | ignore ]
 query_string_null_handling [ emptystring | nullliteral | ignore ]
 query-string-null-handling [ emptystring | nullliteral | ignore ]
@@ -148,7 +148,7 @@ Sets the response NULL handling option for the query string parameters:
 
 ## Headers
 
-```
+```console
 key: value
 ```
 
