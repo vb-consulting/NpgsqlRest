@@ -28,7 +28,7 @@ See the changelog for the latest release changes in the **[Changelog](https://vb
 [See More](#plug-in-system)
 
 <p style="text-align: center; width: 100%">
-    <img src="/npgsqlrest-design.png?v3" style="width: 350px;"/>
+    <img src="/npgsqlrest-design.png?v4" style="width: 350px;"/>
 </p>
 
 ## Quick Example

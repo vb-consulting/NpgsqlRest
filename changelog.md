@@ -1,5 +1,11 @@
 # Changelog
 
+## Version [2.0.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.0.0) (2024-03-10)
+
+Version 2.0.0 is the major overhaul of the entire library from the previous major version. 
+
+-----------
+
 ## Version [1.6.3](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.3) (2024-02-19)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.2...1.6.3)
