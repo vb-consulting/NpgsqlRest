@@ -587,8 +587,8 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     if (shouldLog)
                     {
-                        cmdLog!.AppendLine(command.CommandText);
-                        logger?.LogInformation(cmdLog.ToString());
+                        cmdLog!.Append("{0}");
+                        logger?.LogInformation(cmdLog.ToString(), command.CommandText);
                     }
                     
                     if (endpoint.CommandTimeout.HasValue)

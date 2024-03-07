@@ -492,7 +492,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
         }
         // default, assumed host
         host ??= "http://localhost:5000";
-        return host;
+        return host.TrimEnd('/');
     }
 
     private string GetName()

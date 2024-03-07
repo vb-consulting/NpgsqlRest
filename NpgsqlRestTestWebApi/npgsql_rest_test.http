@@ -723,12 +723,100 @@ GET {{host}}/api/get-csv-data
 
 ###
 
+// function public.get_latest_customer()
+// returns customers
+GET {{host}}/api/get-latest-customer
+
+###
+
+// function public.get_latest_customer_record()
+// returns record
+GET {{host}}/api/get-latest-customer-record
+
+###
+
 // function public.get_none_existing_params(
 //     _p1 integer,
 //     _p2 integer
 // )
 // returns text
 GET {{host}}/api/get-none-existing-params?p1=1&p2=2
+
+###
+
+// function public.get_null1()
+// returns text
+GET {{host}}/api/get-null1
+
+###
+
+// function public.get_null2()
+// returns text
+//
+// comment on function public.get_null2 is 'response-null-handling emptystring
+GET {{host}}/api/get-null2
+
+###
+
+// function public.get_null3()
+// returns text
+//
+// comment on function public.get_null3 is 'response-null-handling nullliteral
+GET {{host}}/api/get-null3
+
+###
+
+// function public.get_null4()
+// returns text
+//
+// comment on function public.get_null4 is 'response-null-handling nocontent
+GET {{host}}/api/get-null4
+
+###
+
+// function public.get_nullable_param1(
+//     _t text
+// )
+// returns text
+//
+// comment on function public.get_nullable_param1 is 'response-null-handling nocontent
+GET {{host}}/api/get-nullable-param1?t=ABC
+
+###
+
+// function public.get_nullable_param2(
+//     _t text
+// )
+// returns text
+//
+// comment on function public.get_nullable_param2 is '
+// response-null-handling nocontent
+// query-string-null-handling ignore';
+GET {{host}}/api/get-nullable-param2?t=ABC
+
+###
+
+// function public.get_nullable_param3(
+//     _t text
+// )
+// returns text
+//
+// comment on function public.get_nullable_param3 is '
+// response-null-handling nocontent
+// query-string-null-handling EmptyString';
+GET {{host}}/api/get-nullable-param3?t=ABC
+
+###
+
+// function public.get_nullable_param4(
+//     _t text
+// )
+// returns text
+//
+// comment on function public.get_nullable_param4 is '
+// response-null-handling nocontent
+// query-string-null-handling NullLiteral';
+GET {{host}}/api/get-nullable-param4?t=ABC
 
 ###
 
@@ -1456,9 +1544,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_returning_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/on-conflict-do-update
 content-type: application/json
 
@@ -1470,9 +1556,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_returning_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test1/on-conflict-do-update/returning
@@ -1577,9 +1661,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_returning_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/on-conflict-do-update
 content-type: application/json
 
@@ -1591,9 +1673,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_returning_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test2/on-conflict-do-update/returning
@@ -1704,9 +1784,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_returning_test3
-// on conflict (id2, id1) 
-// do update set 
-//     name = excluded.name
+// on conflict (id2, id1) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/on-conflict-do-update
 content-type: application/json
 
@@ -1719,9 +1797,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_returning_test3
-// on conflict (id2, id1) 
-// do update set 
-//     name = excluded.name
+// on conflict (id2, id1) do update
 // returning
 //     id1, id2, name
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-returning-test3/on-conflict-do-update/returning
@@ -1827,9 +1903,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/on-conflict-do-update
 content-type: application/json
 
@@ -1841,9 +1915,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test1/on-conflict-do-update/returning
@@ -1948,9 +2020,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/on-conflict-do-update
 content-type: application/json
 
@@ -1962,9 +2032,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test2/on-conflict-do-update/returning
@@ -2075,9 +2143,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_test3
-// on conflict (id1, id2) 
-// do update set 
-//     name = excluded.name
+// on conflict (id1, id2) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/on-conflict-do-update
 content-type: application/json
 
@@ -2090,9 +2156,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_nothing_test3
-// on conflict (id1, id2) 
-// do update set 
-//     name = excluded.name
+// on conflict (id1, id2) do update
 // returning
 //     id1, id2, name
 PUT {{host}}/api/crud-insert-on-conflict-do-nothing-test3/on-conflict-do-update/returning
@@ -2198,9 +2262,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/on-conflict-do-update
 content-type: application/json
 
@@ -2212,9 +2274,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test1/on-conflict-do-update/returning
@@ -2319,9 +2379,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/on-conflict-do-update
 content-type: application/json
 
@@ -2333,9 +2391,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test2/on-conflict-do-update/returning
@@ -2418,7 +2474,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test3
-// on conflict (id1, id2) do nothing
+// on conflict (id2, id1) do nothing
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-nothing
 content-type: application/json
 
@@ -2431,7 +2487,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test3
-// on conflict (id1, id2) do nothing
+// on conflict (id2, id1) do nothing
 // returning
 //     id1, id2, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-nothing/returning
@@ -2446,9 +2502,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test3
-// on conflict (id1, id2) 
-// do update set 
-//     name = excluded.name
+// on conflict (id2, id1) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-update
 content-type: application/json
 
@@ -2461,9 +2515,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_returning_test3
-// on conflict (id1, id2) 
-// do update set 
-//     name = excluded.name
+// on conflict (id2, id1) do update
 // returning
 //     id1, id2, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-returning-test3/on-conflict-do-update/returning
@@ -2569,9 +2621,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/on-conflict-do-update
 content-type: application/json
 
@@ -2583,9 +2633,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_test1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-test1/on-conflict-do-update/returning
@@ -2690,9 +2738,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/on-conflict-do-update
 content-type: application/json
 
@@ -2704,9 +2750,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_test2
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-test2/on-conflict-do-update/returning
@@ -2817,9 +2861,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_test3
-// on conflict (id1, id2) 
-// do update set 
-//     name = excluded.name
+// on conflict (id1, id2) do update
 PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/on-conflict-do-update
 content-type: application/json
 
@@ -2832,9 +2874,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_insert_on_conflict_do_update_test3
-// on conflict (id1, id2) 
-// do update set 
-//     name = excluded.name
+// on conflict (id1, id2) do update
 // returning
 //     id1, id2, name
 PUT {{host}}/api/crud-insert-on-conflict-do-update-test3/on-conflict-do-update/returning
@@ -3055,9 +3095,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_table1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 PUT {{host}}/api/crud-table1/on-conflict-do-update
 content-type: application/json
 
@@ -3069,9 +3107,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_table1
-// on conflict (id) 
-// do update set 
-//     name = excluded.name
+// on conflict (id) do update
 // returning
 //     id, name
 PUT {{host}}/api/crud-table1/on-conflict-do-update/returning
@@ -3229,11 +3265,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_update_returning_tests
-// on conflict (id) 
-// do update set 
-//     name = excluded.name, 
-//     some_date = excluded.some_date, 
-//     status = excluded.status
+// on conflict (id) do update
 PUT {{host}}/api/crud-update-returning-tests/on-conflict-do-update
 content-type: application/json
 
@@ -3247,11 +3279,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_update_returning_tests
-// on conflict (id) 
-// do update set 
-//     name = excluded.name, 
-//     some_date = excluded.some_date, 
-//     status = excluded.status
+// on conflict (id) do update
 // returning
 //     id, name, some_date, status
 PUT {{host}}/api/crud-update-returning-tests/on-conflict-do-update/returning
@@ -3370,11 +3398,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_update_tests
-// on conflict (id) 
-// do update set 
-//     name = excluded.name, 
-//     some_date = excluded.some_date, 
-//     status = excluded.status
+// on conflict (id) do update
 PUT {{host}}/api/crud-update-tests/on-conflict-do-update
 content-type: application/json
 
@@ -3388,11 +3412,7 @@ content-type: application/json
 ###
 
 // insert into public.crud_update_tests
-// on conflict (id) 
-// do update set 
-//     name = excluded.name, 
-//     some_date = excluded.some_date, 
-//     status = excluded.status
+// on conflict (id) do update
 // returning
 //     id, name, some_date, status
 PUT {{host}}/api/crud-update-tests/on-conflict-do-update/returning

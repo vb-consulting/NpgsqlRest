@@ -84,7 +84,7 @@ public class RoutineSource(
             var expression = string.Concat(
                 (isVoid || returnRecordCount == 1)
                     ? callIdent
-                    : string.Concat(callIdent, string.Join(", ", returnRecordNames), " from "),
+                    : string.Concat(callIdent, string.Join(",", returnRecordNames), " from "),
                 schema,
                 ".",
                 name,

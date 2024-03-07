@@ -6,8 +6,8 @@ namespace NpgsqlRest;
 
 public readonly struct ParameterValidationValues(
     HttpContext context, 
-    Routine routine, 
-    NpgsqlParameter parameter,
+    Routine routine,
+    NpgsqlRestParameter parameter,
     string paramName,
     TypeDescriptor typeDescriptor,
     RequestParamType requestParamType,

@@ -13,7 +13,9 @@ public class HttpFileOptions(
     public static HttpFileOptions CreateBoth() => new(option: HttpFileOption.Both);
     public static HttpFileOptions CreateFile() => new(option: HttpFileOption.File);
     public static HttpFileOptions CreateEndpoint() => new(option: HttpFileOption.Endpoint);
-    
+
+    public HttpFileOptions() : this(option: HttpFileOption.Both) { }
+
     /// <summary>
     /// Options for HTTP file generation:
     /// Disabled - skip.

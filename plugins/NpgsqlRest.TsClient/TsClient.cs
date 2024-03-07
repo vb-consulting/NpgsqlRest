@@ -6,17 +6,23 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 {
     private IApplicationBuilder _builder = default!;
     private ILogger? _logger;
-    private NpgsqlRestOptions? _options;
+    private NpgsqlRestOptions? _npgsqlRestoptions;
+
+    public TsClient(string filePath) : this(new TsClientOptions(filePath)) { }
 
     public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
         _builder = builder;
         _logger = logger;
-        _options = options;
+        _npgsqlRestoptions = options;
     }
 
     public void Cleanup(ref (Routine routine, RoutineEndpoint endpoint)[] endpoints)
     {
+        if (options.FilePath is null)
+        {
+            return;
+        }
         HashSet<string> models___ = [];
         Dictionary<string, string> modelsDict = [];
         Dictionary<string, int> names = [];
@@ -68,7 +74,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         void Handle(Routine routine, RoutineEndpoint endpoint)
         {
-            var name = string.IsNullOrEmpty(_options?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_options.UrlPathPrefix.Length..];
+            var name = string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..];
             if (routine.Type == RoutineType.Table || routine.Type == RoutineType.View)
             {
                 name = string.Concat(name, "-", endpoint.Method.ToString().ToLowerInvariant());

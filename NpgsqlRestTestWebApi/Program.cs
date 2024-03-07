@@ -1,64 +1,27 @@
-using System.Diagnostics;
+using Npgsql;
 using NpgsqlRest;
 using NpgsqlRest.CrudSource;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
+using Serilog;
 
-Stopwatch sw = new();
-sw.Start();
-
-var builder = WebApplication.CreateEmptyBuilder(new ());
-builder.WebHost.UseKestrelCore();
-
-var config = new ConfigurationBuilder()
-    .AddEnvironmentVariables()
-    .AddJsonFile("appsettings.json", optional: false)
-    .AddJsonFile("appsettings.Development.json", optional: true)
-    .Build();
-
-string? connectionName = GetStr("ConnectionName");
-if (connectionName is null)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("ConnectionName not found in appsettings.json");
-    Console.ResetColor();
-    return;
-}
-var connectionString = config.GetConnectionString(connectionName);
-if (connectionString is null)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("Connection string not found in appsettings.json");
-    Console.ResetColor();
-    return;
-}
-
-if (GetBool("UseLogging"))
-{
-    builder.Logging
-        .AddConfiguration(config.GetSection("Logging"))
-        .AddConsole();
-}
+Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+var builder = WebApplication.CreateBuilder([]);
+var config = builder.Configuration;
+builder.Host.UseSerilog(new LoggerConfiguration()
+    .ReadFrom.Configuration(config.GetSection("Logging"))
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger());
 
 var app = builder.Build();
-app.Lifetime.ApplicationStarted.Register(() =>
-{
-    sw.Stop();
-    app.Logger.LogInformation("Application started in {0}", sw.Elapsed);
-});
-
-var urls = GetArray("Urls");
-if (urls != null)
-{
-    foreach (var url in urls)
-    {
-        app.Urls.Add(url);
-    }
-}
+app.UseSerilogRequestLogging();
 
 var httpFileOptions = config?.GetSection("HttpFileOptions");
 var crudSource = config?.GetSection("CrudSource");
+var tsClient = config?.GetSection("TsClient");
+var connectionString = GetConnectionString(config);
 
 app.UseNpgsqlRest(new()
 {
@@ -104,9 +67,11 @@ app.UseNpgsqlRest(new()
         }),
         new TsClient(new TsClientOptions
         {
-            FilePath = "../../RazorSvelte/RazorSvelte/App/test2.ts",
-            FileOverwrite = true,
-            IncludeHost = true,
+            FilePath = GetStr("FilePath", tsClient),
+            FileOverwrite = GetBool("FileOverwrite", tsClient),
+            IncludeHost = GetBool("IncludeHost", tsClient),
+            CustomHost = GetStr("CustomHost", tsClient),
+            CommentHeader = GetEnum<CommentHeader>("CommentHeader", tsClient)
         })
     ],
 
@@ -134,6 +99,28 @@ app.UseNpgsqlRest(new()
 });
 app.Run();
 return;
+
+string? GetConnectionString(ConfigurationManager? config)
+{
+    string? connectionName = GetStr("ConnectionName");
+    if (connectionName is null)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("ConnectionName not found in appsettings.json");
+        Console.ResetColor();
+        return null;
+    }
+    var connectionString = config?.GetConnectionString(connectionName);
+    if (connectionString is null)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("Connection string not found in appsettings.json");
+        Console.ResetColor();
+        return null;
+    }
+
+    return connectionString;
+}
 
 string? GetStr(string key, IConfiguration? subsection = null)
 {
@@ -205,7 +192,7 @@ T? GetFlag<T>(string key, IConfiguration? subsection = null)
     var names = Enum.GetNames(nullable ?? type);
 
     T? result = default;
-    foreach(var value in array)
+    foreach (var value in array)
     {
         foreach (var name in names)
         {
@@ -233,4 +220,3 @@ static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
         "/",
         routine.Name.Trim('"').Trim('/'),
         "/");
-

@@ -17,17 +17,12 @@ public class EmptyLogger : ILogger
 
 public class Program
 {
-    static void Validate(ParameterValidationValues p)
+    static async Task ValidateAsync(ParameterValidationValues p)
     {
-        if (string.Equals(p.Context.Request.Path, "/api/case-jsonpath-param/", StringComparison.Ordinal))
+        if (p.Routine.Name == "case_jsonpath_param" && p.Parameter.Value?.ToString() == "XXX")
         {
-            if (p.Parameter.Value is not null)
-            {
-                if (string.Equals(p.Parameter.Value.ToString(), "XXX", StringComparison.Ordinal))
-                {
-                    p.Context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                }
-            }
+            p.Context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            await p.Context.Response.WriteAsync($"Paramater {p.ParamName} is not valid.");
         }
     }
 
@@ -42,7 +37,7 @@ public class Program
         var app = builder.Build();
         app.UseNpgsqlRest(new(connectionString)
         {
-            ValidateParameters = Validate,
+            ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async p =>
             {
