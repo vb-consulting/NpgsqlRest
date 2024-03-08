@@ -2,7 +2,23 @@
 
 ## Version [2.0.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.0.0) (2024-03-10)
 
-Version 2.0.0 is the major overhaul of the entire library from the previous major version. 
+Version 2.0.0 is the major redesign of the entire library. This version adds extendibility by introducing the **concept of plugins.**
+
+There are two types of plugins:
+
+### 1) Routine Source Plugins
+
+The concept of routine represents something that is executed on the PostgreSQL server when the API endpoint is called. That may be a PostgreSQL function or procedure but it may be also a custom PostgreSQL query or a command.
+
+The routine source is the source of information on available routines (based on the configuration) upon which REST API is built.
+
+In the previous version of the library, there was only one routine source, which was PostgreSQL functions and procedures. Based on the given configuration, REST API was built on the available PostgreSQL functions and procedures.
+
+In this version, the routine source is abstracted and it's possible to 
+
+### 2) Code Generation Plugins
+
+### Library Design
 
 -----------
 
@@ -12,7 +28,7 @@ Version 2.0.0 is the major overhaul of the entire library from the previous majo
 
 ## Uptime Improved
 
-The query that returns metadata for existing routines is heavily optimized. There were some problematic subqueries that caused execution to run more then one second.
+The query that returns metadata for existing routines is heavily optimized. There were some problematic subqueries that caused execution to run more than one second.
 
 As a result, uptime is slashed from more than one second to milliseconds.
 
