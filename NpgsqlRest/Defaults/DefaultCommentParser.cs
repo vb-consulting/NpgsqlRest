@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using System.Xml.Linq;
+using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest.Defaults;
 
@@ -206,7 +207,7 @@ internal static class DefaultCommentParser
                         }
                         else
                         {
-                            logger?.LogWarning($"Invalid HTTP method '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{routineEndpoint.Method}'");
+                            logger?.InvalidHttpMethodComment(words[1], routine.Schema, routine.Name, routineEndpoint.Method.ToString());
                         }
                     }
                     if (len == 3)
@@ -214,7 +215,7 @@ internal static class DefaultCommentParser
                         string urlPathSegment = words[2];
                         if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                         {
-                            logger?.LogWarning($"Invalid URL path segment '{urlPathSegment}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default '{routineEndpoint.Url}'");
+                            logger?.InvalidUrlPathSegmentComment(urlPathSegment, routine.Schema, routine.Name, routineEndpoint.Url);
                         }
                         else
                         {
@@ -227,7 +228,10 @@ internal static class DefaultCommentParser
                     }
                     if (routineEndpoint.Method != originalMethod || !string.Equals(routineEndpoint.Url, originalUrl))
                     {
-                        Info(ref logger, ref options, ref routine, $"has set HTTP by comment annotations to \"{routineEndpoint.Method} {routineEndpoint.Url}\"");
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetHttp(routine.Type.ToString(), routine.Schema, routine.Name, routineEndpoint.Method.ToString(), routineEndpoint.Url);
+                        }
                     }
                 }
 
@@ -249,12 +253,15 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{routineEndpoint.RequestParamType}'");
+                        logger?.InvalidParameterTypeComment(words[1], routine.Schema, routine.Name, routineEndpoint.RequestParamType.ToString());
                     }
 
                     if (originalParamType != routineEndpoint.RequestParamType)
                     {
-                        Info(ref logger, ref options, ref routine, $"has set REQUEST PARAMETER TYPE by comment annotations to \"{routineEndpoint.RequestParamType}\"");
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetParameterType(routine.Type.ToString(), routine.Schema, routine.Name, routineEndpoint.RequestParamType.ToString());
+                        }
                     }
                 }
 
@@ -265,7 +272,10 @@ internal static class DefaultCommentParser
                 else if (haveTag is true && StrEqualsToArray(ref words[0], authorizeKey))
                 {
                     routineEndpoint.RequiresAuthorization = true;
-                    Info(ref logger, ref options, ref routine, $"has set REQUIRED AUTHORIZATION by comment annotations.");
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentSetAuth(routine.Type.ToString(), routine.Schema, routine.Name);
+                    }
                 }
 
                 // commandtimeout seconds
@@ -278,13 +288,16 @@ internal static class DefaultCommentParser
                     {
                         if (routineEndpoint.CommandTimeout != parsedTimeout)
                         {
-                            Info(ref logger, ref options, ref routine, $"has set COMMAND TIMEOUT by comment annotations to {parsedTimeout} seconds");
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentSetTimeout(routine.Type.ToString(), routine.Schema, routine.Name, words[1]);
+                            }
                         }
                         routineEndpoint.CommandTimeout = parsedTimeout;
                     }
                     else
                     {
-                        logger?.LogWarning($"Invalid command timeout '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}'. Using default command timeout '{routineEndpoint.CommandTimeout}'");
+                        logger?.InvalidTimeoutComment(words[1], routine.Schema, routine.Name, routineEndpoint.CommandTimeout?.ToString() ?? "NULL");
                     }
                 }
 
@@ -310,11 +323,14 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are Ignore or Context or Parameter. Using default '{routineEndpoint.RequestHeadersMode}'");
+                        logger?.InvalidRequestHeadersModeComment(words[1], routine.Schema, routine.Name, routineEndpoint.RequestHeadersMode.ToString());
                     }
                     if (routineEndpoint.RequestHeadersMode != options.RequestHeadersMode)
                     {
-                        Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS MODE by comment annotations to \"{routineEndpoint.RequestHeadersMode}\"");
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetRequestHeadersMode(routine.Type.ToString(), routine.Schema, routine.Name, words[1]);
+                        }
                     }
                 }
 
@@ -330,7 +346,10 @@ internal static class DefaultCommentParser
                     {
                         if (!string.Equals(routineEndpoint.RequestHeadersParameterName, words[1]))
                         {
-                            Info(ref logger, ref options, ref routine, $"has set REQUEST HEADERS PARAMETER NAME by comment annotations to \"{words[1]}\"");
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentSetRequestHeadersParamName(routine.Type.ToString(), routine.Schema, routine.Name, words[1]);
+                            }
                         }
                         routineEndpoint.RequestHeadersParameterName = words[1];
                     }
@@ -348,7 +367,10 @@ internal static class DefaultCommentParser
                     {
                         if (!string.Equals(routineEndpoint.BodyParameterName, words[1]))
                         {
-                            Info(ref logger, ref options, ref routine, $"has set BODY PARAMETER NAME by comment annotations to \"{words[1]}\"");
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentSetBodyParamName(routine.Type.ToString(), routine.Schema, routine.Name, words[1]);
+                            }
                         }
                         routineEndpoint.BodyParameterName = words[1];
                     }
@@ -373,11 +395,14 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are EmptyString or NullLiteral or NoContent. Using default '{routineEndpoint.TextResponseNullHandling}'");
+                        logger?.InvalidResponseNullHandlingModeComment(words[1], routine.Schema, routine.Name, routineEndpoint.TextResponseNullHandling.ToString());
                     }
                     if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
                     {
-                        Info(ref logger, ref options, ref routine, $"has set TEXT RESPONSE HANDLING by comment annotations to \"{routineEndpoint.TextResponseNullHandling}\"");
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetTextResponseNullHandling(routine.Type.ToString(), routine.Schema, routine.Name, words[1]);
+                        }
                     }
                 }
 
@@ -400,11 +425,14 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.LogWarning($"Invalid parameter type '{words[1]}' in comment for routine '{routine.Schema}.{routine.Name}' Allowed values are EmptyString or NullLiteral or Ignore. Using default '{routineEndpoint.QueryStringNullHandling}'");
+                        logger?.InvalidQueryStringNullHandlingComment(words[1], routine.Schema, routine.Name, routineEndpoint.QueryStringNullHandling.ToString());
                     }
                     if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
                     {
-                        Info(ref logger, ref options, ref routine, $"has set QUERY STRING NULL HANDLING by comment annotations to \"{routineEndpoint.QueryStringNullHandling}\"");
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetQueryStringNullHandling(routine.Type.ToString(), routine.Schema, routine.Name, routineEndpoint.QueryStringNullHandling.ToString());
+                        }
                     }
                 }
 
@@ -421,7 +449,10 @@ internal static class DefaultCommentParser
                         {
                             if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
                             {
-                                Info(ref logger, ref options, ref routine, $"has set Content-Type HEADER by comment annotations to \"{headerValue}\"");
+                                if (options.LogAnnotationSetInfo)
+                                {
+                                    logger?.CommentSetContentType(routine.Type.ToString(), routine.Schema, routine.Name, headerValue);
+                                }
                             }
                             routineEndpoint.ResponseContentType = headerValue;
                         }
@@ -447,7 +478,10 @@ internal static class DefaultCommentParser
                             }
                             if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
                             {
-                                Info(ref logger, ref options, ref routine, $"has set {headerName} HEADER by comment annotations to \"{headerValue}\"");
+                                if (options.LogAnnotationSetInfo)
+                                {
+                                    logger?.CommentSetHeader(routine.Type.ToString(), routine.Schema, routine.Name, headerName, headerValue);
+                                }
                             }
                         }
                     }
@@ -464,15 +498,6 @@ internal static class DefaultCommentParser
         }
 
         return routineEndpoint;
-    }
-
-    private static void Info(ref ILogger? logger, ref NpgsqlRestOptions options, ref Routine routine, string message)
-    {
-        if (!options.LogAnnotationSetInfo)
-        {
-            return;
-        }
-        logger?.LogInformation(string.Concat($"{routine.Type} {routine.Schema}.{routine.Name} ", message));
     }
 
     private static bool StrEquals(ref string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);

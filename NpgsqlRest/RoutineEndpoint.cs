@@ -32,4 +32,5 @@ public struct RoutineEndpoint(
     public string? BodyParameterName { get; set; } = bodyParameterName;
     public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
     public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
+    internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
 }

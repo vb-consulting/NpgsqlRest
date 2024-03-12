@@ -1,4 +1,4 @@
-﻿# NpgsqlRest.HttpFiles
+﻿# NpgsqlRest.TsClient
 
 **Automatic Typescript Client Code Generation for NpgsqlRest**
 

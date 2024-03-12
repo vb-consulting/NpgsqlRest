@@ -206,11 +206,13 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
 
 ### Plug-in System
 
-NpgsqlRest has a plug-in system that allows you to extend the functionality of the generated REST API from your PostgreSQL database. Currently, the following plug-ins are available:
+NpgsqlRest has a plug-in system that allows you to extend the functionality of the generated REST API from your PostgreSQL database. 
 
-- **[Table CRUD support](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.CrudSource)**. Automatically generate CRUD endpoints for your PostgreSQL tables.
-- **[HTTP File generation](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.HttpFiles)**. Automatically generate HTTP files for testing, with the list of available endpoints.
-- **[Typescript client generation](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient)**. Automatically generate Typescript client code from the NpgsqlRest endpoints for your Typescript projects.
+Currently, the following plug-ins are available:
+
+- **[CRUD support](https://vb-consulting.github.io/npgsqlrest/crudsource)**. Automatically generate CRUD endpoints for your PostgreSQL tables and views.
+- **[HTTP File support](https://vb-consulting.github.io/npgsqlrest/httpfiles/)**. Automatically generate HTTP files for testing, with the list of available endpoints.
+- **[Typescript Client support](https://vb-consulting.github.io/npgsqlrest/tsclient/)**. Automatically generate Typescript client code from the NpgsqlRest endpoints for your Typescript projects.
 
 ## Getting Started
 

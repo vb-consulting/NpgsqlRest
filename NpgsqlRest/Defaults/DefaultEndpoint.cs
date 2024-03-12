@@ -55,6 +55,18 @@ internal static class DefaultEndpoint
                 textResponseNullHandling: options.TextResponseNullHandling,
                 queryStringNullHandling: options.QueryStringNullHandling);
 
+        if (options.LogCommands && logger != null)
+        {
+            routineEndpoint.LogCallback = LoggerMessage.Define<string, string>(LogLevel.Information,
+                new EventId(-1, nameof(routineEndpoint.LogCallback)),
+                "{parameters}{command}",
+                new LogDefineOptions() { SkipEnabledCheck = true });
+        }
+        else
+        {
+            routineEndpoint.LogCallback = null;
+        }
+
         if (routine.EndpointHandler is not null)
         {
             var parsed = DefaultCommentParser.Parse(

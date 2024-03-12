@@ -587,8 +587,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     if (shouldLog)
                     {
-                        cmdLog!.Append("{0}");
-                        logger?.LogInformation(cmdLog.ToString(), command.CommandText);
+                        Logger.LogEndpoint(ref logger, ref endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                     }
                     
                     if (endpoint.CommandTimeout.HasValue)
@@ -668,12 +667,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             else
                             {
-                                logger?.LogError( 
-                                    "Could not read a value from {0} \"{1}\" mapped to {2} {3} ", 
-                                    routine.Type.ToString().ToLower(), 
-                                    command.CommandText,
-                                    context.Request.Method, 
-                                    context.Request.Path);
+                                logger?.CouldNotReadCommand(command.CommandText, context.Request.Method, context.Request.Path);
                                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                                 await context.Response.CompleteAsync();
                                 return;
@@ -833,7 +827,6 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     catch (JsonException)
                     {
-                        logger?.LogWarning("Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
                         return;
                     }
                     try
@@ -845,8 +838,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     catch (Exception e)
                     {
-                        logger?.LogWarning("Could not parse JSON body {0}, skipping path {1}. Error: {2}", 
-                            body, context.Request.Path, e.Message);
+                        logger?.CouldNotParseJson(body, context.Request.Path, e.Message);
                     }
                 }
             }
@@ -904,11 +896,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 if (endpoint.BodyParameterName is not null && endpoint.RequestParamType == RequestParamType.BodyJson)
                 {
                     endpoint = endpoint with { RequestParamType = RequestParamType.QueryString };
-                    logger?.LogWarning( 
-                        "Endpoint {0} {1} changed request parameter type from body to query string because body will be used for parameter named `{2}`.",
-                        method, 
-                        endpoint.Url,
-                        endpoint.BodyParameterName);
+                    logger?.EndpointTypeChanged(method, endpoint.Url, endpoint.BodyParameterName);
                 }
                 var key = string.Concat(method, endpoint.Url);
                 List<Tuple> list = dict.TryGetValue(key, out var value) ? value : [];
@@ -922,7 +910,7 @@ public static class NpgsqlRestMiddlewareExtensions
             
                 if (options.LogEndpointCreatedInfo)
                 {
-                    logger?.LogInformation("Created endpoint {0} {1}", method, endpoint.Url);
+                    logger?.EndpointCreated(method, endpoint.Url);
                 }
             }
         }
