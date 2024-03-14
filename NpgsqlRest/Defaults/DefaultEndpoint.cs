@@ -58,9 +58,9 @@ internal static class DefaultEndpoint
         if (options.LogCommands && logger != null)
         {
             routineEndpoint.LogCallback = LoggerMessage.Define<string, string>(LogLevel.Information,
-                new EventId(-1, nameof(routineEndpoint.LogCallback)),
+                new EventId(0, nameof(routineEndpoint.LogCallback)),
                 "{parameters}{command}",
-                new LogDefineOptions() { SkipEnabledCheck = true });
+                Logger.LogDefineOptions);
         }
         else
         {
