@@ -1,5 +1,7 @@
 # Changelog
 
+This file contains a changelog for NpgsqlRest major version 1.
+
 ## Version [1.6.3](https://github.com/vb-consulting/NpgsqlRest/tree/1.6.3) (2024-02-19)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/1.6.2...1.6.3)

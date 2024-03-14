@@ -130,10 +130,17 @@ app.Run();
 
 ### Other Changes
 
-Changes in this major version are too numerous. See the documentation pages instead:
+Changes in this major version are too numerous to list them all.
+
+Instead, see the documentation pages for more information:
 
 - **[See Options Reference](https://vb-consulting.github.io/npgsqlrest/options/)**
 - **[See Comment Annotations Reference](https://vb-consulting.github.io/npgsqlrest/annotations/)**
 
 -----------
 
+## Older Versions
+
+The changelog for the previous version can be found here: [Changelog Version 1](https://github.com/vb-consulting/NpgsqlRest/blob/2.0.0/changelog-old.md)
+
+-----------
