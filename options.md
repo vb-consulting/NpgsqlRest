@@ -272,14 +272,28 @@ info: NpgsqlRest[0]
 
 Set this option to true to log information for every executed command and query (including parameters and parameter values).
 
+When this option is true, the following log will be produced:
+
+```console
+info: NpgsqlRest[0] -- POST http://localhost:5000/api/return-text
+      select public.return_text($1)
+```
+
+## LogCommandParameters
+
+- Type: `bool`
+- Default: `false`
+
+Set this option to true to include parameter values when logging commands. This only applies when `LogCommands` is true.
+
 Execution for parameter value "ABC" will produce the following log:
 
 ```console
-info: NpgsqlRest[0]
-      -- POST http://localhost:5000/api/return-text
+info: NpgsqlRest[0] -- POST http://localhost:5000/api/return-text
       -- $1 text = 'ABC'
       select public.return_text($1)
 ```
+
 ## CommandTimeout
 
 - Type: `int?`

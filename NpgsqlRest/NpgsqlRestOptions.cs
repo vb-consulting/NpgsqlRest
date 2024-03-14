@@ -28,6 +28,7 @@ public class NpgsqlRestOptions(
     bool logAnnotationSetInfo = true,
     bool logConnectionNoticeEvents = true,
     bool logCommands = false,
+    bool logCommandParameters = false,
     int? commandTimeout = null,
     Method? defaultHttpMethod = null,
     RequestParamType? defaultRequestParamType = null,
@@ -164,6 +165,11 @@ public class NpgsqlRestOptions(
     /// Set this option to true to log information for every executed command and query (including parameters and parameter values).
     /// </summary>
     public bool LogCommands { get; set; } = logCommands;
+
+    /// <summary>
+    /// Set this option to true to include parameter values when logging commands. This only applies when `LogCommands` is true.
+    /// </summary>
+    public bool LogCommandParameters { get; set; } = logCommandParameters;
 
     /// <summary>
     /// Sets the wait time (in seconds) on database commands, before terminating the attempt to execute a command and generating an error. This value when it is not null will override the `NpgsqlCommand` which is 30 seconds. Command timeout property for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.

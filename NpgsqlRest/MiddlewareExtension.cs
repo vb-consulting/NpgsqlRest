@@ -561,10 +561,9 @@ public static class NpgsqlRestMiddlewareExtensions
                                     commandText = string.Concat(commandText,
                                         formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount));
                                 }
-                                    
                             }
 
-                            if (shouldLog)
+                            if (shouldLog && options.LogCommandParameters)
                             {
                                 object value = parameter.NpgsqlValue!;
                                 var p = FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
