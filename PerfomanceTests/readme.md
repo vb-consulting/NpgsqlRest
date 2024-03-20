@@ -26,7 +26,7 @@ The number of successful requests executed by the K6 (see the `k6-api-tests.js` 
 - 100 simultaneous virtual users.
 - Retrieval of 10 and 100 records.
 
-Higher is better.
+Numbers represent an overall number of successful requests (higher is better).
 
 | Records | Function   | AOT [1](#1-aot) | JIT [2](#2-jit) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
 | ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
