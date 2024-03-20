@@ -17,10 +17,10 @@ See the changelog for the latest release changes in the **[Changelog](https://vb
 
 #### High Performance
 
-[See More](https://vb-consulting.github.io/npgsqlrest/perfomance-tests/)
+[See More](#high-performances)
 
 <p style="text-align: center; width: 100%">
-    <img src="/npgsqlrest-chart.png?v3" style="width: 70%;"/>
+    <img src="/npgsqlrest-chart.png?v3" style="width: 50%;"/>
 </p>
 
 #### Modular Design 
@@ -186,21 +186,17 @@ app.Run();
 
 NpgsqlRest has an extremely high throughput:
 
-| Platform | Number of Requests in 60 seconds |
-| -- | -- |
-| NpgsqlRest AOT | 423,515 |
-| NpgsqlRest JIT | 606,410 |
-| PostgREST | 72,305 |
-| .NET8 EF | 337,612 |
-| .NET8 ADO | 440,896 |
-| Django | 21,193 |
-| Express | 160,241 |
-| GO | 78,530 |
-| FastAPI | 13,650 |
-
-<p style="text-align: center; width: 100%">
-    <img src="/npgsqlrest-chart.png?v3" style="width: 70%;"/>
-</p>
+| Platform | 10 Records | 100 Records |
+| -------- | ---------: | ----------: |
+| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **423,515** | **100,542** |
+| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **606,410**  | **126,154** |
+| **ADO** is NET8 Raw ADO Data Reader approach. [Source](https://vb-consulting.github.io/npgsqlrest/performances/#4-ado) | 440,896 | 314,198 |
+| **EF** is Entity Framework Core 8 on NET8 runtime. [Source](/https://vb-consulting.github.ionpgsqlrest/performances/#3-ef) | 337,612 | 235,331 |
+| **PostgREST** version 12.0.2 | 72,305 | 40,456 |
+| **Django** REST Framework 4.2.10 on Python 3.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#5-django) | 21,193 | 18,345  |
+| **Express** on NodeJS v20.11.1, express v4.18.3, pg 8.11.3 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#6-express) | 160,241 | 55,119 |
+| **GO** version go1.13.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#7-go) | 78,530 | 55,119 |
+| **FastAPI** version 0.110.0 on Python 3.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#8-fastapi)| 13,650 | 9,666 |
 
 See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/PerfomanceTests).
 

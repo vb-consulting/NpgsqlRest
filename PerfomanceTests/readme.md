@@ -48,6 +48,20 @@ Numbers represent an overall number of successful requests (higher is better).
 | 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 | 91,987 | N/A | 11,881 |
 | 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 | 17,896 | N/A | 6,192 |
 
+### Consolidated Results
+
+| Platform | 10 Records | 100 Records |
+| -------- | ---------: | ----------: |
+| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **423,515** | **100,542** |
+| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **606,410**  | **126,154** |
+| **ADO** is NET8 Raw ADO Data Reader approach. [Source](#4-ado) | 440,896 | 314,198 |
+| **EF** is Entity Framework Core 8 on NET8 runtime. [Source](#3-ef) | 337,612 | 235,331 |
+| **PostgREST** version 12.0.2 | 72,305 | 40,456 |
+| **Django** REST Framework 4.2.10 on Python 3.8 [Source Link](5-django) | 21,193 | 18,345  |
+| **Express** on NodeJS v20.11.1, express v4.18.3, pg 8.11.3 [Source Link](#6-express) | 160,241 | 55,119 |
+| **GO** version go1.13.8 [Source Link](#7-go) | 78,530 | 55,119 |
+| **FastAPI** version 0.110.0 on Python 3.8 [Source Link](#8-fastapi)| 13,650 | 9,666 |
+
 #### 1) AOT
 
 NpgsqlRest .NET8 AOT build is ahead-of-time (AOT) compiled to native code. AOT has an average **startup time of between 180 to 200 milliseconds.**
