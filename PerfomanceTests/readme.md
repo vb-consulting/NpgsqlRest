@@ -355,7 +355,7 @@ func PerfTestFunction(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-#### 7) FastAPI
+#### 8) FastAPI
 
 FastAPI 0.110.0 on Python 3.8
 
