@@ -184,7 +184,11 @@ app.Run();
 
 ### High Performances
 
-NpgsqlRest has an extremely high throughput:
+Tests are executed with the K6 stress tool for:
+
+- Duration of 60 seconds.
+- 100 simultaneous virtual users.
+- Retrieval of 10 and 100 records.
 
 | Platform | 10 Records | 100 Records |
 | -------- | ---------: | ----------: |
