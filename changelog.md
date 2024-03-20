@@ -51,7 +51,7 @@ In the previous version, there is support for the automatic generation of [HTTP 
 To use the HTTP files support, first, reference `NpgsqlRest.HttpFiles` plugin library with:
 
 ```console
-dotnet add package NpgsqlRest.CrudSource --version 1.0.0
+dotnet add package NpgsqlRest.HttpFiles --version 1.0.0
 ```
 
 And then include the `HttpFiles` in the list of generators in the `EndpointCreateHandlers` list option:

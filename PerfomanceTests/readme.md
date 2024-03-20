@@ -20,7 +20,13 @@ Used API's are from:
 
 ## Results
 
-Number of successful requests in 50 seconds **(higher is better)**.
+The number of successful requests executed by the K6 (see the `k6-api-tests.js` file in this dir):
+
+- Duration of 60 seconds.
+- 100 simultaneous virtual users.
+- Retrieval of 10 and 100 records.
+
+Higher is better.
 
 | Records | Function   | AOT [1](#1-aot) | JIT [2](#2-jit) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
 | ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
