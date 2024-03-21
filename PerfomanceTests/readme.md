@@ -30,30 +30,30 @@ Numbers represent an overall number of successful requests (higher is better).
 
 | Records | Function   | AOT [1](#1-aot) | JIT [2](#2-jit) | PostgREST | Ratio (AOT / PostgREST) | Ratio (JIT / PostgREST) |
 | ------: | ---------: | ---------: | --------: | --------: | --------: | --------: |
-| 10 | `perf_test` | 423,515 | 606,410 | 72,305 | 5.86 | 8.39 |
-| 100 | `perf_test` | 100,542 | 126,154 | 40,456 | 2.49 | 3.12 |
-| 10 | `perf_test_arrays` | 292,489 | 419707 | 55,331 | 5.29 | 7.59 |
-| 100 | `perf_test_arrays` | 68,316 | 80,906 | 32,418 | 2.10 | 2.50 |
-| 10 | `perf_test_record` | 482,936 | 657,250 | 61,825 | 7.81 | 10.63 |
-| 100 | `perf_test_record` | 203,461 | 223,474 | 36,642 | 5.55 | 6.10 |
-| 10 | `perf_test_record_arrays` | 380,624 | 474,948 | 50,579 | 7.53 | 9.39 |
-| 100 | `perf_test_record_arrays` | 112,542 | 116,399 | 32,619 | 3.45 | 3.57 |
+| 10 | `perf_test` | 781,803 | 562,304 | 72,305 | 10.81 | 7.78 |
+| 100 | `perf_test` | 307,427 | 303,692 | 40,456 | 7.60 | 7.51 |
+| 10 | `perf_test_arrays` | 495,190 | 384,090 | 55,331 | 8.95 | 6.94 |
+| 100 | `perf_test_arrays` | 124,912 | 127,707 | 32,418 | 3.85 | 3.94 |
+| 10 | `perf_test_record` | 642,772 | 561,855 | 61,825 | 10.40 | 9.09 |
+| 100 | `perf_test_record` | 216,775 | 227,297 | 36,642 | 5.92 | 6.20 |
+| 10 | `perf_test_record_arrays` | 448,273 | 403,900 | 50,579 | 8.86 | 7.99 |
+| 100 | `perf_test_record_arrays` | 100,485 | 112,989 | 32,619 | 3.08 | 3.46 |
 
 ### Other Platforms
 
 | Records | Function | AOT [1](#1-aot) | JIT [2](#2-jit) | EF [3](#3-ef) | ADO [4](#4-ado) | Django [5](#5-django) | Express [6](#6-express) | GO [7](#7-go) | FastAPI [8](#8-fastapi) |
 | ------: | ---------: | ---------: | --------: | --------: | --------: | --------: | --------: | --------: | --------: |
-| 10 | `perf_test` | 423,515 | 606,410 | 337,612 | 440,896 | 21,193 | 160,241 | 78,530 | 13,650 |
-| 100 | `perf_test` | 100,542 | 126,154 | 235,331 | 314,198 | 18,345 | 58,130 | 55,119 | 9,666 |
-| 10 | `perf_test_arrays` | 292,489 | 419,707 | 254,787 | 309,059 | 19,011 | 91,987 | N/A | 11,881 |
-| 100 | `perf_test_arrays` | 68,316 | 80,906 | 113,663 | 130,471 | 11,452 | 17,896 | N/A | 6,192 |
+| 10 | `perf_test` | 781,803 | 562,304 | 337,612 | 440,896 | 21,193 | 160,241 | 78,530 | 13,650 |
+| 100 | `perf_test` | 307,427 | 303,692 | 235,331 | 314,198 | 18,345 | 58,130 | 55,119 | 9,666 |
+| 10 | `perf_test_arrays` | 495,190 | 384,090 | 254,787 | 309,059 | 19,011 | 91,987 | N/A | 11,881 |
+| 100 | `perf_test_arrays` | 124,912 | 127,707 | 113,663 | 130,471 | 11,452 | 17,896 | N/A | 6,192 |
 
 ### Consolidated Results
 
 | Platform | 10 Records | 100 Records |
 | -------- | ---------: | ----------: |
-| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **423,515** | **100,542** |
-| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **606,410**  | **126,154** |
+| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **781,803** | **307,427** |
+| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **562,304**  | **303,692** |
 | **ADO** is NET8 Raw ADO Data Reader approach. [Source](#4-ado) | 440,896 | 314,198 |
 | **EF** is Entity Framework Core 8 on NET8 runtime. [Source](#3-ef) | 337,612 | 235,331 |
 | **PostgREST** version 12.0.2 | 72,305 | 40,456 |

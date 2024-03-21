@@ -17,19 +17,29 @@ See the changelog for the latest release changes in the **[Changelog](https://vb
 
 #### High Performance
 
-[See More](#high-performances)
+Number of Requests in 60 seconds stress test:
 
-<p style="text-align: center; width: 100%">
-    <img src="/npgsqlrest-chart.png?v3" style="width: 50%;"/>
-</p>
+| Platform | Number Of Requests in 60 Seconds| Ratio For 1 Request How Many NpgsqlRest AOT Requests |
+| -------- | ---------: | ---------: |
+| **NpgsqlRest AOT** | **781,803** | **1** |
+| **NpgsqlRest JIT** | 562,304  | 1.39 |
+| **.NET8 ADO** | 440,896 | 1.77 |
+| **.NET8 EF** | 337,612 | 2.32 |
+| **PostgREST** | 72,305 | 10.81 |
+| **Django** | 21,193 | 36.89 |
+| **Express** | 160,241 | 4.88 |
+| **GO** | 78,530 | 9.96 |
+| **FastAPI** | 13,650 | 57.27 |
+
+[Read More](#high-performances)
 
 #### Modular Design 
-
-[See More](#plug-in-system)
 
 <p style="text-align: center; width: 100%">
     <img src="/npgsqlrest-v2.png" style="width: 70%;"/>
 </p>
+
+[Read More](#plug-in-system)
 
 ## Quick Example
 
@@ -192,10 +202,10 @@ Tests are executed with the K6 stress tool for:
 
 | Platform | 10 Records | 100 Records |
 | -------- | ---------: | ----------: |
-| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **423,515** | **100,542** |
-| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **606,410**  | **126,154** |
+| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **781,803** | **307,427** |
+| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **562,304**  | **303,692** |
 | **ADO** is NET8 Raw ADO Data Reader approach. [Source](https://vb-consulting.github.io/npgsqlrest/performances/#4-ado) | 440,896 | 314,198 |
-| **EF** is Entity Framework Core 8 on NET8 runtime. [Source](/https://vb-consulting.github.ionpgsqlrest/performances/#3-ef) | 337,612 | 235,331 |
+| **EF** is Entity Framework Core 8 on NET8 runtime. [Source](https://vb-consulting.github.io/npgsqlrest/performances/#3-ef) | 337,612 | 235,331 |
 | **PostgREST** version 12.0.2 | 72,305 | 40,456 |
 | **Django** REST Framework 4.2.10 on Python 3.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#5-django) | 21,193 | 18,345  |
 | **Express** on NodeJS v20.11.1, express v4.18.3, pg 8.11.3 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#6-express) | 160,241 | 55,119 |
