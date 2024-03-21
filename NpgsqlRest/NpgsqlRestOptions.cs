@@ -42,8 +42,7 @@ public class NpgsqlRestOptions(
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
     Action<List<IRoutineSource>>? sourcesCreated = null,
     TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
-    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore,
-    uint bufferRows = 25)
+    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -242,11 +241,6 @@ public class NpgsqlRestOptions(
     /// </summary>
     public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
 
-    /// <summary>
-    /// How many rows are buffered in the response stream. Higher values will increase memory usage and improve performance.
-    /// This applies only to endpoints returning multiple rows in JSON array.
-    /// The Default is 25 rows. Set to 0 to disable buffering.
-    /// </summary>
-    public ulong BufferRows { get; set; } = bufferRows;
+    internal ulong BufferRows { get; set; } = 25;
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

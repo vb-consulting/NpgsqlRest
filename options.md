@@ -539,15 +539,3 @@ Sets the default behavior on how to pass the `NULL` values with query strings:
 - `Ignore` (default) `NULL` values are ignored, query string receives only empty strings. 
 
 This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
-
-## BufferRows
-
-- Type: `ulong`
-- Default: `25`
-
-How many rows are buffered in the response stream? 
-Higher values will increase memory usage and improve performance.
-
-This applies only to endpoints returning multiple rows in a JSON array (returning tables or records).
-
-The Default is 25 rows. Set to 0 to disable buffering.
