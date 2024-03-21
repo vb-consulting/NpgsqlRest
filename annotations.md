@@ -65,6 +65,18 @@ requires-authorization
 
 Require authorization for this endpoint.
 
+## AllowAnonymous
+
+```console
+allowanonymous
+allow_anonymous
+allow-anonymous
+anonymous
+anon
+```
+
+Allow anonymous access with no authorization to this endpoint. 
+
 ## CommandTimeout
 
 ```console

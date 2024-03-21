@@ -58,7 +58,7 @@ internal static class DefaultEndpoint
         if (options.LogCommands && logger != null)
         {
             routineEndpoint.LogCallback = LoggerMessage.Define<string, string>(LogLevel.Information,
-                new EventId(0, nameof(routineEndpoint.LogCallback)),
+                new EventId(5, nameof(routineEndpoint.LogCallback)),
                 "{parameters}{command}",
                 Logger.LogDefineOptions);
         }

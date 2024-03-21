@@ -36,6 +36,13 @@ internal static class DefaultCommentParser
         "requires_authorization",
         "requires-authorization"
     ];
+    private static readonly string[] allowAnonymousKey = [
+        "allowanonymous",
+        "allow_anonymous",
+        "allow-anonymous",
+        "anonymous",
+        "anon"
+    ];
     private static readonly string[] timeoutKey = [
         "commandtimeout",
         "command_timeout",
@@ -274,6 +281,20 @@ internal static class DefaultCommentParser
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentSetAuth(routine.Type, routine.Schema, routine.Name);
+                    }
+                }
+
+                // allowanonymous
+                // allow_anonymous
+                // allow-anonymous
+                // anonymous
+                // anon
+                else if (haveTag is true && StrEqualsToArray(ref words[0], allowAnonymousKey))
+                {
+                    routineEndpoint.RequiresAuthorization = false;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentSetAnon(routine.Type, routine.Schema, routine.Name);
                     }
                 }
 
