@@ -614,6 +614,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     else // end if (routine.IsVoid)
                     {
                         command.AllResultTypesAreUnknown = true;
+                        StringBuilder response = new();
                         await using var reader = await command.ExecuteReaderAsync();
                         if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
                         {
@@ -647,13 +648,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                                 if (value is not null)
                                 {
-                                    await context.Response.WriteAsync(value);
+                                    response.Append(value);
                                 }
                                 else
                                 {
                                     if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
                                     {
-                                        await context.Response.WriteAsync("null");
+                                        response.Append("null");
                                     }
                                     else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
                                     {
@@ -661,6 +662,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                     // else OK empty string
                                 }
+
+                                await context.Response.WriteAsync(response.ToString());
                                 await context.Response.CompleteAsync();
                                 return;
                             }
@@ -692,15 +695,16 @@ public static class NpgsqlRestMiddlewareExtensions
                             context.Response.StatusCode = (int)HttpStatusCode.OK;
                             if (routine.ReturnsSet)
                             {
-                                await context.Response.WriteAsync("[");
+                                response.Append('[');
                             }
                             bool first = true;
                             var routineReturnRecordCount = routine.ColumnCount;
+
                             while (await reader.ReadAsync())
                             {
                                 if (!first)
                                 {
-                                    await context.Response.WriteAsync(",");
+                                    response.Append(',');
                                 }
                                 else
                                 {
@@ -716,20 +720,22 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (i == 0)
                                         {
-                                            await context.Response.WriteAsync("{");
+                                            response.Append('{');
                                         }
-                                        await context.Response.WriteAsync(string.Concat("\"", endpoint.ReturnRecordNames[i], "\":"));
+                                        response.Append('\"');
+                                        response.Append(endpoint.ReturnRecordNames[i]);
+                                        response.Append("\":");
                                     }
 
                                     var descriptor = routine.ColumnsTypeDescriptor[i];
                                     if (value == DBNull.Value)
                                     {
-                                        await context.Response.WriteAsync("null");
+                                        response.Append("null");
                                     }
                                     else if (descriptor.IsArray && value is not null)
                                     {
                                         raw = PgConverters.PgArrayToJsonArray(ref raw, ref descriptor);
-                                        await context.Response.WriteAsync(raw);
+                                        response.Append(raw);
                                     }
                                     else if ((descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson) && value is not null)
                                     {
@@ -737,60 +743,66 @@ public static class NpgsqlRestMiddlewareExtensions
                                         {
                                             if (string.Equals(raw, "t", StringComparison.Ordinal))
                                             {
-                                                await context.Response.WriteAsync("true");
+                                                response.Append("true");
                                             }
                                             else if (string.Equals(raw, "f", StringComparison.Ordinal))
                                             {
-                                                await context.Response.WriteAsync("false");
+                                                response.Append("false");
                                             }
                                             else
                                             {
-                                                await context.Response.WriteAsync(raw);
+                                                response.Append(raw);
                                             }
                                         }
                                         else
                                         {
                                             // numeric and json
-                                            await context.Response.WriteAsync(raw);
+                                            response.Append(raw);
                                         }
                                     }
                                     else
                                     {
                                         if (descriptor.ActualDbType == NpgsqlDbType.Unknown)
                                         {
-                                            await context.Response.WriteAsync(PgConverters.PgUnknownToJsonArray(ref raw));
+                                            response.Append(PgConverters.PgUnknownToJsonArray(ref raw));
                                         }
                                         else if (descriptor.NeedsEscape)
                                         {
-                                            await context.Response.WriteAsync(PgConverters.SerializeString(ref raw));
+                                            response.Append(PgConverters.SerializeString(ref raw));
                                         }
                                         else
                                         {
                                             if (descriptor.IsDateTime)
                                             {
-                                                await context.Response.WriteAsync(string.Concat("\"", raw.Replace(' ', 'T'), "\""));
+                                                response.Append('\"');
+                                                response.Append(raw.Replace(' ', 'T'));
+                                                response.Append('\"');
                                             }
                                             else
                                             {
-                                                await context.Response.WriteAsync(string.Concat("\"", raw, "\""));
+                                                response.Append('\"');
+                                                response.Append(raw);
+                                                response.Append('\"');
                                             }
                                         }
                                     }
                                     if (routine.ReturnsUnnamedSet == false && i == routine.ColumnCount - 1)
                                     {
-                                        await context.Response.WriteAsync("}");
+                                        response.Append('}');
                                     }
                                     if (i < routine.ColumnCount - 1)
                                     {
-                                        await context.Response.WriteAsync(",");
+                                        response.Append(',');
                                     }
                                 } // end for
 
                             } // end while
                             if (routine.ReturnsSet)
                             {
-                                await context.Response.WriteAsync("]");
+                                response.Append(']');
                             }
+
+                            await context.Response.WriteAsync(response.ToString());
                             await context.Response.CompleteAsync();
                             return;
                         } // end if (routine.ReturnsRecord == true)
