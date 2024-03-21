@@ -698,12 +698,14 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
                             bool first = true;
                             var routineReturnRecordCount = routine.ColumnCount;
+
                             StringBuilder row = new();
+                            ulong rowCount = 0;
                             while (await reader.ReadAsync())
                             {
+                                rowCount++;
                                 if (!first)
                                 {
-                                    row.Clear();
                                     row.Append(',');
                                 }
                                 else
@@ -796,14 +798,23 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                 } // end for
 
-                                await context.Response.WriteAsync(row.ToString());
+                                if (rowCount % options.BufferRows == 0)
+                                {
+                                    await context.Response.WriteAsync(row.ToString());
+                                    row.Clear();
+                                }
                             } // end while
+
+                            if (row.Length > 0)
+                            {
+                                await context.Response.WriteAsync(row.ToString());
+                            }
+
                             if (routine.ReturnsSet)
                             {
                                 await context.Response.WriteAsync("]");
                             }
 
-                            
                             await context.Response.CompleteAsync();
                             return;
                         } // end if (routine.ReturnsRecord == true)

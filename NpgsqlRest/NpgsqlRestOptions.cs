@@ -42,7 +42,8 @@ public class NpgsqlRestOptions(
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
     Action<List<IRoutineSource>>? sourcesCreated = null,
     TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
-    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore)
+    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore,
+    uint bufferRows = 25)
 {
     /// <summary>
     /// Options for the NpgsqlRest middleware.
@@ -240,5 +241,12 @@ public class NpgsqlRestOptions(
     /// Sets the default behavior on how to pass the `NULL` values with query strings. `EmptyString` empty string values are interpreted as `NULL` values. This limits sending empty strings via query strings. `NullLiteral` literal string values `NULL` (case insensitive) are interpreted as `NULL` values. `Ignore` (default) `NULL` values are ignored, query string receives only empty strings. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
     /// </summary>
     public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
+
+    /// <summary>
+    /// How many rows are buffered in the response stream. Higher values will increase memory usage and improve performance.
+    /// This applies only to endpoints returning multiple rows in JSON array.
+    /// The Default is 25 rows. Set to 0 to disable buffering.
+    /// </summary>
+    public ulong BufferRows { get; set; } = bufferRows;
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }
