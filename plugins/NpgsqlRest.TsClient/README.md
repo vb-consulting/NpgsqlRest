@@ -6,6 +6,8 @@
 
 Provides support for the generation of the **[Typescript files]** with interfaces and fetch functions.
 
+The generated Typescript module can be re-generated on every build which effectively gives a **static type-checking of your database**.
+
 ## Install 
 
 ```console

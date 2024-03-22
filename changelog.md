@@ -130,9 +130,12 @@ app.Run();
 
 ### Other Changes
 
-Changes in this major version are too numerous to list them all.
+Other changes include:
 
-Instead, see the documentation pages for more information:
+- Optimizations
+- Bugfixes for edge cases
+
+Full list of available options and annotations for version 2:
 
 - **[See Options Reference](https://vb-consulting.github.io/npgsqlrest/options/)**
 - **[See Comment Annotations Reference](https://vb-consulting.github.io/npgsqlrest/annotations/)**
