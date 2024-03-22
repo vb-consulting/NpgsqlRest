@@ -539,3 +539,19 @@ Sets the default behavior on how to pass the `NULL` values with query strings:
 - `Ignore` (default) `NULL` values are ignored, query string receives only empty strings. 
 
 This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
+
+## BufferRows
+
+- Type: `ulong`
+- Default: `25`
+
+The number of rows to buffer in the string builder before sending the response. The default is 25.
+This applies to rows in JSON object array when returning records from the database.
+
+Set to 0 to disable buffering and write a response for each row.
+
+Set to 1 to buffer the entire array (all rows).
+
+Notes: 
+- Disabling buffering can have a slight negative impact on performance since buffering is far less expensive than writing to the response stream.
+- Setting higher values can have a negative impact on memory usage, especially when returning large datasets.

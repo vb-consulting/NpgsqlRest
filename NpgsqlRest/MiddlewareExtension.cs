@@ -18,7 +18,6 @@ using Tuple = (
     NpgsqlRest.RoutineEndpoint endpoint,
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
-using Microsoft.AspNetCore.Http;
 
 namespace NpgsqlRest;
 
@@ -798,7 +797,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                 } // end for
 
-                                if (rowCount % options.BufferRows == 0)
+                                if (options.BufferRows != 1 && rowCount % options.BufferRows == 0)
                                 {
                                     await context.Response.WriteAsync(row.ToString());
                                     row.Clear();

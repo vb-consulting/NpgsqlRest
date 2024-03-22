@@ -42,8 +42,10 @@ public class NpgsqlRestOptions(
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
     Action<List<IRoutineSource>>? sourcesCreated = null,
     TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
-    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore)
+    QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore,
+    ulong bufferRows = 25)
 {
+
     /// <summary>
     /// Options for the NpgsqlRest middleware.
     /// </summary>
@@ -241,6 +243,16 @@ public class NpgsqlRestOptions(
     /// </summary>
     public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
 
-    internal ulong BufferRows { get; set; } = 25;
+    /// <summary>
+    /// The number of rows to buffer in the string builder before sending the response. The default is 25.
+    /// This applies to rows in JSON object array when returning records from the database.
+    /// Set to 0 to disable buffering and write a response for each row.
+    /// Set to 1 to buffer the entire array (all rows).
+    /// Notes: 
+    /// - Disabling buffering can have a slight negative impact on performance since buffering is far less expensive than writing to the response stream.
+    /// - Setting higher values can have a negative impact on memory usage, especially when returning large datasets.
+    /// </summary>
+    public ulong BufferRows { get; set; } = bufferRows;
+
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }
