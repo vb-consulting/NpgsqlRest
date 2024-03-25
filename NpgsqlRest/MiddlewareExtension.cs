@@ -51,6 +51,11 @@ public static class NpgsqlRestMiddlewareExtensions
         var dict = BuildDictionary(builder, options, logger);
         var serviceProvider = builder.ApplicationServices;
 
+        if (dict.Count == 0)
+        {
+            return builder;
+        }
+
         builder.Use(async (context, next) =>
         {
             var path = context.Request.Path.ToString();

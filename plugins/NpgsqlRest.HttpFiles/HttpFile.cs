@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace NpgsqlRest.HttpFiles;
@@ -19,8 +18,23 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
     
     public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
+        if (builder is WebApplication app)
+        {
+            var factory = app.Services.GetRequiredService<ILoggerFactory>();
+            if (factory is not null)
+            {
+                _logger = factory.CreateLogger(options.LoggerName ?? typeof(HttpFile).Namespace ?? "NpgsqlRest.HttpFiles");
+            }
+            else
+            {
+                _logger = app.Logger;
+            }
+        }
+        else
+        {
+            _logger = logger;
+        }
         _builder = builder;
-        _logger = logger;
     }
 
     public void Handle(Routine routine, RoutineEndpoint endpoint)

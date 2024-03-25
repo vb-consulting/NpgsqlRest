@@ -12,8 +12,23 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
     public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
+        if (builder is WebApplication app)
+        {
+            var factory = app.Services.GetRequiredService<ILoggerFactory>();
+            if (factory is not null)
+            {
+                _logger = factory.CreateLogger(options.LoggerName ?? typeof(TsClient).Namespace ?? "NpgsqlRest.HttpFiles");
+            }
+            else
+            {
+                _logger = app.Logger;
+            }
+        }
+        else
+        {
+            _logger = logger;
+        }
         _builder = builder;
-        _logger = logger;
         _npgsqlRestoptions = options;
     }
 

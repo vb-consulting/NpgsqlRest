@@ -108,6 +108,17 @@ GET {{host}}/api/case-get-int-params-array?a=1&a=2&a=3
 
 ###
 
+// function public.case_get_long_table1(
+//     _records integer
+// )
+// returns table(
+//     int_field integer,
+//     text_field text
+// )
+GET {{host}}/api/case-get-long-table1?records=1
+
+###
+
 // function public.case_get_multi_params1(
 //     _smallint smallint,
 //     _integer integer,
