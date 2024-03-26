@@ -5,17 +5,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <PublishAot>true</PublishAot>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="NpgsqlRestTests" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <ProjectReference Include="..\NpgsqlRestTests\NpgsqlRestTests.csproj" />
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
+    <ProjectReference Include="..\plugins\NpgsqlRest.CrudSource\NpgsqlRest.CrudSource.csproj" />
+    <ProjectReference Include="..\plugins\NpgsqlRest.HttpFiles\NpgsqlRest.HttpFiles.csproj" />
+    <ProjectReference Include="..\plugins\NpgsqlRest.TsClient\NpgsqlRest.TsClient.csproj" />
   </ItemGroup>
 
 </Project>

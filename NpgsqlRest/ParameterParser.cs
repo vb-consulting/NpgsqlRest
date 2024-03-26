@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Primitives;
 using System.Globalization;
-using Npgsql;
 using NpgsqlTypes;
 
 namespace NpgsqlRest;
@@ -14,7 +13,8 @@ internal static class ParameterParser
     internal static bool TryParseParameter(
         ref StringValues values, 
         ref TypeDescriptor descriptor,
-        ref NpgsqlParameter parameter)
+        ref NpgsqlRestParameter parameter,
+        QueryStringNullHandling queryStringNullHandling)
     {
         if (descriptor.IsArray == false)
         {
@@ -72,16 +72,34 @@ internal static class ParameterParser
         parameter.Value = list;
         return true;
 
-        static bool TryGetValue(
+        bool TryGetValue(
             ref TypeDescriptor descriptor, 
             ref string? value, 
             out object? resultValue)
         {
+            if (queryStringNullHandling == QueryStringNullHandling.NullLiteral)
+            {
+                if (string.Equals(value, "null", StringComparison.OrdinalIgnoreCase))
+                {
+                    resultValue = DBNull.Value;
+                    return true;
+                }
+            } 
+            else if (queryStringNullHandling == QueryStringNullHandling.EmptyString)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    resultValue = DBNull.Value;
+                    return true;
+                }
+            }
+
             if (!descriptor.IsText && string.IsNullOrEmpty(value))
             {
                 resultValue = DBNull.Value;
                 return true;
             }
+
             if (descriptor.BaseDbType == NpgsqlDbType.Smallint)
             {
                 if (short.TryParse(value, CultureInfo.InvariantCulture.NumberFormat, out var shortValue))
@@ -215,7 +233,7 @@ internal static class ParameterParser
     internal static bool TryParseParameter(
         ref JsonNode? value, 
         ref TypeDescriptor descriptor,
-        ref NpgsqlParameter parameter)
+        ref NpgsqlRestParameter parameter)
     {
         if (value is null)
         {

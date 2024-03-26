@@ -1,17 +1,21 @@
-﻿namespace NpgsqlRest;
+﻿namespace NpgsqlRest.HttpFiles;
 
-public enum HttpFileOption { Disabled, File, Endpoint, Both }
-public enum CommentHeader { None, Simple, Full }
-public enum HttpFileMode { Database, Schema }
-
-public class NpgsqlRestHttpFileOptions(
+public class HttpFileOptions(
     HttpFileOption option = HttpFileOption.Both,
     string namePattern = "{0}{1}",
     CommentHeader commentHeader = CommentHeader.Simple,
     bool commentHeaderIncludeComments = true,
     HttpFileMode fileMode = HttpFileMode.Database,
-    bool fileOverwrite = false)
+    bool fileOverwrite = false,
+    string? connectionString = null,
+    string? name = null)
 {
+    public static HttpFileOptions CreateBoth() => new(option: HttpFileOption.Both);
+    public static HttpFileOptions CreateFile() => new(option: HttpFileOption.File);
+    public static HttpFileOptions CreateEndpoint() => new(option: HttpFileOption.Endpoint);
+
+    public HttpFileOptions() : this(option: HttpFileOption.Both) { }
+
     /// <summary>
     /// Options for HTTP file generation:
     /// Disabled - skip.
@@ -46,4 +50,15 @@ public class NpgsqlRestHttpFileOptions(
     /// Set to true to overwrite existing files.
     /// </summary>
     public bool FileOverwrite { get; set; } = fileOverwrite;
+    /// <summary>
+    /// The connection string to the database used in NpgsqlRest.
+    /// Used to get the name of the database for the file name.
+    /// If Name property is set, this property is ignored.
+    /// </summary>
+    public string? ConnectionString { get; set; } = connectionString;
+    /// <summary>
+    /// File name. If not set, the database name will be used if connection string is set.
+    /// If neither ConnectionString nor Name is set, the file name will be "npgsqlrest".
+    /// </summary>
+    public string? Name { get; set; } = name;
 }

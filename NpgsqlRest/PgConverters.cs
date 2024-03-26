@@ -95,12 +95,13 @@ internal static class PgConverters
 
     public static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length < 3 || value[0] != '{' || value[^1] != '}')
+        var len = value.Length;
+        if (string.IsNullOrWhiteSpace(value) || len < 3 || value[0] != '{' || value[^1] != '}')
         {
             return value;
         }
 
-        var result = new StringBuilder(value.Length * 2);
+        var result = new StringBuilder(len * 2);
         result.Append('[');
         var current = new StringBuilder();
         var quoted = !(descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson);
@@ -120,7 +121,7 @@ internal static class PgConverters
             return false;
         }
 
-        for (int i = 1; i < value.Length; i++)
+        for (int i = 1; i < len; i++)
         {
             char currentChar = value[i];
 
@@ -201,6 +202,7 @@ internal static class PgConverters
                 }
             }
         }
+
         result.Append(']');
         return result.ToString();
     }

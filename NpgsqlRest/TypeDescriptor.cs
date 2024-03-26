@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using NpgsqlTypes;
+﻿using NpgsqlTypes;
 
 namespace NpgsqlRest;
 
@@ -19,11 +18,15 @@ public readonly struct TypeDescriptor
     public NpgsqlDbType ActualDbType { get; }
     public bool HasDefault { get; }
     public bool NeedsEscape { get; }
+    public bool IsPk { get; }
+    public bool IsIdentity { get; }
 
-    internal TypeDescriptor(string type, bool hasDefault = false)
+    public TypeDescriptor(string type, bool hasDefault = false, bool isPk = false, bool isIdentity = false)
     {
         OriginalType = type;
         HasDefault = hasDefault;
+        IsPk = isPk;
+        IsIdentity = isIdentity;
         IsArray = type.EndsWith("[]");
         Type = (IsArray ? type[..^2] : type).Trim('"');
         DbType = GetDbType();
@@ -87,7 +90,7 @@ public readonly struct TypeDescriptor
             BaseDbType == NpgsqlDbType.Hstore;
     }
 
-    internal bool IsCastToText() => CastToText(BaseDbType);
+    public bool IsCastToText() => CastToText(BaseDbType);
 
     private static bool CastToText(NpgsqlDbType type) => type switch
     {

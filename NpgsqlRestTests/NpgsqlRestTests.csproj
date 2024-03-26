@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,6 +10,7 @@
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
 
     <GenerateProgramFile>false</GenerateProgramFile>
+    <RootNamespace>NpgsqlRestTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
+    <ProjectReference Include="..\plugins\NpgsqlRest.CrudSource\NpgsqlRest.CrudSource.csproj" />
   </ItemGroup>
 
 </Project>

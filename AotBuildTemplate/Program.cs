@@ -1,6 +1,13 @@
+using System.Diagnostics;
 using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+using NpgsqlRest.Defaults;
+using NpgsqlRest.HttpFiles;
 
-var builder = WebApplication.CreateEmptyBuilder(new ());
+Stopwatch sw = new();
+sw.Start();
+
+var builder = WebApplication.CreateEmptyBuilder(new());
 builder.WebHost.UseKestrelCore();
 
 var config = new ConfigurationBuilder()
@@ -34,6 +41,11 @@ if (GetBool("UseLogging"))
 }
 
 var app = builder.Build();
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    sw.Stop();
+    app.Logger.LogInformation("Application started in {0}", sw.Elapsed);
+});
 
 var urls = GetArray("Urls");
 if (urls != null)
@@ -45,6 +57,7 @@ if (urls != null)
 }
 
 var httpFileOptions = config?.GetSection("HttpFileOptions");
+var crudSource = config?.GetSection("CrudSource");
 
 app.UseNpgsqlRest(new()
 {
@@ -62,15 +75,15 @@ app.UseNpgsqlRest(new()
     UrlPathBuilder = GetBool("KebabCaseUrls") ? DefaultUrlBuilder.CreateUrl : CreateUrl,
 
     NameConverter = GetBool("CamelCaseNames") ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
-    RequiresAuthorization = GetBool( "RequiresAuthorization"),
+    RequiresAuthorization = GetBool("RequiresAuthorization"),
 
     LoggerName = GetStr("LoggerName"),
     LogEndpointCreatedInfo = GetBool("LogEndpointCreatedInfo"),
     LogAnnotationSetInfo = GetBool("LogAnnotationSetInfo"),
     LogConnectionNoticeEvents = GetBool("LogConnectionNoticeEvents"),
     LogCommands = GetBool("LogCommands"),
-    LogParameterMismatchWarnings = GetBool("LogParameterMismatchWarnings"),
-
+    LogCommandParameters = GetBool("LogCommandParameters"),
+    
     CommandTimeout = GetInt("CommandTimeout"),
     DefaultHttpMethod = GetEnum<Method?>("DefaultHttpMethod"),
     DefaultRequestParamType = GetEnum<RequestParamType?>("DefaultRequestParamType"),
@@ -78,15 +91,43 @@ app.UseNpgsqlRest(new()
     RequestHeadersMode = GetEnum<RequestHeadersMode>("RequestHeadersMode"),
     RequestHeadersParameterName = GetStr("RequestHeadersParameterName") ?? "headers",
 
-    HttpFileOptions = new()
+    EndpointCreateHandlers = [
+        new HttpFile(new HttpFileOptions
+        {
+            Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
+            NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
+            CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
+            CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
+            FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
+            FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
+            ConnectionString = connectionString
+        })
+    ],
+
+    SourcesCreated = sources =>
     {
-        Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
-        NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
-        CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
-        CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
-        FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
-        FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
-    }
+        if (crudSource is not null)
+        {
+            sources.Add(new CrudSource
+            {
+                SchemaSimilarTo = GetStr("SchemaSimilarTo", crudSource),
+                SchemaNotSimilarTo = GetStr("SchemaNotSimilarTo", crudSource),
+                IncludeSchemas = GetArray("IncludeSchemas", crudSource),
+                ExcludeSchemas = GetArray("ExcludeSchemas", crudSource),
+                NameSimilarTo = GetStr("NameSimilarTo", crudSource),
+                NameNotSimilarTo = GetStr("NameNotSimilarTo", crudSource),
+                IncludeNames = GetArray("IncludeNames", crudSource),
+                ExcludeNames = GetArray("ExcludeNames", crudSource),
+                CrudTypes = GetFlag<CrudCommandType>("CrudTypes", crudSource),
+                ReturningUrlPattern = GetStr("ReturningUrlPattern", crudSource) ?? "{0}/returning",
+                OnConflictDoNothingUrlPattern = GetStr("OnConflictDoNothingUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing",
+                OnConflictDoNothingReturningUrlPattern = GetStr("OnConflictDoNothingReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing/returning",
+                OnConflictDoUpdateUrlPattern = GetStr("OnConflictDoUpdateUrlPattern", crudSource) ?? "{0}/on-conflict-do-update",
+                OnConflictDoUpdateReturningUrlPattern = GetStr("OnConflictDoUpdateReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-update/returning",
+                CommentsMode = GetEnum<CommentsMode>("CommentsMode", crudSource),
+            });
+        }
+    },
 });
 app.Run();
 return;
@@ -148,6 +189,40 @@ T? GetEnum<T>(string key, IConfiguration? subsection = null)
     return default;
 }
 
+T? GetFlag<T>(string key, IConfiguration? subsection = null)
+{
+    var array = GetArray(key, subsection);
+    if (array is null)
+    {
+        return default;
+    }
+
+    var type = typeof(T);
+    var nullable = Nullable.GetUnderlyingType(type);
+    var names = Enum.GetNames(nullable ?? type);
+
+    T? result = default;
+    foreach (var value in array)
+    {
+        foreach (var name in names)
+        {
+            if (string.Equals(value, name, StringComparison.OrdinalIgnoreCase))
+            {
+                var e = (T)Enum.Parse(nullable ?? type, name);
+                if (result is null)
+                {
+                    result = e;
+                }
+                else
+                {
+                    result = (T)Enum.ToObject(type, Convert.ToInt32(result) | Convert.ToInt32(e));
+                }
+            }
+        }
+    }
+    return result;
+}
+
 static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
     string.Concat(
         string.IsNullOrEmpty(options.UrlPathPrefix) ? "/" : string.Concat("/", options.UrlPathPrefix.Trim('/')),
@@ -155,3 +230,4 @@ static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
         "/",
         routine.Name.Trim('"').Trim('/'),
         "/");
+

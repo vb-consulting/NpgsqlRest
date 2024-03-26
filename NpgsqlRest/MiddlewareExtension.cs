@@ -8,9 +8,16 @@ using Npgsql;
 using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http.Extensions;
+using NpgsqlRest.Defaults;
 
-using static NpgsqlRest.Logging;
 using static System.Net.Mime.MediaTypeNames;
+using static NpgsqlRest.ParameterParser;
+
+using Tuple = (
+    NpgsqlRest.Routine routine,
+    NpgsqlRest.RoutineEndpoint endpoint,
+    NpgsqlRest.IRoutineSourceParameterFormatter formatter
+);
 
 namespace NpgsqlRest;
 
@@ -22,6 +29,7 @@ public static class NpgsqlRestMiddlewareExtensions
         {
             throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
         }
+        
         ILogger? logger = null;
         if (options.Logger is not null)
         {
@@ -43,14 +51,19 @@ public static class NpgsqlRestMiddlewareExtensions
         var dict = BuildDictionary(builder, options, logger);
         var serviceProvider = builder.ApplicationServices;
 
+        if (dict.Count == 0)
+        {
+            return builder;
+        }
+
         builder.Use(async (context, next) =>
         {
-            if (!dict.TryGetValue(context.Request.Path, out (Routine routine, RoutineEndpoint endpoint)[]? tupleArray))
+            var path = context.Request.Path.ToString();
+            if (!dict.TryGetValue(string.Concat(context.Request.Method, path), out Tuple[]? tupleArray))
             {
-                var path = context.Request.Path.ToString();
                 if (path.EndsWith('/'))
                 {
-                    if (!dict.TryGetValue(path[..^1], out tupleArray))
+                    if (!dict.TryGetValue(string.Concat(context.Request.Method, path[..^1]), out tupleArray))
                     {
                         await next(context);
                         return;
@@ -58,7 +71,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
                 else
                 {
-                    if (!dict.TryGetValue(string.Concat(path, '/'), out tupleArray))
+                    if (!dict.TryGetValue(string.Concat(context.Request.Method, path, '/'), out tupleArray))
                     {
                         await next(context);
                         return;
@@ -67,6 +80,7 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             JsonObject? jsonObj = null;
+            IDictionary<string, JsonNode?> bodyDict = default!;
             string? body = null;
 
             var len = tupleArray.Length;
@@ -74,7 +88,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
             for (var index = len - 1; index >= 0; index--)
             {
-                var (routine, endpoint) = tupleArray[index];
+                var (routine, endpoint, formatter) = tupleArray[index];
                 if (!string.Equals(context.Request.Method, endpoint.Method.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -107,25 +121,40 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
 
-                NpgsqlParameter?[] parameters = new NpgsqlParameter[routine.ParamCount]; // in GC we trust
+                List<NpgsqlRestParameter> paramsList = new(routine.ParamCount);
                 bool hasNulls = false;
                 int? headerParameterIndex = null;
                 if (routine.ParamCount > 0)
                 {
                     if (endpoint.RequestParamType == RequestParamType.QueryString)
                     {
+                        bool shouldContinue = false;
+                        foreach (var key in context.Request.Query.Keys)
+                        {
+                            if (endpoint.ParamsNameHash.Contains(key) is false)
+                            {
+                                shouldContinue = true;
+                                break;
+                            }
+                        }
+                        if (shouldContinue)
+                        {
+                            continue;
+                        }
                         int setCount = 0;
                         for (var i = 0; i < routine.ParamCount; i++)
                         {
                             string p = endpoint.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
-                            var parameter = new NpgsqlParameter
+                            var parameter = new NpgsqlRestParameter
                             {
-                                NpgsqlDbType = descriptor.ActualDbType
+                                NpgsqlDbType = descriptor.ActualDbType,
+                                ActualName = routine.ParamNames[i],
+                                TypeDescriptor = descriptor
                             };
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
-                                if (ParameterParser.TryParseParameter(ref qsValue, ref descriptor, ref parameter))
+                                if (TryParseParameter(ref qsValue, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
                                 {
                                     if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                     {
@@ -158,22 +187,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                             return;
                                         }
                                     }
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
-                                }
-                                else
-                                {
-                                    // parameters don't match, continuing to another overload
-                                    if (options.LogParameterMismatchWarnings)
-                                    {
-                                        LogWarning(
-                                            ref logger,
-                                            ref options,
-                                            "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
-                                            routine.ParamTypeDescriptor[0].DbType,
-                                            qsValue.ToString(),
-                                            context.Request.Path);
-                                    }
                                 }
                             }
                             else
@@ -192,20 +207,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         else
                                         {
                                             StringValues bodyStringValues = body;
-                                            if (!ParameterParser.TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter))
-                                            {
-                                                // parameters don't match, continuing to another overload
-                                                if (options.LogParameterMismatchWarnings)
-                                                {
-                                                    LogWarning(
-                                                        ref logger,
-                                                        ref options,
-                                                        "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
-                                                        routine.ParamTypeDescriptor[0].DbType,
-                                                        qsValue.ToString(),
-                                                        context.Request.Path);
-                                                }
-                                            }
+                                            TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter, endpoint.QueryStringNullHandling);
                                         }
                                     }
                                 }
@@ -247,14 +249,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                         if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
                                             string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
                                         {
-                                            parameters[i] = parameter;
                                             headerParameterIndex = i;
                                         }
                                     }
                                 }
                                 if (parameter.Value is not null || headerParameterIndex is not null)
                                 {
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
                                 }
                                 else if (descriptor.HasDefault)
@@ -284,19 +285,34 @@ public static class NpgsqlRestMiddlewareExtensions
                                 continue;
                             }
                         }
+                        bool shouldContinue = false;
+                        foreach (var key in bodyDict.Keys)
+                        {
+                            if (endpoint.ParamsNameHash.Contains(key) is false)
+                            {
+                                shouldContinue = true;
+                                break;
+                            }
+                        }
+                        if (shouldContinue)
+                        {
+                            continue;
+                        }
 
                         int setCount = 0;
                         for (var i = 0; i < endpoint.ParamNames.Length; i++)
                         {
                             string p = endpoint.ParamNames[i];
                             var descriptor = routine.ParamTypeDescriptor[i];
-                            var parameter = new NpgsqlParameter
+                            var parameter = new NpgsqlRestParameter
                             {
-                                NpgsqlDbType = descriptor.ActualDbType
+                                NpgsqlDbType = descriptor.ActualDbType,
+                                ActualName = routine.ParamNames[i],
+                                TypeDescriptor = descriptor
                             };
-                            if (((IDictionary<string, JsonNode?>)jsonObj).TryGetValue(p, out var value))
+                            if (bodyDict.TryGetValue(p, out var value))
                             {
-                                if (ParameterParser.TryParseParameter(ref value, ref descriptor, ref parameter))
+                                if (TryParseParameter(ref value, ref descriptor, ref parameter))
                                 {
                                     if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                     {
@@ -329,22 +345,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                             return;
                                         }
                                     }
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
-                                }
-                                else
-                                {
-                                    // parameters don't match, continuing to another overload
-                                    if (options.LogParameterMismatchWarnings)
-                                    {
-                                        LogWarning(
-                                            ref logger,
-                                            ref options,
-                                            "Could not create a valid database parameter of type {0} from value: \"{1}\", skipping path {2} and continuing to another overload...",
-                                            routine.ParamTypeDescriptor[0].DbType,
-                                            value,
-                                            context.Request.Path);
-                                    }
                                 }
                             }
                             else
@@ -387,14 +389,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                         if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
                                             string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
                                         {
-                                            parameters[i] = parameter;
                                             headerParameterIndex = i;
                                         }
                                     }
                                 }
                                 if (parameter.Value is not null || headerParameterIndex is not null)
                                 {
-                                    parameters[i] = parameter;
+                                    paramsList.Add(parameter);
                                     setCount++;
                                 }
                                 else if (descriptor.HasDefault)
@@ -453,7 +454,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         if (headerParameterIndex.HasValue)
                         {
-                            parameters[headerParameterIndex.Value]!.Value = headers;
+                            paramsList[headerParameterIndex.Value].Value = headers;
                         }
                     }
                 }
@@ -480,7 +481,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         connection.Notice += (sender, args) =>
                         {
-                            LogConnectionNotice(ref logger, ref options, ref args);
+                            Logger.LogConnectionNotice(ref logger, ref args);
                         };
                     }
 
@@ -499,36 +500,98 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     var shouldLog = options.LogCommands && logger != null;
                     StringBuilder? cmdLog = shouldLog ? 
-                        new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) : 
+                        new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) :
                         null;
-                    int paramCount = 0;
-                    for (var i = 0; i < parameters.Length; i++)
+
+                    int paramCount = paramsList.Count;
+                    string? commandText;
+                    if (formatter.RefContext)
                     {
-                        var parameter = parameters[i];
-                        if (parameter is not null)
+                        commandText = formatter.IsFormattable ? 
+                            formatter.FormatCommand(ref routine, ref paramsList, ref context) : 
+                            routine.Expression;
+                        if (formatter.IsFormattable)
                         {
-                            command.Parameters.Add(parameter);
-                            paramCount++;
-                            
-                            if (shouldLog)
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
                             {
-                                object value = parameter.NpgsqlValue!;
-                                var p = ParameterParser.FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
-                                cmdLog!.AppendLine(string.Concat(
-                                    "-- $", 
-                                    paramCount.ToString(), 
-                                    " ", routine.ParamTypeDescriptor[i].OriginalType, 
-                                    " = ",
-                                    p));
+                                return;
                             }
                         }
                     }
-                    command.CommandText = routine.Expressions[paramCount];
-                    
+                    else
+                    {
+                        commandText = formatter.IsFormattable ? 
+                            formatter.FormatCommand(ref routine, ref paramsList) : 
+                            routine.Expression;
+                    }
+
+                    if (paramCount == 0 && formatter.IsFormattable is false)
+                    {
+                        if (formatter.RefContext)
+                        {
+                            commandText = string.Concat(commandText, formatter.AppendEmpty(ref context));
+                            if (formatter.IsFormattable)
+                            {
+                                if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            commandText = string.Concat(commandText, formatter.AppendEmpty());
+                        }
+                    } 
+                    else
+                    {
+                        for (var i = 0; i < paramCount; i++)
+                        {
+                            var parameter = paramsList[i];
+                            command.Parameters.Add(parameter);
+
+                            if (formatter.IsFormattable is false)
+                            {
+                                if (formatter.RefContext)
+                                {
+                                    commandText = string.Concat(commandText,
+                                        formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount, ref context));
+                                    if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                                    {
+                                        return;
+                                    }
+                                }
+                                else
+                                {
+                                    commandText = string.Concat(commandText,
+                                        formatter.AppendCommandParameter(ref parameter, ref i, ref paramCount));
+                                }
+                            }
+
+                            if (shouldLog && options.LogCommandParameters)
+                            {
+                                object value = parameter.NpgsqlValue!;
+                                var p = FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
+                                cmdLog!.AppendLine(string.Concat(
+                                    "-- $",
+                                    (i+1).ToString(),
+                                    " ", routine.ParamTypeDescriptor[i].OriginalType,
+                                    " = ",
+                                    p));
+                            }
+
+                        } // end for parameters
+                    }
+                    if (commandText is null)
+                    {
+                        await next(context);
+                        return;
+                    }
+                    command.CommandText = commandText;
+
                     if (shouldLog)
                     {
-                        cmdLog!.AppendLine(command.CommandText);
-                        LogInfo(ref logger, ref options, cmdLog.ToString());
+                        Logger.LogEndpoint(ref logger, ref endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                     }
                     
                     if (endpoint.CommandTimeout.HasValue)
@@ -553,16 +616,17 @@ public static class NpgsqlRestMiddlewareExtensions
                         await context.Response.CompleteAsync();
                         return;
                     }
-                    else
+                    else // end if (routine.IsVoid)
                     {
                         command.AllResultTypesAreUnknown = true;
+                        
                         await using var reader = await command.ExecuteReaderAsync();
-                        if (routine.ReturnsRecord == false)
+                        if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
                         {
                             if (await reader.ReadAsync())
                             {
                                 string? value = reader.GetValue(0) as string;
-                                TypeDescriptor descriptor = routine.ReturnTypeDescriptor[0];
+                                TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
                                 if (endpoint.ResponseContentType is not null)
                                 {
                                     context.Response.ContentType = endpoint.ResponseContentType;
@@ -591,23 +655,30 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     await context.Response.WriteAsync(value);
                                 }
+                                else
+                                {
+                                    if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
+                                    {
+                                        await context.Response.WriteAsync("null");
+                                    }
+                                    else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
+                                    {
+                                        context.Response.StatusCode = (int)HttpStatusCode.NoContent;
+                                    }
+                                    // else OK empty string
+                                }
                                 await context.Response.CompleteAsync();
                                 return;
                             }
                             else
                             {
-                                LogError(ref logger, ref options, 
-                                    "Could not read a value from {0} \"{1}\" mapped to {2} {3} ", 
-                                    routine.Type.ToString().ToLower(), 
-                                    command.CommandText,
-                                    context.Request.Method, 
-                                    context.Request.Path);
+                                logger?.CouldNotReadCommand(command.CommandText, context.Request.Method, context.Request.Path);
                                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                                 await context.Response.CompleteAsync();
                                 return;
                             }
                         }
-                        else
+                        else // end if (routine.ReturnsRecord == false)
                         {
                             if (endpoint.ResponseContentType is not null)
                             {
@@ -625,19 +696,28 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                             }
                             context.Response.StatusCode = (int)HttpStatusCode.OK;
-                            await context.Response.WriteAsync("[");
+                            if (routine.ReturnsSet)
+                            {
+                                await context.Response.WriteAsync("[");
+                            }
                             bool first = true;
+                            var routineReturnRecordCount = routine.ColumnCount;
+
+                            StringBuilder row = new();
+                            ulong rowCount = 0;
                             while (await reader.ReadAsync())
                             {
+                                rowCount++;
                                 if (!first)
                                 {
-                                    await context.Response.WriteAsync(",");
+                                    row.Append(',');
                                 }
                                 else
                                 {
                                     first = false;
                                 }
-                                for (var i = 0; i < routine.ReturnRecordCount; i++)
+
+                                for (var i = 0; i < routineReturnRecordCount; i++)
                                 {
                                     object value = reader.GetValue(i);
                                     // AllResultTypesAreUnknown = true always returns string, except for null
@@ -646,20 +726,22 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (i == 0)
                                         {
-                                            await context.Response.WriteAsync("{");
+                                            row.Append('{');
                                         }
-                                        await context.Response.WriteAsync(string.Concat("\"", endpoint.ReturnRecordNames[i], "\":"));
+                                        row.Append('\"');
+                                        row.Append(endpoint.ReturnRecordNames[i]);
+                                        row.Append("\":");
                                     }
 
-                                    var descriptor = routine.ReturnTypeDescriptor[i];
+                                    var descriptor = routine.ColumnsTypeDescriptor[i];
                                     if (value == DBNull.Value)
                                     {
-                                        await context.Response.WriteAsync("null");
+                                        row.Append("null");
                                     }
                                     else if (descriptor.IsArray && value is not null)
                                     {
                                         raw = PgConverters.PgArrayToJsonArray(ref raw, ref descriptor);
-                                        await context.Response.WriteAsync(raw);
+                                        row.Append(raw);
                                     }
                                     else if ((descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson) && value is not null)
                                     {
@@ -667,60 +749,80 @@ public static class NpgsqlRestMiddlewareExtensions
                                         {
                                             if (string.Equals(raw, "t", StringComparison.Ordinal))
                                             {
-                                                await context.Response.WriteAsync("true");
+                                                row.Append("true");
                                             }
                                             else if (string.Equals(raw, "f", StringComparison.Ordinal))
                                             {
-                                                await context.Response.WriteAsync("false");
+                                                row.Append("false");
                                             }
                                             else
                                             {
-                                                await context.Response.WriteAsync(raw);
+                                                row.Append(raw);
                                             }
                                         }
                                         else
                                         {
                                             // numeric and json
-                                            await context.Response.WriteAsync(raw);
+                                            row.Append(raw);
                                         }
                                     }
                                     else
                                     {
                                         if (descriptor.ActualDbType == NpgsqlDbType.Unknown)
                                         {
-                                            await context.Response.WriteAsync(PgConverters.PgUnknownToJsonArray(ref raw));
+                                            row.Append(PgConverters.PgUnknownToJsonArray(ref raw));
                                         }
                                         else if (descriptor.NeedsEscape)
                                         {
-                                            await context.Response.WriteAsync(PgConverters.SerializeString(ref raw));
+                                            row.Append(PgConverters.SerializeString(ref raw));
                                         }
                                         else
                                         {
                                             if (descriptor.IsDateTime)
                                             {
-                                                await context.Response.WriteAsync(string.Concat("\"", raw.Replace(' ', 'T'), "\""));
+                                                row.Append('\"');
+                                                row.Append(raw.Replace(' ', 'T'));
+                                                row.Append('\"');
                                             }
                                             else
                                             {
-                                                await context.Response.WriteAsync(string.Concat("\"", raw, "\""));
+                                                row.Append('\"');
+                                                row.Append(raw);
+                                                row.Append('\"');
                                             }
                                         }
                                     }
-                                    if (routine.ReturnsUnnamedSet == false && i == routine.ReturnRecordCount - 1)
+                                    if (routine.ReturnsUnnamedSet == false && i == routine.ColumnCount - 1)
                                     {
-                                        await context.Response.WriteAsync("}");
+                                        row.Append('}');
                                     }
-                                    if (i < routine.ReturnRecordCount - 1)
+                                    if (i < routine.ColumnCount - 1)
                                     {
-                                        await context.Response.WriteAsync(",");
+                                        row.Append(',');
                                     }
+                                } // end for
+
+                                if (options.BufferRows != 1 && rowCount % options.BufferRows == 0)
+                                {
+                                    await context.Response.WriteAsync(row.ToString());
+                                    row.Clear();
                                 }
+                            } // end while
+
+                            if (row.Length > 0)
+                            {
+                                await context.Response.WriteAsync(row.ToString());
                             }
-                            await context.Response.WriteAsync("]");
+
+                            if (routine.ReturnsSet)
+                            {
+                                await context.Response.WriteAsync("]");
+                            }
+
                             await context.Response.CompleteAsync();
                             return;
-                        }
-                    }
+                        } // end if (routine.ReturnsRecord == true)
+                    } // end if (routine.IsVoid is false)
                 }
                 finally
                 {
@@ -752,16 +854,18 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     catch (JsonException)
                     {
-                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
                         return;
                     }
                     try
                     {
                         jsonObj = node?.AsObject();
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                        bodyDict = jsonObj?.ToDictionary();
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                     }
-                    catch (InvalidOperationException)
+                    catch (Exception e)
                     {
-                        LogWarning(ref logger, ref options, "Could not parse JSON body {0}, skipping path {1}.", body, context.Request.Path);
+                        logger?.CouldNotParseJson(body, context.Request.Path, e.Message);
                     }
                 }
             }
@@ -770,59 +874,87 @@ public static class NpgsqlRestMiddlewareExtensions
         return builder;
     }
 
-    private static FrozenDictionary<string, (Routine routine, RoutineEndpoint endpoint)[]> BuildDictionary(
+    private static FrozenDictionary<string, Tuple[]> BuildDictionary(
         IApplicationBuilder builder,
         NpgsqlRestOptions options,
         ILogger? logger)
     {
-        var dict = new Dictionary<string, List<(Routine routine, RoutineEndpoint endpoint)>>();
-        var httpFile = new HttpFile(builder, options, logger);
-        foreach (var routine in RoutineQuery.Run(options))
+        var dict = new Dictionary<string, List<Tuple>>();
+
+        foreach (var handler in options.EndpointCreateHandlers)
         {
-            RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);
+            handler.Setup(builder, logger, options);
+        }
 
-            if (result is null)
+        options.SourcesCreated(options.RoutineSources);
+
+        CommentsMode optionsCommentsMode = options.CommentsMode;
+        foreach (var source in options.RoutineSources)
+        {
+            if (source.CommentsMode.HasValue)
             {
-                continue;
+                options.CommentsMode = source.CommentsMode.Value;
             }
-
-            if (options.EndpointCreated is not null)
+            else
             {
-                result = options.EndpointCreated(routine, result.Value);
+                options.CommentsMode = optionsCommentsMode;
             }
-
-            if (result is null)
+            foreach (var (routine, formatter) in source.Read(options))
             {
-                continue;
-            }
+                RoutineEndpoint? result = DefaultEndpoint.Create(routine, options, logger);
 
-            RoutineEndpoint endpoint = result.Value;
+                if (result is null)
+                {
+                    continue;
+                }
 
-            if (endpoint.BodyParameterName is not null && endpoint.RequestParamType == RequestParamType.BodyJson)
-            {
-                endpoint = endpoint with { RequestParamType = RequestParamType.QueryString };
-                LogWarning(ref logger, ref options, 
-                    "Endpoint {0} {1} changed request parameter type from body to query string because body will be used for parameter named `{2}`.", 
-                    endpoint.Method.ToString(), 
-                    endpoint.Url,
-                    endpoint.BodyParameterName);
-            }
+                if (options.EndpointCreated is not null)
+                {
+                    result = options.EndpointCreated(routine, result.Value);
+                }
 
-            List<(Routine routine, RoutineEndpoint meta)> list = dict.TryGetValue(endpoint.Url, out var value) ? value : [];
-            list.Add((routine, endpoint));
-            dict[endpoint.Url] = list;
+                if (result is null)
+                {
+                    continue;
+                }
 
-            httpFile.HandleEntry(routine, endpoint);
-            if (options.LogEndpointCreatedInfo)
-            {
-                LogInfo(ref logger, ref options, "Created endpoint {0} {1}", endpoint.Method.ToString(), endpoint.Url);
+                RoutineEndpoint endpoint = result.Value;
+                var method = endpoint.Method.ToString();
+                if (endpoint.BodyParameterName is not null && endpoint.RequestParamType == RequestParamType.BodyJson)
+                {
+                    endpoint = endpoint with { RequestParamType = RequestParamType.QueryString };
+                    logger?.EndpointTypeChanged(method, endpoint.Url, endpoint.BodyParameterName);
+                }
+                var key = string.Concat(method, endpoint.Url);
+                List<Tuple> list = dict.TryGetValue(key, out var value) ? value : [];
+                list.Add((routine, endpoint, formatter));
+                dict[key] = list;
+            
+                foreach (var handler in options.EndpointCreateHandlers)
+                {
+                    handler.Handle(routine, endpoint);
+                }
+            
+                if (options.LogEndpointCreatedInfo)
+                {
+                    logger?.EndpointCreated(method, endpoint.Url);
+                }
             }
         }
+
         if (options.EndpointsCreated is not null)
         {
-            options.EndpointsCreated(dict.Values.SelectMany(x => x).ToArray());
+            options.EndpointsCreated(dict.Values.SelectMany(x => x).Select(x => (x.routine, x.endpoint)).ToArray());
         }
-        httpFile.FinalizeHttpFile();
+
+        (Routine routine, RoutineEndpoint endpoint)[]? array = null;
+        foreach (var handler in options.EndpointCreateHandlers)
+        {
+            array ??= dict.Values.SelectMany(x => x).Select(x => (x.routine, x.endpoint)).ToArray();
+            handler.Cleanup(ref array);
+            handler.Cleanup();
+        }
+
         return dict
             .ToDictionary(
                 x => x.Key,

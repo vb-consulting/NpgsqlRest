@@ -1,17 +1,36 @@
 ﻿using Microsoft.Extensions.Primitives;
-
 namespace NpgsqlRest;
 
-public readonly record struct RoutineEndpoint(
-    string Url,
-    Method Method,
-    RequestParamType RequestParamType,
-    bool RequiresAuthorization,
-    string[] ReturnRecordNames,
-    string[] ParamNames,
-    int? CommandTimeout,
-    string? ResponseContentType,
-    Dictionary<string, StringValues> ResponseHeaders,
-    RequestHeadersMode RequestHeadersMode,
-    string RequestHeadersParameterName,
-    string? BodyParameterName);
+public struct RoutineEndpoint(
+    string url,
+    Method method,
+    RequestParamType requestParamType,
+    bool requiresAuthorization,
+    string[] returnRecordNames,
+    string[] paramNames,
+    int? commandTimeout,
+    string? responseContentType,
+    Dictionary<string, StringValues> responseHeaders,
+    RequestHeadersMode requestHeadersMode,
+    string requestHeadersParameterName,
+    string? bodyParameterName,
+    TextResponseNullHandling textResponseNullHandling,
+    QueryStringNullHandling queryStringNullHandling)
+{
+    internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
+    public string Url { get; set; } = url;
+    public Method Method { get; set; } = method;
+    public RequestParamType RequestParamType { get; set; } = requestParamType;
+    public bool RequiresAuthorization { get; set; } = requiresAuthorization;
+    public string[] ReturnRecordNames { get; set; } = returnRecordNames;
+    public string[] ParamNames { get; set; } = paramNames;
+    public int? CommandTimeout { get; set; } = commandTimeout;
+    public string? ResponseContentType { get; set; } = responseContentType;
+    public Dictionary<string, StringValues> ResponseHeaders { get; set; } = responseHeaders;
+    public RequestHeadersMode RequestHeadersMode { get; set; } = requestHeadersMode;
+    public string RequestHeadersParameterName { get; set; } = requestHeadersParameterName;
+    public string? BodyParameterName { get; set; } = bodyParameterName;
+    public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
+    public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
+    internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
+}

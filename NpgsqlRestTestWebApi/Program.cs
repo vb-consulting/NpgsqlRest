@@ -1,50 +1,27 @@
+using Npgsql;
 using NpgsqlRest;
+using NpgsqlRest.CrudSource;
+using NpgsqlRest.Defaults;
+using NpgsqlRest.HttpFiles;
+using NpgsqlRest.TsClient;
+using Serilog;
 
-var builder = WebApplication.CreateEmptyBuilder(new ());
-builder.WebHost.UseKestrelCore();
-
-var config = new ConfigurationBuilder()
-    .AddEnvironmentVariables()
-    .AddJsonFile("appsettings.json", optional: false)
-    .AddJsonFile("appsettings.Development.json", optional: true)
-    .Build();
-
-string? connectionName = GetStr("ConnectionName");
-if (connectionName is null)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("ConnectionName not found in appsettings.json");
-    Console.ResetColor();
-    return;
-}
-var connectionString = config.GetConnectionString(connectionName);
-if (connectionString is null)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("Connection string not found in appsettings.json");
-    Console.ResetColor();
-    return;
-}
-
-if (GetBool("UseLogging"))
-{
-    builder.Logging
-        .AddConfiguration(config.GetSection("Logging"))
-        .AddConsole();
-}
+Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+var builder = WebApplication.CreateBuilder([]);
+var config = builder.Configuration;
+builder.Host.UseSerilog(new LoggerConfiguration()
+    .ReadFrom.Configuration(config.GetSection("Logging"))
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger());
 
 var app = builder.Build();
-
-var urls = GetArray("Urls");
-if (urls != null)
-{
-    foreach (var url in urls)
-    {
-        app.Urls.Add(url);
-    }
-}
+app.UseSerilogRequestLogging();
 
 var httpFileOptions = config?.GetSection("HttpFileOptions");
+var crudSource = config?.GetSection("CrudSource");
+var tsClient = config?.GetSection("TsClient");
+var connectionString = GetConnectionString(config);
 
 app.UseNpgsqlRest(new()
 {
@@ -62,14 +39,14 @@ app.UseNpgsqlRest(new()
     UrlPathBuilder = GetBool("KebabCaseUrls") ? DefaultUrlBuilder.CreateUrl : CreateUrl,
 
     NameConverter = GetBool("CamelCaseNames") ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
-    RequiresAuthorization = GetBool( "RequiresAuthorization"),
+    RequiresAuthorization = GetBool("RequiresAuthorization"),
 
     LoggerName = GetStr("LoggerName"),
     LogEndpointCreatedInfo = GetBool("LogEndpointCreatedInfo"),
     LogAnnotationSetInfo = GetBool("LogAnnotationSetInfo"),
     LogConnectionNoticeEvents = GetBool("LogConnectionNoticeEvents"),
     LogCommands = GetBool("LogCommands"),
-    LogParameterMismatchWarnings = GetBool("LogParameterMismatchWarnings"),
+    LogCommandParameters = GetBool("LogCommandParameters"),
 
     CommandTimeout = GetInt("CommandTimeout"),
     DefaultHttpMethod = GetEnum<Method?>("DefaultHttpMethod"),
@@ -78,18 +55,73 @@ app.UseNpgsqlRest(new()
     RequestHeadersMode = GetEnum<RequestHeadersMode>("RequestHeadersMode"),
     RequestHeadersParameterName = GetStr("RequestHeadersParameterName") ?? "headers",
 
-    HttpFileOptions = new()
+    EndpointCreateHandlers = [
+        new HttpFile(new HttpFileOptions
+        {
+            Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
+            NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
+            CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
+            CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
+            FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
+            FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
+            ConnectionString = connectionString
+        }),
+        new TsClient(new TsClientOptions
+        {
+            FilePath = GetStr("FilePath", tsClient),
+            FileOverwrite = GetBool("FileOverwrite", tsClient),
+            IncludeHost = GetBool("IncludeHost", tsClient),
+            CustomHost = GetStr("CustomHost", tsClient),
+            CommentHeader = GetEnum<CommentHeader>("CommentHeader", tsClient)
+        })
+    ],
+
+    SourcesCreated = sources =>
     {
-        Option = GetEnum<HttpFileOption>("Option", httpFileOptions),
-        NamePattern = GetStr("NamePattern", httpFileOptions) ?? "{0}{1}",
-        CommentHeader = GetEnum<CommentHeader>("CommentHeader", httpFileOptions),
-        CommentHeaderIncludeComments = GetBool("CommentHeaderIncludeComments", httpFileOptions),
-        FileMode = GetEnum<HttpFileMode>("FileMode", httpFileOptions),
-        FileOverwrite = GetBool("FileOverwrite", httpFileOptions),
-    }
+        sources.Add(new CrudSource
+        {
+            SchemaSimilarTo = GetStr("SchemaSimilarTo", crudSource),
+            SchemaNotSimilarTo = GetStr("SchemaNotSimilarTo", crudSource),
+            IncludeSchemas = GetArray("IncludeSchemas", crudSource),
+            ExcludeSchemas = GetArray("ExcludeSchemas", crudSource),
+            NameSimilarTo = GetStr("NameSimilarTo", crudSource),
+            NameNotSimilarTo = GetStr("NameNotSimilarTo", crudSource),
+            IncludeNames = GetArray("IncludeNames", crudSource),
+            ExcludeNames = GetArray("ExcludeNames", crudSource),
+            CrudTypes = GetFlag<CrudCommandType>("CrudTypes", crudSource),
+            ReturningUrlPattern = GetStr("ReturningUrlPattern", crudSource) ?? "{0}/returning",
+            OnConflictDoNothingUrlPattern = GetStr("OnConflictDoNothingUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing",
+            OnConflictDoNothingReturningUrlPattern = GetStr("OnConflictDoNothingReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-nothing/returning",
+            OnConflictDoUpdateUrlPattern = GetStr("OnConflictDoUpdateUrlPattern", crudSource) ?? "{0}/on-conflict-do-update",
+            OnConflictDoUpdateReturningUrlPattern = GetStr("OnConflictDoUpdateReturningUrlPattern", crudSource) ?? "{0}/on-conflict-do-update/returning",
+            CommentsMode = GetEnum<CommentsMode>("CommentsMode", crudSource),
+        });
+    },
 });
 app.Run();
 return;
+
+string? GetConnectionString(ConfigurationManager? config)
+{
+    string? connectionName = GetStr("ConnectionName");
+    if (connectionName is null)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("ConnectionName not found in appsettings.json");
+        Console.ResetColor();
+        return null;
+    }
+    var connectionString = config?.GetConnectionString(connectionName);
+    if (connectionString is null)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("Connection string not found in appsettings.json");
+        Console.ResetColor();
+        return null;
+    }
+
+    return connectionString;
+}
 
 string? GetStr(string key, IConfiguration? subsection = null)
 {
@@ -148,6 +180,40 @@ T? GetEnum<T>(string key, IConfiguration? subsection = null)
     return default;
 }
 
+T? GetFlag<T>(string key, IConfiguration? subsection = null)
+{
+    var array = GetArray(key, subsection);
+    if (array is null)
+    {
+        return default;
+    }
+
+    var type = typeof(T);
+    var nullable = Nullable.GetUnderlyingType(type);
+    var names = Enum.GetNames(nullable ?? type);
+
+    T? result = default;
+    foreach (var value in array)
+    {
+        foreach (var name in names)
+        {
+            if (string.Equals(value, name, StringComparison.OrdinalIgnoreCase))
+            {
+                var e = (T)Enum.Parse(nullable ?? type, name);
+                if (result is null)
+                {
+                    result = e;
+                }
+                else
+                {
+                    result = (T)Enum.ToObject(type, Convert.ToInt32(result) | Convert.ToInt32(e));
+                }
+            }
+        }
+    }
+    return result;
+}
+
 static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
     string.Concat(
         string.IsNullOrEmpty(options.UrlPathPrefix) ? "/" : string.Concat("/", options.UrlPathPrefix.Trim('/')),
@@ -155,4 +221,3 @@ static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
         "/",
         routine.Name.Trim('"').Trim('/'),
         "/");
-

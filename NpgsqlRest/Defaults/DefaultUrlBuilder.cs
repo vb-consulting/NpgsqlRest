@@ -1,4 +1,4 @@
-﻿namespace NpgsqlRest;
+﻿namespace NpgsqlRest.Defaults;
 
 public static class DefaultUrlBuilder
 {
@@ -10,7 +10,7 @@ public static class DefaultUrlBuilder
             .Replace("\"", "")
             .Trim('/');
 
-        schema = schema == "public" ? "" : string.Concat(schema, "/");
+        schema = string.IsNullOrEmpty(schema) || string.Equals(schema, "public", StringComparison.OrdinalIgnoreCase) ? "" : string.Concat(schema, "/");
         var name = routine.Name.ToLowerInvariant()
             .Replace("_", "-")
             .Replace(" ", "-")

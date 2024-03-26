@@ -1,71 +1,142 @@
 ﻿namespace NpgsqlRest;
 
-public enum RoutineType { Other, Function, Procedure }
-public enum Language { Other, Plpgsql, Sql }
-public enum SecurityType { Definer, Invoker }
-public enum ParallelOption { Unsafe, Safe, Restricted }
-public enum VolatilityOption { Immutable, Stable, Volatile }
-
 public readonly struct Routine(
-    RoutineType type, 
-    string typeInfo,
-    string schema,
     string name,
-    string oid,
-    string signature,
-    Language language,
-    string languageInfo,
-    string? comment,
-    SecurityType securityType,
-    bool isStrict,
-    decimal cost,
-    decimal rows,
-    ParallelOption parallelOption,
-    VolatilityOption volatilityOption,
-    bool returnsRecord,
-    string returnType,
-    int returnRecordCount,
-    string[] returnRecordNames,
-    string[] returnRecordTypes,
-    bool returnsUnnamedSet,
-    int paramCount,
-    string[] paramNames,
-    string[] paramTypes,
-    string?[] paramDefaults,
-    string definition,
-    TypeDescriptor[] paramTypeDescriptor,
-    bool isVoid,
-    Dictionary<int, string> expressions,
-    TypeDescriptor[] returnTypeDescriptor)
+    string expression,
+    RoutineType type = RoutineType.Other,
+    string schema = "",
+    string? comment = null,
+    bool isStrict = false,
+    CrudType crudType = CrudType.Select,
+    bool returnsRecordType = false,
+    bool returnsSet = false,
+    int returnRecordCount = 1,
+    string[]? returnRecordNames = null,
+    TypeDescriptor[]? returnTypeDescriptor = null,
+    bool returnsUnnamedSet = true,
+    bool isVoid = true,
+    int paramCount = 0,
+    string[]? paramNames = null,
+    TypeDescriptor[]? paramTypeDescriptor = null,
+    string? fullDefinition = null,
+    string? simpleDefinition = null,
+    string? formatUrlPattern = null,
+    string[]? tags = null,
+    Func<RoutineEndpoint?, RoutineEndpoint?>? endpointHandler = null,
+    object? metadata = null)
 {
-    public RoutineType Type { get; } = type;
-    public string TypeInfo { get; } = typeInfo;
-    public string Schema { get; } = schema;
-    public string Name { get; } = name;
-    public string Oid { get; } = oid;
-    public string Signature { get; } = signature;
-    public Language Language { get; } = language;
-    public string LanguageInfo { get; } = languageInfo;
-    public string? Comment { get; } = comment;
-    public SecurityType SecurityType { get; } = securityType;
-    public bool IsStrict { get; } = isStrict;
-    public decimal Cost { get; } = cost;
-    public decimal Rows { get; } = rows;
-    public ParallelOption ParallelOption { get; } = parallelOption;
-    public VolatilityOption VolatilityOption { get; } = volatilityOption;
-    public bool ReturnsRecord { get; } = returnsRecord;
-    public string ReturnType { get; } = returnType;
-    public int ReturnRecordCount { get; } = returnRecordCount;
-    public string[] ReturnRecordNames { get; } = returnRecordNames;
-    public string[] ReturnRecordTypes { get; } = returnRecordTypes;
-    public bool ReturnsUnnamedSet { get; } = returnsUnnamedSet;
-    public int ParamCount { get; } = paramCount;
-    public string[] ParamNames { get; } = paramNames;
-    public string[] ParamTypes { get; } = paramTypes;
-    public string?[] ParamDefaults { get; } = paramDefaults;
-    public string Definition { get; } = definition;
-    public TypeDescriptor[] ParamTypeDescriptor { get; } = paramTypeDescriptor;
-    public bool IsVoid { get; } = isVoid;
-    public Dictionary<int, string> Expressions { get; } = expressions;
-    public TypeDescriptor[] ReturnTypeDescriptor { get; } = returnTypeDescriptor;
+    /// <summary>
+    /// Routine type: Function, Procedure, Table, View, or other.
+    /// </summary>
+    public RoutineType Type { get; init; } = type;
+
+    /// <summary>
+    /// Schema name (parsed by quote_ident).
+    /// </summary>
+    public string Schema { get; init; } = schema;
+
+    /// <summary>
+    /// PostgreSQL object name (parsed by quote_ident).
+    /// </summary>
+    public string Name { get; init; } = name;
+
+    /// <summary>
+    /// PostgreSQL object comment.
+    /// </summary>
+    public string? Comment { get; init; } = comment;
+
+    /// <summary>
+    /// Strict or non-strict function. Strict functions will return NULL if any parameter is NULL.
+    /// </summary>
+    public bool IsStrict { get; init; } = isStrict;
+
+    /// <summary>
+    /// The type of CRUD operation associated with the routine (Select, Insert, Update or Delete).
+    /// </summary>
+    public CrudType CrudType { get; init; } = crudType;
+
+    /// <summary>
+    /// Indicates whether the routine returns a PostgreSQL record type.
+    /// </summary>
+    public bool ReturnsRecordType { get; init; } = returnsRecordType;
+
+    /// <summary>
+    /// Indicates whether the routine returns a set of records or single record.
+    /// </summary>
+    public bool ReturnsSet { get; init; } = returnsSet;
+
+    /// <summary>
+    /// The number of columns returned.
+    /// </summary>
+    public int ColumnCount { get; init; } = returnRecordCount;
+
+    /// <summary>
+    /// The names of the returned columns.
+    /// </summary>
+    public string[] ColumnNames { get; init; } = returnRecordNames ?? [];
+
+    /// <summary>
+    /// The type descriptors for the returned columns.
+    /// </summary>
+    public TypeDescriptor[] ColumnsTypeDescriptor { get; init; } = returnTypeDescriptor ?? [];
+
+    /// <summary>
+    /// Indicates whether the routine returns an unnamed set. 
+    /// </summary>
+    public bool ReturnsUnnamedSet { get; init; } = returnsUnnamedSet;
+
+    /// <summary>
+    /// Indicates whether the routine returns void.
+    /// </summary>
+    public bool IsVoid { get; init; } = isVoid;
+
+    /// <summary>
+    /// The number of parameters.
+    /// </summary>
+    public int ParamCount { get; init; } = paramCount;
+
+    /// <summary>
+    /// The names of the parameters.
+    /// </summary>
+    public string[] ParamNames { get; init; } = paramNames ?? [];
+
+    /// <summary>
+    /// The type descriptors of the parameter types.
+    /// </summary>
+    public TypeDescriptor[] ParamTypeDescriptor { get; init; } = paramTypeDescriptor ?? [];
+
+    /// <summary>
+    /// The expression associated with the routine.
+    /// </summary>
+    public string Expression { get; init; } = expression;
+
+    /// <summary>
+    /// The full definition of the routine. (Used for code-gen comments)
+    /// </summary>
+    public string FullDefinition { get; init; } = fullDefinition ?? expression;
+
+    /// <summary>
+    /// The simple definition of the routine. (Used for code-gen comments)
+    /// </summary>
+    public string SimpleDefinition { get; init; } = simpleDefinition ?? expression;
+
+    /// <summary>
+    /// The format URL pattern for the routine. If used (not null), placeholder {0} is used to replace the default URL.
+    /// </summary>
+    public string? FormatUrlPattern { get; init; } = formatUrlPattern;
+
+    /// <summary>
+    /// The tags associated with the routine.
+    /// </summary>
+    public string[]? Tags { get; init; } = tags;
+
+    /// <summary>
+    /// The endpoint handler for the routine.
+    /// </summary>
+    public Func<RoutineEndpoint?, RoutineEndpoint?>? EndpointHandler { get; init; } = endpointHandler;
+
+    /// <summary>
+    /// The meta data associated with the routine.
+    /// </summary>
+    public object? Metadata { get; init; } = metadata;
 }

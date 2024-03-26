@@ -5,11 +5,43 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-**Automatic REST API** for PostgreSQL Databases implemented as **AOT Ready .NET8 Middleware**
+**Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8 Middleware**
 
-Read the [introductory blog post](https://vb-consulting.github.io/blog/npgsqlrest/).
+>
+> If you have a PostgreSQL database - based on your configuration, NpgsqlRest can create **blazing fast REST API automatically** and **write client code** for your project.
+>
 
-See the changelog for the latest release changes [changelog.md](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md).
+Read the **[NpgsqlRest Version 2 Blog Post](https://vb-consulting.github.io/blog/npgsqlrest-v2/).**
+
+See the changelog for the latest release changes in the **[Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/).**
+
+#### High Performance
+
+Number of Requests in 60 seconds stress test:
+
+| Platform | Number Of Requests in 60 Seconds| Ratio For 1 Request How Many NpgsqlRest AOT Requests |
+| -------- | ---------: | ---------: |
+| **NpgsqlRest AOT** | **781,803** | **1** |
+| **NpgsqlRest JIT** | 562,304  | 1.39 |
+| **.NET8 ADO** | 440,896 | 1.77 |
+| **.NET8 EF** | 337,612 | 2.32 |
+| **PostgREST** | 72,305 | 10.81 |
+| **Django** | 21,193 | 36.89 |
+| **Express** | 160,241 | 4.88 |
+| **GO** | 78,530 | 9.96 |
+| **FastAPI** | 13,650 | 57.27 |
+
+[Read More](#high-performances)
+
+#### Modular Design 
+
+<p style="text-align: center; width: 100%">
+    <img src="/npgsqlrest-v2.png" style="width: 70%;"/>
+</p>
+
+[Read More](#plug-in-system)
+
+## Quick Example
 
 #### 1) Your PostgreSQL Function
 
@@ -22,7 +54,7 @@ select 'Hello World'
 $$;
 ```
 
-#### 2) .NET8 AOT Ready Web App
+#### 2) .NET8 AOT-Ready Web App
 
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -32,7 +64,7 @@ app.UseNpgsqlRest(new(connectionStr));
 app.Run();
 ```
 
-#### 3) Optionally, Auto-Generated HTTP File
+#### 3) Auto-Generated HTTP File
 
 ```console
 @host=http://localhost:5000                                      
@@ -42,7 +74,31 @@ app.Run();
 POST {{host}}/api/hello-world/
 ```
 
-#### 4) Endpoint Response
+#### 4) Auto-Generated Typescript Client Module
+
+```ts
+const _baseUrl = "http://localhost:5000";                        
+
+
+/**
+* function public.get_latest_customer()
+* returns customers
+* 
+* @remarks
+* GET /api/get-latest-customer
+* 
+* @see FUNCTION public.get_latest_customer
+*/
+export async function getHelloWorld() : Promise<string> {
+    const response = await fetch(_baseUrl + "/api/hello-world", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+    });
+    return await response.text() as string;
+}
+```
+
+#### 5) Endpoint Response
 
 ```console
 HTTP/1.1 200 OK                                                  
@@ -58,17 +114,17 @@ Hello World
 ## Features
 
 - Automatic **generation of the HTTP REST endpoints** from PostgreSQL functions and procedures.
-- **Native AOT Ready**. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
-- **Customization** of endpoints with comment annotations. You can easily configure any endpoint by adding annotation labels to routine comments. Like for example HTTP GET if you want to change the method verb to GET.
-- **Automatic HTTP files**. Create ready-to-run HTTP files easily, for testing, debugging and discovery.
+- **Native AOT-Ready**. AOT is ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
+- **Customization** of endpoints with comment annotations. You can easily configure any endpoint by adding comment annotation labels to [PostgreSQL Comments](https://www.postgresql.org/docs/current/sql-comment.html). 
 - Interact seamlessly with **.NET8 backend** and take advantage of .NET8 features.
 - **High performance** with or without native AOT, up to 6 times higher throughput than similar solutions.
+- **Plug-in system** with additional functionalities: table CRUD support, code generation for HTTP Files and Typescript client and more.
 
 ### Automatic Generation of REST Endpoints
 
 See the introductory example above. Automatically build HTTP REST endpoints from PostgreSQL functions and procedures and configure them the way you like.
 
-### Native AOT Ready
+### Native AOT-Ready
 
 With the NET8 you can build into native code code (ahead-of-time (AOT) compilation). 
 
@@ -107,10 +163,6 @@ Transfer-Encoding: chunked
 <div>Hello World</div>
 ```
 
-### Automatic HTTP Files
-
-Create automatically [HTTP file(s[)](https://learn.microsoft.com/en-us/aspnet/core/test/http-files?view=aspnetcore-8.0) with ready-to-run randomized test example calls.
-
 ### NET8 backend
 
 NpgsqlRest is implemented as a NET8 middleware component, which means that anything that is available in NET8 is also available to the NpgsqlRest REST endpoints. 
@@ -142,29 +194,37 @@ app.Run();
 
 ### High Performances
 
-The latest performance comparison with the PostgREST:
+Tests are executed with the K6 stress tool for:
 
-| Records | Function   | NpgsqlRest Requests | PostgREST Requests | Ratio |
-| ------: | ---------: | ---------: | --------: | --------: |
-| 10 | `perf_test` | 392.212 | 74.621 | 5.26 |
-| 100 | `perf_test` | 407.844 | 60.704 | 6.72 |
-| 10 | `perf_test_arrays` | 292.392 | 50.549 | 5.78 |
-| 100 | `perf_test_arrays` | 240.158 | 50.911 | 4.72 |
-| 10 | `perf_test_record` | 518.515 | 57.665 | 8.99 |
-| 100 | `perf_test_record` | 439.220 | 59.413 | 7.39 |
-| 10 | `perf_test_record_arrays` | 383.549 | 52.951 | 7.24 |
-| 100 | `perf_test_record_arrays` | 338.835 | 51.507 | 6.58 |
+- Duration of 60 seconds.
+- 100 simultaneous virtual users.
+- Retrieval of 10 and 100 records.
+
+| Platform | 10 Records | 100 Records |
+| -------- | ---------: | ----------: |
+| **AOT** is an ahead-of-time native compilation of `NpgsqlRest`. `NpgsqlRest` compiled to the native binary. | **781,803** | **307,427** |
+| **JIT** is a just-in-time compilation of `NpgsqlRest` to NET8 CLR (Common Language Runtime) on NET8 runtime. | **562,304**  | **303,692** |
+| **ADO** is NET8 Raw ADO Data Reader approach. [Source](https://vb-consulting.github.io/npgsqlrest/performances/#4-ado) | 440,896 | 314,198 |
+| **EF** is Entity Framework Core 8 on NET8 runtime. [Source](https://vb-consulting.github.io/npgsqlrest/performances/#3-ef) | 337,612 | 235,331 |
+| **PostgREST** version 12.0.2 | 72,305 | 40,456 |
+| **Django** REST Framework 4.2.10 on Python 3.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#5-django) | 21,193 | 18,345  |
+| **Express** on NodeJS v20.11.1, express v4.18.3, pg 8.11.3 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#6-express) | 160,241 | 55,119 |
+| **GO** version go1.13.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#7-go) | 78,530 | 55,119 |
+| **FastAPI** version 0.110.0 on Python 3.8 [Source Link](https://vb-consulting.github.io/npgsqlrest/performances/#8-fastapi)| 13,650 | 9,666 |
 
 See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/PerfomanceTests).
-  
+
+### Plug-in System
+
+NpgsqlRest has a plug-in system that allows you to extend the functionality of the generated REST API from your PostgreSQL database. 
+
+Currently, the following plug-ins are available:
+
+- **[CRUD support](https://vb-consulting.github.io/npgsqlrest/crudsource)**. Automatically generate CRUD endpoints for your PostgreSQL tables and views.
+- **[HTTP File support](https://vb-consulting.github.io/npgsqlrest/httpfiles/)**. Automatically generate HTTP files for testing, with the list of available endpoints.
+- **[Typescript Client support](https://vb-consulting.github.io/npgsqlrest/tsclient/)**. Automatically generate Typescript client code from the NpgsqlRest endpoints for your Typescript projects.
+
 ## Getting Started
-
-### Using Executables
-
-1) Go to the [release page](https://github.com/vb-consulting/NpgsqlRest/releases).
-2) Download the latest version of the binary for either Windows or Linux.
-3) Set up the desired configuration in [appsettings.json](https://github.com/vb-consulting/NpgsqlRest/blob/master/AotBuildTemplate/appsettings.json). This file is bundled together with the executable in the download package.
-4) Run the executable. REST API is created for you.
 
 ### Using Library
 
@@ -173,16 +233,13 @@ See more details [here](https://github.com/vb-consulting/NpgsqlRest/tree/master/
 Install the package from NuGet by using any of the available methods:
 
 ```console
-dotnet add package NpgsqlRest --version 1.6.2
+dotnet add package NpgsqlRest --version 2.0.0
 ```
 ```console
-NuGet\Install-Package NpgsqlRest -version 1.6.2
+NuGet\Install-Package NpgsqlRest -version 2.0.0
 ```
 ```xml
-<PackageReference Include="NpgsqlRest" Version="1.6.2" />
-```
-```console
-#r "nuget: NpgsqlRest, 1.6.2"
+<PackageReference Include="NpgsqlRest" Version="2.0.0" />
 ```
 
 #### Library First Use
@@ -195,7 +252,7 @@ app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres
 app.Run();
 ```
 
-For all available build options, please consult a [source code file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/NpgsqlRestOptions.cs), until the documentation website is built.
+For all available build options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
 
 #### Library Dependencies
 
@@ -204,7 +261,7 @@ For all available build options, please consult a [source code file](https://git
 - Npgsql 8.0.1
 - PostgreSQL >= 13
 
-Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs#L9C9-L9C49). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
+Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
 
 ## Contributing
 
