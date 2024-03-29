@@ -4,10 +4,12 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Claims;
 using Npgsql;
 using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http.Extensions;
+
 using NpgsqlRest.Defaults;
 
 using static System.Net.Mime.MediaTypeNames;
@@ -18,6 +20,7 @@ using Tuple = (
     NpgsqlRest.RoutineEndpoint endpoint,
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
+
 
 namespace NpgsqlRest;
 
@@ -416,11 +419,32 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
 
-                if (endpoint.RequiresAuthorization && context.User?.Identity?.IsAuthenticated is false)
+                if ((endpoint.RequiresAuthorization || endpoint.AuthorizeRoles is not null) && context.User?.Identity?.IsAuthenticated is false)
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                     await context.Response.CompleteAsync();
                     return;
+                }
+
+                if (endpoint.AuthorizeRoles is not null)
+                {
+                    string[] roles = context.User?.Claims?.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToArray() ?? [];
+                    bool ok = false;
+                    for (int i = 0; i < roles.Length; i++)
+                    {
+                        string role = roles[i];
+                        if (endpoint.AuthorizeRoles.Contains(role) is true)
+                        {
+                            ok = true;
+                            break;
+                        }
+                    }
+                    if (ok is false)
+                    {
+                        context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                        await context.Response.CompleteAsync();
+                        return;
+                    }
                 }
 
                 if (hasNulls && routine.IsStrict)

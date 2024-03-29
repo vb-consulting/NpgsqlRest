@@ -278,9 +278,19 @@ internal static class DefaultCommentParser
                 else if (haveTag is true && StrEqualsToArray(ref words[0], authorizeKey))
                 {
                     routineEndpoint.RequiresAuthorization = true;
-                    if (options.LogAnnotationSetInfo)
+                    if (words.Length > 1)
                     {
-                        logger?.CommentSetAuth(routine.Type, routine.Schema, routine.Name);
+                        routineEndpoint.AuthorizeRoles = new(words[1..]);
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetAuthRoles(routine.Type, routine.Schema, routine.Name, routineEndpoint.AuthorizeRoles);
+                        }
+                    } else
+                    {
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentSetAuth(routine.Type, routine.Schema, routine.Name);
+                        }
                     }
                 }
 

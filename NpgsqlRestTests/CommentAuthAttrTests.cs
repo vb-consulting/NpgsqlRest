@@ -13,12 +13,10 @@ create function comment_authorize2() returns text language sql as 'select ''auth
 comment on function comment_authorize2() is 'HTTP
 RequiresAuthorization';
 
--- missing leading HTTP tag, authorize should be ignored
 create function comment_authorize3() returns text language sql as 'select ''authorize3''';
 comment on function comment_authorize3() is '
 Authorize';
 
--- HTTP should precede Authorize
 create function comment_authorize4() returns text language sql as 'select ''authorize4''';
 comment on function comment_authorize4() is 'Authorize
 HTTP';

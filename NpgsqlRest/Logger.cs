@@ -37,6 +37,9 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUIRED AUTHORIZATION by comment annotations.")]
     public static partial void CommentSetAuth(this ILogger logger, RoutineType type, string schema, string name);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUIRED AUTHORIZATION FOR ROLES {roles} by comment annotations.")]
+    public static partial void CommentSetAuthRoles(this ILogger logger, RoutineType type, string schema, string name, HashSet<string> roles);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set ALLOW ANONYMOUS by comment annotations.")]
     public static partial void CommentSetAnon(this ILogger logger, RoutineType type, string schema, string name);
 

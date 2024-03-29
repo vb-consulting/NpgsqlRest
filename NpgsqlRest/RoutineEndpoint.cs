@@ -15,9 +15,11 @@ public struct RoutineEndpoint(
     string requestHeadersParameterName,
     string? bodyParameterName,
     TextResponseNullHandling textResponseNullHandling,
-    QueryStringNullHandling queryStringNullHandling)
+    QueryStringNullHandling queryStringNullHandling,
+    HashSet<string>? authorizeRoles = null)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
+    internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
     public string Url { get; set; } = url;
     public Method Method { get; set; } = method;
     public RequestParamType RequestParamType { get; set; } = requestParamType;
@@ -32,5 +34,5 @@ public struct RoutineEndpoint(
     public string? BodyParameterName { get; set; } = bodyParameterName;
     public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
     public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
-    internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
+    public HashSet<string>? AuthorizeRoles { get; set; } = authorizeRoles;
 }

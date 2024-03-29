@@ -9,6 +9,7 @@ public class TestFixture : IDisposable
     private readonly HttpClient _client;
 
     public HttpClient Client => _client;
+    public WebApplicationFactory<Program> Application => _application;
 
     public TestFixture()
     {

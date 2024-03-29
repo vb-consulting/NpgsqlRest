@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NpgsqlRest.CrudSource;
+using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -32,11 +33,24 @@ public class Program
         // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
 
-        var builder = WebApplication.CreateEmptyBuilder(new());
-        builder.WebHost.UseKestrelCore();
+        var builder = WebApplication.CreateBuilder([]);
+        builder.Services.AddAuthentication().AddCookie("test_scheme");
+
         var app = builder.Build();
+        
+        app.MapGet("/login", () => Results.SignIn(new ClaimsPrincipal(new ClaimsIdentity(
+            claims: new[]
+            {
+                new Claim(ClaimTypes.Name, "user"),
+                new Claim(ClaimTypes.Role, "role1"),
+                new Claim(ClaimTypes.Role, "role2"),
+                new Claim(ClaimTypes.Role, "role3"),
+            }, 
+            authenticationType: "test_scheme"))));
+        
         app.UseNpgsqlRest(new(connectionString)
         {
+            //NameSimilarTo = "authorized_roles%",
             ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async p =>
