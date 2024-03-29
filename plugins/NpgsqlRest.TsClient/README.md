@@ -448,6 +448,26 @@ public class TsClientOptions(
     /// Set Full to add the entire routine code as comment header.
     /// </summary>
     public CommentHeader CommentHeader { get; set; } = commentHeader;
+    /// <summary>
+    /// Set to true to include status code in response: {status: response.status, response: model}
+    /// </summary>
+    public bool IncludeStatusCode { get; set; } = includeStatusCode;
+}
+```
+
+## Changelog
+
+### 1.1.0
+
+Added `IncludeStatusCode` option. When set to true, the generated function includes a status code. Example:
+
+```ts
+export async function getDuplicateEmailCustomers() : Promise<{status: number, response: IGetDuplicateEmailCustomersResponse[]}> {
+    const response = await fetch(_baseUrl + "/api/get-duplicate-email-customers", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+    });
+    return {status: response.status, response: await response.json() as IGetDuplicateEmailCustomersResponse[]};
 }
 ```
 

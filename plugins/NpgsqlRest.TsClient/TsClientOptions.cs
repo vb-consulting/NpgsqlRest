@@ -5,7 +5,8 @@ public class TsClientOptions(
     bool fileOverwrite = false,
     bool includeHost = false,
     string? customHost = null,
-    CommentHeader commentHeader = CommentHeader.Simple)
+    CommentHeader commentHeader = CommentHeader.Simple,
+    bool includeStatusCode = false)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation.
@@ -30,4 +31,8 @@ public class TsClientOptions(
     /// Set Full to add the entire routine code as comment header.
     /// </summary>
     public CommentHeader CommentHeader { get; set; } = commentHeader;
+    /// <summary>
+    /// Set to true to include status code in response: {status: response.status, response: model}
+    /// </summary>
+    public bool IncludeStatusCode { get; set; } = includeStatusCode;
 }

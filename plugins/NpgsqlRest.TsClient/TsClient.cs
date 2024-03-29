@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace NpgsqlRest.TsClient;
 
@@ -9,6 +10,13 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
     private NpgsqlRestOptions? _npgsqlRestoptions;
 
     public TsClient(string filePath) : this(new TsClientOptions(filePath)) { }
+
+    public TsClient(string filePath, 
+        bool fileOverwrite = false, 
+        bool includeHost = false, 
+        string? customHost = null, 
+        CommentHeader commentHeader = CommentHeader.Simple,
+        bool includeStatusCode = false) : this(new TsClientOptions(filePath, fileOverwrite, includeHost, customHost, commentHeader, includeStatusCode)) { }
 
     public void Setup(IApplicationBuilder builder, ILogger? logger, NpgsqlRestOptions options)
     {
@@ -141,6 +149,15 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             string responseName = "void";
             bool json = false;
             string? returnExp = null;
+            string GetReturnExp(string responseExp)
+            {
+                if (options.IncludeStatusCode)
+                {
+                    return string.Concat("return {status: response.status, response: ", responseExp, "};");
+                }
+                return string.Concat("return ", responseExp, ";");
+            }
+
             if (routine.IsVoid is false)
             {
                 if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
@@ -150,25 +167,25 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     if (descriptor.IsArray)
                     {
                         json = true;
-                        returnExp = $"return await response.json() as {responseName}[];";
+                        returnExp = GetReturnExp($"await response.json() as {responseName}[]");//$"return await response.json() as {responseName}[];";
                     }
                     else
                     {
                         if (descriptor.IsDate || descriptor.IsDateTime)
                         {
-                            returnExp = "return new Date(await response.text());";
+                            returnExp = GetReturnExp("new Date(await response.text())");//"return new Date(await response.text());";
                         }
                         else if (descriptor.IsNumeric)
                         {
-                            returnExp = "return Number(await response.text());";
+                            returnExp = GetReturnExp("Number(await response.text())");//"return Number(await response.text());";
                         }
                         else if (descriptor.IsBoolean)
                         {
-                            returnExp = "return (await response.text()).toLowerCase() == \"true\";";
+                            returnExp = GetReturnExp("(await response.text()).toLowerCase() == \"true\""); //"return (await response.text()).toLowerCase() == \"true\";";
                         }
                         else
                         {
-                            returnExp = "return await response.text();";
+                            returnExp = GetReturnExp("await response.text()"); //"return await response.text();";
                         }
                     }
                 }
@@ -209,7 +226,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     {
                         responseName = string.Concat(responseName, "[]");
                     }
-                    returnExp = $"return await response.json() as {responseName};";
+                    returnExp = GetReturnExp($"await response.json() as {responseName}"); //$"return await response.json() as {responseName};";
                 } 
             }
 
@@ -238,6 +255,10 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 NewLine(body, 2),
                 NewLine(returnExp, 1));
 
+            var resultType = options.IncludeStatusCode ?
+                string.Concat("{status: number, response: ", responseName, "}") :
+                responseName;
+
             content.AppendLine(string.Format(
                 """
             /**
@@ -249,7 +270,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 GetComment(routine, endpoint),
                 camel,
                 requestName is null ? "" : string.Concat("request: ", requestName),
-                responseName,
+                resultType,
                 funcBody));
             content.AppendLine("}");
 
