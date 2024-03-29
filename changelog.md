@@ -1,5 +1,61 @@
 # Changelog
 
+## Version [2.1.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.1.0) (2024-03-29)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.0.0...2.1.0)
+
+### Role-Based Security
+
+This version supports the **Roles-Based Security** mechanism.
+
+The Endpoint can be authorized for only certain roles. 
+
+For example, all endpoints must be in `admin` or `superadmin` roles:
+
+```csharp
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    EndpointCreated = (routine, endpoint) => endpoint with { AuthorizeRoles = ["admin", "super"] }
+});
+```
+
+Same thing, only for the function with name `protected_func`:
+
+```csharp
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    EndpointCreated = (routine, endpoint) => routine.Name == "protected_func" ? endpoint with { AuthorizeRoles = ["admin", "super"] } : endpoint
+});
+```
+
+There is also support for the comment annotations. Add a list of roles after the `RequiresAuthorization` annotation tag:
+
+```sql
+comment on function protected_func() is 'authorize admin, superadmin';
+```
+
+See more details on the [`RequiresAuthorization` annotation tag](https://vb-consulting.github.io/npgsqlrest/annotations/#requiresauthorization).
+
+Note: If the user is authorized but not in any of the roles required by the authorization, the endpoint will return the status code `403 Forbidden`.
+
+### TsClient IncludeStatusCode
+
+The New version of the `NpgsqlRest.TsClient` (1.1.0) plugin now includes the `IncludeStatusCode` option.
+
+When set to true (default is false), the resulting value will include the response code in the function result, for example:
+
+```ts
+export async function getDuplicateEmailCustomers() : Promise<{status: number, response: IGetDuplicateEmailCustomersResponse[]}> {
+    const response = await fetch(_baseUrl + "/api/get-duplicate-email-customers", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+    });
+    return {status: response.status, response: await response.json() as IGetDuplicateEmailCustomersResponse[]};
+}
+```
+
 ## Version [2.0.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.0.0) (2024-03-10)
 
 Version 2.0.0 is the major redesign of the entire library. This version adds extendibility by introducing the **concept of plugins.**

@@ -14,7 +14,7 @@ All annotations in lines below this line apply only to tags in the argument list
 
 ```console
 disabled
-disabled tag1, tag2, tag3 [, ...]
+disabled [ tag1, tag2, tag3 [, ...] ]
 ```
 
 The endpoint is disabled. Optional tag list disabled only for tags in the argument list.
@@ -61,10 +61,17 @@ requiresauthorization
 authorize
 requires_authorization
 requires-authorization
+requiresauthorization [ role1, role2, role2 [, ...] ]
+authorize [ role1, role2, role2 [, ...] ]
+requires_authorization [ role1, role2, role2 [, ...] ]
+requires-authorization [ role1, role2, role2 [, ...] ]
 ```
 
 Require authorization for this endpoint.
 
+- If the user is not authorized and authorization is required, the endpoint will return the status code `401 Unauthorized`.
+- If the user is authorized but not in any of the roles required by the authorization, the endpoint will return the status code `403 Forbidden`.
+  
 ## AllowAnonymous
 
 ```console
