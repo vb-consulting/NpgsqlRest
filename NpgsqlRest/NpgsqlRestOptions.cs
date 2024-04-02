@@ -43,7 +43,8 @@ public class NpgsqlRestOptions(
     Action<List<IRoutineSource>>? sourcesCreated = null,
     TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
     QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore,
-    ulong bufferRows = 25)
+    ulong bufferRows = 25,
+    NpgsqlRestAuthenticationOptions? authenticationOptions = null)
 {
 
     /// <summary>
@@ -254,5 +255,10 @@ public class NpgsqlRestOptions(
     /// </summary>
     public ulong BufferRows { get; set; } = bufferRows;
 
-    internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
+    /// <summary>
+    /// Default Authentication Options
+    /// </summary>
+    public NpgsqlRestAuthenticationOptions AuthenticationOptions { get; set; } = authenticationOptions ?? new();
+
+internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

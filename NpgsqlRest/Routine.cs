@@ -10,9 +10,9 @@ public readonly struct Routine(
     CrudType crudType = CrudType.Select,
     bool returnsRecordType = false,
     bool returnsSet = false,
-    int returnRecordCount = 1,
-    string[]? returnRecordNames = null,
-    TypeDescriptor[]? returnTypeDescriptor = null,
+    int columnCount = 1,
+    string[]? columnNames = null,
+    TypeDescriptor[]? columnsTypeDescriptor = null,
     bool returnsUnnamedSet = true,
     bool isVoid = true,
     int paramCount = 0,
@@ -68,17 +68,17 @@ public readonly struct Routine(
     /// <summary>
     /// The number of columns returned.
     /// </summary>
-    public int ColumnCount { get; init; } = returnRecordCount;
+    public int ColumnCount { get; init; } = columnCount;
 
     /// <summary>
     /// The names of the returned columns.
     /// </summary>
-    public string[] ColumnNames { get; init; } = returnRecordNames ?? [];
+    public string[] ColumnNames { get; init; } = columnNames ?? [];
 
     /// <summary>
     /// The type descriptors for the returned columns.
     /// </summary>
-    public TypeDescriptor[] ColumnsTypeDescriptor { get; init; } = returnTypeDescriptor ?? [];
+    public TypeDescriptor[] ColumnsTypeDescriptor { get; init; } = columnsTypeDescriptor ?? [];
 
     /// <summary>
     /// Indicates whether the routine returns an unnamed set. 

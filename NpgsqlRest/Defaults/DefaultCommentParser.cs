@@ -98,6 +98,16 @@ internal static class DefaultCommentParser
         "query_string_null_handling",
     ];
 
+    private static readonly string[] LoginKey = [
+        "login",
+        "signin",
+    ];
+
+    private static readonly string[] LogoutKey = [
+        "logout",
+        "signout",
+    ];
+
     public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -463,6 +473,28 @@ internal static class DefaultCommentParser
                         {
                             logger?.CommentSetQueryStringNullHandling(routine.Type, routine.Schema, routine.Name, routineEndpoint.QueryStringNullHandling);
                         }
+                    }
+                }
+
+                // login
+                // signin
+                else if (haveTag is true && StrEqualsToArray(ref words[0], LoginKey))
+                {
+                    routineEndpoint.Login = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentSetLogin(routine.Type, routine.Schema, routine.Name);
+                    }
+                }
+
+                // logout
+                // signout
+                else if (haveTag is true && StrEqualsToArray(ref words[0], LogoutKey))
+                {
+                    routineEndpoint.Logout = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentSetLogout(routine.Type, routine.Schema, routine.Name);
                     }
                 }
 

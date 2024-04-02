@@ -36,7 +36,6 @@ public class AuthTests(TestFixture test)
         response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         using var login = await client.GetAsync("/login");
-        var loginContent = await login.Content.ReadAsStringAsync();
 
         using var response2 = await client.PostAsync("/api/authorized/", null);
         response2.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -52,7 +51,6 @@ public class AuthTests(TestFixture test)
         response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         using var login = await client.GetAsync("/login");
-        var loginContent = await login.Content.ReadAsStringAsync();
 
         using var response2 = await client.PostAsync("/api/authorized-roles1/", null);
         response2.StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -68,7 +66,6 @@ public class AuthTests(TestFixture test)
         response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         using var login = await client.GetAsync("/login");
-        var loginContent = await login.Content.ReadAsStringAsync();
 
         using var response2 = await client.PostAsync("/api/authorized-roles2/", null);
         response2.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -84,7 +81,6 @@ public class AuthTests(TestFixture test)
         response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         using var login = await client.GetAsync("/login");
-        var loginContent = await login.Content.ReadAsStringAsync();
 
         using var response2 = await client.PostAsync("/api/authorized-roles3/", null);
         response2.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -100,7 +96,6 @@ public class AuthTests(TestFixture test)
         response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         using var login = await client.GetAsync("/login");
-        var loginContent = await login.Content.ReadAsStringAsync();
 
         using var response2 = await client.PostAsync("/api/authorized-roles4/", null);
         response2.StatusCode.Should().Be(HttpStatusCode.Forbidden);

@@ -206,7 +206,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                             var descriptor = routine.ColumnsTypeDescriptor[i];
                             var type = GetTsType(descriptor, false);
 
-                            resp.AppendLine($"    {endpoint.ReturnRecordNames[i]}: {type} | null;");
+                            resp.AppendLine($"    {endpoint.ColumnNames[i]}: {type} | null;");
                         }
 
                         if (modelsDict.TryGetValue(resp.ToString(), out var newName))

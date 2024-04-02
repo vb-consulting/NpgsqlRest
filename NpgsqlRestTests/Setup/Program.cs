@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using NpgsqlRest.CrudSource;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -25,6 +27,30 @@ public class Program
             p.Context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await p.Context.Response.WriteAsync($"Paramater {p.ParamName} is not valid.");
         }
+
+        if (string.Equals(p.Parameter.ParameterName, "_user_id", StringComparison.Ordinal))
+        {
+            if (p.Context?.User?.Identity?.IsAuthenticated is true)
+            {
+                p.Parameter.Value = p.Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            }
+            else
+            {
+                p.Parameter.Value = DBNull.Value;
+            }
+        }
+
+        if (string.Equals(p.Parameter.ParameterName, "_user_roles", StringComparison.Ordinal))
+        {
+            if (p.Context?.User?.Identity?.IsAuthenticated is true)
+            {
+                p.Parameter.Value = p.Context.User?.Claims?.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToArray() ?? [];
+            }
+            else
+            {
+                p.Parameter.Value = DBNull.Value;
+            }
+        }
     }
 
     public static void Main()
@@ -34,10 +60,14 @@ public class Program
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
 
         var builder = WebApplication.CreateBuilder([]);
-        builder.Services.AddAuthentication().AddCookie("test_scheme");
+        
+        builder
+            .Services
+            .AddAuthentication()
+            .AddCookie();
 
         var app = builder.Build();
-        
+
         app.MapGet("/login", () => Results.SignIn(new ClaimsPrincipal(new ClaimsIdentity(
             claims: new[]
             {
@@ -45,12 +75,11 @@ public class Program
                 new Claim(ClaimTypes.Role, "role1"),
                 new Claim(ClaimTypes.Role, "role2"),
                 new Claim(ClaimTypes.Role, "role3"),
-            }, 
-            authenticationType: "test_scheme"))));
-        
+            },
+            authenticationType: CookieAuthenticationDefaults.AuthenticationScheme))));
+
         app.UseNpgsqlRest(new(connectionString)
         {
-            //NameSimilarTo = "authorized_roles%",
             ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async p =>

@@ -4,7 +4,6 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Security.Claims;
 using Npgsql;
 using NpgsqlTypes;
 using Microsoft.Extensions.Primitives;
@@ -20,7 +19,6 @@ using Tuple = (
     NpgsqlRest.RoutineEndpoint endpoint,
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
-
 
 namespace NpgsqlRest;
 
@@ -419,31 +417,35 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
 
-                if ((endpoint.RequiresAuthorization || endpoint.AuthorizeRoles is not null) && context.User?.Identity?.IsAuthenticated is false)
+                if (endpoint.Login is false)
                 {
-                    context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                    await context.Response.CompleteAsync();
-                    return;
-                }
-
-                if (endpoint.AuthorizeRoles is not null)
-                {
-                    string[] roles = context.User?.Claims?.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToArray() ?? [];
-                    bool ok = false;
-                    for (int i = 0; i < roles.Length; i++)
+                    if ((endpoint.RequiresAuthorization || endpoint.AuthorizeRoles is not null) && context.User?.Identity?.IsAuthenticated is false)
                     {
-                        string role = roles[i];
-                        if (endpoint.AuthorizeRoles.Contains(role) is true)
-                        {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    if (ok is false)
-                    {
-                        context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                        context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                         await context.Response.CompleteAsync();
                         return;
+                    }
+
+                    if (endpoint.AuthorizeRoles is not null)
+                    {
+                        bool ok = false;
+                        foreach (var claim in context.User?.Claims ?? [])
+                        {
+                            if (string.Equals(claim.Type, options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal))
+                            {
+                                if (endpoint.AuthorizeRoles.Contains(claim.Value) is true)
+                                {
+                                    ok = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (ok is false)
+                        {
+                            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                            await context.Response.CompleteAsync();
+                            return;
+                        }
                     }
                 }
 
@@ -518,12 +520,12 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
                     {
-                        command.CommandText = string.Concat("select set_config('request.headers','",headers,"',false)");
+                        command.CommandText = string.Concat("select set_config('request.headers','", headers, "',false)");
                         command.ExecuteNonQuery();
                     }
 
                     var shouldLog = options.LogCommands && logger != null;
-                    StringBuilder? cmdLog = shouldLog ? 
+                    StringBuilder? cmdLog = shouldLog ?
                         new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) :
                         null;
 
@@ -531,8 +533,8 @@ public static class NpgsqlRestMiddlewareExtensions
                     string? commandText;
                     if (formatter.RefContext)
                     {
-                        commandText = formatter.IsFormattable ? 
-                            formatter.FormatCommand(ref routine, ref paramsList, ref context) : 
+                        commandText = formatter.IsFormattable ?
+                            formatter.FormatCommand(ref routine, ref paramsList, ref context) :
                             routine.Expression;
                         if (formatter.IsFormattable)
                         {
@@ -544,8 +546,8 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     else
                     {
-                        commandText = formatter.IsFormattable ? 
-                            formatter.FormatCommand(ref routine, ref paramsList) : 
+                        commandText = formatter.IsFormattable ?
+                            formatter.FormatCommand(ref routine, ref paramsList) :
                             routine.Expression;
                     }
 
@@ -566,7 +568,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             commandText = string.Concat(commandText, formatter.AppendEmpty());
                         }
-                    } 
+                    }
                     else
                     {
                         for (var i = 0; i < paramCount; i++)
@@ -598,7 +600,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 var p = FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
                                 cmdLog!.AppendLine(string.Concat(
                                     "-- $",
-                                    (i+1).ToString(),
+                                    (i + 1).ToString(),
                                     " ", routine.ParamTypeDescriptor[i].OriginalType,
                                     " = ",
                                     p));
@@ -617,12 +619,12 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         Logger.LogEndpoint(ref logger, ref endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                     }
-                    
+
                     if (endpoint.CommandTimeout.HasValue)
                     {
                         command.CommandTimeout = endpoint.CommandTimeout.Value;
                     }
-                    
+
                     //command callback
                     if (options.CommandCallbackAsync is not null)
                     {
@@ -632,7 +634,19 @@ public static class NpgsqlRestMiddlewareExtensions
                             return;
                         }
                     }
-                    
+
+                    if (endpoint.Login is true)
+                    {
+                        await AuthHandler.HandleLoginAsync(command, context, endpoint, routine, options, logger);
+                        return;
+                    }
+
+                    if (endpoint.Logout is true)
+                    {
+                        await AuthHandler.HandleLogoutAsync(command, routine, context);
+                        return;
+                    }
+
                     if (routine.IsVoid)
                     {
                         await command.ExecuteNonQueryAsync();
@@ -753,7 +767,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             row.Append('{');
                                         }
                                         row.Append('\"');
-                                        row.Append(endpoint.ReturnRecordNames[i]);
+                                        row.Append(endpoint.ColumnNames[i]);
                                         row.Append("\":");
                                     }
 
@@ -903,8 +917,8 @@ public static class NpgsqlRestMiddlewareExtensions
         NpgsqlRestOptions options,
         ILogger? logger)
     {
+        var hasLogin = false;
         var dict = new Dictionary<string, List<Tuple>>();
-
         foreach (var handler in options.EndpointCreateHandlers)
         {
             handler.Setup(builder, logger, options);
@@ -963,6 +977,28 @@ public static class NpgsqlRestMiddlewareExtensions
                 {
                     logger?.EndpointCreated(method, endpoint.Url);
                 }
+
+                if (endpoint.Login is true)
+                {
+                    if (hasLogin is false)
+                    {
+                        hasLogin = true;
+                    }
+                    if (routine.IsVoid is true || routine.ReturnsUnnamedSet is true)
+                    {
+                        throw new ArgumentException($"{routine.Type.ToString().ToLowerInvariant()} {routine.Schema}.{routine.Name} is marked as login and it can't be void or returning unnamed data sets.");
+                    }
+                }
+            }
+        }
+
+        if (hasLogin is true)
+        {
+            if (options.AuthenticationOptions.DefaultAuthenticationType is null)
+            {
+                string db = new NpgsqlConnectionStringBuilder(options.ConnectionString).Database ?? "NpgsqlRest";
+                options.AuthenticationOptions.DefaultAuthenticationType = db;
+                logger?.SetDefaultAuthenticationType(db);
             }
         }
 

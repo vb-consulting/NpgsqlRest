@@ -44,7 +44,7 @@ internal static class DefaultEndpoint
                 method: method,
                 requestParamType: requestParamType,
                 requiresAuthorization: options.RequiresAuthorization,
-                returnRecordNames: returnRecordNames,
+                columnNames: returnRecordNames,
                 paramNames: paramNames,
                 commandTimeout: options.CommandTimeout,
                 responseContentType: null,

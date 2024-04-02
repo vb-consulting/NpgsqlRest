@@ -146,10 +146,10 @@ public class RoutineSource(
 
                     returnsRecordType: string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
                     returnsSet: returnsSet,
-                    returnRecordCount: returnRecordCount,
-                    returnRecordNames: returnRecordNames,
+                    columnCount: returnRecordCount,
+                    columnNames: returnRecordNames,
                     returnsUnnamedSet: isUnnamedRecord,
-                    returnTypeDescriptor: returnTypeDescriptor,
+                    columnsTypeDescriptor: returnTypeDescriptor,
                     isVoid: isVoid,
 
                     paramCount: paramCount,

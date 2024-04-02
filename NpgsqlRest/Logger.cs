@@ -25,25 +25,25 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid URL path segment '{urlPathSegment}' in comment for routine '{schema}.{name}'. Using default '{defaultUrl}'")]
     public static partial void InvalidUrlPathSegmentComment(this ILogger logger, string urlPathSegment, string schema, string name, string defaultUrl);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set HTTP by comment annotations to {method} {url}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set HTTP by the comment annotation to {method} {url}")]
     public static partial void CommentSetHttp(this ILogger logger, RoutineType type, string schema, string name, Method method, string url);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid parameter type '{type}' in comment for routine '{schema}.{name}' Allowed values are QueryString or Query or BodyJson or Json. Using default '{defaultType}'")]
     public static partial void InvalidParameterTypeComment(this ILogger logger, string type, string schema, string name, RequestParamType defaultType);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUEST PARAMETER TYPE by comment annotations to {requestParamType}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUEST PARAMETER TYPE by the comment annotation to {requestParamType}")]
     public static partial void CommentSetParameterType(this ILogger logger, RoutineType type, string schema, string name, RequestParamType requestParamType);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUIRED AUTHORIZATION by comment annotations.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUIRED AUTHORIZATION by the comment annotation.")]
     public static partial void CommentSetAuth(this ILogger logger, RoutineType type, string schema, string name);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUIRED AUTHORIZATION FOR ROLES {roles} by comment annotations.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUIRED AUTHORIZATION FOR ROLES {roles} by the comment annotation.")]
     public static partial void CommentSetAuthRoles(this ILogger logger, RoutineType type, string schema, string name, HashSet<string> roles);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set ALLOW ANONYMOUS by comment annotations.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set ALLOW ANONYMOUS by the comment annotation.")]
     public static partial void CommentSetAnon(this ILogger logger, RoutineType type, string schema, string name);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set COMMAND TIMEOUT by comment annotations to {parsedTimeout} seconds")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set COMMAND TIMEOUT by the comment annotation to {parsedTimeout} seconds")]
     public static partial void CommentSetTimeout(this ILogger logger, RoutineType type, string schema, string name, string parsedTimeout);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid command timeout '{timeout}' in comment for routine '{schema}.{name}'. Using default command timeout '{defaultTimeout}'")]
@@ -52,32 +52,44 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid request headers mode '{mode}' in comment for routine '{schema}.{name}' Allowed values are Ignore or Context or Parameter. Using default '{defaultRequestHeadersMode}'")]
     public static partial void InvalidRequestHeadersModeComment(this ILogger logger, string mode, string schema, string name, RequestHeadersMode defaultRequestHeadersMode);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUEST HEADERS MODE by comment annotations to \"{requestHeadersMode}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUEST HEADERS MODE by the comment annotation to \"{requestHeadersMode}\"")]
     public static partial void CommentSetRequestHeadersMode(this ILogger logger, RoutineType type, string schema, string name, string requestHeadersMode);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUEST HEADERS PARAMETER NAME by comment annotations to \"{requestHeadersParamName}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set REQUEST HEADERS PARAMETER NAME by the comment annotation to \"{requestHeadersParamName}\"")]
     public static partial void CommentSetRequestHeadersParamName(this ILogger logger, RoutineType type, string schema, string name, string requestHeadersParamName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set BODY PARAMETER NAME by comment annotations to \"{bodyParamName}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set BODY PARAMETER NAME by the comment annotation to \"{bodyParamName}\"")]
     public static partial void CommentSetBodyParamName(this ILogger logger, RoutineType type, string schema, string name, string bodyParamName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid text response null handling mode '{mode}' in comment for routine '{schema}.{name}'. Allowed values are EmptyString or NullLiteral or NoContent. Using default '{textResponseNullHandling}'")]
     public static partial void InvalidResponseNullHandlingModeComment(this ILogger logger, string mode, string schema, string name, TextResponseNullHandling textResponseNullHandling);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set TEXT RESPONSE NULL HANDLING by comment annotations to \"{textResponseNullHandling}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set TEXT RESPONSE NULL HANDLING by the comment annotation to \"{textResponseNullHandling}\"")]
     public static partial void CommentSetTextResponseNullHandling(this ILogger logger, RoutineType type, string schema, string name, string textResponseNullHandling);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid query string null handling mode '{mode}' in comment for routine '{schema}.{name}'. Allowed values are EmptyString or NullLiteral or Ignore. Using default '{queryStringNullHandling}'\"")]
     public static partial void InvalidQueryStringNullHandlingComment(this ILogger logger, string mode, string schema, string name, QueryStringNullHandling queryStringNullHandling);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set QUERY STRING NULL HANDLING by comment annotations to \"{queryStringNullHandling}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set QUERY STRING NULL HANDLING by the comment annotation to \"{queryStringNullHandling}\"")]
     public static partial void CommentSetQueryStringNullHandling(this ILogger logger, RoutineType type, string schema, string name, QueryStringNullHandling queryStringNullHandling);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set Content-Type HEADER by comment annotations to \"{headerValue}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set Content-Type HEADER by the comment annotation to \"{headerValue}\"")]
     public static partial void CommentSetContentType(this ILogger logger, RoutineType type, string schema, string name, string headerValue);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set {headerName} HEADER by comment annotations to \"{headerValue}\"")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set {headerName} HEADER by the comment annotation to \"{headerValue}\"")]
     public static partial void CommentSetHeader(this ILogger logger, RoutineType type, string schema, string name, string headerName, string headerValue);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set LOGIN RESPONSE by the comment annotation.")]
+    public static partial void CommentSetLogin(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set LOGOUT RESPONSE by the comment annotation.")]
+    public static partial void CommentSetLogout(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "{type} {schema}.{name} is designated as login routine and it returns a status field that is not either boolean or numeric.")]
+    public static partial void WrongStatusType(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Endpoints are using Login and the DefaultAuthenticationType is null. DefaultAuthenticationType was set to {name}")]
+    public static partial void SetDefaultAuthenticationType(this ILogger logger, string name);
 }
 
 internal static class Logger

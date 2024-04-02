@@ -99,7 +99,7 @@ public class MultiParamsTests2(TestFixture test)
 
         // integration server seems to have a different datetime alltogether
         node["timetz"].GetValue<string>().Should()
-            .Match(t => t == "12:07:44.422546+00" || t == "11:07:44.422546+00");
+            .Match(t => t == "12:07:44.422546+00" || t == "11:07:44.422546+00" || t == "13:07:44.422546+00");
 
         node["interval"].GetValue<string>().Should().Be("03:20:00");
         node["bool"].ToJsonString().Should().Be("true");
