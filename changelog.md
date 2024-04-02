@@ -8,7 +8,7 @@
 - Logout endpoints
 - Small name refactoring (ReturnRecordNames -> ColumnNames)
 
-To enable authentication, authentication service first needs to be enabled in the application:
+To enable authentication, the authentication service first needs to be enabled in the application:
 
 ```cs
 var builder = WebApplication.CreateBuilder(args);
