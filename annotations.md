@@ -198,7 +198,7 @@ The program will result in the `ArgumentException` exception if the login-enable
 
 The login operation will be interpreted as an unsuccessful login attempt and return the status code `401 Unauthorized` without creating a user identity if either:
 - The routine returns an empty record.
-- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname), and the value of he status column name is:
+- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname), and the value of the status column name is:
   - False for boolean types.
   - Not 200 for numeric types.
 
