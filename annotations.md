@@ -198,20 +198,20 @@ The program will result in the `ArgumentException` exception if the login-enable
 
 The login operation will be interpreted as an unsuccessful login attempt and return the status code `401 Unauthorized` without creating a user identity if either:
 - The routine returns an empty record.
-- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptions.statuscolumnname), and the value of he status column name is:
+- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname), and the value of he status column name is:
   - False for boolean types.
   - Not 200 for numeric types.
 
 The login operation will be interpreted as a successful login attempt and return the status code `200 OK` with creating a new user identity if either:
-- The routine returns a record without status [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptions.statuscolumnname).
-- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptions.statuscolumnname), and the value of the status column name is:
+- The routine returns a record without status [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname).
+- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname), and the value of the status column name is:
   - True for boolean types.
   - 200 for numeric types.
 
-To authorize a different authorization scheme, return a [schema column name](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptions.schemacolumnname) with the value of that schema.
+To authorize a different authorization scheme, return a [schema column name](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname) with the value of that schema.
 
 Any other records will be set as new claims for the created user identity on successful login, where:
-- The column name is claim type. This type will by default try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value. Use the [`UseActiveDirectoryFederationServicesClaimTypes` Option][https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptions.useactivedirectoryfederationservicesclaimtypes] to control this behavior.
+- The column name is claim type. This type will by default try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value. Use the [`UseActiveDirectoryFederationServicesClaimTypes` Option][https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes] to control this behavior.
 - The record value (as string) is the claim value.
 
 ## Logout
