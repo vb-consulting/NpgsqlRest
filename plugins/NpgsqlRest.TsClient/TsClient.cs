@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Microsoft.Extensions.Options;
 
 namespace NpgsqlRest.TsClient;
 
@@ -46,13 +45,41 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         {
             return;
         }
-        HashSet<string> models___ = [];
+
+        if (options.BySchema is false)
+        {
+            Run(endpoints, options.FilePath);
+        }
+        else
+        {
+            if (options.FilePath.Contains("{0}") is false)
+            {
+                _logger?.LogError("TsClient Option FilePath doesn't contain {{0}} formatter and BySchema options is true. Some files may be overwritten! Existing...");
+                return;
+            }
+
+            foreach (var group in endpoints.GroupBy(e => e.routine.Schema))
+            {
+                var filename = string.Format(options.FilePath, ConvertToCamelCase(group.Key));
+                Run(group.ToArray(), filename);
+            }
+        }
+    }
+
+    private void Run((Routine routine, RoutineEndpoint endpoint)[] endpoints, string fileName)
+    {
+        if (fileName is null)
+        {
+            return;
+        }
         Dictionary<string, string> modelsDict = [];
         Dictionary<string, int> names = [];
         StringBuilder content = new();
         StringBuilder interfaces = new();
 
-        content.AppendLine(string.Format(
+        if (endpoints.Where(e => e.endpoint.RequestParamType == RequestParamType.QueryString).Any())
+        {
+            content.AppendLine(string.Format(
             """
             const _baseUrl = "{0}";
 
@@ -66,7 +93,15 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }})
                 .join("&");
             """, GetHost())
-        );
+            );
+        }
+        else
+        {
+            content.AppendLine(string.Format(
+      """
+            const _baseUrl = "{0}";
+            """, GetHost()));
+        }
 
         foreach (var (routine, endpoint) in endpoints
             .Where(e => e.routine.Type == RoutineType.Table || e.routine.Type == RoutineType.View)
@@ -85,20 +120,44 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             Handle(routine, endpoint);
         }
 
-        if (!options.FileOverwrite && File.Exists(options.FilePath))
+        if (!options.FileOverwrite && File.Exists(fileName))
         {
             return;
         }
         interfaces.AppendLine(content.ToString());
-        File.WriteAllText(options.FilePath, interfaces.ToString());
-        _logger?.LogInformation("Created Typescript file: {0}", options.FilePath);
+        File.WriteAllText(fileName, interfaces.ToString());
+        _logger?.LogInformation("Created Typescript file: {0}", fileName);
 
         return;
 
         void Handle(Routine routine, RoutineEndpoint endpoint)
         {
             var name = string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..];
-            if (routine.Type == RoutineType.Table || routine.Type == RoutineType.View)
+            var routineType = routine.Type;
+            var paramCount = routine.ParamCount;
+            var paramTypeDescriptors = routine.ParamTypeDescriptor;
+            var isVoid = routine.IsVoid;
+            var returnsSet = routine.ReturnsSet;
+            var columnCount = routine.ColumnCount;
+            var returnsRecordType = routine.ReturnsRecordType;
+            var columnsTypeDescriptor = routine.ColumnsTypeDescriptor;
+            var returnsUnnamedSet = routine.ReturnsUnnamedSet;
+
+            if (endpoint.Login is true)
+            {
+                isVoid = false;
+                returnsSet = false;
+                columnCount = 1;
+                returnsRecordType = false;
+                columnsTypeDescriptor = [new TypeDescriptor("text")];
+            }
+
+            if (endpoint.Logout is true)
+            {
+                isVoid = true;
+            }
+
+            if (routineType == RoutineType.Table || routineType == RoutineType.View)
             {
                 name = string.Concat(name, "-", endpoint.Method.ToString().ToLowerInvariant());
             }
@@ -118,14 +177,14 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             content.AppendLine();
 
             string? requestName = null;
-            if (routine.ParamCount > 0)
+            if (paramCount > 0)
             {
                 StringBuilder req = new();
                 requestName = $"I{pascal}Request";
 
-                for (var i = 0; i < routine.ParamCount; i++)
+                for (var i = 0; i < paramCount; i++)
                 {
-                    var descriptor = routine.ParamTypeDescriptor[i];
+                    var descriptor = paramTypeDescriptors[i];
                     var nameSuffix = descriptor.HasDefault ? "?" : "";
                     var type = GetTsType(descriptor, true);
 
@@ -158,41 +217,41 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 return string.Concat("return ", responseExp, ";");
             }
 
-            if (routine.IsVoid is false)
+            if (isVoid is false)
             {
-                if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
+                if (returnsSet == false && columnCount == 1 && returnsRecordType is false)
                 {
-                    var descriptor = routine.ColumnsTypeDescriptor[0];
+                    var descriptor = columnsTypeDescriptor[0];
                     responseName = GetTsType(descriptor, true);
                     if (descriptor.IsArray)
                     {
                         json = true;
-                        returnExp = GetReturnExp($"await response.json() as {responseName}[]");//$"return await response.json() as {responseName}[];";
+                        returnExp = GetReturnExp($"await response.json() as {responseName}[]");
                     }
                     else
                     {
                         if (descriptor.IsDate || descriptor.IsDateTime)
                         {
-                            returnExp = GetReturnExp("new Date(await response.text())");//"return new Date(await response.text());";
+                            returnExp = GetReturnExp("new Date(await response.text())");
                         }
                         else if (descriptor.IsNumeric)
                         {
-                            returnExp = GetReturnExp("Number(await response.text())");//"return Number(await response.text());";
+                            returnExp = GetReturnExp("Number(await response.text())");
                         }
                         else if (descriptor.IsBoolean)
                         {
-                            returnExp = GetReturnExp("(await response.text()).toLowerCase() == \"true\""); //"return (await response.text()).toLowerCase() == \"true\";";
+                            returnExp = GetReturnExp("(await response.text()).toLowerCase() == \"true\"");
                         }
                         else
                         {
-                            returnExp = GetReturnExp("await response.text()"); //"return await response.text();";
+                            returnExp = GetReturnExp("await response.text()");
                         }
                     }
                 }
                 else
                 {
                     json = true;
-                    if (routine.ReturnsUnnamedSet)
+                    if (returnsUnnamedSet)
                     {
                         responseName = "string[]";
                     }
@@ -201,9 +260,9 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         StringBuilder resp = new();
                         responseName = $"I{pascal}Response";
 
-                        for (var i = 0; i < routine.ColumnCount; i++)
+                        for (var i = 0; i < columnCount; i++)
                         {
-                            var descriptor = routine.ColumnsTypeDescriptor[i];
+                            var descriptor = columnsTypeDescriptor[i];
                             var type = GetTsType(descriptor, false);
 
                             resp.AppendLine($"    {endpoint.ColumnNames[i]}: {type} | null;");
@@ -222,12 +281,19 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                             interfaces.Append(resp);
                         }
                     }
-                    if (routine.ReturnsSet)
+                    if (returnsSet)
                     {
                         responseName = string.Concat(responseName, "[]");
                     }
-                    returnExp = GetReturnExp($"await response.json() as {responseName}"); //$"return await response.json() as {responseName};";
-                } 
+                    returnExp = GetReturnExp($"await response.json() as {responseName}"); 
+                }
+            }
+            else
+            {
+                if (options.IncludeStatusCode)
+                {
+                    returnExp = "return response.status;";
+                }
             }
 
             string NewLine(string? input, int ident) =>
@@ -247,7 +313,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     method: "{3}",{4}{5}
                 }});{6}
             """,
-                routine.IsVoid ? "" : "const response = ",
+                isVoid && options.IncludeStatusCode is false ? "" : "const response = ",
                 endpoint.Url,
                 qs,
                 endpoint.Method,
@@ -255,9 +321,19 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 NewLine(body, 2),
                 NewLine(returnExp, 1));
 
-            var resultType = options.IncludeStatusCode ?
-                string.Concat("{status: number, response: ", responseName, "}") :
-                responseName;
+            string resultType;
+            if (string.Equals(responseName, "void", StringComparison.OrdinalIgnoreCase))
+            {
+                resultType = options.IncludeStatusCode ?
+                    "number" :
+                    responseName;
+            }
+            else
+            {
+                resultType = options.IncludeStatusCode ?
+                    string.Concat("{status: number, response: ", responseName, "}") :
+                    responseName;
+            }
 
             content.AppendLine(string.Format(
                 """

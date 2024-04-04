@@ -5,7 +5,8 @@ namespace NpgsqlRest;
 public class NpgsqlRestAuthenticationOptions(
     string? defaultAuthenticationType = null,
     string? statusColumnName = "status",
-    string? schemaColumnName = "scheme",
+    string? schemaColumnName = "schema",
+    string? messageColumnName = "message",
     bool useActiveDirectoryFederationServicesClaimTypes = true,
     string defaultNameClaimType = ClaimTypes.Name,
     string defaultRoleClaimType = ClaimTypes.Role)
@@ -34,6 +35,11 @@ public class NpgsqlRestAuthenticationOptions(
     /// If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
     /// </summary>
     public string? SchemaColumnName { get; set; } = schemaColumnName;
+
+    /// <summary>
+    /// The default column name to in the data reader which will return a text message with the login status.
+    /// </summary>
+    public string? MessageColumnName { get; set; } = messageColumnName;
 
     /// <summary>
     /// Any columns retrieved from the reader during login, which don't have a name in `StatusColumnName` or `SchemeColumnName` will be used to create a new identity  `Claim`:

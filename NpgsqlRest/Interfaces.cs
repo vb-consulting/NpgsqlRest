@@ -1,4 +1,6 @@
-﻿namespace NpgsqlRest;
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace NpgsqlRest;
 
 public interface IEndpointCreateHandler
 {
@@ -103,4 +105,10 @@ public interface IRoutineSource
     /// <param name="options">Current options</param>
     /// <returns></returns>
     IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options);
+
+    /// <summary>
+    /// SQL Query that returns data source.
+    /// When it doesn't contain any blanks, it is interpreted as a function name.
+    /// </summary>
+    string Query { get; set; }
 }

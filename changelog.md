@@ -1,5 +1,18 @@
 # Changelog
 
+## Version [2.2.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.0) (2024-04-04)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.2.0...2.3.0)
+
+- Login Endpoints can return text messages.
+- A new option that supports this feature: `AuthenticationOptions.MessageColumnName`.
+- Login endpoints always return text.
+- Interface `IRoutineSource` exposes `string Query { get; set; }`. If the value doesn't contain blanks it is interpreted as the function name.
+- TsClient plugin new version  (1.2.0):
+  - New TsClweint option BySchema. If true, create a file by schema. The default is false.
+  - Fix handling login endpoints.
+  - Bugfixes.
+
 ## Version [2.2.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.2.0) (2024-04-02)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.1.0...2.2.0)

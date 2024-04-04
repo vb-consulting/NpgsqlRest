@@ -99,6 +99,7 @@ internal static class AuthHandler
 
         var authenticationType = options.AuthenticationOptions.DefaultAuthenticationType;
         string? scheme = null;
+        string? message = null;
         var claims = new List<Claim>(10);
 
         for (int i = 0; i < routine.ColumnCount; i++)
@@ -149,6 +150,16 @@ internal static class AuthHandler
                     string.Equals(name2, options.AuthenticationOptions.SchemaColumnName, StringComparison.OrdinalIgnoreCase))
                 {
                     scheme = reader?.GetValue(i).ToString();
+                    continue;
+                }
+            }
+
+            if (options.AuthenticationOptions.MessageColumnName is not null)
+            {
+                if (string.Equals(name1, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name2, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    message = reader?.GetValue(i).ToString();
                     continue;
                 }
             }
@@ -207,6 +218,10 @@ internal static class AuthHandler
             return;
         }
         await result.ExecuteAsync(context);
+        if (message is not null)
+        {
+            await context.Response.WriteAsync(message);
+        }
         await context.Response.CompleteAsync();
     }
 
@@ -221,7 +236,8 @@ internal static class AuthHandler
 
         List<string> schemes = new(5);
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync();
-        while(await reader.ReadAsync())
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        while (await reader.ReadAsync())
         {
             for(int i = 0;  i < reader?.FieldCount; i++) 
             {
@@ -253,6 +269,7 @@ internal static class AuthHandler
                 }
             }
         }
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
         await Results.SignOut(authenticationSchemes: schemes.Count == 0 ? null : schemes).ExecuteAsync(context);
         await context.Response.CompleteAsync();

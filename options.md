@@ -40,17 +40,27 @@ The default is the Active Directory Federation Services Claim Type Role property
 
 ### AuthenticationOptions.SchemaColumnName
 
-The default column name to in the data reader which will be used to read the value of the authentication scheme of the login process.
+The default column name in the data reader that will be used to read the value of the authentication scheme of the login process.
 
 If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
 
+The default is `"schema"`.
+
 ### AuthenticationOptions.StatusColumnName
 
-The default column name to in the data reader which will be used to read the value to determine the success or failure of the login operation.
+The default column name in the data reader that will be used to read the value to determine the success or failure of the login operation.
 
 - If this column is not present, the success is when the endpoint returns any records.
 - If this column is not present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
 - If this column is present and retrieves a numeric value, that value is assigned to the HTTP Status Code and the login will authenticate only when this value is 200.
+
+The default is `"status"`.
+
+### AuthenticationOptions.MessageColumnName
+
+The default column name in the data reader that will be used to retrieve a custom text message to the client. 
+
+The default is `"message"`.
 
 ### AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes
 

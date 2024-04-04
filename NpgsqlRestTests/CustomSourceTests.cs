@@ -53,6 +53,8 @@ public class QueryStringFormatter : IRoutineSourceParameterFormatter
 
 public class TestSource : IRoutineSource
 {
+    public string Query { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
         yield return (

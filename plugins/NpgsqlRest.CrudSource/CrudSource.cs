@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using NpgsqlTypes;
+using NpgsqlRest.Extensions;
 
 namespace NpgsqlRest.CrudSource;
 
@@ -84,7 +85,7 @@ public class CrudSource(
     //
     // Custom query instead of the default one. See default in CrudSourceQuery.cs
     //
-    public string Query { get; init; } = query ?? CrudSourceQuery.Query;
+    public string Query { get; set; } = query ?? CrudSourceQuery.Query;
     //
     // Type of CRUD queries and commands to create.
     //
@@ -209,6 +210,14 @@ public class CrudSource(
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
+        if (Query.Contains(' ') is false)
+        {
+            command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8)");
+        }
+        else
+        {
+            command.CommandText = Query;
+        }
         command.CommandText = Query;
         AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
         AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
@@ -223,23 +232,23 @@ public class CrudSource(
         using NpgsqlDataReader reader = command.ExecuteReader();
         while (reader.Read())
         {
-            var type = reader.Get<string>("type") switch
+            var type = reader.Get<string>(0) switch //"type") switch
             {
                 "BASE TABLE" => RoutineType.Table,
                 "VIEW" => RoutineType.View,
                 _ => RoutineType.Other
             };
-            var schema = reader.Get<string>("schema");
-            var name = reader.Get<string>("name");
-            var comment = reader.Get<string>("comment");
+            var schema = reader.Get<string>(1);// "schema");
+            var name = reader.Get<string>(2);//"name");
+            var comment = reader.Get<string>(11);//"comment");
 
-            var columnCount = reader.Get<int>("column_count");
-            var columnNames = reader.Get<string[]>("column_names");
-            var columnTypes = reader.Get<string[]>("column_types");
+            var columnCount = reader.Get<int>(4);//"column_count");
+            var columnNames = reader.Get<string[]>(5);//"column_names");
+            var columnTypes = reader.Get<string[]>(6);//"column_types");
 
-            var primaryKeys = new HashSet<string>(reader.Get<string[]>("primary_keys"));
-            var identityColumns = reader.Get<bool[]>("identity_columns");
-            
+            var primaryKeys = new HashSet<string>(reader.Get<string[]>(10));//"primary_keys"));
+            var identityColumns = reader.Get<bool[]>(8);//"identity_columns");
+
             var notPrimaryKeys = columnNames.Where(x => !primaryKeys.Contains(x)).ToArray();
             var descriptors = columnTypes
                 .Select((x, i) => 
@@ -249,9 +258,9 @@ public class CrudSource(
                         isIdentity: identityColumns[i]))
                 .ToArray();
             
-            var updatableColumns = reader.Get<bool[]>("updatable_columns");
+            var updatableColumns = reader.Get<bool[]>(7);//"updatable_columns");
             bool hasPks = primaryKeys.Count > 0;
-            var isInsertable = reader.Get<bool>("is_insertable");
+            var isInsertable = reader.Get<bool>(3);//"is_insertable");
             bool isUpdatable = updatableColumns.Any(x => x) && hasPks;
             bool doesUpdates = (Update || UpdateReturning) && isUpdatable;
             bool doesInserts = (Insert ||
@@ -432,7 +441,7 @@ public class CrudSource(
                 string.Join(", ", columnNames.Select(c => "?")));
             var insertSimple = string.Concat("insert into ", schema, ".", name);
 
-            var hasDefaults = reader.Get<bool[]>("has_defaults");
+            var hasDefaults = reader.Get<bool[]>(9);//"has_defaults");
             var insertTypeDescriptors = columnTypes
                 .Select((x, i) =>
                     new TypeDescriptor(x,
@@ -579,18 +588,5 @@ public class CrudSource(
                 Value = value
             });
         }
-    }
-}
-
-internal static class Extensions
-{
-    internal static T Get<T>(this NpgsqlDataReader reader, string name)
-    {
-        var value = reader[name];
-        if (value == DBNull.Value)
-        {
-            return default!;
-        }
-        return (T)value;
     }
 }

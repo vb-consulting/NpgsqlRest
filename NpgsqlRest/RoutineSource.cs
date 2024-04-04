@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Npgsql;
 using NpgsqlTypes;
+using NpgsqlRest.Extensions;
 
 namespace NpgsqlRest;
 
@@ -17,22 +18,30 @@ public class RoutineSource(
         CommentsMode? commentsMode = null) : IRoutineSource
 {
     private readonly IRoutineSourceParameterFormatter _formatter = new RoutineSourceParameterFormatter();
-    public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
-    public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
-    public string[]? IncludeSchemas { get; init; } = includeSchemas;
-    public string[]? ExcludeSchemas { get; init; } = excludeSchemas;
-    public string? NameSimilarTo { get; init; } = nameSimilarTo;
-    public string? NameNotSimilarTo { get; init; } = nameNotSimilarTo;
-    public string[]? IncludeNames { get; init; } = includeNames;
-    public string[]? ExcludeNames { get; init; } = excludeNames;
-    public string Query { get; init; } = query ?? RoutineSourceQuery.Query;
+    public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
+    public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
+    public string[]? IncludeSchemas { get; set; } = includeSchemas;
+    public string[]? ExcludeSchemas { get; set; } = excludeSchemas;
+    public string? NameSimilarTo { get; set; } = nameSimilarTo;
+    public string? NameNotSimilarTo { get; set; } = nameNotSimilarTo;
+    public string[]? IncludeNames { get; set; } = includeNames;
+    public string[]? ExcludeNames { get; set; } = excludeNames;
+    public string Query { get; set; } = query ?? RoutineSourceQuery.Query;
     public CommentsMode? CommentsMode { get; } = commentsMode;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
-        command.CommandText = Query;
+        if (Query.Contains(' ') is false)
+        {
+            command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8)");
+        }
+        else
+        {
+            command.CommandText = Query;
+        }
+        
         AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
         AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
         AddParameter(IncludeSchemas ?? options.IncludeSchemas, true); // $3
@@ -46,24 +55,25 @@ public class RoutineSource(
         using NpgsqlDataReader reader = command.ExecuteReader();
         while (reader.Read())
         {
-            var type = reader.Get<string>("type");
-            var paramTypes = reader.Get<string[]>("param_types");
-            var returnType = reader.Get<string>("return_type");
-            var name = reader.Get<string>("name");
+            var type = reader.Get<string>(0);//"type");
+            var paramTypes = reader.Get<string[]>(14);// "param_types");
+            var returnType = reader.Get<string>(7);// "return_type");
+            var name = reader.Get<string>(2);// "name");
 
-            var volatility = reader.Get<char>("volatility_option");
+            var volatility = reader.Get<char>(5);//"volatility_option");
+
             var hasGet =
                 name.Contains("_get_", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("get_", StringComparison.OrdinalIgnoreCase) ||
                 name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
             var crudType = hasGet ? CrudType.Select : (volatility == 'v' ? CrudType.Update : CrudType.Select);
 
-            var paramNames = reader.Get<string[]>("param_names");
+            var paramNames = reader.Get<string[]>(13);//"param_names");
             var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
-            var schema = reader.Get<string>("schema");
-            var returnsSet = reader.Get<bool>("returns_set");
+            var schema = reader.Get<string>(1);//"schema");
+            var returnsSet = reader.Get<bool>(6);//"returns_set");
 
-            var returnRecordTypes = reader.Get<string[]>("return_record_types");
+            var returnRecordTypes = reader.Get<string[]>(10);//"return_record_types");
             TypeDescriptor[] returnTypeDescriptor;
             if (isVoid)
             {
@@ -73,14 +83,14 @@ public class RoutineSource(
             {
                 returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
             }
-            var returnRecordNames = reader.Get<string[]>("return_record_names");
-            var paramDefaults = reader.Get<string?[]>("param_defaults");
-            bool isUnnamedRecord = reader.Get<bool>("is_unnamed_record");
+            var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
+            var paramDefaults = reader.Get<string?[]>(15);//"param_defaults");
+            bool isUnnamedRecord = reader.Get<bool>(11);// "is_unnamed_record");
             var routineType = type.GetEnum<RoutineType>();
             var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
-            var paramCount = reader.Get<int>("param_count");
-            var returnRecordCount = reader.Get<int>("return_record_count");
-            var variadic = reader.Get<bool>("has_variadic");
+            var paramCount = reader.Get<int>(12);// "param_count");
+            var returnRecordCount = reader.Get<int>(8);// "return_record_count");
+            var variadic = reader.Get<bool>(16);// "has_variadic");
             var expression = string.Concat(
                 (isVoid || returnRecordCount == 1)
                     ? callIdent
@@ -140,8 +150,8 @@ public class RoutineSource(
                     type: routineType,
                     schema: schema,
                     name: name,
-                    comment: reader.Get<string>("comment"),
-                    isStrict: reader.Get<bool>("is_strict"),
+                    comment: reader.Get<string>(3),//"comment"),
+                    isStrict: reader.Get<bool>(4),//"is_strict"),
                     crudType: crudType,
 
                     returnsRecordType: string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
@@ -159,7 +169,7 @@ public class RoutineSource(
                         .ToArray(),
 
                     expression: expression,
-                    fullDefinition: reader.Get<string>("definition"),
+                    fullDefinition: reader.Get<string>(17),//"definition"),
                     simpleDefinition: simpleDefinition.ToString(),
                     
                     tags: [routineType.ToString().ToLowerInvariant(), volatility switch
@@ -200,25 +210,5 @@ public class RoutineSource(
                 Value = value
             });
         }
-    }
-}
-
-internal static class Extensions
-{
-    internal static T Get<T>(this NpgsqlDataReader reader, string name)
-    {
-        var value = reader[name];
-        if (value == DBNull.Value)
-        {
-            return default!;
-        }
-        return (T)value;
-    }
-    
-    internal static T GetEnum<T>(this string? value) where T : struct
-    {
-        Enum.TryParse<T>(value, true, out var result);
-        // return the first enum (Other) when no match
-        return result;
     }
 }

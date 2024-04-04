@@ -19,12 +19,10 @@ public struct RoutineEndpoint(
     QueryStringNullHandling queryStringNullHandling,
     HashSet<string>? authorizeRoles = null,
     bool login = false,
-    bool logout = false,
-    string? signInAuthenticationScheme = null)
+    bool logout = false)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
-
     public string Url { get; set; } = url;
     public Method Method { get; set; } = method;
     public RequestParamType RequestParamType { get; set; } = requestParamType;

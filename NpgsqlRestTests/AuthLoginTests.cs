@@ -78,6 +78,21 @@ public static partial class Database
 
         comment on function custom_login4() is 'login';
         comment on function custom_login5() is 'login';
+
+        create function custom_login6() 
+        returns table (
+            name_identifier int,
+            name text,
+            message text
+        )
+        language sql as $$
+        select
+            123 as name_identifier,
+            'username' as name,
+            'some message' as message
+        $$;
+        comment on function custom_login6() is 'login';
+        
         """);
     }
 }
@@ -96,6 +111,8 @@ public class AuthLoginTests(TestFixture test)
 
         using var login = await client.PostAsync(requestUri: "/api/custom-login1/", null);
         login.StatusCode.Should().Be(HttpStatusCode.OK);
+        var loginContent = await login.Content.ReadAsStringAsync();
+        loginContent.Should().BeEmpty();
 
         using var response2 = await client.PostAsync("/api/custom-authorize1/", null);
         response2.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -181,5 +198,23 @@ public class AuthLoginTests(TestFixture test)
 
         using var response3 = await client.PostAsync("/api/custom-authorize1/", null);
         response3.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Test_custom_login6()
+    {
+        using var client = test.Application.CreateClient();
+        client.Timeout = TimeSpan.FromHours(1);
+
+        using var response1 = await client.PostAsync("/api/custom-authorize1/", null);
+        response1.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        using var login = await client.PostAsync(requestUri: "/api/custom-login6/", null);
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+        var loginContent = await login.Content.ReadAsStringAsync();
+        loginContent.Should().Be("some message");
+
+        using var response2 = await client.PostAsync("/api/custom-authorize1/", null);
+        response2.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
