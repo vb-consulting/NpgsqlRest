@@ -50,7 +50,8 @@ public static partial class Database
         $$;
         comment on function custom_login3() is 'login';
 
-        create function custom_logout() returns void language sql as ''; comment on function custom_logout() is 'logout';
+        create function custom_logout() returns void language sql as '';
+        comment on function custom_logout() is 'logout';
 
         create function custom_login4() 
         returns table (

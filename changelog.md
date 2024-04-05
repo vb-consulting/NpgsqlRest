@@ -1,6 +1,12 @@
 # Changelog
 
-## Version [2.2.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.0) (2024-04-04)
+## Version [2.3.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.1) (2024-04-05)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.3.0...2.3.1)
+
+* Fix the "Headers are read-only, response has already started." error during the logout execution.
+
+## Version [2.3.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.0) (2024-04-04)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.2.0...2.3.0)
 

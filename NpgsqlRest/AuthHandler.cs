@@ -232,6 +232,7 @@ internal static class AuthHandler
             await command.ExecuteNonQueryAsync();
             await Results.SignOut().ExecuteAsync(context);
             await context.Response.CompleteAsync();
+            return;
         }
 
         List<string> schemes = new(5);
