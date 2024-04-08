@@ -508,7 +508,7 @@ void SourcesCreated(List<IRoutineSource> sources)
         sources[0].IncludeNames = GetConfigEnumerable("IncludeNames", routineCfg)?.ToArray();
         sources[0].ExcludeNames = GetConfigEnumerable("ExcludeNames", routineCfg)?.ToArray();
         sources[0].Query = GetConfigStr("Query", routineCfg);
-        sources[0].CommentsMode = GetConfigEnum<CommentsMode>("CommentsMode", routineCfg);
+        sources[0].CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", routineCfg);
     }
 
     var crudSourceCfg = npgsqlRestCfg.GetSection("CrudSource");
@@ -527,7 +527,7 @@ void SourcesCreated(List<IRoutineSource> sources)
         IncludeNames = GetConfigEnumerable("IncludeNames", crudSourceCfg)?.ToArray(),
         ExcludeNames = GetConfigEnumerable("ExcludeNames", crudSourceCfg)?.ToArray(),
         Query = GetConfigStr("Query", crudSourceCfg),
-        CommentsMode = GetConfigEnum<CommentsMode>("CommentsMode", crudSourceCfg),
+        CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", crudSourceCfg),
         CrudTypes = GetConfigFlag<CrudCommandType>("CrudTypes", crudSourceCfg),
     });
 }

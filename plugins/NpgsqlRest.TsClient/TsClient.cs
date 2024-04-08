@@ -398,7 +398,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     var commentLine = line.Replace("'", "''").TrimEnd('\r');
                     if (index == 0)
                     {
-                        commentLine = string.Concat($"comment on function {routine.Schema}.{routine.Name} is '", comment);
+                        commentLine = string.Concat($"comment on function {routine.Schema}.{routine.Name} is '", commentLine);
                     }
                     else if (index == lines.Length - 1)
                     {
