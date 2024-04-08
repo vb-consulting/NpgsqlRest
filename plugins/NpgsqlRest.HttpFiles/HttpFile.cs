@@ -169,7 +169,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
         string FormatFileName()
         {
             var name = GetName();
-            var schema = httpFileOptions.FileMode != HttpFileMode.Schema ? "" : string.Concat("_", routine.Schema);
+            var schema = httpFileOptions.FileMode != HttpFileMode.Schema ? "" : routine.Schema;
             return string.Concat(string.Format(httpFileOptions.NamePattern, name, schema), ".http");
         }
     }
@@ -212,6 +212,11 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                 if (!httpFileOptions.FileOverwrite && File.Exists(fullFileName))
                 {
                     continue;
+                }
+                var dir = Path.GetDirectoryName(fullFileName);
+                if (dir is not null && Directory.Exists(dir) is false)
+                {
+                    Directory.CreateDirectory(dir);
                 }
                 File.WriteAllText(fullFileName, content.ToString());
                 _logger?.LogInformation("Created HTTP file: {0}", fullFileName);
@@ -502,6 +507,10 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                 {
                     host = section.Value.Split(";")?.LastOrDefault();
                 }
+            }
+            if (host is null && app.Configuration?["urls"] is not null)
+            {
+                host = app.Configuration?["urls"];
             }
         }
         // default, assumed host

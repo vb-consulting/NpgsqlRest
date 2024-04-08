@@ -423,10 +423,12 @@ public class TsClientOptions(
     bool fileOverwrite = false,
     bool includeHost = false,
     string? customHost = null,
-    CommentHeader commentHeader = CommentHeader.Simple)
+    CommentHeader commentHeader = CommentHeader.Simple,
+    bool includeStatusCode = false,
+    bool bySchema = false)
 {
     /// <summary>
-    /// File path for the generated code. Set to null to skip the code generation.
+    /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
     /// </summary>
     public string? FilePath { get; set; } = filePath;
     /// <summary>
@@ -452,6 +454,11 @@ public class TsClientOptions(
     /// Set to true to include status code in response: {status: response.status, response: model}
     /// </summary>
     public bool IncludeStatusCode { get; set; } = includeStatusCode;
+
+    /// <summary>
+    /// Create files by PostgreSQL schema. File name will use formatted FilePath where {0} is is the schema name in the pascal case.
+    /// </summary>
+    public bool BySchema { get; set; } = bySchema;
 }
 ```
 

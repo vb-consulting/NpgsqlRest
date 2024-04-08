@@ -1,5 +1,25 @@
 # Changelog
 
+## Version [2.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.0) (2024-04-08)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.3.1...2.4.0)
+
+- Remove `AotTemplate` subproject directory. AOT Template is now `NpgsqlRestTestWebApi` with full configuration for the entire application.
+- The auth handler doesn't complete the response if it doesn't have to on login and logout.
+- Changed wording `Schema` to `Scheme` everywhere because that appears to be standard with the auth (unlike with databases).
+- Changed `IRoutineSource` interface to:
+  -  Have `CommentsMode` mode fully exposed with getters and setters.
+  -  Have `Query` property exposed.
+  -  Every parameter for the query exposed (`SchemaSimilarTo`, `SchemaNotSimilarTo`, etc).
+- Replaced interfaces with concrete implementation for better performance.
+- Fixed bug with service scope disposal when using `ConnectionFromServiceProvider`.
+- Obfuscated auth parameters in logs (with `ObfuscateAuthParameterLogValues` option).
+- Implemented `SerializeAuthEndpointsResponse` to serialize the auth (log in or log out) when it's possible.
+- Fixed `ParameterValidationValues` to use `NpgsqlRestParameter` instead of `NpgsqlParameter` to expose the actual parameter name.
+- Added `IsAuth` read-only property to the endpoint.
+- Fixed automatic port detection in the code-gen plugins.
+- Added `CommentHeaderIncludeComments` to the `TsClient` plugin.
+
 ## Version [2.3.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.1) (2024-04-05)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.3.0...2.3.1)

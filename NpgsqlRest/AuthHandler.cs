@@ -86,14 +86,12 @@ internal static class AuthHandler
         if (await reader.ReadAsync() is false)
         {
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-            await context.Response.CompleteAsync();
             return;
         }
 
         if (reader.FieldCount == 0)
         {
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-            await context.Response.CompleteAsync();
             return;
         }
 
@@ -144,10 +142,10 @@ internal static class AuthHandler
                 }
             }
 
-            if (options.AuthenticationOptions.SchemaColumnName is not null)
+            if (options.AuthenticationOptions.SchemeColumnName is not null)
             {
-                if (string.Equals(name1, options.AuthenticationOptions.SchemaColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.SchemaColumnName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(name1, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name2, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
                 {
                     scheme = reader?.GetValue(i).ToString();
                     continue;
@@ -199,22 +197,16 @@ internal static class AuthHandler
             }
         }
 
-        var result = Results.SignIn(
-            principal:
-                new ClaimsPrincipal(
-                    new ClaimsIdentity(
-                        claims,
-                        scheme ?? authenticationType,
-                        nameType: options.AuthenticationOptions.DefaultNameClaimType,
-                        roleType: options.AuthenticationOptions.DefaultRoleClaimType)),
-            authenticationScheme: scheme
-        ) as SignInHttpResult;
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+            claims, scheme ?? authenticationType,
+            nameType: options.AuthenticationOptions.DefaultNameClaimType,
+            roleType: options.AuthenticationOptions.DefaultRoleClaimType));
+        var result = Results.SignIn(principal: principal, authenticationScheme: scheme) as SignInHttpResult;
 
         if (result is null) 
         {
             logger?.LogError("Failed in constructing user identity for authentication.");
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            await context.Response.CompleteAsync();
             return;
         }
         await result.ExecuteAsync(context);
@@ -222,7 +214,6 @@ internal static class AuthHandler
         {
             await context.Response.WriteAsync(message);
         }
-        await context.Response.CompleteAsync();
     }
 
     public static async Task HandleLogoutAsync(NpgsqlCommand command, Routine routine, HttpContext context)

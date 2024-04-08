@@ -5,11 +5,13 @@ namespace NpgsqlRest;
 public class NpgsqlRestAuthenticationOptions(
     string? defaultAuthenticationType = null,
     string? statusColumnName = "status",
-    string? schemaColumnName = "schema",
+    string? schemeColumnName = "scheme",
     string? messageColumnName = "message",
     bool useActiveDirectoryFederationServicesClaimTypes = true,
     string defaultNameClaimType = ClaimTypes.Name,
-    string defaultRoleClaimType = ClaimTypes.Role)
+    string defaultRoleClaimType = ClaimTypes.Role,
+    bool serializeAuthEndpointsResponse = false,
+    bool obfuscateAuthParameterLogValues = true)
 {
     /// <summary>
     /// Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
@@ -34,7 +36,7 @@ public class NpgsqlRestAuthenticationOptions(
     /// 
     /// If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
     /// </summary>
-    public string? SchemaColumnName { get; set; } = schemaColumnName;
+    public string? SchemeColumnName { get; set; } = schemeColumnName;
 
     /// <summary>
     /// The default column name to in the data reader which will return a text message with the login status.
@@ -66,4 +68,20 @@ public class NpgsqlRestAuthenticationOptions(
     /// Default is the Active Directory Federation Services Claim Type Role: http://schemas.microsoft.com/ws/2008/06/identity/claims/role
     /// </summary>
     public string DefaultRoleClaimType { get; set; } = defaultRoleClaimType;
+
+    /// <summary>
+    /// If true, return any response from auth endpoints (login and logout) if response hasn't been written by auth handler.
+    /// For cookie auth, this will return full record to response as returned by the routine.
+    /// For bearer token auth, this will be ignored because bearer token auth writes it's own response (with tokens).
+    /// This option will also be ignored if message column is present (see MessageColumnName option).
+    /// Default is false.
+    /// </summary>
+    public bool SerializeAuthEndpointsResponse { get; set; } = serializeAuthEndpointsResponse;
+
+    /// <summary>
+    /// Don't write real parameter values when logging parameters from auth endpoints and obfuscate instead.
+    /// This prevents user credentials including password to end up in application logs.
+    /// Default is true.
+    /// </summary>
+    public bool ObfuscateAuthParameterLogValues { get; set; } = obfuscateAuthParameterLogValues;
 }

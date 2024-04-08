@@ -113,6 +113,7 @@ public class AuthLoginTests(TestFixture test)
         using var login = await client.PostAsync(requestUri: "/api/custom-login1/", null);
         login.StatusCode.Should().Be(HttpStatusCode.OK);
         var loginContent = await login.Content.ReadAsStringAsync();
+        //loginContent.Should().Be("[{\"nameIdentifier\":123,\"name\":\"username\",\"role\":[\"role1\",\"role2\"]}]");
         loginContent.Should().BeEmpty();
 
         using var response2 = await client.PostAsync("/api/custom-authorize1/", null);

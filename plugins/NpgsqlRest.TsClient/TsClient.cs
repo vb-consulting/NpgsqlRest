@@ -61,7 +61,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             foreach (var group in endpoints.GroupBy(e => e.routine.Schema))
             {
                 var filename = string.Format(options.FilePath, ConvertToCamelCase(group.Key));
-                Run(group.ToArray(), filename);
+                Run([.. group], filename);
             }
         }
     }
@@ -125,6 +125,11 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             return;
         }
         interfaces.AppendLine(content.ToString());
+        var dir = Path.GetDirectoryName(fileName);
+        if (dir is not null && Directory.Exists(dir) is false)
+        {
+            Directory.CreateDirectory(dir);
+        }
         File.WriteAllText(fileName, interfaces.ToString());
         _logger?.LogInformation("Created Typescript file: {0}", fileName);
 
@@ -343,7 +348,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             export async function {1}({2}) : Promise<{3}> {{
             {4}
             """,
-                GetComment(routine, endpoint),
+                GetComment(routine),
                 camel,
                 requestName is null ? "" : string.Concat("request: ", requestName),
                 resultType,
@@ -353,7 +358,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         } // void Handle
     }
 
-    private string GetComment(Routine routine, RoutineEndpoint endpoint)
+    private string GetComment(Routine routine)
     {
         StringBuilder sb = new();
         if (options.CommentHeader != CommentHeader.None)
@@ -372,13 +377,40 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }
                 sb.AppendLine(string.Concat("* ", line.TrimEnd('\r')));
             }
-            sb.AppendLine("* ");
-            sb.AppendLine("* @remarks");
-            sb.AppendLine(string.Format("* {0} {1}", endpoint.Method, endpoint.Url));
+
+            //sb.AppendLine("* ");
+            //sb.AppendLine("* @remarks");
+            //sb.AppendLine(string.Format("* {0} {1}", endpoint.Method, endpoint.Url));
+            if (options.CommentHeaderIncludeComments is true && string.IsNullOrEmpty(routine.Comment?.Trim()) is false)
+            {
+                sb.AppendLine("* ");
+                sb.AppendLine("* @remarks");
+                var lines = routine
+                    .Comment
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .ToArray();
+                foreach (var (line, index) in lines.Select((l, i) => (l, i)))
+                {
+                    if (line == "\r" && index > 0)
+                    {
+                        continue;
+                    }
+                    var commentLine = line.Replace("'", "''").TrimEnd('\r');
+                    if (index == 0)
+                    {
+                        commentLine = string.Concat($"comment on function {routine.Schema}.{routine.Name} is '", comment);
+                    }
+                    else if (index == lines.Length - 1)
+                    {
+                        commentLine = string.Concat(commentLine, "';");
+                    }
+                    sb.AppendLine(string.Concat("* ", commentLine));
+                }
+            }
         }
         else
         {
-            sb.AppendLine(string.Format("* {0} {1}", endpoint.Method, endpoint.Url));
+            //sb.AppendLine(string.Format("* {0} {1}", endpoint.Method, endpoint.Url));
         }
         sb.AppendLine("* ");
         sb.Append(string.Format("* @see {0} {1}.{2}", routine.Type.ToString().ToUpperInvariant(), routine.Schema, routine.Name));
@@ -454,6 +486,10 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 if (section?.Value is not null)
                 {
                     host = section.Value.Split(";")?.LastOrDefault();
+                }
+                if (host is null && app.Configuration?["urls"] is not null)
+                {
+                    host = app.Configuration?["urls"];
                 }
             }
         }

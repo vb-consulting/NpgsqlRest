@@ -81,7 +81,7 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             JsonObject? jsonObj = null;
-            IDictionary<string, JsonNode?> bodyDict = default!;
+            Dictionary<string, JsonNode?> bodyDict = default!;
             string? body = null;
 
             var len = tupleArray.Length;
@@ -208,7 +208,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         else
                                         {
                                             StringValues bodyStringValues = body;
-                                            TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter, endpoint.QueryStringNullHandling);
+                                            _ = TryParseParameter(ref bodyStringValues, ref descriptor, ref parameter, endpoint.QueryStringNullHandling);
                                         }
                                     }
                                 }
@@ -488,9 +488,10 @@ public static class NpgsqlRestMiddlewareExtensions
                 NpgsqlConnection? connection = null;
                 try
                 {
+                    using IServiceScope? scope = options.ConnectionFromServiceProvider ? serviceProvider.CreateScope() : null;
+
                     if (options.ConnectionFromServiceProvider)
                     {
-                        using IServiceScope? scope = options.ConnectionFromServiceProvider ? serviceProvider.CreateScope() : null;
                         connection = scope?.ServiceProvider.GetRequiredService<NpgsqlConnection>();
                     }
                     else
@@ -597,7 +598,9 @@ public static class NpgsqlRestMiddlewareExtensions
                             if (shouldLog && options.LogCommandParameters)
                             {
                                 object value = parameter.NpgsqlValue!;
-                                var p = FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
+                                var p = options.AuthenticationOptions.ObfuscateAuthParameterLogValues && endpoint.IsAuth ?
+                                    "***" : 
+                                    FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
                                 cmdLog!.AppendLine(string.Concat(
                                     "-- $",
                                     (i + 1).ToString(),
@@ -638,7 +641,11 @@ public static class NpgsqlRestMiddlewareExtensions
                     if (endpoint.Login is true)
                     {
                         await AuthHandler.HandleLoginAsync(command, context, endpoint, routine, options, logger);
-                        return;
+                        if (context.Response.HasStarted is true || options.AuthenticationOptions.SerializeAuthEndpointsResponse is false)
+                        {
+                            await context.Response.CompleteAsync();
+                            return;
+                        }
                     }
 
                     if (endpoint.Logout is true)
@@ -684,7 +691,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                         context.Response.Headers.Append(headerKey, headerValue);
                                     }
                                 }
-                                context.Response.StatusCode = (int)HttpStatusCode.OK;
+
                                 if (descriptor.IsArray && value is not null)
                                 {
                                     value = PgConverters.PgArrayToJsonArray(ref value, ref descriptor);
@@ -733,7 +740,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     context.Response.Headers.Append(headerKey, headerValue);
                                 }
                             }
-                            context.Response.StatusCode = (int)HttpStatusCode.OK;
+
                             if (routine.ReturnsSet)
                             {
                                 await context.Response.WriteAsync("[");

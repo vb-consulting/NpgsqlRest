@@ -260,5 +260,5 @@ public class NpgsqlRestOptions(
     /// </summary>
     public NpgsqlRestAuthenticationOptions AuthenticationOptions { get; set; } = authenticationOptions ?? new();
 
-internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
+    internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

@@ -25,7 +25,7 @@ public readonly struct ParameterValidationValues(
     /// <summary>
     /// Parameter to be validated. Note: if parameter is using default value and value not provided, parameter.Value is null.
     /// </summary>
-    public readonly NpgsqlParameter Parameter = parameter;
+    public readonly NpgsqlRestParameter Parameter = parameter;
     /// <summary>
     /// Current parameter name (converted).
     /// </summary>

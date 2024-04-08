@@ -53,39 +53,39 @@ public class CrudSource(
     //
     // When not NULL, overrides the main option SchemaSimilarTo. It filters schemas similar to this or null to ignore this parameter.
     //
-    public string? SchemaSimilarTo { get; init; } = schemaSimilarTo;
+    public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
     //
     // When not NULL, overrides the main option SchemaNotSimilarTo. It filters schemas not similar to this or null to ignore this parameter.
     //
-    public string? SchemaNotSimilarTo { get; init; } = schemaNotSimilarTo;
+    public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
     //
     // When not NULL, overrides the main option IncludeSchemas. List of schema names to be included or null to ignore this parameter.
     //
-    public string[]? IncludeSchemas { get; init; } = includeSchemas;
+    public string[]? IncludeSchemas { get; set; } = includeSchemas;
     //
     // When not NULL, overrides the main option ExcludeSchemas. List of schema names to be excluded or null to ignore this parameter.
     //
-    public string[]? ExcludeSchemas { get; init; } = excludeSchemas;
+    public string[]? ExcludeSchemas { get; set; } = excludeSchemas;
     //
     // When not NULL, overrides the main option NameSimilarTo. It filters names similar to this or null to ignore this parameter.
     //
-    public string? NameSimilarTo { get; init; } = nameSimilarTo;
+    public string? NameSimilarTo { get; set; } = nameSimilarTo;
     //
     // When not NULL, overrides the main option NameNotSimilarTo. It filters names not similar to this or null to ignore this parameter.
     //
-    public string? NameNotSimilarTo { get; init; } = nameNotSimilarTo;
+    public string? NameNotSimilarTo { get; set; } = nameNotSimilarTo;
     //
     // 	When not NULL, overrides the main option IncludeNames. List of names to be included or null to ignore this parameter.
     //
-    public string[]? IncludeNames { get; init; } = includeNames;
+    public string[]? IncludeNames { get; set; } = includeNames;
     //
     // 	When not NULL, overrides the main option ExcludeNames. List of names to be excluded or null to ignore this parameter.
     //
-    public string[]? ExcludeNames { get; init; } = excludeNames;
+    public string[]? ExcludeNames { get; set; } = excludeNames;
     //
     // Custom query instead of the default one. See default in CrudSourceQuery.cs
     //
-    public string Query { get; set; } = query ?? CrudSourceQuery.Query;
+    public string? Query { get; set; } = query ?? CrudSourceQuery.Query;
     //
     // Type of CRUD queries and commands to create.
     //
@@ -210,6 +210,7 @@ public class CrudSource(
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
+        Query ??= CrudSourceQuery.Query;
         if (Query.Contains(' ') is false)
         {
             command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8)");

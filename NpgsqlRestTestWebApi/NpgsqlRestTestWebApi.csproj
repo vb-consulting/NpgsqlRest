@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>

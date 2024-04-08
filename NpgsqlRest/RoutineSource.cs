@@ -26,13 +26,14 @@ public class RoutineSource(
     public string? NameNotSimilarTo { get; set; } = nameNotSimilarTo;
     public string[]? IncludeNames { get; set; } = includeNames;
     public string[]? ExcludeNames { get; set; } = excludeNames;
-    public string Query { get; set; } = query ?? RoutineSourceQuery.Query;
-    public CommentsMode? CommentsMode { get; } = commentsMode;
+    public string? Query { get; set; } = query ?? RoutineSourceQuery.Query;
+    public CommentsMode? CommentsMode { get; set; } = commentsMode;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
+        Query ??= RoutineSourceQuery.Query;
         if (Query.Contains(' ') is false)
         {
             command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8)");

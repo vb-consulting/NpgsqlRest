@@ -60,10 +60,11 @@ public class Program
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
 
         var builder = WebApplication.CreateBuilder([]);
-        
+
         builder
             .Services
             .AddAuthentication()
+            //.AddBearerToken();
             .AddCookie();
 
         var app = builder.Build();

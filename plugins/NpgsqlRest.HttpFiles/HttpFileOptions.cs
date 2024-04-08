@@ -2,7 +2,7 @@
 
 public class HttpFileOptions(
     HttpFileOption option = HttpFileOption.Both,
-    string namePattern = "{0}{1}",
+    string namePattern = "{0}_{1}",
     CommentHeader commentHeader = CommentHeader.Simple,
     bool commentHeaderIncludeComments = true,
     HttpFileMode fileMode = HttpFileMode.Database,

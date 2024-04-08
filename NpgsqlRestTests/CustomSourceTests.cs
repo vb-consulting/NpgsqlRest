@@ -53,7 +53,16 @@ public class QueryStringFormatter : IRoutineSourceParameterFormatter
 
 public class TestSource : IRoutineSource
 {
-    public string Query { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string? Query { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string? SchemaSimilarTo { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string? SchemaNotSimilarTo { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string[]? IncludeSchemas { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string[]? ExcludeSchemas { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string? NameSimilarTo { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string? NameNotSimilarTo { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string[]? IncludeNames { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public string[]? ExcludeNames { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public CommentsMode? CommentsMode { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
