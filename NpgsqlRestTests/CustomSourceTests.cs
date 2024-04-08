@@ -62,7 +62,7 @@ public class TestSource : IRoutineSource
     public string? NameNotSimilarTo { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public string[]? IncludeNames { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public string[]? ExcludeNames { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public CommentsMode? CommentsMode { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public CommentsMode? CommentsMode { get => null; set => throw new NotImplementedException(); }
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
