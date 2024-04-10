@@ -323,25 +323,32 @@ void ConfigureStaticFiles()
     HashSet<string>? anonPathsHash = anonPaths is null ? null : new(GetConfigEnumerable("AnonymousPaths", staticFilesCfg) ?? []);
 
     app.UseDefaultFiles();
-    app.UseStaticFiles(new StaticFileOptions
+    if (anonPathsHash?.Contains("*") is true)
     {
-        OnPrepareResponse = ctx =>
+        app.UseStaticFiles();
+    }
+    else
+    {
+        app.UseStaticFiles(new StaticFileOptions
         {
-            if (anonPathsHash is not null && ctx?.Context?.User?.Identity?.IsAuthenticated is false)
+            OnPrepareResponse = ctx =>
             {
-                var path = ctx.Context.Request.Path.Value?[..^ctx.File.Name.Length] ?? "/";
-                if (anonPathsHash.Contains(path) is false)
+                if (anonPathsHash is not null && ctx?.Context?.User?.Identity?.IsAuthenticated is false)
                 {
-                    logger?.Information("Unauthorized access to {0}", path);
-                    ctx.Context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                    if (redirect is not null)
+                    var path = ctx.Context.Request.Path.Value?[..^ctx.File.Name.Length] ?? "/";
+                    if (anonPathsHash.Contains(path) is false)
                     {
-                        ctx.Context.Response.Redirect(redirect);
+                        logger?.Information("Unauthorized access to {0}", path);
+                        ctx.Context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                        if (redirect is not null)
+                        {
+                            ctx.Context.Response.Redirect(redirect);
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    }
     logger?.Information("Serving static files from {0}", app.Environment.WebRootPath);
 }
 
@@ -465,7 +472,7 @@ List<IEndpointCreateHandler> CreateCodeGenHandlers()
         }));
     }
     var tsClientCfg = npgsqlRestCfg.GetSection("TsClient");
-    if (tsClientCfg is not null && GetConfigBool("Enabled", httpFilecfg) is true)
+    if (tsClientCfg is not null && GetConfigBool("Enabled", tsClientCfg) is true)
     {
         handlers.Add(new TsClient(new TsClientOptions
         {

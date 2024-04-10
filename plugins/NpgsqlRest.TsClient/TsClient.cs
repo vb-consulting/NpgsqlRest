@@ -124,16 +124,38 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         {
             return;
         }
-        interfaces.AppendLine(content.ToString());
+
         var dir = Path.GetDirectoryName(fileName);
         if (dir is not null && Directory.Exists(dir) is false)
         {
             Directory.CreateDirectory(dir);
         }
-        File.WriteAllText(fileName, interfaces.ToString());
-        _logger?.LogInformation("Created Typescript file: {0}", fileName);
 
+        if (options.CreateSeparateTypeFile is false)
+        {
+            interfaces.AppendLine(content.ToString());
+            AddHeader(interfaces);
+            File.WriteAllText(fileName, interfaces.ToString());
+            _logger?.LogInformation("Created Typescript file: {0}", fileName);
+        }
+        else
+        {
+            var typeFile = fileName.Replace(".ts", "Types.d.ts");
+            AddHeader(interfaces);
+            File.WriteAllText(typeFile, interfaces.ToString());
+            _logger?.LogInformation("Created Typescript type file: {0}", typeFile);
+        }
         return;
+
+        void AddHeader(StringBuilder sb)
+        {
+            if (options.HeaderLines.Count == 0)
+            {
+                return;
+            }
+            var now = DateTime.Now.ToString("O");
+            sb.Insert(0, string.Join(Environment.NewLine, options.HeaderLines.Select(l => string.Format(l, now))));
+        }
 
         void Handle(Routine routine, RoutineEndpoint endpoint)
         {
