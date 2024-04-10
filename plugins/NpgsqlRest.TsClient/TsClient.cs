@@ -243,7 +243,16 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             {
                 if (options.IncludeStatusCode)
                 {
-                    return string.Concat("return {status: response.status, response: ", responseExp, "};");
+                    //return string.Concat("return {status: response.status, response: ", responseExp, "};");
+                    return string.Concat(
+                        "return {", 
+                        Environment.NewLine,
+                        "        status: response.status,",
+                        Environment.NewLine,
+                        "        response: ", 
+                        (responseExp == "await response.text()" ? responseExp : string.Concat("response.status == 200 ? ", responseExp, " : await response.text()")),
+                        Environment.NewLine,
+                        "    };");
                 }
                 return string.Concat("return ", responseExp, ";");
             }
@@ -362,7 +371,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             else
             {
                 resultType = options.IncludeStatusCode ?
-                    string.Concat("{status: number, response: ", responseName, "}") :
+                    string.Concat("{status: number, response: ", responseName, (responseName == "string" ? "" : " | string"), "}") :
                     responseName;
             }
 
