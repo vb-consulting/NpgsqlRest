@@ -483,6 +483,8 @@ List<IEndpointCreateHandler> CreateCodeGenHandlers()
             CommentHeader = GetConfigEnum<CommentHeader>("CommentHeader", tsClientCfg),
             CommentHeaderIncludeComments = GetConfigBool("CommentHeaderIncludeComments", tsClientCfg),
             BySchema = GetConfigBool("BySchema", tsClientCfg),
+            IncludeStatusCode = GetConfigBool("IncludeStatusCode", tsClientCfg),
+            CreateSeparateTypeFile = GetConfigBool("CreateSeparateTypeFile", tsClientCfg),
         }));
     }
 

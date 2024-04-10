@@ -144,6 +144,10 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             AddHeader(interfaces);
             File.WriteAllText(typeFile, interfaces.ToString());
             _logger?.LogInformation("Created Typescript type file: {0}", typeFile);
+
+            AddHeader(content);
+            File.WriteAllText(fileName, content.ToString());
+            _logger?.LogInformation("Created Typescript file: {0}", fileName);
         }
         return;
 
