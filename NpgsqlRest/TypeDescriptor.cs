@@ -75,6 +75,7 @@ public readonly struct TypeDescriptor
             BaseDbType == NpgsqlDbType.JsonPath;
 
         NeedsEscape = BaseDbType == NpgsqlDbType.Xml ||
+            BaseDbType == NpgsqlDbType.Text ||
             BaseDbType == NpgsqlDbType.Varchar ||
             BaseDbType == NpgsqlDbType.Char ||
             BaseDbType == NpgsqlDbType.Name ||

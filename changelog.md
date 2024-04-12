@@ -1,5 +1,11 @@
 # Changelog
 
+## Version [2.4.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.0) (2024-04-12)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.0...2.4.1)
+
+- Fix missing Text type for types in need for JSON escaping.
+
 ## Version [2.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.0) (2024-04-08)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.3.1...2.4.0)

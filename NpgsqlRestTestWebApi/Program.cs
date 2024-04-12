@@ -209,6 +209,15 @@ void BuildAuthentication()
             auth.AddCookie(cookieScheme, options =>
             {
                 options.ExpireTimeSpan = TimeSpan.FromDays(days);
+                var name = GetConfigStr("CookieName", authCfg);
+                if (string.IsNullOrEmpty(name) is false)
+                {
+                    options.Cookie.Name = GetConfigStr("CookieName", authCfg);
+                }
+                options.Cookie.Path = GetConfigStr("CookiePath", authCfg);
+                options.Cookie.Domain = GetConfigStr("CookieDomain", authCfg);
+                options.Cookie.MaxAge = GetConfigBool("CookieMultiSessions", authCfg) is true ? TimeSpan.FromDays(days) : null;
+                options.Cookie.HttpOnly = GetConfigBool("CookieHttpOnly", authCfg) is true;
             });
             logger?.Information("Using Cookie Authentication with scheme {0}. Cookie expires in {1} days.", cookieScheme, days);
         }

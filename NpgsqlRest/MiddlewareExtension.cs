@@ -767,6 +767,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     object value = reader.GetValue(i);
                                     // AllResultTypesAreUnknown = true always returns string, except for null
                                     string raw = value == DBNull.Value ? "" : (string)value;
+
                                     if (routine.ReturnsUnnamedSet == false)
                                     {
                                         if (i == 0)
