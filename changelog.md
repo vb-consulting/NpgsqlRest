@@ -1,6 +1,12 @@
 # Changelog
 
-## Version [2.4.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.0) (2024-04-12)
+## Version [2.4.2](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.2) (2024-04-14)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.1...2.4.2)
+
+- Fix double logging same message on connection notice.
+
+## Version [2.4.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.1) (2024-04-12)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.0...2.4.1)
 
