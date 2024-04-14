@@ -217,7 +217,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 {
                     var descriptor = paramTypeDescriptors[i];
                     var nameSuffix = descriptor.HasDefault ? "?" : "";
-                    var type = GetTsType(descriptor, true);
+                    var type = GetTsType(descriptor, false);
 
                     req.AppendLine($"    {endpoint.ParamNames[i]}{nameSuffix}: {type} | null;");
                 }
