@@ -195,6 +195,9 @@ internal static class Logger
         {
             LogError(ref logger, where, args.Notice.MessageText);
         }
-        LogTrace(ref logger, where, args.Notice.MessageText);
+        else
+        {
+            LogTrace(ref logger, where, args.Notice.MessageText);
+        }
     }
 }
