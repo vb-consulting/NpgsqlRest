@@ -79,28 +79,32 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         if (endpoints.Where(e => e.endpoint.RequestParamType == RequestParamType.QueryString).Any())
         {
-            content.AppendLine(string.Format(
-            """
-            const _baseUrl = "{0}";
+            content.AppendLine(
+                options.ImportBaseUrlFrom is not null ? 
+                    string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) : 
+                    string.Format("const baseUrl = \"{0}\";", GetHost()));
 
-            const _parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
-                .map(key => {{
-                    const value = query[key] ? query[key] : "";
-                    if (Array.isArray(value)) {{
-                        return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
-                    }}
-                    return `${{key}}=${{encodeURIComponent(value)}}`;
-                }})
-                .join("&");
-            """, GetHost())
-            );
+            content.AppendLine(options.ImportParseQueryFrom is not null ? 
+                string.Format(
+                "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
+                """
+                const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
+                    .map(key => {{
+                        const value = query[key] ? query[key] : "";
+                        if (Array.isArray(value)) {{
+                            return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
+                        }}
+                        return `${{key}}=${{encodeURIComponent(value)}}`;
+                    }})
+                    .join("&");
+                """);
         }
         else
         {
-            content.AppendLine(string.Format(
-      """
-            const _baseUrl = "{0}";
-            """, GetHost()));
+            content.AppendLine(
+                options.ImportBaseUrlFrom is not null ?
+                    string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) :
+                    string.Format("const baseUrl = \"{0}\";", GetHost()));
         }
 
         foreach (var (routine, endpoint) in endpoints
@@ -293,7 +297,14 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     json = true;
                     if (returnsUnnamedSet)
                     {
-                        responseName = "string[]";
+                        if (columnCount > 0)
+                        {
+                            responseName = GetTsType(columnsTypeDescriptor[0], false);
+                        }
+                        else
+                        {
+                            responseName = "string[]";
+                        }
                     }
                     else
                     {
@@ -345,11 +356,11 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             var body = endpoint.RequestParamType == RequestParamType.BodyJson && requestName is not null ?
                 @"body: JSON.stringify(request)" : null;
 
-            var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ? " + _parseQuery(request)" : "";
+            var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ? " + parseQuery(request)" : "";
 
             var funcBody = string.Format(
                 """
-                {0}await fetch(_baseUrl + "{1}"{2}, {{
+                {0}await fetch(baseUrl + "{1}"{2}, {{
                     method: "{3}",{4}{5}
                 }});{6}
             """,
@@ -467,6 +478,10 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         else if (descriptor.IsBoolean)
         {
             type = "boolean";
+        }
+        else if (descriptor.IsJson)
+        {
+            type = "{ [key: string]: any }";
         }
 
         if (descriptor.IsArray)

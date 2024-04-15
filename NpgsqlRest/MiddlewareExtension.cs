@@ -750,6 +750,8 @@ public static class NpgsqlRestMiddlewareExtensions
 
                             StringBuilder row = new();
                             ulong rowCount = 0;
+
+                            var bufferRows = endpoint.BufferRows ?? options.BufferRows;
                             while (await reader.ReadAsync())
                             {
                                 rowCount++;
@@ -848,7 +850,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                 } // end for
 
-                                if (options.BufferRows != 1 && rowCount % options.BufferRows == 0)
+                                if (bufferRows != 1 && rowCount % bufferRows == 0)
                                 {
                                     await context.Response.WriteAsync(row.ToString());
                                     row.Clear();

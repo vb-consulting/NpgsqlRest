@@ -90,6 +90,12 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Endpoints are using Login and the DefaultAuthenticationType is null. DefaultAuthenticationType was set to {name}")]
     public static partial void SetDefaultAuthenticationType(this ILogger logger, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set BUFFER ROWS by the comment annotation to {parsedBuffer} seconds")]
+    public static partial void CommentBufferRows(this ILogger logger, RoutineType type, string schema, string name, string parsedBuffer);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid buffer rows '{buffer}' in comment for routine '{schema}.{name}'. Using the default buffer rows '{defaultBufferRows}'")]
+    public static partial void InvalidBufferRows(this ILogger logger, string buffer, string schema, string name, ulong defaultBufferRows);
 }
 
 internal static class Logger

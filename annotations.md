@@ -1,5 +1,16 @@
 # Annotations Guide
 
+## BufferRows
+
+```console
+bufferrows number
+buffer_rows number
+buffer-rows number
+buffer number
+```
+
+Sets the buffered amount of rows before they are written to the response for this endpoint.
+
 ## Tags
 
 ```console

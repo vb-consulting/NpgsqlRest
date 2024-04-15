@@ -108,6 +108,13 @@ internal static class DefaultCommentParser
         "signout",
     ];
 
+    private static readonly string[] bufferRowsKey = [
+        "bufferrows",
+        "buffer_rows",
+        "buffer-rows",
+        "buffer"
+    ];
+
     public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -495,6 +502,29 @@ internal static class DefaultCommentParser
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentSetLogout(routine.Type, routine.Schema, routine.Name);
+                    }
+                }
+
+                // bufferrows number
+                // buffer_rows number
+                // buffer-rows number
+                // buffer number
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(ref words[0], bufferRowsKey))
+                {
+                    if (ulong.TryParse(words[1], out var parsedBuffer))
+                    {
+                        if (routineEndpoint.BufferRows != parsedBuffer)
+                        {
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentBufferRows(routine.Type, routine.Schema, routine.Name, words[1]);
+                            }
+                        }
+                        routineEndpoint.BufferRows = parsedBuffer;
+                    }
+                    else
+                    {
+                        logger?.InvalidBufferRows(words[1], routine.Schema, routine.Name, options.BufferRows);
                     }
                 }
 

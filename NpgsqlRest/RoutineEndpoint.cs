@@ -19,7 +19,8 @@ public struct RoutineEndpoint(
     QueryStringNullHandling queryStringNullHandling,
     HashSet<string>? authorizeRoles = null,
     bool login = false,
-    bool logout = false)
+    bool logout = false,
+    ulong? bufferRows = null)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
@@ -41,4 +42,5 @@ public struct RoutineEndpoint(
     public bool Login { get; set; } = login;
     public bool Logout { get; set; } = logout;
     public bool IsAuth => Login || Logout;
+    public ulong? BufferRows { get; set; } = bufferRows;
 }

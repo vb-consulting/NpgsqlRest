@@ -1,16 +1,49 @@
 # Changelog
 
+## Version [2.5.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.5.0) (2024-04-15)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.2...2.5.0)
+
+- New endpoint parameter option `BufferRows`.
+
+Now it's possible to set the number of buffered rows that are returned before they are written to HTTP response on an endpoint level.
+
+It is also possible to set this endpoint parameter as a comment annotation:
+
+```sql
+comment on function my_streaming_function() is 'HTTP GET
+bufferrows 1';
+```
+
+See the full comment [annotation list here](https://github.com/vb-consulting/NpgsqlRest/blob/master/annotations.md).
+
+Setting this parameter to 1 is useful in the HTTP streaming scenarios.
+
+- New TsClient plugin options and fixes
+
+```cs
+/// <summary>
+/// Module name to import "baseUrl" constant, instead of defining it in a module.
+/// </summary>
+public string? ImportBaseUrlFrom { get; set; } = importBaseUrlFrom;
+
+/// <summary>
+/// Module name to import "pasreQuery" function, instead of defining it in a module.
+/// </summary>
+public string? ImportParseQueryFrom { get; set; } = importParseQueryFrom;
+```
+
 ## Version [2.4.2](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.2) (2024-04-14)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.1...2.4.2)
 
-- Fix double logging same message on connection notice.
+- Fix double logging the same message on the connection notice.
 
 ## Version [2.4.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.1) (2024-04-12)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.0...2.4.1)
 
-- Fix missing Text type for types in need for JSON escaping.
+- Fix missing Text type for types in need of JSON escaping.
 
 ## Version [2.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.0) (2024-04-08)
 
