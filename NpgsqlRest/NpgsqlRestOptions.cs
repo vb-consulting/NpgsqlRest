@@ -44,7 +44,9 @@ public class NpgsqlRestOptions(
     TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
     QueryStringNullHandling queryStringNullHandling = QueryStringNullHandling.Ignore,
     ulong bufferRows = 25,
-    NpgsqlRestAuthenticationOptions? authenticationOptions = null)
+    NpgsqlRestAuthenticationOptions? authenticationOptions = null,
+    bool returnNpgsqlExceptionMessage = true,
+    Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null)
 {
 
     /// <summary>
@@ -259,6 +261,20 @@ public class NpgsqlRestOptions(
     /// Default Authentication Options
     /// </summary>
     public NpgsqlRestAuthenticationOptions AuthenticationOptions { get; set; } = authenticationOptions ?? new();
+
+    /// <summary>
+    /// Set to true to return message from NpgsqlException on response body. Default is true.
+    /// </summary>
+    public bool ReturnNpgsqlExceptionMessage { get; set; } = returnNpgsqlExceptionMessage;
+
+    /// <summary>
+    /// Map PostgreSql Error Codes (see https://www.postgresql.org/docs/current/errcodes-appendix.html) to HTTP Status Codes
+    /// Default is 57014 query_canceled to 205 Reset Content.
+    /// </summary>
+    public Dictionary<string, int> PostgreSqlErrorCodeToHttpStatusCodeMapping { get; set; } = postgreSqlErrorCodeToHttpStatusCodeMapping ?? new()
+    {
+        { "57014", 205 }, //query_canceled -> 205 Reset Content
+    };
 
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

@@ -13,6 +13,7 @@ using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
 using NpgsqlRest.CrudSource;
+using System.Collections.Generic;
 
 if (args.Any(a => a == "-v" || a == "--version"))
 {
@@ -75,6 +76,8 @@ app.UseNpgsqlRest(new()
 
     EndpointCreated = CreateEndpointCreatedHandler(),
     ValidateParameters = CreateValidateParametersHandler(),
+    ReturnNpgsqlExceptionMessage = GetConfigBool("ReturnNpgsqlExceptionMessage", npgsqlRestCfg, true),
+    PostgreSqlErrorCodeToHttpStatusCodeMapping = CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
 
     AuthenticationOptions = new()
     {
@@ -460,6 +463,20 @@ Action<ParameterValidationValues>? CreateValidateParametersHandler()
             p.Parameter.Value = p.Context.User.Claims.Where(c => c.Type == ClaimTypes.Role)?.Select(r => r.Value).ToArray() as object ?? DBNull.Value;
         }
     };
+}
+
+Dictionary<string, int> CreatePostgreSqlErrorCodeToHttpStatusCodeMapping()
+{
+    var config = npgsqlRestCfg.GetSection("PostgreSqlErrorCodeToHttpStatusCodeMapping");
+    var result = new Dictionary<string, int>();
+    foreach(var section in config.GetChildren())
+    {
+        if (int.TryParse(section.Value, out var value))
+        {
+            result.TryAdd(section.Key, value);
+        }
+    }
+    return result;
 }
 
 List<IEndpointCreateHandler> CreateCodeGenHandlers()

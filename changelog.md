@@ -1,5 +1,23 @@
 # Changelog
 
+## Version [2.6.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.6.0) (2024-04-16)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.5.0...2.6.0)
+
+Improved error handling. Two new options are available:
+
+### `ReturnNpgsqlExceptionMessage`:
+
+- Set to true to return message property on exception from the `NpgsqlException` object on response body. The default is true. 
+
+- Set to false to return empty body on exception.
+
+### `PostgreSqlErrorCodeToHttpStatusCodeMapping`
+
+Dictionary setting that maps the PostgreSQL Error Codes (see the [errcodes-appendix](https://www.postgresql.org/docs/current/errcodes-appendix.html) to HTTP Status Codes. 
+
+Default is `{ "57014", 205 }` which maps PostgreSQL `query_canceled` error to HTTP `205 Reset Content`. If the mapping doesn't exist, the standard HTTP  `500 Internal Server Error` is returned.
+
 ## Version [2.5.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.5.0) (2024-04-15)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.2...2.5.0)

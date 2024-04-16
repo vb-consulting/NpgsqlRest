@@ -486,6 +486,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
 
                 NpgsqlConnection? connection = null;
+                string? commandText = null;
                 try
                 {
                     using IServiceScope? scope = options.ConnectionFromServiceProvider ? serviceProvider.CreateScope() : null;
@@ -531,7 +532,6 @@ public static class NpgsqlRestMiddlewareExtensions
                         null;
 
                     int paramCount = paramsList.Count;
-                    string? commandText;
                     if (formatter.RefContext)
                     {
                         commandText = formatter.IsFormattable ?
@@ -871,6 +871,27 @@ public static class NpgsqlRestMiddlewareExtensions
                             return;
                         } // end if (routine.ReturnsRecord == true)
                     } // end if (routine.IsVoid is false)
+                }
+                catch(NpgsqlException exception)
+                {
+                    if (options.PostgreSqlErrorCodeToHttpStatusCodeMapping.TryGetValue(exception.SqlState ?? "", out var code))
+                    {
+                        context.Response.StatusCode = code;
+                    }
+                    if (options.ReturnNpgsqlExceptionMessage && context.Response.HasStarted is false)
+                    {
+                        await context.Response.WriteAsync(exception.Message);
+                    }
+                    if (context.Response.StatusCode != 200 || context.Response.HasStarted)
+                    {
+                        if (context.Response.StatusCode == 200)
+                        {
+                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        }
+                        logger?.LogError(exception, "Error executing command: {0} mapped to endpoint: {1}", commandText, endpoint.Url);
+                        await context.Response.CompleteAsync();
+                        return;
+                    }
                 }
                 finally
                 {
