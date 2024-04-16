@@ -1,5 +1,9 @@
 # Changelog
 
+## Version [2.6.1]
+
+Don't write response body on status 205, which is forbidden.
+
 ## Version [2.6.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.6.0) (2024-04-16)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.5.0...2.6.0)

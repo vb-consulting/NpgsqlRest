@@ -880,14 +880,17 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     if (options.ReturnNpgsqlExceptionMessage && context.Response.HasStarted is false)
                     {
-                        await context.Response.WriteAsync(exception.Message);
-                    }
-                    if (context.Response.StatusCode != 200 || context.Response.HasStarted)
-                    {
                         if (context.Response.StatusCode == 200)
                         {
                             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                         }
+                        if (context.Response.StatusCode != 205) // 205 forbids writing
+                        {
+                            await context.Response.WriteAsync(exception.Message);
+                        }
+                    }
+                    if (context.Response.StatusCode != 200 || context.Response.HasStarted)
+                    {
                         logger?.LogError(exception, "Error executing command: {0} mapped to endpoint: {1}", commandText, endpoint.Url);
                         await context.Response.CompleteAsync();
                         return;
