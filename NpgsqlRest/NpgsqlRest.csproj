@@ -28,10 +28,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.MD</PackageReadmeFile>
     <DocumentationFile>bin\$(Configuration)\$(AssemblyName).xml</DocumentationFile>
-    <Version>2.6.1</Version>
-    <AssemblyVersion>2.6.1</AssemblyVersion>
-    <FileVersion>2.6.1</FileVersion>
-    <PackageVersion>2.6.1</PackageVersion>
+    <Version>2.7.0</Version>
+    <AssemblyVersion>2.7.0</AssemblyVersion>
+    <FileVersion>2.7.0</FileVersion>
+    <PackageVersion>2.7.0</PackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">

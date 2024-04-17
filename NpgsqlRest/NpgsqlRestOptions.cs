@@ -46,7 +46,8 @@ public class NpgsqlRestOptions(
     ulong bufferRows = 25,
     NpgsqlRestAuthenticationOptions? authenticationOptions = null,
     bool returnNpgsqlExceptionMessage = true,
-    Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null)
+    Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
+    Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null)
 {
 
     /// <summary>
@@ -139,7 +140,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// When set to true, it will force all created endpoints to require authorization. Authorization requirements for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
     /// </summary>
-    public bool RequiresAuthorization { get; set;  } = requiresAuthorization;
+    public bool RequiresAuthorization { get; set; } = requiresAuthorization;
 
     /// <summary>
     /// Set this option to provide a custom logger implementation. The default `null` value will cause middleware to create a default logger named `NpgsqlRest` from the logger factory in the service collection.
@@ -234,7 +235,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Action callback executed after routine sources are created and before they are processed into endpoints. Receives a parameter with the list of `IRoutineSource` instances. This list will always contain a single item - functions and procedures source. Use this callback to modify the routine source list and add new sources from plugins.
     /// </summary>
-    public Action<List<IRoutineSource>> SourcesCreated { get; set; } = sourcesCreated ?? (s => {});
+    public Action<List<IRoutineSource>> SourcesCreated { get; set; } = sourcesCreated ?? (s => { });
 
     /// <summary>
     /// Sets the default behavior of plain text responses when the execution returns the `NULL` value from the database. `EmptyString` (default) returns an empty string response with status code 200 OK. `NullLiteral` returns a string literal `NULL` with the status code 200 OK. `NoContent` returns status code 204 NO CONTENT. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
@@ -275,6 +276,11 @@ public class NpgsqlRestOptions(
     {
         { "57014", 205 }, //query_canceled -> 205 Reset Content
     };
+
+    /// <summary>
+    /// Callback executed immediately before connection is opened. Use this callback to adjust connection settings such as application name.
+    /// </summary>
+    public Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen { get; set; } = beforeConnectionOpen;
 
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

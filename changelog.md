@@ -1,8 +1,36 @@
 # Changelog
 
-## Version [2.6.1]
+## Version [2.7.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.7.0) (2024-04-17)
 
-Don't write response body on status 205, which is forbidden.
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.6.0...2.6.1)
+
+New callback option: `Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen`.
+
+This is used to set the application name parameter (for example) without having to use the service provider. It executes before the new connection is open for the request. For example:
+
+```cs
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    BeforeConnectionOpen = (NpgsqlConnection connection, Routine routine, RoutineEndpoint endpoint, HttpContext context) =>
+    {
+        var username = context.User.Identity?.Name;
+        connection.ConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            ApplicationName = string.Concat(
+                    "{\"app\":\"",
+                    builder.Environment.ApplicationName,
+                    username is null ? "\",\"user\":null}" : string.Concat("\",\"user\":\"", username, "\"}"))
+        }.ConnectionString;
+    }
+}
+```
+
+## Version [2.6.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.6.1) (2024-04-16)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.6.0...2.6.1)
+
+Don't write the response body on status 205, which is forbidden.
 
 ## Version [2.6.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.6.0) (2024-04-16)
 

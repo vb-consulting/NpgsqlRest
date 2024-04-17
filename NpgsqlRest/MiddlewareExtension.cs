@@ -30,7 +30,7 @@ public static class NpgsqlRestMiddlewareExtensions
         {
             throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
         }
-        
+
         ILogger? logger = null;
         if (options.Logger is not null)
         {
@@ -264,13 +264,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                     setCount++;
                                 }
                             }
-                            
+
                             if (hasNulls is false && parameter?.Value == DBNull.Value)
                             {
                                 hasNulls = true;
                             }
                         }
-                        
+
                         if (setCount != routine.ParamCount)
                         {
                             continue;
@@ -515,6 +515,10 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     if (connection.State != ConnectionState.Open)
                     {
+                        if (options.BeforeConnectionOpen is not null)
+                        {
+                            options.BeforeConnectionOpen(connection, routine, endpoint, context);
+                        }
                         await connection.OpenAsync();
                     }
 
@@ -599,7 +603,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 object value = parameter.NpgsqlValue!;
                                 var p = options.AuthenticationOptions.ObfuscateAuthParameterLogValues && endpoint.IsAuth ?
-                                    "***" : 
+                                    "***" :
                                     FormatParam(ref value, ref routine.ParamTypeDescriptor[i]);
                                 cmdLog!.AppendLine(string.Concat(
                                     "-- $",
@@ -664,7 +668,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     else // end if (routine.IsVoid)
                     {
                         command.AllResultTypesAreUnknown = true;
-                        
+
                         await using var reader = await command.ExecuteReaderAsync();
                         if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
                         {
@@ -872,7 +876,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         } // end if (routine.ReturnsRecord == true)
                     } // end if (routine.IsVoid is false)
                 }
-                catch(NpgsqlException exception)
+                catch (NpgsqlException exception)
                 {
                     if (options.PostgreSqlErrorCodeToHttpStatusCodeMapping.TryGetValue(exception.SqlState ?? "", out var code))
                     {
@@ -1001,12 +1005,12 @@ public static class NpgsqlRestMiddlewareExtensions
                 List<Tuple> list = dict.TryGetValue(key, out var value) ? value : [];
                 list.Add((routine, endpoint, formatter));
                 dict[key] = list;
-            
+
                 foreach (var handler in options.EndpointCreateHandlers)
                 {
                     handler.Handle(routine, endpoint);
                 }
-            
+
                 if (options.LogEndpointCreatedInfo)
                 {
                     logger?.EndpointCreated(method, endpoint.Url);

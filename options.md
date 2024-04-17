@@ -618,14 +618,45 @@ Sets the default behavior on how to pass the `NULL` values with query strings:
 
 This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
 
-### `ReturnNpgsqlExceptionMessage`:
+### ReturnNpgsqlExceptionMessage
+
+- Type: `bool`
+- Default: `true`
 
 - Set to true to return message property on exception from the `NpgsqlException` object on response body. The default is true. 
 
-- Set to false to return empty body on exception.
+### PostgreSqlErrorCodeToHttpStatusCodeMapping
 
-### `PostgreSqlErrorCodeToHttpStatusCodeMapping`
+- Type: `Dictionary<string, int>`
+- Default: `{ { "57014", 205 } }`
 
 Dictionary setting that maps the PostgreSQL Error Codes (see the [errcodes-appendix](https://www.postgresql.org/docs/current/errcodes-appendix.html) to HTTP Status Codes. 
 
 Default is `{ "57014", 205 }` which maps PostgreSQL `query_canceled` error to HTTP `205 Reset Content`. If the mapping doesn't exist, the standard HTTP  `500 Internal Server Error` is returned.
+
+### BeforeConnectionOpen
+
+- Type: `Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>?`
+- Default: `null`
+
+Callback option: `Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen`.
+
+This is used to set the application name parameter (for example) without having to use the service provider. It executes before the new connection is open for the request. For example:
+
+```cs
+app.UseNpgsqlRest(new()
+{
+    ConnectionString = connectionString,
+    BeforeConnectionOpen = (NpgsqlConnection connection, Routine routine, RoutineEndpoint endpoint, HttpContext context) =>
+    {
+        var username = context.User.Identity?.Name;
+        connection.ConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            ApplicationName = string.Concat(
+                    "{\"app\":\"",
+                    builder.Environment.ApplicationName,
+                    username is null ? "\",\"user\":null}" : string.Concat("\",\"user\":\"", username, "\"}"))
+        }.ConnectionString;
+    }
+}
+```

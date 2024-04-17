@@ -13,11 +13,13 @@ using NpgsqlRest.Defaults;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
 using NpgsqlRest.CrudSource;
-using System.Collections.Generic;
 
 if (args.Any(a => a == "-v" || a == "--version"))
 {
-    Console.WriteLine("Version: {0}", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine("Build:                {0}", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString());
+    Console.WriteLine("Npgsql:               {0}", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine("NpgsqlRest.HttpFiles: {0}", System.Reflection.Assembly.GetAssembly(typeof(HttpFileOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine("NpgsqlRest.TsClient:  {0}", System.Reflection.Assembly.GetAssembly(typeof(TsClientOptions))?.GetName()?.Version?.ToString());
     return;
 }
 
@@ -36,7 +38,6 @@ var npgsqlRestCfg = config.GetSection("NpgsqlRest");
 var authCfg = npgsqlRestCfg.GetSection("AuthenticationOptions");
 
 var connectionString = GetConnectionString();
-bool useConnectionApplicationNameWithUsername = EnrichConnectionWithUsername();
 var app = builder.Build();
 
 ConfigureApp();
@@ -46,7 +47,7 @@ List<IEndpointCreateHandler> handlers = CreateCodeGenHandlers();
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
-    ConnectionFromServiceProvider = useConnectionApplicationNameWithUsername,
+    ConnectionFromServiceProvider = false,
 
     SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", npgsqlRestCfg),
     SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", npgsqlRestCfg),
@@ -78,6 +79,7 @@ app.UseNpgsqlRest(new()
     ValidateParameters = CreateValidateParametersHandler(),
     ReturnNpgsqlExceptionMessage = GetConfigBool("ReturnNpgsqlExceptionMessage", npgsqlRestCfg, true),
     PostgreSqlErrorCodeToHttpStatusCodeMapping = CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
+    BeforeConnectionOpen = BeforeConnectionOpen(),
 
     AuthenticationOptions = new()
     {
@@ -393,27 +395,24 @@ string? GetConnectionString()
     return connectionString;
 }
 
-bool EnrichConnectionWithUsername()
+Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen()
 {
     var useConnectionApplicationNameWithUsername = GetConfigBool("UseConnectionApplicationNameWithUsername", npgsqlRestCfg) is true;
-    if (useConnectionApplicationNameWithUsername)
+    if (useConnectionApplicationNameWithUsername is false)
     {
-        builder.Services.AddHttpContextAccessor();
-        builder.Services.AddScoped(serviceProvider =>
+        return null;
+    }
+    return (NpgsqlConnection connection, Routine routine, RoutineEndpoint endpoint, HttpContext context) =>
+    {
+        var username = context.User.Identity?.Name;
+        connection.ConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
         {
-            var context = serviceProvider.GetRequiredService<IHttpContextAccessor>();
-            var username = context.HttpContext?.User?.Identity?.Name;
-            return new NpgsqlConnection(new NpgsqlConnectionStringBuilder(connectionString)
-            {
-                ApplicationName = string.Concat(
+            ApplicationName = string.Concat(
                     "{\"app\":\"",
                     builder.Environment.ApplicationName,
                     username is null ? "\",\"user\":null}" : string.Concat("\",\"user\":\"", username, "\"}"))
-            }.ConnectionString);
-        });
-    }
-
-    return useConnectionApplicationNameWithUsername;
+        }.ConnectionString;
+    };
 }
 
 Func<Routine, RoutineEndpoint, RoutineEndpoint?>? CreateEndpointCreatedHandler()
@@ -469,7 +468,7 @@ Dictionary<string, int> CreatePostgreSqlErrorCodeToHttpStatusCodeMapping()
 {
     var config = npgsqlRestCfg.GetSection("PostgreSqlErrorCodeToHttpStatusCodeMapping");
     var result = new Dictionary<string, int>();
-    foreach(var section in config.GetChildren())
+    foreach (var section in config.GetChildren())
     {
         if (int.TryParse(section.Value, out var value))
         {
