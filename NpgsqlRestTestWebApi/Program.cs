@@ -512,6 +512,8 @@ List<IEndpointCreateHandler> CreateCodeGenHandlers()
             CreateSeparateTypeFile = GetConfigBool("CreateSeparateTypeFile", tsClientCfg),
             ImportBaseUrlFrom = GetConfigStr("ImportBaseUrlFrom", tsClientCfg),
             ImportParseQueryFrom = GetConfigStr("ImportParseQueryFrom", tsClientCfg),
+            IncludeParseUrlParam = GetConfigBool("IncludeParseUrlParam", tsClientCfg),
+            IncludeParseRequestParam = GetConfigBool("IncludeParseRequestParam", tsClientCfg),
         }));
     }
 

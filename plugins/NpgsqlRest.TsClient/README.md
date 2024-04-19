@@ -420,6 +420,8 @@ export async function getLatestCustomer() : Promise<ICustomersGetResponse> {
 See the [`TsClientOptions.cs` source file](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient/TsClientOptions.cs).
 
 ```csharp
+namespace NpgsqlRest.TsClient;
+
 public class TsClientOptions(
     string filePath = default!,
     bool fileOverwrite = false,
@@ -431,7 +433,9 @@ public class TsClientOptions(
     bool bySchema = false,
     bool createSeparateTypeFile = true,
     string? importBaseUrlFrom = null,
-    string? importParseQueryFrom = null)
+    string? importParseQueryFrom = null,
+    bool includeParseUrlParam = false,
+    bool includeParseRequestParam = false)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -495,6 +499,16 @@ public class TsClientOptions(
     /// Module name to import "pasreQuery" function, instead of defining it in a module.
     /// </summary>
     public string? ImportParseQueryFrom { get; set; } = importParseQueryFrom;
+
+    /// <summary>
+    /// Include optional parameter `parseUrl: (url: string) => string = url=>url` that will parse constructed url.
+    /// </summary>
+    public bool IncludeParseUrlParam { get; set; } = includeParseUrlParam;
+
+    /// <summary>
+    /// Include optional parameter `parseRequest: (request: RequestInit) => RequestInit = request=>request` that will parse constructed request.
+    /// </summary>
+    public bool IncludeParseRequestParam { get; set; } = includeParseRequestParam;
 }
 ```
 

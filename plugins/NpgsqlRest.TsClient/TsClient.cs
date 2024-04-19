@@ -358,18 +358,53 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
             var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ? " + parseQuery(request)" : "";
 
+            string parameters = "";
+            if (options.IncludeParseUrlParam is false && options.IncludeParseRequestParam is false)
+            {
+                parameters = requestName is null ? "" : string.Concat("request: ", requestName);
+            }
+            else
+            {
+                parameters = string.Concat(parameters, Environment.NewLine);
+                if (requestName is not null) 
+                {
+                    parameters = string.Concat(parameters, "    request: ", requestName);
+                }
+                if (options.IncludeParseUrlParam is true)
+                {
+                    if (requestName is not null)
+                    {
+                        parameters = string.Concat(parameters, ",", Environment.NewLine);
+                    }
+                    parameters = string.Concat(parameters, "    parseUrl: (url: string) => string = url=>url");
+                }
+                if (options.IncludeParseRequestParam is true)
+                {
+                    if (requestName is not null || options.IncludeParseUrlParam is true)
+                    {
+                        parameters = string.Concat(parameters, ",", Environment.NewLine);
+                    }
+                    parameters = string.Concat(parameters, "    parseRequest: (request: RequestInit) => RequestInit = request=>request");
+                }
+                parameters = string.Concat(parameters, Environment.NewLine);
+            }
+
             var funcBody = string.Format(
                 """
-                {0}await fetch(baseUrl + "{1}"{2}, {{
+                {0}await fetch({1}, {2}{{
                     method: "{3}",{4}{5}
-                }});{6}
+                }}{6});{7}
             """,
                 isVoid && options.IncludeStatusCode is false ? "" : "const response = ",
-                endpoint.Url,
-                qs,
+
+                options.IncludeParseUrlParam is true ? 
+                    string.Format("parseUrl(baseUrl + \"{0}\"{1})", endpoint.Url, qs) : 
+                    string.Format("baseUrl + \"{0}\"{1}", endpoint.Url, qs),
+                options.IncludeParseRequestParam ? "parseRequest(" : "",
                 endpoint.Method,
                 NewLine(headers, 2),
                 NewLine(body, 2),
+                options.IncludeParseRequestParam ? ")" : "",
                 NewLine(returnExp, 1));
 
             string resultType;
@@ -396,7 +431,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             """,
                 GetComment(routine),
                 camel,
-                requestName is null ? "" : string.Concat("request: ", requestName),
+                parameters,
                 resultType,
                 funcBody));
             content.AppendLine("}");
