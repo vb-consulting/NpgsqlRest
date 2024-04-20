@@ -14,12 +14,27 @@ using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
 using NpgsqlRest.CrudSource;
 
-if (args.Any(a => a == "-v" || a == "--version"))
+if (args.Any(a => a == "-v" || a == "--version" || a == "-h" || a == "--help"))
 {
-    Console.WriteLine("Build:                {0}", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString());
-    Console.WriteLine("Npgsql:               {0}", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString());
-    Console.WriteLine("NpgsqlRest.HttpFiles: {0}", System.Reflection.Assembly.GetAssembly(typeof(HttpFileOptions))?.GetName()?.Version?.ToString());
-    Console.WriteLine("NpgsqlRest.TsClient:  {0}", System.Reflection.Assembly.GetAssembly(typeof(TsClientOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine("Usages");
+    Console.WriteLine("1: npgsqlrest-[os]");
+    Console.WriteLine("2: npgsqlrest-[os] [path to one or more configuration file(s)]");
+    Console.WriteLine("3: npgsqlrest-[os] [-v | --version | -h | --help]");
+    Console.WriteLine();
+
+    Console.WriteLine("Where");
+    Console.WriteLine("npgsqlrest-[os]  is executable for the specific OS (like npgsqlrest-win64 or npgsqlrest-linux64)");
+    Console.WriteLine("1:               run executable with default configuration files: appsettings.json (required) and appsettings.Development.json (optional).");
+    Console.WriteLine("2:               run executable with optional configuration files from argument list.");
+    Console.WriteLine("3:               show this screen.");
+
+    Console.WriteLine();
+    Console.WriteLine("Versions");
+    Console.WriteLine("Build                {0}", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString());
+    Console.WriteLine("Npgsql               {0}", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine("NpgsqlRest.HttpFiles {0}", System.Reflection.Assembly.GetAssembly(typeof(HttpFileOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine("NpgsqlRest.TsClient  {0}", System.Reflection.Assembly.GetAssembly(typeof(TsClientOptions))?.GetName()?.Version?.ToString());
+    Console.WriteLine();
     return;
 }
 
@@ -381,13 +396,16 @@ string? GetConnectionString()
     }
     if (connectionString is null)
     {
-        logger?.Fatal("Connection string could not be initialized.");
+        logger?.Fatal("Connection string could not be initialized!");
         return null;
     }
-    var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString)
+
+    var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+    if (GetConfigBool("SetApplicationNameInConnection", npgsqlRestCfg) is true)
     {
-        ApplicationName = builder.Environment.ApplicationName
-    };
+        connectionStringBuilder.ApplicationName = builder.Environment.ApplicationName;
+    }
+
     connectionString = connectionStringBuilder.ConnectionString;
     connectionStringBuilder.Remove("password");
     logger?.Information(messageTemplate: "Using connection: {0}", connectionStringBuilder.ConnectionString);
@@ -397,20 +415,22 @@ string? GetConnectionString()
 
 Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen()
 {
-    var useConnectionApplicationNameWithUsername = GetConfigBool("UseConnectionApplicationNameWithUsername", npgsqlRestCfg) is true;
+    var useConnectionApplicationNameWithUsername = GetConfigBool("UseJsonApplicationName", npgsqlRestCfg);
     if (useConnectionApplicationNameWithUsername is false)
     {
         return null;
     }
+
     return (NpgsqlConnection connection, Routine routine, RoutineEndpoint endpoint, HttpContext context) =>
     {
-        var username = context.User.Identity?.Name;
+        var uid = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var executionId = context.Request.Headers["X-Execution-Id"].FirstOrDefault();
         connection.ConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
         {
-            ApplicationName = string.Concat(
-                    "{\"app\":\"",
-                    builder.Environment.ApplicationName,
-                    username is null ? "\",\"user\":null}" : string.Concat("\",\"user\":\"", username, "\"}"))
+            ApplicationName = string.Concat("{\"app\":\"", builder.Environment.ApplicationName,
+                    "\",\"uid\":", uid is null ? "null" : string.Concat("\"", uid, "\""),
+                    ",\"id\":", executionId is null ? "null" : string.Concat("\"", executionId, "\""),
+                    "}")
         }.ConnectionString;
     };
 }
