@@ -112,13 +112,14 @@ static IConfigurationRoot BuildConfiguration(string[] args)
 {
     var configBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
     IConfigurationRoot config;
+
     if (args.Length > 0)
     {
         foreach (var arg in args)
         {
             if (arg.StartsWith('-') is false)
             {
-                configBuilder.AddJsonFile(arg, optional: false);
+                configBuilder.AddJsonFile(Path.GetFullPath(arg, Environment.CurrentDirectory), optional: false);
             }
         }
         config = configBuilder.Build();

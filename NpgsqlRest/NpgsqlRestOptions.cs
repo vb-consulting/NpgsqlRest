@@ -158,7 +158,7 @@ public class NpgsqlRestOptions(
     public bool LogEndpointCreatedInfo { get; set; } = logEndpointCreatedInfo;
 
     /// <summary>
-    /// When this value is true, all created endpoint events will be logged as information with method and path. Set to false to disable logging this information.
+    /// When this value is true, all changes in the endpoint properties that are set from the comment annotations will be logged as warnings.
     /// </summary>
     public bool LogAnnotationSetInfo { get; set; } = logAnnotationSetInfo;
 
