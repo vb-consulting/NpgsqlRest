@@ -14,7 +14,7 @@ The `npgsqlrest` is an NPM distribution of AOT (ahead-of-time) native client bui
 - The source code for this build can be found on this location: [NpgsqlRestTestWebApi](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestTestWebApi).
 - Executable files are distributed from the [release download page for the latest version](https://github.com/vb-consulting/NpgsqlRest/releases).
 - NPM post-install script will download the appropriate build for the target OS (Windows-64v or Linux-64, sorry Mac bros) and the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestTestWebApi/appsettings.json).
-- Executable will be available through NPX interface after install:
+- Executable will be available through the NPX interface after installation:
 
 ```console
 vbilopav@DESKTOP-O3A6QK2:~/npgsqlrest-npm-test$ npx npgsqlrest --help
