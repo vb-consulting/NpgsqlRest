@@ -5,8 +5,6 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRest", "NpgsqlRest\NpgsqlRest.csproj", "{65089EC7-0F4D-479F-8327-31121E2348CB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRestTestWebApi", "NpgsqlRestTestWebApi\NpgsqlRestTestWebApi.csproj", "{85E01073-FB42-4149-A171-55B0ACD1F06D}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRestTests", "NpgsqlRestTests\NpgsqlRestTests.csproj", "{2C5E44A6-D7B5-43E7-A2B7-DBD5E49292DA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{35679C8A-E260-4E62-8A5C-702999F671B6}"
@@ -31,6 +29,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRest.CrudSource", "pl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRest.TsClient", "plugins\NpgsqlRest.TsClient\NpgsqlRest.TsClient.csproj", "{88607FEC-9FED-45D7-B629-92BBDBC682C7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpgsqlRestClient", "NpgsqlRestClient\NpgsqlRestClient.csproj", "{C47CABBE-0CF1-4A22-AF8D-720DCDF991D0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{D48B45A5-E086-4A0F-9E3B-F977EC551B9B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,10 +43,6 @@ Global
 		{65089EC7-0F4D-479F-8327-31121E2348CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65089EC7-0F4D-479F-8327-31121E2348CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65089EC7-0F4D-479F-8327-31121E2348CB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{85E01073-FB42-4149-A171-55B0ACD1F06D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{85E01073-FB42-4149-A171-55B0ACD1F06D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{85E01073-FB42-4149-A171-55B0ACD1F06D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{85E01073-FB42-4149-A171-55B0ACD1F06D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2C5E44A6-D7B5-43E7-A2B7-DBD5E49292DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2C5E44A6-D7B5-43E7-A2B7-DBD5E49292DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C5E44A6-D7B5-43E7-A2B7-DBD5E49292DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -65,11 +63,17 @@ Global
 		{88607FEC-9FED-45D7-B629-92BBDBC682C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88607FEC-9FED-45D7-B629-92BBDBC682C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88607FEC-9FED-45D7-B629-92BBDBC682C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C47CABBE-0CF1-4A22-AF8D-720DCDF991D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C47CABBE-0CF1-4A22-AF8D-720DCDF991D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C47CABBE-0CF1-4A22-AF8D-720DCDF991D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C47CABBE-0CF1-4A22-AF8D-720DCDF991D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{2C5E44A6-D7B5-43E7-A2B7-DBD5E49292DA} = {D48B45A5-E086-4A0F-9E3B-F977EC551B9B}
+		{2D8EAE94-E992-4CA0-BB86-91738ABB429B} = {D48B45A5-E086-4A0F-9E3B-F977EC551B9B}
 		{9D0D7807-9633-49A7-81D6-F2DD722DCC04} = {168D4570-4DD0-4E85-83E4-889B7495370A}
 		{94DF762B-9C25-4E27-95C6-DED177A2FDB0} = {168D4570-4DD0-4E85-83E4-889B7495370A}
 		{88607FEC-9FED-45D7-B629-92BBDBC682C7} = {168D4570-4DD0-4E85-83E4-889B7495370A}

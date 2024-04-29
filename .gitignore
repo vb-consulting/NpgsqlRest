@@ -395,7 +395,9 @@ FodyWeavers.xsd
 *.msp
 
 *.sln.iml
-/source/NpgsqlRestTestWebApi/appsettings.Development.json
 
 .idea/
 build/
+_wwwroot/
+src/
+appsettings.Development.json

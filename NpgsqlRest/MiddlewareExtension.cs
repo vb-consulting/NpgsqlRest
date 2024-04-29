@@ -19,6 +19,7 @@ using Tuple = (
     NpgsqlRest.RoutineEndpoint endpoint,
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRest;
 
