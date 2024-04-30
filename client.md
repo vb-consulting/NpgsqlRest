@@ -43,6 +43,19 @@ Notes: `win-x64` is the designated target OS for the build. Adjust this paramete
 
 The Mac OS builds are missing because I don't have a Mac machine. If someone could help me out with this I'd be grateful.
 
+## Features
+
+- Create an Automatic REST API for the PostgreSQL Databases.
+- Generate TypeScript Code and HTTP files for testing.
+- Configure security for use the of either encrypted cookies or JWT Bearer tokens or both.
+- Expose REST API endpoints for the PostgreSQL Databases as Login/Logout.
+- Use external authentication providers such as Google, LinkedIn or GitHub.
+- Server static content.
+- Use and configure built-in Serilog structured logging.
+- Configure Cross-origin resource sharing (CORS) access, SSL, Server Certificates and more, everything needed for modern Web development.
+
+See the [default configuration file](https://vb-consulting.github.io/npgsqlrest/config/) with descriptions for more information.
+
 ## Usage
 
 ```console
