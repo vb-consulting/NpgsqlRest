@@ -86,7 +86,7 @@ NpgsqlRestOptions options = new()
     SourcesCreated = SourcesCreated
 };
 
-NpgsqlRestClient.ExternalAuth.Builder.Configure(app, options);
+ExternalAuthBuilder.Configure(app, options);
 
 app.UseNpgsqlRest(options);
 app.Run();

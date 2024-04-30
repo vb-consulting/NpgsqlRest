@@ -24,8 +24,14 @@ public static class Arguments
                 ("npgsqlrest [files...]", "Run with the custom configuration files. All configuration files are required."),
                 ("npgsqlrest [file1 -o file2...]", "Use the -o switch to mark the next configuration file as optional. The first file after the -o switch is optional."),
                 ("npgsqlrest [file1 --optional file2...]", "Use --optional switch to mark the next configuration file as optional. The first file after the --optional switch is optional."),
+                (" ", " "),
                 ("npgsqlrest -v, --version", "Show version information."),
                 ("npgsqlrest -h, --help", "Show command line help."),
+                (" ", " "),
+                ("Note:", "Values in the later file will override the values in the previous one."),
+                (" ", " "),
+                ("Example:", "npgsqlrest appsettings.json appsettings.Development.json"),
+                ("Example:", "npgsqlrest appsettings.json -o appsettings.Development.json"),
                 ]);
         }
 

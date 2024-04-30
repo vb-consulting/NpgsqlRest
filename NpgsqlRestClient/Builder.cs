@@ -176,7 +176,7 @@ public static class Builder
 
             if (cookieAuth || bearerTokenAuth)
             {
-                ExternalAuth.Config.Build(authCfg);
+                ExternalAuthConfig.Build(authCfg);
             }
         }
     }

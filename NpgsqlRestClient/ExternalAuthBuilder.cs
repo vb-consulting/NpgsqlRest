@@ -9,24 +9,99 @@ using System.Security.Claims;
 using Serilog.Events;
 
 using static System.Net.Mime.MediaTypeNames;
+using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRest.Auth.ClaimsDictionary;
 
-namespace NpgsqlRestClient.ExternalAuth;
+namespace NpgsqlRestClient;
 
-public static class Builder
+public class ExternalAuthClientConfig
+{
+    public string ClientId { get; init; } = default!;
+    public string ClientSecret { get; init; } = default!;
+    public string AuthUrl { get; init; } = default!;
+    public string TokenUrl { get; init; } = default!;
+    public string InfoUrl { get; init; } = default!;
+    public string? EmailUrl { get; init; }
+    public string SigninUrl { get; init; } = default!;
+    public string ExternalType { get; init; } = default!;
+}
+
+public static class ExternalAuthConfig
+{
+    public static string BrowserSessionStatusKey { get; private set; } = default!;
+    public static string BrowserSessionMessageKey { get; private set; } = default!;
+    public static string SignInHtmlTemplate { get; private set; } = default!;
+    public static string? RedirectUrl { get; private set; } = null;
+    public static string ReturnToPath { get; private set; } = default!;
+    public static string ReturnToPathQueryStringKey { get; private set; } = default!;
+    public static string LoginCommand { get; private set; } = default!;
+    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = new();
+
+    public static void Build(IConfigurationSection authConfig)
+    {
+        var externalCfg = authConfig.GetSection("External");
+        if (externalCfg.Exists() is false || GetConfigBool("Enabled", externalCfg) is false)
+        {
+            return;
+        }
+
+        foreach (var section in externalCfg.GetChildren())
+        {
+            if (section.GetChildren().Any() is false)
+            {
+                continue;
+            }
+            var signinUrlTemplate = GetConfigStr("SigninUrl", externalCfg) ?? "/signin-{0}";
+
+            if (GetConfigBool("Enabled", section) is false)
+            {
+                continue;
+            }
+            var signinUrl = string.Format(signinUrlTemplate, section.Key.ToLowerInvariant());
+            ClientConfigs.Add(signinUrl, new()
+            {
+                ClientId = GetConfigStr("ClientId", section) ?? throw new ArgumentException($"ClientId can not be null. Auth config section: {section.Key}"),
+                ClientSecret = GetConfigStr("ClientSecret", section) ?? throw new ArgumentException($"ClientSecret can not be null. Auth config section: {section.Key}"),
+                AuthUrl = GetConfigStr("AuthUrl", section) ?? throw new ArgumentException($"AuthUrl can not be null. Auth config section: {section.Key}"),
+                TokenUrl = GetConfigStr("TokenUrl", section) ?? throw new ArgumentException($"TokenUrl can not be null. Auth config section: {section.Key}"),
+                InfoUrl = GetConfigStr("InfoUrl", section) ?? throw new ArgumentException($"InfoUrl can not be null. Auth config section: {section.Key}"),
+                EmailUrl = GetConfigStr("EmailUrl", section),
+                SigninUrl = signinUrl,
+                ExternalType = section.Key
+            });
+            Logger?.Information("External login available for {0} available on path: {1}", section.Key, signinUrl);
+        }
+
+        if (ClientConfigs.Count == 0)
+        {
+            return;
+        }
+
+        BrowserSessionStatusKey = GetConfigStr("BrowserSessionStatusKey", externalCfg) ?? "__external_status";
+        BrowserSessionMessageKey = GetConfigStr("BrowserSessionMessageKey", externalCfg) ?? "__external_message";
+
+        SignInHtmlTemplate = GetConfigStr("SignInHtmlTemplate", externalCfg) ?? "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Talking To {0}</title></head><body>Loading...{1}</body></html>";
+        RedirectUrl = GetConfigStr("RedirectUrl", externalCfg);
+        ReturnToPath = GetConfigStr("ReturnToPath", externalCfg) ?? "/";
+        ReturnToPathQueryStringKey = GetConfigStr("ReturnToPathQueryStringKey", externalCfg) ?? "return_to";
+        LoginCommand = GetConfigStr("LoginCommand", externalCfg) ?? "select * from auth.login($1, $2)";
+    }
+}
+
+public static class ExternalAuthBuilder
 {
     public static void Configure(WebApplication app, NpgsqlRestOptions options)
     {
-        if (Config.ClientConfigs.Count == 0)
+        if (ExternalAuthConfig.ClientConfigs.Count == 0)
         {
             return;
         }
 
         app.Use(async (context, next) =>
         {
-            var config = Config.ClientConfigs[context.Request.Path];
-            if (config is null) 
+            var config = ExternalAuthConfig.ClientConfigs[context.Request.Path];
+            if (config is null)
             {
                 await next(context);
                 return;
@@ -47,9 +122,9 @@ public static class Builder
                 try
                 {
                     var body = await reader.ReadToEndAsync();
-                    JsonNode node = JsonNode.Parse(body) ?? 
+                    JsonNode node = JsonNode.Parse(body) ??
                         throw new ArgumentException("json node is null");
-                    string code = (node["code"]?.ToString()) ?? 
+                    string code = (node["code"]?.ToString()) ??
                         throw new ArgumentException("code retrieved from the external provider is null");
 
                     await ProcessAsync(code, config, context, options);
@@ -84,7 +159,7 @@ public static class Builder
     private const string browserSessionStateKey = "__external_state";
     private const string browserSessionParamsKey = "__external_params";
 
-    private static async Task ProcessAsync(string code, ClientConfig config, HttpContext context, NpgsqlRestOptions options)
+    private static async Task ProcessAsync(string code, ExternalAuthClientConfig config, HttpContext context, NpgsqlRestOptions options)
     {
         string? email;
         string? name;
@@ -194,7 +269,7 @@ public static class Builder
         using var connection = new NpgsqlConnection(options.ConnectionString);
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = Config.LoginCommand;
+        command.CommandText = ExternalAuthConfig.LoginCommand;
         command.Parameters.Add(new NpgsqlParameter()
         {
             Value = email,
@@ -245,7 +320,7 @@ public static class Builder
                     }
                     else
                     {
-                        await CompleteWithErrorAsync("External login command returns a status field that is not either boolean or numeric.", 
+                        await CompleteWithErrorAsync("External login command returns a status field that is not either boolean or numeric.",
                             HttpStatusCode.InternalServerError, LogEventLevel.Error);
                         return;
                     }
@@ -342,33 +417,33 @@ public static class Builder
         }
     }
 
-    private static string BuildHtmlTemplate(ClientConfig config, HttpRequest request)
+    private static string BuildHtmlTemplate(ExternalAuthClientConfig config, HttpRequest request)
     {
         string redirectUrl = GetRedirectUrl(config, request);
         var state = Guid.NewGuid().ToString();
         var redirectTo = "/";
         var authUrl = string.Format(config.AuthUrl, config.ClientId, redirectUrl, state);
-        return string.Format(Config.SignInHtmlTemplate,
+        return string.Format(ExternalAuthConfig.SignInHtmlTemplate,
             config.ExternalType,
             string.Format(_jsTemplate,
                 browserSessionStateKey,//0
                 state,//1
                 browserSessionParamsKey,//2
-                Config.BrowserSessionStatusKey,//3
-                Config.BrowserSessionMessageKey,//4
+                ExternalAuthConfig.BrowserSessionStatusKey,//3
+                ExternalAuthConfig.BrowserSessionMessageKey,//4
                 redirectTo,//5
                 authUrl,//6
                 config.SigninUrl,//7
-                Config.ReturnToPathQueryStringKey,//8
+                ExternalAuthConfig.ReturnToPathQueryStringKey,//8
                 config.ExternalType//9
             ));
     }
 
-    private static string GetRedirectUrl(ClientConfig clientConfig, HttpRequest request)
+    private static string GetRedirectUrl(ExternalAuthClientConfig clientConfig, HttpRequest request)
     {
-        return Config.RedirectUrl is null ?
+        return ExternalAuthConfig.RedirectUrl is null ?
             string.Concat(request.Scheme, "://", request.Host, clientConfig.SigninUrl) :
-            string.Concat(Config.RedirectUrl, clientConfig.SigninUrl);
+            string.Concat(ExternalAuthConfig.RedirectUrl, clientConfig.SigninUrl);
     }
 
     private const string _jsTemplate =
