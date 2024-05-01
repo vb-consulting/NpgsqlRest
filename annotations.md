@@ -223,7 +223,7 @@ signin
 
 This annotation will transform the routine into the authentication endpoint that performs the sign-in operation.
 
-See more information on how the login endpoints work on the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/client/login-endpoints).
+See more information on how the login endpoints work on the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/login-endpoints).
 
 ## Logout
 
@@ -238,4 +238,4 @@ This annotation will transform the routine into the endpoint that performs the l
 
 If the routine doesn't return any data, the default authorization scheme is signed out. Any values returned will be interpreted as scheme names (converted to string) to sign out.
 
-For more information on the login and the logout see the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/client/login-endpoints).
+For more information on the login and the logout see the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/login-endpoints).
