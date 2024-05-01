@@ -223,47 +223,19 @@ signin
 
 This annotation will transform the routine into the authentication endpoint that performs the sign-in operation.
 
-Note: to be able to use this feature authentication needs to be enabled and configured in your application, for example:
-
-```csharp
-                                                               
-var builder = WebApplication.CreateBuilder(args);              
-builder.Services.AddAuthentication().AddCookie();              
-                                                               
-```
-
-The login-enabled endpoints must return a named record.
-
-The program will result in the `ArgumentException` exception if the login-enabled routine is either of these:
-- void
-- returns simple value
-- returns set of record unnamed records
-
-The login operation will be interpreted as an unsuccessful login attempt and return the status code `401 Unauthorized` without creating a user identity if either:
-- The routine returns an empty record.
-- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname), and the value of the status column name is:
-  - False for boolean types.
-  - Not 200 for numeric types.
-
-The login operation will be interpreted as a successful login attempt and return the status code `200 OK` with creating a new user identity if either:
-- The routine returns a record without status [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname).
-- The returned record includes a [status column](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname), and the value of the status column name is:
-  - True for boolean types.
-  - 200 for numeric types.
-
-To authorize a different authorization scheme, return a [schema column name](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemacolumnname) with the value of that schema.
-
-Any other records will be set as new claims for the created user identity on successful login, where:
-- The column name is claim type. This type will by default try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value. Use the [`UseActiveDirectoryFederationServicesClaimTypes` Option][https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes] to control this behavior.
-- The record value (as string) is the claim value.
+See more information on how the login endpoints work on the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/client/login-endpoints).
 
 ## Logout
 
 ```console
-logout
-signout
+                                                
+logout                                          
+signout                                         
+                                                
 ```
 
 This annotation will transform the routine into the endpoint that performs the logout or the sign-out operation.
 
 If the routine doesn't return any data, the default authorization scheme is signed out. Any values returned will be interpreted as scheme names (converted to string) to sign out.
+
+For more information on the login and the logout see the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/client/login-endpoints).
