@@ -63,8 +63,7 @@ Login
 
 - In this example column name `name_identifier` will be the security claim type the `nameIdentifier`. 
 
-- This behavior that uses AD Federation Services Claim Type can be turned off with the [AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes
- option](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes).
+- This behavior that uses AD Federation Services Claim Type can be turned off with the [AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes option](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes).
 
 ### Status Columns
 
@@ -92,4 +91,4 @@ Login
 
 - Note: this message is only returned in a case when the configured authentication scheme doesn't write anything into the response body on a sign-in operation.
 
-- For example, the Cookie authentication scheme doesn't write anything into the body and this message is safely written to the response body. On other hand, the Bearer Token schemes will always write the response body and this message will not be written to the response body.
+- For example, the Cookie authentication scheme doesn't write anything into the body and this message is safely written to the response body. On the other hand, the Bearer Token schemes will always write the response body and this message will not be written to the response body.

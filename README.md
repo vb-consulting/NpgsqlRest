@@ -15,6 +15,8 @@ Read the **[NpgsqlRest Version 2 Blog Post](https://vb-consulting.github.io/blog
 
 See the changelog for the latest release changes in the **[Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/).**
 
+There is also a client application (AOT Build) available for download from the Release page or as an NPM package. See the [client application page](https://vb-consulting.github.io/npgsqlrest/client/) or the [NPM Package](https://www.npmjs.com/package/npgsqlrest).
+
 #### High Performance
 
 Number of Requests in 60 seconds stress test:

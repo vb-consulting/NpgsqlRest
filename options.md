@@ -16,6 +16,10 @@ This is the group of options used for authentication:
 
 ### AuthenticationOptions.DefaultAuthenticationType
 
+- Type: `string?`
+- Default: `null`
+
+
 Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
 
 This value must be set to non-null when using login endpoints, otherwise, the following error will raise: `SignInAsync when principal.Identity.IsAuthenticated is false is not allowed when AuthenticationOptions.RequireAuthenticatedSignIn is true.`
@@ -23,6 +27,9 @@ This value must be set to non-null when using login endpoints, otherwise, the fo
 If the value is not set and the login endpoint is present, it will automatically get the database name from the connection string.
 
 ### AuthenticationOptions.DefaultNameClaimType
+
+- Type: `string?`
+- Default: `"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"`
 
 Claim type value used to retrieve the user name. 
 
@@ -32,45 +39,67 @@ The default is the Active Directory Federation Services Claim Type Name property
 
 ### AuthenticationOptions.DefaultRoleClaimType
 
+- Type: `string?`
+- Default: `"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"`
+
 Claim type value used to retrieve the roles collection for the roles-based security. 
 
 The role key is used in the `bool IsInRole(string role)` method to search claims to determine does the current user identity belongs to roles.
 
 The default is the Active Directory Federation Services Claim Type Role property with value [`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes.role?view=net-8.0#system-security-claims-claimtypes-role)
 
-### AuthenticationOptions.SchemaColumnName
+### AuthenticationOptions.SchemeColumnName
+
+- Type: `string?`
+- Default: `"scheme"`
 
 The default column name in the data reader will be used to read the value of the authentication scheme of the login process.
 
-If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
+The textual value of this field will set the authentication scheme name for the sign-in operation.
 
-The default is `"schema"`.
+This is useful when using multiple authentication schemes. Returning any value from the logout routine will cause a logout from only that scheme. So for example, if you have the Cookie scheme and the Bearer Token scheme configured, you can handle them separately for login and logout.
+
+The default is `"scheme"`.
 
 ### AuthenticationOptions.StatusColumnName
 
+- Type: `string?`
+- Default: `"status"`
+
 The default column name in the data reader will be used to read the value to determine the success or failure of the login operation.
 
-- If this column is not present, the success is when the endpoint returns any records.
-- If this column is not present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
-- If this column is present and retrieves a numeric value, that value is assigned to the HTTP Status Code and the login will authenticate only when this value is 200.
+This column can only be a boolean or numeric type. If it is neither boolean nor numeric, the endpoint will return status `500 InternalServerError` and you'll have to check logs.
 
-The default is `"status"`.
+When this field is boolean, and it is true, the login process will continue with security claims set by other fields (which usually ends up in `200 OK` if authentication is configured). If it is false, the endpoint will return `404 NotFound` and the login attempt will not continue.
+
+When this field is numeric, and it is 200, the login process will continue with security claims set by other fields (which usually ends up in `200 OK` if authentication is configured). If it is not 200, the endpoint will return the status code the same as the value of this field, and the login attempt will not continue.
+
 
 ### AuthenticationOptions.MessageColumnName
 
-The default column name in the data reader will be used to retrieve a custom text message to the client. 
+- Type: `string?`
+- Default: `"message"`
 
-The default is `"message"`.
+This is the textual message that is returned in the response body.
+
+Note: this message is only returned in a case when the configured authentication scheme doesn't write anything into the response body on a sign-in operation.
+
+For example, the Cookie authentication scheme doesn't write anything into the body and this message is safely written to the response body. On the other hand, the Bearer Token schemes will always write the response body and this message will not be written to the response body.
 
 ### AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes
 
-Any columns retrieved from the reader during login, that don't have a name in `StatusColumnName` or `SchemeColumnName` will be used to create a new identity  `Claim`.
+- Type: `bool`
+- Default: `true`
 
-Column name will be interpreted as the claim type and the associated reader value for that column will be the claim value.
+By default, if the column name interpreted as the security claim type, matches one of the Active Directory Federation Services Claim Types names, it will use that AD Federation Services Claim Type URI. The table can be seen here: [ClaimTypes Class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0#fields).
+  
+That means that if the column name is either of these `NameIdentifier` - or the `nameidentifier` (case is ignored), or the `name_identifier` (for the camel case converted names, which is the default), the actual security claim type is `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier` according to this table. 
+  
+If the name is not found in this table, security is the column name as-is but parsed by the default name converter. 
 
-When this value is set to true (default) column name will try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value.
+In this example column name `name_identifier` will be the security claim type the `nameIdentifier`. 
 
-For example, column name `NameIdentifier` or `name_identifier` (when transformed by the default name transformer) will match the key `NameIdentifier` which translates to this: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
+This behavior that uses the AD Federation Services Claim Type can be turned off with this option.
 
 ## BufferRows
 
