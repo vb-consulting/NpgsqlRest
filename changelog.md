@@ -4,8 +4,15 @@
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.7.0...2.7.1)
 
+### NpgsqlRest 2.7.1
 
+- Small fix on the Login endpoint that fixed the problem with the custom message not being written to the response in some rare circumstances.
+- Redesigned the auth module and changed the access modifiers to the public of the ClaimTypes Dictionary to be used with the client application.
 
+### NpgsqlRest Client 1.1.0
+
+- [Client application](https://vb-consulting.github.io/npgsqlrest/client/) new release with massive improvements.
+- External auth logins implementation (Google, LinkedIn, GitHub)
 
 ## Version [2.7.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.7.0) (2024-04-17)
 

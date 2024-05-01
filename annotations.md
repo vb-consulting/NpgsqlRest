@@ -3,10 +3,12 @@
 ## BufferRows
 
 ```console
-bufferrows number
-buffer_rows number
-buffer-rows number
-buffer number
+                                                           
+bufferrows number                                          
+buffer_rows number                                         
+buffer-rows number                                         
+buffer number                                              
+                                                           
 ```
 
 Sets the buffered amount of rows before they are written to the response for this endpoint.
@@ -14,9 +16,11 @@ Sets the buffered amount of rows before they are written to the response for thi
 ## Tags
 
 ```console
-for tag1, tag2, tag3 [, ...]
-tag tag1, tag2, tag3 [, ...]
-tags tag1, tag2, tag3 [, ...]
+                                                           
+for tag1, tag2, tag3 [, ...]                               
+tag tag1, tag2, tag3 [, ...]                               
+tags tag1, tag2, tag3 [, ...]                              
+                                                           
 ```
 
 All annotations in lines below this line apply only to tags in the argument list.
@@ -24,8 +28,10 @@ All annotations in lines below this line apply only to tags in the argument list
 ## Disabled
 
 ```console
-disabled
-disabled [ tag1, tag2, tag3 [, ...] ]
+                                                           
+disabled                                                   
+disabled [ tag1, tag2, tag3 [, ...] ]                      
+                                                           
 ```
 
 The endpoint is disabled. Optional tag list disabled only for tags in the argument list.
@@ -33,8 +39,10 @@ The endpoint is disabled. Optional tag list disabled only for tags in the argume
 ## Enabled
 
 ```console
-enabled
-enabled [ tag1, tag2, tag3 [, ...] ]
+                                                           
+enabled                                                    
+enabled [ tag1, tag2, tag3 [, ...] ]                       
+                                                           
 ```
 
 The endpoint is enabled. Optional tag list enabled only for tags in the argument list.
@@ -42,9 +50,11 @@ The endpoint is enabled. Optional tag list enabled only for tags in the argument
 ## HTTP
 
 ```console
-HTTP 
-HTTP [ GET | POST | PUT | DELETE ]
-HTTP [ GET | POST | PUT | DELETE ] path
+                                                           
+HTTP                                                       
+HTTP [ GET | POST | PUT | DELETE ]                         
+HTTP [ GET | POST | PUT | DELETE ] path                    
+                                                           
 ```
 
 HTTP settings:
@@ -68,14 +78,16 @@ Set how request parameters are sent - query string or JSON body.
 ## RequiresAuthorization
 
 ```console
-requiresauthorization
-authorize
-requires_authorization
-requires-authorization
-requiresauthorization [ role1, role2, role2 [, ...] ]
-authorize [ role1, role2, role2 [, ...] ]
-requires_authorization [ role1, role2, role2 [, ...] ]
-requires-authorization [ role1, role2, role2 [, ...] ]
+                                                           
+requiresauthorization                                      
+authorize                                                  
+requires_authorization                                     
+requires-authorization                                     
+requiresauthorization [ role1, role2, role2 [, ...] ]      
+authorize [ role1, role2, role2 [, ...] ]                  
+requires_authorization [ role1, role2, role2 [, ...] ]     
+requires-authorization [ role1, role2, role2 [, ...] ]     
+                                                           
 ```
 
 Require authorization for this endpoint.
@@ -86,11 +98,13 @@ Require authorization for this endpoint.
 ## AllowAnonymous
 
 ```console
-allowanonymous
-allow_anonymous
-allow-anonymous
-anonymous
-anon
+                                                             
+allowanonymous                                               
+allow_anonymous                                              
+allow-anonymous                                              
+anonymous                                                    
+anon                                                         
+                                                             
 ```
 
 Allow anonymous access with no authorization to this endpoint. 
@@ -98,10 +112,12 @@ Allow anonymous access with no authorization to this endpoint.
 ## CommandTimeout
 
 ```console
-commandtimeout seconds
-command_timeout seconds
-command-timeout seconds
-timeout seconds
+                                                             
+commandtimeout seconds                                       
+command_timeout seconds                                      
+command-timeout seconds                                      
+timeout seconds                                              
+                                                             
 ```
 
 Set the command execution timeout in seconds.
@@ -109,12 +125,14 @@ Set the command execution timeout in seconds.
 ## RequestHeadersMode
 
 ```console
-requestheadersmode [ ignore | context | parameter ]
-request_headers_mode [ ignore | context | parameter ]
-request-headers-mode [ ignore | context | parameter ]
-requestheaders [ ignore | context | parameter ]
-request_headers [ ignore | context | parameter ]
-request-headers [ ignore | context | parameter ]
+                                                             
+requestheadersmode [ ignore | context | parameter ]          
+request_headers_mode [ ignore | context | parameter ]        
+request-headers-mode [ ignore | context | parameter ]        
+requestheaders [ ignore | context | parameter ]              
+request_headers [ ignore | context | parameter ]             
+request-headers [ ignore | context | parameter ]             
+                                                             
 ```
 
 Set how request parameters are handled:
@@ -125,12 +143,14 @@ Set how request parameters are handled:
 ## RequestHeadersParameterName
 
 ```console
-requestheadersparametername name
-requestheadersparamname name
-request_headers_parameter_name name
-request_headers_param_name name
-request-headers-parameter-name name
-request-headers-param-name name
+                                                
+requestheadersparametername name                
+requestheadersparamname name                    
+request_headers_parameter_name name             
+request_headers_param_name name                 
+request-headers-parameter-name name             
+request-headers-param-name name                 
+                                                
 ```
 
 When `RequestHeadersMode` is set to send request headers as a parameter, set the existing parameter name. The default is `headers`.
@@ -138,12 +158,14 @@ When `RequestHeadersMode` is set to send request headers as a parameter, set the
 ## BodyParameterName
 
 ```console
-bodyparametername name
-body-parameter-name name
-body_parameter_name name
-bodyparamname name
-body-param-name name
-body_param_name name
+                                                
+bodyparametername name                          
+body-parameter-name name                        
+body_parameter_name name                        
+bodyparamname name                              
+body-param-name name                            
+body_param_name name                            
+                                                
 ```
 
 Set the name of the existing parameter which is sent as body content. When the `BodyParameterName` is set, all other parameters are sent by the query string.
@@ -151,9 +173,11 @@ Set the name of the existing parameter which is sent as body content. When the `
 ## ResponseNullHandling
 
 ```console
-responsenullhandling [ emptystring | nullliteral | nocontent ]
-response_null_handling [ emptystring | nullliteral | nocontent ]
-response-null-handling [ emptystring | nullliteral | nocontent ]
+                                                
+responsenullhandling [ emptystring | nullliteral | nocontent ]         
+response_null_handling [ emptystring | nullliteral | nocontent ]       
+response-null-handling [ emptystring | nullliteral | nocontent ]       
+                                                
 ```
 
 Sets the response NULL handling option for a single function results other than JSON (text, number, etc...):
@@ -165,9 +189,11 @@ Sets the response NULL handling option for a single function results other than 
 ## QueryStringNullHandling
 
 ```console
-querystringnullhandling [ emptystring | nullliteral | ignore ]
-query_string_null_handling [ emptystring | nullliteral | ignore ]
-query-string-null-handling [ emptystring | nullliteral | ignore ]
+                                                
+querystringnullhandling [ emptystring | nullliteral | ignore ]        
+query_string_null_handling [ emptystring | nullliteral | ignore ]     
+query-string-null-handling [ emptystring | nullliteral | ignore ]     
+                                                
 ```
 
 Sets the response NULL handling option for the query string parameters:
@@ -179,7 +205,9 @@ Sets the response NULL handling option for the query string parameters:
 ## Headers
 
 ```console
-key: value
+                                                
+key: value                                      
+                                                
 ```
 
 Any line containing a`:` character is interpreted as the request header key and value where the key is the left side and the value is the right side string. For example: `Content-Type: text/html`
@@ -187,17 +215,21 @@ Any line containing a`:` character is interpreted as the request header key and 
 ## Login
 
 ```console
-login
-signin
+                                                
+login                                           
+signin                                          
+                                                
 ```
 
 This annotation will transform the routine into the authentication endpoint that performs the sign-in operation.
 
 Note: to be able to use this feature authentication needs to be enabled and configured in your application, for example:
 
-```cs
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddAuthentication().AddCookie();
+```csharp
+                                                               
+var builder = WebApplication.CreateBuilder(args);              
+builder.Services.AddAuthentication().AddCookie();              
+                                                               
 ```
 
 The login-enabled endpoints must return a named record.

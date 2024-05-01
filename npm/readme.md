@@ -25,6 +25,36 @@ NpgsqlRest Client Web App is a command line utility that runs as a configurable 
 
 See the [default configuration file](https://vb-consulting.github.io/npgsqlrest/config/) with descriptions for more information.
 
+## Notes Before Installation
+
+This package will download an executable file for the target OS on installation (see the postinstall.js script) from the [GitHub release page](https://github.com/vb-consulting/NpgsqlRest/releases/).
+
+Currently, only the Windows-64 and Linux-64 builds are supported.
+
+The Mac OS builds are missing because I don't have a Mac machine. If someone could help me out with this I'd be grateful. 
+
+If you try to install this package on MacOS, or any other unsupported OS, installation will report: `Unsupported OS detected: [OS Type]`.
+
+To see how you can create your own custom build follow these instructions:
+
+- The client application was built from the [`NpgsqlRestClient` project directory](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestClient/).
+
+Steps:
+
+1) Make sure that you have .NET8 SDK installed and ready.
+2) Clone [NpgsqlRest repository](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRest)
+3) Navigate to the [`NpgsqlRestClient` project directory](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestClient/).
+4) Make your desired customizations (or not).
+5) Run publish command, for example, `dotnet publish -r win-x64 -c Release --output [target dir]`
+
+## Installation
+
+Install `npgsqlrest` using npm:
+
+```console
+npm install npgsqlrest --save-dev
+```
+
 ## Usage
 
 ```console
@@ -44,10 +74,54 @@ Example:                               npgsqlrest appsettings.json appsettings.D
 Example:                               npgsqlrest appsettings.json -o appsettings.Development.json
 ```
 
-## Installation
-
-Install `npgsqlrest` using npm:
+- Use the `npgsqlrest-config-copy` command to copy the default config to the current directory (or, optionally, directory from the first argument).
 
 ```console
-npm install npgsqlrest --save-dev
+$ npx npgsqlrest-config-copy
+Copied appsettings.json to /home/vbilopav/npgsqlrest-npm-test/appsettings.json
 ```
+
+- Running with supplied configuration:
+
+```console
+$ npx npgsqlrest appsettings.json project-config.json 
+[11:29:06.551 INF] ----> Starting with configuration(s): ["EnvironmentVariablesConfigurationProvider", "JsonConfigurationProvider for 'appsettings.json' (Required)", "JsonConfigurationProvider for 'project-config.json' (Required)"] [Program]
+[11:29:06.552 INF] Using connection: Host=127.0.0.1;Port=5432;Database=test;Username=postgres;Application Name=MyProject [Program]
+[11:29:06.553 INF] Using Cookie Authentication with scheme Cookies. Cookie expires in 14 days. [Program]
+[11:29:06.553 INF] Using Bearer Token Authentication with scheme BearerToken. Token expires in 1 hours and refresh token expires in 14 days. [Program]
+[11:29:06.560 INF] Serving static files from /home/vbilopav/npgsqlrest-npm-test/wwwroot [Program]
+[11:29:07.083 INF] Created endpoint POST /api/case-return-long-table1 [NpgsqlRest]
+[11:29:07.083 INF] Created HTTP file: /home/vbilopav/npgsqlrest-npm-test/test_public.http [NpgsqlRest.HttpFiles]
+[11:29:07.100 INF] Started in 00:00:00.5527040 [Program]
+[11:29:07.100 INF] Listening on ["http://localhost:5001"] [Program]
+^C
+$
+```
+
+## Changelog
+
+### 1.1.7
+
+Update readme.
+
+### 1.1.6
+### 1.1.5
+### 1.1.4
+### 1.1.3
+### 1.1.2
+
+Fixing the issue with the local .bin directory.
+
+### 1.1.1
+
+- Move the download bin directory from share `/node_modules/.bin/` to package local `/node_modules/npgsqlrest/.bin/`
+- Added copy default configuration command that, well, copies the default configuration `npx npgsqlrest-config-copy [optional dir]`
+
+### 1.1.0
+
+New build versions:
+
+Client Build         1.1.0.0
+Npgsql               2.7.1.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.6.0.0

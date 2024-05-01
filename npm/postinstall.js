@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 const https = require("https");
 
-const downloadDir = "../.bin/";
+const downloadDir = "./.bin/";
 const downloadFrom = "https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.7.1-client-v1.1.0/";
 
 function download(url, to, done) {
@@ -49,12 +49,15 @@ if (!fs.existsSync(path.dirname(downloadTo))) {
     fs.mkdirSync(path.dirname(downloadTo), { recursive: true });
 }
 
-if (!fs.existsSync(downloadTo)) {
-    download(downloadFileUrl, downloadTo);
+if (fs.existsSync(downloadTo)) {
+    fs.unlinkSync(downloadTo);
 }
+download(downloadFileUrl, downloadTo);
+
 
 downloadFileUrl = `${downloadFrom}appsettings.json`;
 downloadTo = "./appsettings.json";
-if (!fs.existsSync(downloadTo)) {
-    download(downloadFileUrl, downloadTo);
+if (fs.existsSync(downloadFileUrl)) {
+    fs.unlinkSync(downloadFileUrl, downloadTo);
 }
+download(downloadFileUrl, downloadTo);

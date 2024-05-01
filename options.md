@@ -28,7 +28,7 @@ Claim type value used to retrieve the user name.
 
 The user name is exposed as the default name with the `Name` property on the user identity by searching claims collection with this claim type.
 
-The default is the Active Directory Federation Services Claim Type Name property with value [`http://schemas.microsoft.com/ws/2008/06/identity/claims/name`(https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes.name?view=net-8.0#system-security-claims-claimtypes-name)
+The default is the Active Directory Federation Services Claim Type Name property with value [`http://schemas.microsoft.com/ws/2008/06/identity/claims/name`](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes.name?view=net-8.0#system-security-claims-claimtypes-name)
 
 ### AuthenticationOptions.DefaultRoleClaimType
 
@@ -36,11 +36,11 @@ Claim type value used to retrieve the roles collection for the roles-based secur
 
 The role key is used in the `bool IsInRole(string role)` method to search claims to determine does the current user identity belongs to roles.
 
-The default is the Active Directory Federation Services Claim Type Role property with value [`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`(https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes.role?view=net-8.0#system-security-claims-claimtypes-role)
+The default is the Active Directory Federation Services Claim Type Role property with value [`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes.role?view=net-8.0#system-security-claims-claimtypes-role)
 
 ### AuthenticationOptions.SchemaColumnName
 
-The default column name in the data reader that will be used to read the value of the authentication scheme of the login process.
+The default column name in the data reader will be used to read the value of the authentication scheme of the login process.
 
 If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
 
@@ -48,7 +48,7 @@ The default is `"schema"`.
 
 ### AuthenticationOptions.StatusColumnName
 
-The default column name in the data reader that will be used to read the value to determine the success or failure of the login operation.
+The default column name in the data reader will be used to read the value to determine the success or failure of the login operation.
 
 - If this column is not present, the success is when the endpoint returns any records.
 - If this column is not present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
@@ -58,7 +58,7 @@ The default is `"status"`.
 
 ### AuthenticationOptions.MessageColumnName
 
-The default column name in the data reader that will be used to retrieve a custom text message to the client. 
+The default column name in the data reader will be used to retrieve a custom text message to the client. 
 
 The default is `"message"`.
 
@@ -490,7 +490,7 @@ Configure how the comment annotations will behave:
 - Default: `Ignore`
 
 Configure how to send request headers to PostgreSQL routines execution: 
-- `Ignore`: (default) don't send any request headers to routines. 
+- `Ignore`: (default) Don't send any request headers to routines. 
 - `Context`: sets a context variable for the current session `context.headers` containing JSON string with current request headers. This executes `set_config('context.headers', headers, false)` before any routine executions.
 - `Parameter`: sends request headers to the routine parameter defined with the `RequestHeadersParameterName` option. A parameter with this name must exist, must be one of the JSON or text types and must have the default value defined. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
 
