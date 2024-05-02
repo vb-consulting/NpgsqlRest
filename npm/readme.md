@@ -37,8 +37,6 @@ If you try to install this package on MacOS, or any other unsupported OS, instal
 
 To see how you can create your own custom build follow these instructions:
 
-- The client application was built from the [`NpgsqlRestClient` project directory](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestClient/).
-
 Steps:
 
 1) Make sure that you have .NET8 SDK installed and ready.
@@ -46,6 +44,8 @@ Steps:
 3) Navigate to the [`NpgsqlRestClient` project directory](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestClient/).
 4) Make your desired customizations (or not).
 5) Run publish command, for example, `dotnet publish -r win-x64 -c Release --output [target dir]`
+
+Notes: `win-x64` is the designated target OS for the build. Adjust this parameter appropriately for the target OS. See [https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids). The project is already configured for the AOT builds, but you will need to run the publish command from the same flavor OS as the build target OS (Windows for Windows builds, Linux for Linux builds, etc).
 
 ## Installation
 
@@ -94,11 +94,17 @@ $ npx npgsqlrest appsettings.json project-config.json
 [11:29:07.083 INF] Created HTTP file: /home/vbilopav/npgsqlrest-npm-test/test_public.http [NpgsqlRest.HttpFiles]
 [11:29:07.100 INF] Started in 00:00:00.5527040 [Program]
 [11:29:07.100 INF] Listening on ["http://localhost:5001"] [Program]
-^C
-$
 ```
 
 ## Changelog
+
+### 1.1.8
+
+Changed the download target from `./node_modules/npgsqlrest/.bin/` to shared bin: `./node_modules/.bin/`.
+
+The reason is that when using the `./node_modules/npgsqlrest/.bin/` directory, I have to use the node spawn process wrapper which slows down the startup time. When the executable is in the `./node_modules/.bin/` it can be invoked directly which is an extremely fast, almost instant startup (a couple of milliseconds).
+
+But now, I have to use the uninstall script too, to ensure the proper cleanup on the install.
 
 ### 1.1.7
 
@@ -121,7 +127,9 @@ Fixing the issue with the local .bin directory.
 
 New build versions:
 
+```console
 Client Build         1.1.0.0
 Npgsql               2.7.1.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.6.0.0
+```
