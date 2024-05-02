@@ -89,7 +89,7 @@ public static class ExternalAuthConfig
     }
 }
 
-public static class ExternalAuthBuilder
+public static class ExternalAuth
 {
     public static void Configure(WebApplication app, NpgsqlRestOptions options)
     {
@@ -100,8 +100,7 @@ public static class ExternalAuthBuilder
 
         app.Use(async (context, next) =>
         {
-            var config = ExternalAuthConfig.ClientConfigs[context.Request.Path];
-            if (config is null)
+            if (ExternalAuthConfig.ClientConfigs.TryGetValue(context.Request.Path, out var config) is false)
             {
                 await next(context);
                 return;

@@ -25,6 +25,25 @@ public static class App
         {
             app.UseSerilogRequestLogging();
         }
+        var cfgCfg = Cfg.GetSection("Config");
+        var configEndpoint = GetConfigStr("ExposeAsEndpoint", cfgCfg);
+        if (configEndpoint is not null)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (
+                    string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(context.Request.Path, configEndpoint, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    context.Response.ContentType = System.Net.Mime.MediaTypeNames.Application.Json;
+                    await context.Response.WriteAsync(Serialize());
+                    await context.Response.CompleteAsync();
+                    return;
+                }
+                await next(context);
+            });
+        }
     }
 
     public static void ConfigureStaticFiles(WebApplication app)
@@ -204,6 +223,24 @@ public static class App
             if (headerLines is not null)
             {
                 ts.HeaderLines = headerLines.ToList();
+            }
+
+            var skipRoutineNames = GetConfigEnumerable("SkipRoutineNames", tsClientCfg);
+            if (skipRoutineNames is not null)
+            {
+                ts.SkipRoutineNames = skipRoutineNames.ToArray();
+            }
+
+            var skipFunctionNames = GetConfigEnumerable("SkipFunctionNames", tsClientCfg);
+            if (skipFunctionNames is not null)
+            {
+                ts.SkipFunctionNames = skipFunctionNames.ToArray();
+            }
+
+            var skipPaths = GetConfigEnumerable("SkipPaths", tsClientCfg);
+            if (skipPaths is not null)
+            {
+                ts.SkipPaths = skipPaths.ToArray();
             }
 
             handlers.Add(new TsClient(ts));

@@ -1,4 +1,7 @@
-﻿namespace NpgsqlRestClient;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace NpgsqlRestClient;
 
 public static class Config
 {
@@ -9,7 +12,34 @@ public static class Config
 
     public static void Build(string[] args)
     {
-        var configBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
+        IConfigurationBuilder configBuilder;
+        var tempBuilder = new ConfigurationBuilder();
+        IConfigurationRoot tempCfg;
+
+        if (args.Length > 0)
+        {
+            foreach (var (fileName, optional) in Arguments.EnumerateConfigFiles(args))
+            {
+                tempBuilder.AddJsonFile(Path.GetFullPath(fileName, CurrentDir), optional: optional);
+            }
+            tempCfg = tempBuilder.Build();
+        }
+        else
+        {
+            tempCfg = tempBuilder
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .Build();
+        }
+        var cfgCfg = tempCfg.GetSection("Config");
+        if (cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg))
+        {
+            configBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
+        }
+        else
+        {
+            configBuilder = new ConfigurationBuilder();
+        }
 
         if (args.Length > 0)
         {
@@ -146,5 +176,59 @@ public static class Config
             }
         }
         return result;
+    }
+
+    public static string Serialize()
+    {
+        var json = SerializeConfig(Cfg);
+        return json?.ToJsonString(new JsonSerializerOptions() { WriteIndented = true }) ?? "{}";
+    }
+
+    private static JsonNode? SerializeConfig(IConfiguration config)
+    {
+        JsonObject obj = new();
+
+        foreach (var child in config.GetChildren())
+        {
+            if (child.Path.EndsWith(":0"))
+            {
+                var arr = new JsonArray();
+
+                foreach (var arrayChild in config.GetChildren())
+                {
+                    arr.Add(SerializeConfig(arrayChild));
+                }
+
+                return arr;
+            }
+            else
+            {
+                obj.Add(child.Key, SerializeConfig(child));
+            }
+        }
+
+        if (obj.Count() == 0 && config is IConfigurationSection section)
+        {
+            if (bool.TryParse(section.Value, out bool boolean))
+            {
+                return JsonValue.Create(boolean);
+            }
+            else if (decimal.TryParse(section.Value, out decimal real))
+            {
+                return JsonValue.Create(real);
+            }
+            else if (long.TryParse(section.Value, out long integer))
+            {
+                return JsonValue.Create(integer);
+            }
+            if (section.Path.StartsWith("ConnectionStrings:"))
+            {
+                return JsonValue.Create(string.Join(';', 
+                    section?.Value?.Split(';')?.Where(p => p.StartsWith("password", StringComparison.OrdinalIgnoreCase) is false) ?? []));
+            }
+            return JsonValue.Create(section.Value);
+        }
+
+        return obj;
     }
 }

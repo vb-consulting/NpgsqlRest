@@ -1,5 +1,42 @@
 # Changelog
 
+## Version [2.8.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.0) (2024-05-02)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.7.1...2.8.0)
+
+- New Option: `Dictionary<string, StringValues> CustomRequestHeaders`
+
+Custom request headers dictionary that will be added to NpgsqlRest requests. 
+
+Note: these values are added to the request headers dictionary before they are sent as a context or parameter to the PostgreSQL routine and as such not visible to the browser debugger.
+
+### TsClient Version 1.7.0
+
+- Sanitaze generated TypeScript names.
+- Add `SkipRoutineNames`, `SkipFunctionNames` and `SkipPaths` options.
+
+### Client Version 1.2.0
+
+- Bugfix with missing dictionary key when using external auth.
+
+- New Config section:
+
+```jsonc
+"Config": {
+    //
+    // Expose current configuration to the endpoint for debugging and inspection. Note, the password in the connection string is not exposed.
+    //
+    "ExposeAsEndpoint": "/config",
+    //
+    // Add the environment variables to configuration first.
+    //
+    "AddEnvironmentVariables": false
+}
+```
+
+- Support for the `CustomRequestHeaders` option.
+- Support for the new options in TsClient.
+
 ## Version [2.7.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.7.1) (2024-04-30)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.7.0...2.7.1)

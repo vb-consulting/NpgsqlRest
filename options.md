@@ -126,6 +126,15 @@ The connection string to the database. This is the optional value if the `Connec
 
 Note: the connection string must run as a super user or have select permissions on `information_schema` and `pg_catalog` system tables. If the `ConnectionFromServiceProvider` option is set to false and `ConnectionString` is null, the middleware will raise an `ArgumentException` error.
 
+## CustomRequestHeaders
+
+- Type: `Dictionary<string, StringValues>`
+- Default: `[]`
+
+Custom request headers dictionary that will be added to NpgsqlRest requests. 
+
+Note: these values are added to the request headers dictionary before they are sent as a context or parameter to the PostgreSQL routine and as such not visible to the browser debugger.
+
 ## SchemaSimilarTo
 
 - Type: `string?`

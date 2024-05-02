@@ -83,10 +83,12 @@ NpgsqlRestOptions options = new()
     },
 
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
-    SourcesCreated = SourcesCreated
+    SourcesCreated = SourcesCreated,
+
+    CustomRequestHeaders = GetCustomHeaders()
 };
 
-ExternalAuthBuilder.Configure(app, options);
+ExternalAuth.Configure(app, options);
 
 app.UseNpgsqlRest(options);
 app.Run();

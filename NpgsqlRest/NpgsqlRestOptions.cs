@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using Microsoft.Extensions.Primitives;
+using Npgsql;
 using NpgsqlRest.Defaults;
 
 namespace NpgsqlRest;
@@ -47,7 +48,8 @@ public class NpgsqlRestOptions(
     NpgsqlRestAuthenticationOptions? authenticationOptions = null,
     bool returnNpgsqlExceptionMessage = true,
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
-    Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null)
+    Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
+    Dictionary<string, StringValues>? customRequestHeaders = null)
 {
 
     /// <summary>
@@ -281,6 +283,12 @@ public class NpgsqlRestOptions(
     /// Callback executed immediately before connection is opened. Use this callback to adjust connection settings such as application name.
     /// </summary>
     public Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen { get; set; } = beforeConnectionOpen;
+
+    /// <summary>
+    /// Custom request headers dictionary that will be added to NpgsqlRest requests. 
+    /// Note: these values are added to the request headers dictionary before they are sent as a context or parameter to the PostgreSQL routine and as such not visible to the browser debugger.
+    /// </summary>
+    public Dictionary<string, StringValues> CustomRequestHeaders { get; set; } = customRequestHeaders ?? [];
 
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

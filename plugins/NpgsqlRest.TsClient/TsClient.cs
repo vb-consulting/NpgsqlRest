@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace NpgsqlRest.TsClient;
 
@@ -167,6 +168,15 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         void Handle(Routine routine, RoutineEndpoint endpoint)
         {
+            if (options.SkipRoutineNames.Contains(routine.Name))
+            {
+                return;
+            }
+            if (options.SkipPaths.Contains(endpoint.Url))
+            {
+                return;
+            }
+
             var name = string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..];
             var routineType = routine.Type;
             var paramCount = routine.ParamCount;
@@ -206,8 +216,14 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             {
                 names.Add(name, 1);
             }
+            name = SanitizeJavaScriptVariableName(name);
             var pascal = ConvertToPascalCase(name);
             var camel = ConvertToCamelCase(name);
+
+            if (options.SkipFunctionNames.Contains(camel))
+            {
+                return;
+            }
 
             content.AppendLine();
 
@@ -527,6 +543,17 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
     }
 
     private static readonly char[] separator = ['_', '-', '/', '\\'];
+
+    public string SanitizeJavaScriptVariableName(string name)
+    {
+        // Replace invalid starting characters with underscore
+        name = Regex.Replace(name, "^[^a-zA-Z_$]", "_");
+
+        // Replace any other invalid characters with underscore
+        name = Regex.Replace(name, "[^a-zA-Z0-9_$]", "_");
+
+        return name;
+    }
 
     public static string ConvertToPascalCase(string value)
     {

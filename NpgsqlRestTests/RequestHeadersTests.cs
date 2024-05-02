@@ -93,7 +93,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 
     [Fact]
@@ -194,6 +194,6 @@ public class RequestHeadersTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("{\"Host\":\"localhost\"}");
+        content.Should().Be("{\"Host\":\"localhost\",\"custom-header1\":\"custom-header1-value\"}");
     }
 }

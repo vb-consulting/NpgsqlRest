@@ -20,6 +20,7 @@ using Tuple = (
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
 using NpgsqlRest.Auth;
+using System.Reflection.PortableExecutable;
 
 namespace NpgsqlRest;
 
@@ -460,6 +461,15 @@ public static class NpgsqlRestMiddlewareExtensions
                 string? headers = null;
                 if (endpoint.RequestHeadersMode != RequestHeadersMode.Ignore)
                 {
+                    if (options.CustomRequestHeaders.Count > 0)
+                    {
+                        foreach (var header in options.CustomRequestHeaders)
+                        {
+                            //context.Request?.Headers?.Append(header);
+                            context.Request?.Headers?.Add(header);
+                        }
+                    }
+
                     headers = "{";
                     var i = 0;
                     foreach (var header in context.Request.Headers)

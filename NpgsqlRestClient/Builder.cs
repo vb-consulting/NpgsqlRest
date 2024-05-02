@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Npgsql;
 using Serilog;
@@ -262,5 +263,15 @@ public static class Builder
         Logger?.Information(messageTemplate: "Using connection: {0}", connectionStringBuilder.ConnectionString);
 
         return connectionString;
+    }
+
+    public static Dictionary<string, StringValues> GetCustomHeaders()
+    {
+        var result = new Dictionary<string, StringValues>();
+        foreach(var section in NpgsqlRestCfg.GetSection("CustomRequestHeaders").GetChildren())
+        {
+            result.Add(section.Key, section.Value);
+        }
+        return result;
     }
 }

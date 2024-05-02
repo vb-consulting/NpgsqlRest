@@ -435,7 +435,10 @@ public class TsClientOptions(
     string? importBaseUrlFrom = null,
     string? importParseQueryFrom = null,
     bool includeParseUrlParam = false,
-    bool includeParseRequestParam = false)
+    bool includeParseRequestParam = false,
+    string[]? skipRoutineNames = null,
+    string[]? skipFunctionNames = null,
+    string[]? skipPaths = null)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -509,6 +512,21 @@ public class TsClientOptions(
     /// Include optional parameter `parseRequest: (request: RequestInit) => RequestInit = request=>request` that will parse constructed request.
     /// </summary>
     public bool IncludeParseRequestParam { get; set; } = includeParseRequestParam;
+
+    /// <summary>
+    /// Array of routine names to skip (without schema)
+    /// </summary>
+    public string[] SkipRoutineNames { get; set; } = skipRoutineNames ?? [];
+
+    /// <summary>
+    /// Array of generated function names to skip
+    /// </summary>
+    public string[] SkipFunctionNames { get; set; } = skipFunctionNames ?? [];
+
+    /// <summary>
+    /// Array of url paths to skip
+    /// </summary>
+    public string[] SkipPaths { get; set; } = skipPaths ?? [];
 }
 ```
 

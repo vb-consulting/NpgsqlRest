@@ -103,6 +103,11 @@ public class Program
                 sources.Add(new CrudSource());
                 sources.Add(new TestSource());
             },
+
+            CustomRequestHeaders = new()
+            {
+                { "custom-header1", "custom-header1-value" }
+            }
         });
         app.Run();
     }
