@@ -44,7 +44,7 @@ Login
   
 - If the endpoint has a return type **named record** - but it returns an empty record the endpoint will return an **unauthorized status (code 401)**.
 
-- If the endpoint has a return type **named record** - and it reruns some records, only the first records will be read and parsed, the rest is discarded.
+- If the endpoint has a return type **named record** - and does return some records - only the first records will be read and parsed, the rest is discarded.
 
 - Returned columns are parsed by the column name. Column name can be the original column name from PostgreSQL or, parsed by the [default name converter](https://vb-consulting.github.io/npgsqlrest/options/#nameconverter). This camel case name converter, by default (unless changed in options).
   
