@@ -98,6 +98,8 @@ $ npx npgsqlrest appsettings.json project-config.json
 
 ## Changelog
 
+See the detailed change log here: [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
+
 ### 1.1.8
 
 Changed the download target from `./node_modules/npgsqlrest/.bin/` to shared bin: `./node_modules/.bin/`.
@@ -105,6 +107,16 @@ Changed the download target from `./node_modules/npgsqlrest/.bin/` to shared bin
 The reason is that when using the `./node_modules/npgsqlrest/.bin/` directory, I have to use the node spawn process wrapper which slows down the startup time. When the executable is in the `./node_modules/.bin/` it can be invoked directly which is an extremely fast, almost instant startup (a couple of milliseconds).
 
 But now, I have to use the uninstall script too, to ensure the proper cleanup on the install.
+
+### 1.2.0
+
+```console
+Versions:
+Client Build         1.2.0.0
+Npgsql               2.8.0.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.7.0.0
+```
 
 ### 1.1.7
 
