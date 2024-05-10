@@ -28,10 +28,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.MD</PackageReadmeFile>
     <DocumentationFile>bin\$(Configuration)\$(AssemblyName).xml</DocumentationFile>
-    <Version>2.8.0</Version>
-    <AssemblyVersion>2.8.0</AssemblyVersion>
-    <FileVersion>2.8.0</FileVersion>
-    <PackageVersion>2.8.0</PackageVersion>
+    <Version>2.8.1</Version>
+    <AssemblyVersion>2.8.1</AssemblyVersion>
+    <FileVersion>2.8.1</FileVersion>
+    <PackageVersion>2.8.1</PackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="Npgsql" Version="8.0.1" />
+    <PackageReference Include="Npgsql" Version="8.0.3" />
     <PackageReferenceFiles Include="bin\$(Configuration)\$(AssemblyName).xml" />
   </ItemGroup>
 

@@ -21,10 +21,16 @@ public static class App
         {
             app.UseHttpsRedirection();
         }
+        if (UseHsts)
+        {
+            app.UseHsts();
+        }
+
         if (LogToConsole is true || LogToFile is true)
         {
             app.UseSerilogRequestLogging();
         }
+        
         var cfgCfg = Cfg.GetSection("Config");
         var configEndpoint = GetConfigStr("ExposeAsEndpoint", cfgCfg);
         if (configEndpoint is not null)

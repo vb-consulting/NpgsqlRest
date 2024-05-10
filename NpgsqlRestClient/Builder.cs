@@ -17,6 +17,7 @@ public static class Builder
     public static bool LogToFile { get; private set; } = false;
     public static Serilog.ILogger? Logger { get; private set; } = null;
     public static bool UseHttpsRedirection { get; private set; } = false;
+    public static bool UseHsts { get; private set; } = false;
 
     public static void BuildInstance()
     {
@@ -49,6 +50,7 @@ public static class Builder
         {
             Instance.WebHost.UseKestrelHttpsConfiguration();
             UseHttpsRedirection = GetConfigBool("UseHttpsRedirection", ssqlCfg);
+            UseHsts = GetConfigBool("UseHsts", ssqlCfg);
         }
     }
 
@@ -63,6 +65,7 @@ public static class Builder
             LogToFile = false;
             return;
         }
+
         Logger = null;
         LogToConsole = GetConfigBool("ToConsole", logCfg);
         LogToFile = GetConfigBool("ToFile", logCfg);

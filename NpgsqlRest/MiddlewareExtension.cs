@@ -465,13 +465,13 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         foreach (var header in options.CustomRequestHeaders)
                         {
-                            //context.Request?.Headers?.Append(header);
-                            context.Request?.Headers?.Add(header);
+                            context.Request.Headers.Add(header);
                         }
                     }
 
                     headers = "{";
                     var i = 0;
+
                     foreach (var header in context.Request.Headers)
                     {
                         if (i++ > 0)
