@@ -1,5 +1,34 @@
 # Changelog
 
+## Version [2.8.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.1) (2024-05-10)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.0...2.8.1)
+
+- Upgrade Npgsql from 8.0.0 to 8.0.3
+- Fix null dereference of a possibly null build warning.
+
+### Client Version 1.2.1
+
+- New option `UseHsts`: Adds middleware for using HSTS, which adds the Strict-Transport-Security header. See https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.
+
+```jsonc
+{
+    //
+    //...
+    //
+    "Ssl": {
+        "HttpsRedirection": true,
+        //
+        // Adds middleware for using HSTS, which adds the Strict-Transport-Security header. See https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builderhstsbuilderextensions.usehsts?view=aspnetcore-2.1
+        //
+        "UseHsts": true
+    }
+    //
+    //...
+    //
+}
+```
+
 ## Version [2.8.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.0) (2024-05-02)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.7.1...2.8.0)
