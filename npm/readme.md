@@ -100,6 +100,16 @@ $ npx npgsqlrest appsettings.json project-config.json
 
 See the detailed change log here: [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 
+### 1.2.2
+
+```console
+Versions:
+Client Build         1.2.1.0
+Npgsql               2.8.1.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.7.0.0
+```
+
 ### 1.2.1
 
 Fix readme
