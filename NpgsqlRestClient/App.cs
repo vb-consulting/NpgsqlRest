@@ -9,6 +9,7 @@ using Serilog;
 
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
+using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRestClient;
 
@@ -130,7 +131,14 @@ public static class App
         var userNameParameterName = GetConfigStr("UserNameParameterName", AuthCfg);
         var userRolesParameterName = GetConfigStr("UserRolesParameterName", AuthCfg);
 
-        if (userIdParameterName is null && userNameParameterName is null && userRolesParameterName is null)
+        Dictionary<string, StringValues>? customClaims = null;
+        foreach (var section in AuthCfg.GetSection("CustomParameterNameToClaimMappings").GetChildren())
+        {
+            customClaims ??= [];
+            customClaims.Add(section.Key, section.Value);
+        }
+
+        if (userIdParameterName is null && userNameParameterName is null && userRolesParameterName is null && customClaims is null)
         {
             return null;
         }
@@ -138,7 +146,9 @@ public static class App
         {
             if (userIdParameterName is not null && string.Equals(p.Parameter.ActualName, userIdParameterName, StringComparison.OrdinalIgnoreCase))
             {
-                p.Parameter.Value = p.Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value as object ?? DBNull.Value;
+                p.Parameter.Value = p.Context.User.Claims
+                    .FirstOrDefault(c => string.Equals(c.Type, ClaimTypes.NameIdentifier, StringComparison.Ordinal))?
+                    .Value as object ?? DBNull.Value;
             }
             else if (userNameParameterName is not null && string.Equals(p.Parameter.ActualName, userNameParameterName, StringComparison.OrdinalIgnoreCase))
             {
@@ -146,7 +156,27 @@ public static class App
             }
             else if (userRolesParameterName is not null && string.Equals(p.Parameter.ActualName, userRolesParameterName, StringComparison.OrdinalIgnoreCase))
             {
-                p.Parameter.Value = p.Context.User.Claims.Where(c => c.Type == ClaimTypes.Role)?.Select(r => r.Value).ToArray() as object ?? DBNull.Value;
+                p.Parameter.Value = p.Context.User.Claims
+                    .Where(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?
+                    .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
+            } 
+            else if (customClaims is not null)
+            {
+                if (customClaims.TryGetValue(p.Parameter.ActualName, out var claimName))
+                {
+                    if (p.Parameter.TypeDescriptor.IsArray)
+                    {
+                        p.Parameter.Value = p.Context.User.Claims
+                            .Where(c => string.Equals(c.Type, claimName, StringComparison.Ordinal))?
+                            .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
+                    }
+                    else
+                    {
+                        p.Parameter.Value = p.Context.User.Claims
+                            .FirstOrDefault(c => string.Equals(c.Type, claimName, StringComparison.Ordinal))?
+                            .Value as object ?? DBNull.Value;
+                    }
+                }
             }
         };
     }

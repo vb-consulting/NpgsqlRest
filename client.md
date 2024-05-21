@@ -30,7 +30,8 @@ See [usage](#usage) for more info.
 
 The client application was built from the [`NpgsqlRestClient` project directory](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestClient/).
 
-To crate a custom build follow these steps:
+To create a custom build follow these steps:
+
 1) Make sure that you have .NET8 SDK installed and ready.
 2) Clone [NpgsqlRest repository](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRest)
 3) Navigate to the [`NpgsqlRestClient` project directory](https://github.com/vb-consulting/NpgsqlRest/tree/master/NpgsqlRestClient/).
@@ -74,3 +75,80 @@ Note:                                  Values in the later file will override th
 Example:                               npgsqlrest appsettings.json appsettings.Development.json
 Example:                               npgsqlrest appsettings.json -o appsettings.Development.json
 ```
+
+## Changelog
+
+### Version 1.2.2
+
+New setting `NpgsqlRest.AuthenticationOptions.CustomParameterNameToClaimMappings`:
+
+```jsonc 
+{
+    //
+    //...
+    //
+    "NpgsqlRest": {
+        "AuthenticationOptions": {
+            "CustomParameterNameToClaimMappings": {
+                "parameter_name": "claim_type_name"
+            }
+        }
+    },
+    //
+    //...
+    //
+}
+```
+
+Maps a routine function name to a custom claim type. If the request parameter maps to the parameter name defined by the `NpgsqlRest.AuthenticationOptions.CustomParameterNameToClaimMappings` - it will return the matching value of the claim type, regardless of the parameter value.
+
+If that parameter is an array, it will have all values in an array of that claim type. If it is a single value, it will have only the first value of that claim type.
+
+### Version 1.2.1
+
+- New option `UseHsts`: Adds middleware for using HSTS, which adds the Strict-Transport-Security header. See https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.
+
+```jsonc
+{
+    //
+    //...
+    //
+    "Ssl": {
+        "HttpsRedirection": true,
+        //
+        // Adds middleware for using HSTS, which adds the Strict-Transport-Security header. See https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builderhstsbuilderextensions.usehsts?view=aspnetcore-2.1
+        //
+        "UseHsts": true
+    }
+    //
+    //...
+    //
+}
+```
+
+### Version 1.2.0
+
+- Bugfix with missing dictionary key when using external auth.
+
+- New Config section:
+
+```jsonc
+"Config": {
+    //
+    // Expose current configuration to the endpoint for debugging and inspection. Note, the password in the connection string is not exposed.
+    //
+    "ExposeAsEndpoint": "/config",
+    //
+    // Add the environment variables to configuration first.
+    //
+    "AddEnvironmentVariables": false
+}
+```
+
+- Support for the `CustomRequestHeaders` option.
+- Support for the new options in TsClient.
+
+### Version 1.1.0
+
+- [Client application](https://vb-consulting.github.io/npgsqlrest/client/) new release with massive improvements.
+- External auth logins implementation (Google, LinkedIn, GitHub)

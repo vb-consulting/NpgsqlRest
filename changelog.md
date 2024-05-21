@@ -1,5 +1,9 @@
 # Changelog
 
+Note: For a changelog for a client application [see the client application page changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog).
+
+---
+
 ## Version [2.8.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.1) (2024-05-10)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.0...2.8.1)
@@ -7,27 +11,7 @@
 - Upgrade Npgsql from 8.0.0 to 8.0.3
 - Fix null dereference of a possibly null build warning.
 
-### Client Version 1.2.1
-
-- New option `UseHsts`: Adds middleware for using HSTS, which adds the Strict-Transport-Security header. See https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.
-
-```jsonc
-{
-    //
-    //...
-    //
-    "Ssl": {
-        "HttpsRedirection": true,
-        //
-        // Adds middleware for using HSTS, which adds the Strict-Transport-Security header. See https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builderhstsbuilderextensions.usehsts?view=aspnetcore-2.1
-        //
-        "UseHsts": true
-    }
-    //
-    //...
-    //
-}
-```
+---
 
 ## Version [2.8.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.0) (2024-05-02)
 
@@ -44,41 +28,16 @@ Note: these values are added to the request headers dictionary before they are s
 - Sanitaze generated TypeScript names.
 - Add `SkipRoutineNames`, `SkipFunctionNames` and `SkipPaths` options.
 
-### Client Version 1.2.0
-
-- Bugfix with missing dictionary key when using external auth.
-
-- New Config section:
-
-```jsonc
-"Config": {
-    //
-    // Expose current configuration to the endpoint for debugging and inspection. Note, the password in the connection string is not exposed.
-    //
-    "ExposeAsEndpoint": "/config",
-    //
-    // Add the environment variables to configuration first.
-    //
-    "AddEnvironmentVariables": false
-}
-```
-
-- Support for the `CustomRequestHeaders` option.
-- Support for the new options in TsClient.
+---
 
 ## Version [2.7.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.7.1) (2024-04-30)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.7.0...2.7.1)
 
-### NpgsqlRest 2.7.1
-
 - Small fix on the Login endpoint that fixed the problem with the custom message not being written to the response in some rare circumstances.
 - Redesigned the auth module and changed the access modifiers to the public of the ClaimTypes Dictionary to be used with the client application.
 
-### NpgsqlRest Client 1.1.0
-
-- [Client application](https://vb-consulting.github.io/npgsqlrest/client/) new release with massive improvements.
-- External auth logins implementation (Google, LinkedIn, GitHub)
+---
 
 ## Version [2.7.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.7.0) (2024-04-17)
 
@@ -106,6 +65,8 @@ app.UseNpgsqlRest(new()
 }
 ```
 
+---
+
 ## Version [2.6.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.6.1) (2024-04-16)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.6.0...2.6.1)
@@ -129,6 +90,8 @@ Improved error handling. Two new options are available:
 Dictionary setting that maps the PostgreSQL Error Codes (see the [errcodes-appendix](https://www.postgresql.org/docs/current/errcodes-appendix.html) to HTTP Status Codes. 
 
 Default is `{ "57014", 205 }` which maps PostgreSQL `query_canceled` error to HTTP `205 Reset Content`. If the mapping doesn't exist, the standard HTTP  `500 Internal Server Error` is returned.
+
+---
 
 ## Version [2.5.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.5.0) (2024-04-15)
 
@@ -163,17 +126,23 @@ public string? ImportBaseUrlFrom { get; set; } = importBaseUrlFrom;
 public string? ImportParseQueryFrom { get; set; } = importParseQueryFrom;
 ```
 
+---
+
 ## Version [2.4.2](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.2) (2024-04-14)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.1...2.4.2)
 
 - Fix double logging the same message on the connection notice.
 
+---
+
 ## Version [2.4.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.1) (2024-04-12)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.4.0...2.4.1)
 
 - Fix missing Text type for types in need of JSON escaping.
+
+---
 
 ## Version [2.4.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.4.0) (2024-04-08)
 
@@ -195,11 +164,15 @@ public string? ImportParseQueryFrom { get; set; } = importParseQueryFrom;
 - Fixed automatic port detection in the code-gen plugins.
 - Added `CommentHeaderIncludeComments` to the `TsClient` plugin.
 
+---
+
 ## Version [2.3.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.1) (2024-04-05)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.3.0...2.3.1)
 
 * Fix the "Headers are read-only, response has already started." error during the logout execution.
+
+---
 
 ## Version [2.3.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.3.0) (2024-04-04)
 
@@ -213,6 +186,8 @@ public string? ImportParseQueryFrom { get; set; } = importParseQueryFrom;
   - New TsClweint option BySchema. If true, create a file by schema. The default is false.
   - Fix handling login endpoints.
   - Bugfixes.
+
+---
 
 ## Version [2.2.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.2.0) (2024-04-02)
 
@@ -253,6 +228,8 @@ To authorize a different authorization scheme, return a [schema column name](htt
 Any other records will be set as new claims for the created user identity on successful login, where:
 - The column name is claim type. This type will by default try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value. Use the [`UseActiveDirectoryFederationServicesClaimTypes` Option][https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes] to control this behavior.
 - The record value (as string) is the claim value.
+
+---
 
 ## Version [2.1.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.1.0) (2024-03-29)
 
@@ -309,6 +286,8 @@ export async function getDuplicateEmailCustomers() : Promise<{status: number, re
     return {status: response.status, response: await response.json() as IGetDuplicateEmailCustomersResponse[]};
 }
 ```
+
+---
 
 ## Version [2.0.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.0.0) (2024-03-10)
 
