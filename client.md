@@ -78,6 +78,30 @@ Example:                               npgsqlrest appsettings.json -o appsetting
 
 ## Changelog
 
+### Version 1.2.3
+
+New setting `NpgsqlRest.InstanceIdRequestHeaderName`:
+
+```jsonc
+{
+    //
+    //...
+    //
+    "NpgsqlRest": {
+        "InstanceIdRequestHeaderName": "X-Instance-Id"
+    }
+    //
+    //...
+    //
+}
+```
+
+The `NpgsqlRest.InstanceIdRequestHeaderName` setting allows you to specify the header name that will be used to identify the instance of the application. Header value will be used as the unique running instance ID.
+
+This is useful when you have multiple instances of the application running behind a load balancer, and you want to identify which instance is handling the request.
+
+Default is `null` (not used).
+
 ### Version 1.2.2
 
 New setting `NpgsqlRest.AuthenticationOptions.CustomParameterNameToClaimMappings`:

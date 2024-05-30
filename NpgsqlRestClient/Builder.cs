@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.BearerToken;
+﻿using System.Data.Common;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
@@ -268,12 +269,29 @@ public static class Builder
         return connectionString;
     }
 
+    private static string? _instanceId = null;
+
+    public static string InstanceId
+    {
+        get
+        {
+            _instanceId ??= Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+            return _instanceId;
+        }
+    }
+
     public static Dictionary<string, StringValues> GetCustomHeaders()
     {
         var result = new Dictionary<string, StringValues>();
         foreach(var section in NpgsqlRestCfg.GetSection("CustomRequestHeaders").GetChildren())
         {
             result.Add(section.Key, section.Value);
+        }
+
+        var instIdName = GetConfigStr("InstanceIdRequestHeaderName", NpgsqlRestCfg);
+        if (string.IsNullOrEmpty(instIdName) is false)
+        {
+            result.Add(instIdName, InstanceId);
         }
         return result;
     }

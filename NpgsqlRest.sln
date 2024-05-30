@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		annotations.md = annotations.md
 		.github\workflows\build-test-publish.yml = .github\workflows\build-test-publish.yml
 		changelog.md = changelog.md
+		client.md = client.md
 		LICENSE = LICENSE
 		options.md = options.md
 		README.md = README.md
