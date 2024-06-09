@@ -172,6 +172,10 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             {
                 return;
             }
+            if (options.SkipSchemas.Contains(routine.Schema))
+            {
+                return;
+            }
             if (options.SkipPaths.Contains(endpoint.Url))
             {
                 return;

@@ -279,6 +279,12 @@ public static class App
                 ts.SkipPaths = skipPaths.ToArray();
             }
 
+            var skipSchemas = GetConfigEnumerable("SkipSchemas", tsClientCfg);
+            if (skipSchemas is not null)
+            {
+                ts.SkipSchemas = skipSchemas.ToArray();
+            }
+
             handlers.Add(new TsClient(ts));
         }
 

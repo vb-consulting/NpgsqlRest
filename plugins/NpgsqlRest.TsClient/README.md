@@ -519,7 +519,7 @@ public class TsClientOptions(
     public string[] SkipRoutineNames { get; set; } = skipRoutineNames ?? [];
 
     /// <summary>
-    /// Array of generated function names to skip
+    /// Array of generated function names to skip (without schema)
     /// </summary>
     public string[] SkipFunctionNames { get; set; } = skipFunctionNames ?? [];
 
@@ -527,6 +527,11 @@ public class TsClientOptions(
     /// Array of url paths to skip
     /// </summary>
     public string[] SkipPaths { get; set; } = skipPaths ?? [];
+
+    /// <summary>
+    /// Array of schema names to skip
+    /// </summary>
+    public string[] SkipSchemas { get; set; } = skipPaths ?? [];
 }
 ```
 
