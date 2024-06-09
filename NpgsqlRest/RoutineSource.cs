@@ -2,6 +2,7 @@
 using Npgsql;
 using NpgsqlTypes;
 using NpgsqlRest.Extensions;
+using System.Text.RegularExpressions;
 
 namespace NpgsqlRest;
 
@@ -85,11 +86,67 @@ public class RoutineSource(
                 returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
             }
             var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
-            var paramDefaults = reader.Get<string?[]>(15);//"param_defaults");
+            
             bool isUnnamedRecord = reader.Get<bool>(11);// "is_unnamed_record");
             var routineType = type.GetEnum<RoutineType>();
             var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
             var paramCount = reader.Get<int>(12);// "param_count");
+
+            var argumentDef = reader.Get<string>(15);
+            string?[] paramDefaults = new string?[paramCount];
+            bool[] hasParamDefaults = new bool[paramCount];
+
+            if (string.IsNullOrEmpty(argumentDef))
+            {
+                for (int i = 0; i < paramCount; i++)
+                {
+                    paramDefaults[i] = null;
+                    hasParamDefaults[i] = false;
+                }
+            }
+            else
+            {
+                const string defaultArgExp = " DEFAULT ";
+                for (int i = 0; i < paramCount; i++)
+                {
+                    string paramName = paramNames[i] ?? "";
+                    string? nextParamName = i < paramCount - 1 ? paramNames[i + 1] : null;
+
+                    int startIndex = argumentDef.IndexOf(paramName);
+                    int endIndex = nextParamName != null ? argumentDef.IndexOf(string.Concat(", " + nextParamName, " ")) : argumentDef.Length;
+
+                    if (startIndex != -1 && endIndex != -1 && startIndex < endIndex)
+                    {
+                        string paramDef = argumentDef[startIndex..endIndex];
+
+                        int defaultIndex = paramDef.IndexOf(defaultArgExp);
+                        if (defaultIndex != -1)
+                        {
+                            string defaultValue = paramDef[(defaultIndex + 9)..].Trim();
+
+                            if (defaultValue.EndsWith(','))
+                            {
+                                defaultValue = defaultValue[..^1].Trim();
+                            }
+
+                            paramDefaults[i] = defaultValue;
+                            hasParamDefaults[i] = true;
+                        }
+                        else
+                        {
+                            paramDefaults[i] = null;
+                            hasParamDefaults[i] = false;
+                        }
+                    }
+                    else
+                    {
+                        paramDefaults[i] = null;
+                        hasParamDefaults[i] = false;
+                    }
+                }
+
+            }
+
             var returnRecordCount = reader.Get<int>(8);// "return_record_count");
             var variadic = reader.Get<bool>(16);// "has_variadic");
             var expression = string.Concat(
@@ -166,7 +223,7 @@ public class RoutineSource(
                     paramCount: paramCount,
                     paramNames: paramNames,
                     paramTypeDescriptor: paramTypes
-                        .Select((x, i) => new TypeDescriptor(x, hasDefault: paramDefaults[i] is not null))
+                        .Select((x, i) => new TypeDescriptor(x, hasDefault: hasParamDefaults[i] is true))
                         .ToArray(),
 
                     expression: expression,

@@ -11,15 +11,23 @@ public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
         {
             if (count == 1)
             {
-                return string.Concat("$1", suffix, ")");
+                return parameter.ActualName is null ? 
+                    string.Concat("$1", suffix, ")") : 
+                    string.Concat(parameter.ActualName, "=>$1", suffix, ")");
             }
-            return string.Concat("$1", suffix);
+            return parameter.ActualName is null ? 
+                string.Concat("$1", suffix) : 
+                string.Concat(parameter.ActualName, "=>$1", suffix);
         }
         if (index == count - 1)
         {
-            return string.Concat(",$", (index + 1).ToString(), suffix, ")");
+            return parameter.ActualName is null ? 
+                string.Concat(",", "$", (index + 1).ToString(), suffix, ")") : 
+                string.Concat(",", parameter.ActualName, "=>$", (index + 1).ToString(), suffix, ")");
         }
-        return string.Concat(",$", (index + 1).ToString(), suffix);
+        return parameter.ActualName is null ?
+            string.Concat(",", "$", (index + 1).ToString(), suffix) : 
+            string.Concat(",", parameter.ActualName, "=>$", (index + 1).ToString(), suffix);
     }
 
     public string? AppendEmpty() => ")";

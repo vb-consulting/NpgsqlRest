@@ -47,11 +47,8 @@ internal class RoutineSourceQuery
                     '{}'::text[]
                 )
             end as out_param_types,
-
-            coalesce(
-                array_agg(p.parameter_default order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
-                '{}'::text[]
-            ) as in_param_defaults,
+            
+            pg_get_function_arguments(proc.oid) as arguments_def,
 
             case when proc.provariadic <> 0 then true else false end as has_variadic,
 
@@ -140,7 +137,7 @@ internal class RoutineSourceQuery
         array_length(in_params, 1) as param_count,
         in_params as param_names,
         in_param_types as param_types,
-        in_param_defaults as param_defaults,
+        arguments_def,
         has_variadic,
         pg_get_functiondef(oid) as definition
     from cte1

@@ -4,6 +4,41 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.8.2](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.2) (2024-06-09)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.1...2.8.2)
+
+### Fixed bug with default parameters
+
+Using a routine that has a default parameters and supplying one of the parameters would sometimes caused mixing of the parameter order. For example, if the routine is defined as:
+
+```sql
+create function get_two_default_params(
+    _p1 text = 'abc', 
+    _p2 text = 'xyz'
+) 
+returns text 
+language sql
+as 
+$$
+select _p1 || _p2;
+$$;
+```
+
+And invoking it with only second parameter parameter (p2) would mix p1 and p2 and wrongly assume that the first parameter is the second parameter and vice versa.
+
+This is now fixed and the parameters are correctly assigned.
+
+### Fixed bug with default parameters for PostgreSQL roles that are not super-users.
+
+When using a PostgreSQL role that is not a super-user, the default parameters were not correctly assigned.
+
+This may be a bug in PostgreSQL itself (reported), column `parameter_default` in system table `information_schema.parameters` always returns `null` for roles that are not super-users.
+
+Workaround is implemented and tested to use the `pg_get_function_arguments` function and then to parse the default values from the function definition.
+
+---
+
 ## Version [2.8.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.1) (2024-05-10)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.0...2.8.1)

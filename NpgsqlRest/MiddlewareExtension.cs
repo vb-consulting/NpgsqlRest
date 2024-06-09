@@ -216,7 +216,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 }
                                 if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
                                 {
-                                    if (options.ValidateParameters is not null)
+                                    if (options.ValidateParameters is not null && parameter.Value is not null)
                                     {
                                         options.ValidateParameters(new(
                                             context,
@@ -228,7 +228,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             queryStringValues: qsValue,
                                             jsonBodyNode: null));
                                     }
-                                    if (options.ValidateParametersAsync is not null)
+                                    if (options.ValidateParametersAsync is not null && parameter.Value is not null)
                                     {
                                         await options.ValidateParametersAsync(new(
                                             context,

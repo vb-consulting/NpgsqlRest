@@ -52,6 +52,15 @@ as
 $$
 select _p;
 $$;
+
+
+create function get_two_default_params(_p1 text = 'abc', _p2 text = 'xyz') 
+returns text 
+language sql
+as 
+$$
+select _p1 || _p2;
+$$;
 ");
     }
 }
@@ -203,5 +212,49 @@ public class DefaultParametersTests(TestFixture test)
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
         result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
         response.Should().Be("xyz");
+    }
+
+    [Fact]
+    public async Task Test_get_two_default_params__1()
+    {
+        using var result = await test.Client.GetAsync("/api/get-two-default-params/?p1=aa&p2=bb");
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("aabb");
+    }
+
+    [Fact]
+    public async Task Test_get_two_default_params__2()
+    {
+        using var result = await test.Client.GetAsync("/api/get-two-default-params/?p1=aa");
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("aaxyz");
+    }
+
+    [Fact]
+    public async Task Test_get_two_default_params__3()
+    {
+        using var result = await test.Client.GetAsync("/api/get-two-default-params/?p2=bb");
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("abcbb");
+    }
+
+    [Fact]
+    public async Task Test_get_two_default_params__4()
+    {
+        using var result = await test.Client.GetAsync("/api/get-two-default-params/");
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Should().Be("abcxyz");
     }
 }
