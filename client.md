@@ -78,6 +78,10 @@ Example:                               npgsqlrest appsettings.json -o appsetting
 
 ## Changelog
 
+### Version 1.2.4
+
+- Upgrade NpgsqlRest to 2.8.2.
+
 ### Version 1.2.3
 
 New setting `NpgsqlRest.InstanceIdRequestHeaderName`:

@@ -102,6 +102,16 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+### 1.2.5
+
+```console
+Versions:
+Client Build         1.2.4.0
+Npgsql               2.8.2.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.8.0.0
+```
+
 ### 1.2.4
 
 ```console
