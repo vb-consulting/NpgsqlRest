@@ -19,7 +19,6 @@ This is the group of options used for authentication:
 - Type: `string?`
 - Default: `null`
 
-
 Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
 
 This value must be set to non-null when using login endpoints, otherwise, the following error will raise: `SignInAsync when principal.Identity.IsAuthenticated is false is not allowed when AuthenticationOptions.RequireAuthenticatedSignIn is true.`

@@ -4,13 +4,31 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.8.3](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.3) (2024-06-11)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.2...2.8.3)
+
+Fix inconsistency with sending request parameters by routine parameters.
+
+Previously it was possible to send request parameters to parameters without default values. To use request parameters in routine parameters, that parameter has to have a default value always.
+
+This inconsistency is actually a bug in cases when the request header parameter name wasn't provided a value.
+
+This is fixed now.
+
+TsClient 1.8.1:
+
+- If all routines are skipped, don't write any files.
+
+---
+
 ## Version [2.8.2](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.2) (2024-06-09)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.1...2.8.2)
 
 ### Fixed bug with default parameters
 
-Using a routine that has a default parameters and supplying one of the parameters would sometimes caused mixing of the parameter order. For example, if the routine is defined as:
+Using a routine that has default parameters and supplying one of the parameters would sometimes cause mixing of the parameter order. For example, if the routine is defined like this:
 
 ```sql
 create function get_two_default_params(
@@ -25,7 +43,7 @@ select _p1 || _p2;
 $$;
 ```
 
-And invoking it with only second parameter parameter (p2) would mix p1 and p2 and wrongly assume that the first parameter is the second parameter and vice versa.
+Invoking it with only the second parameter parameter (p2) would mix p1 and p2 and wrongly assume that the first parameter is the second parameter and vice versa.
 
 This is now fixed and the parameters are correctly assigned.
 

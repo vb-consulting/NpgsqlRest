@@ -126,7 +126,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                 List<NpgsqlRestParameter> paramsList = new(routine.ParamCount);
                 bool hasNulls = false;
-                int? headerParameterIndex = null;
+                NpgsqlRestParameter? headerParam = null;
                 if (routine.ParamCount > 0)
                 {
                     if (endpoint.RequestParamType == RequestParamType.QueryString)
@@ -155,6 +155,15 @@ public static class NpgsqlRestMiddlewareExtensions
                                 ActualName = routine.ParamNames[i],
                                 TypeDescriptor = descriptor
                             };
+                            if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                            {
+                                if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
+                                    string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
+                                {
+                                    headerParam = parameter;
+                                }
+                            }
+
                             if (context.Request.Query.TryGetValue(p, out var qsValue))
                             {
                                 if (TryParseParameter(ref qsValue, ref descriptor, ref parameter, endpoint.QueryStringNullHandling))
@@ -245,18 +254,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                         return;
                                     }
                                 }
-                                if (parameter.Value is null)
-                                {
-                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
-                                    {
-                                        if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
-                                            string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
-                                        {
-                                            headerParameterIndex = i;
-                                        }
-                                    }
-                                }
-                                if (parameter.Value is not null || headerParameterIndex is not null)
+
+                                if (parameter.Value is not null)
                                 {
                                     paramsList.Add(parameter);
                                     setCount++;
@@ -313,6 +312,14 @@ public static class NpgsqlRestMiddlewareExtensions
                                 ActualName = routine.ParamNames[i],
                                 TypeDescriptor = descriptor
                             };
+                            if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                            {
+                                if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
+                                    string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
+                                {
+                                    headerParam = parameter;
+                                }
+                            }
                             if (bodyDict.TryGetValue(p, out var value))
                             {
                                 if (TryParseParameter(ref value, ref descriptor, ref parameter))
@@ -385,18 +392,8 @@ public static class NpgsqlRestMiddlewareExtensions
                                         return;
                                     }
                                 }
-                                if (parameter.Value is null)
-                                {
-                                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
-                                    {
-                                        if (string.Equals(p, endpoint.RequestHeadersParameterName, StringComparison.Ordinal) ||
-                                            string.Equals(routine.ParamNames[i], endpoint.RequestHeadersParameterName, StringComparison.Ordinal))
-                                        {
-                                            headerParameterIndex = i;
-                                        }
-                                    }
-                                }
-                                if (parameter.Value is not null || headerParameterIndex is not null)
+
+                                if (parameter.Value is not null)
                                 {
                                     paramsList.Add(parameter);
                                     setCount++;
@@ -487,11 +484,23 @@ public static class NpgsqlRestMiddlewareExtensions
                             PgConverters.SerializeString(ref value));
                     }
                     headers = string.Concat(headers, "}");
-                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter)
+                    if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter && headerParam is not null)
                     {
-                        if (headerParameterIndex.HasValue)
+                        var headerAdded = false;
+                        for (var ip = 0; ip < paramsList.Count; ip++)
                         {
-                            paramsList[headerParameterIndex.Value].Value = headers;
+                            var p = paramsList[ip];
+                            if (p == headerParam)
+                            {
+                                //p.Value = headers;
+                                headerAdded = true;
+                                break;
+                            }
+                        }
+                        if (headerAdded is false)
+                        {
+                            headerParam.Value = headers;
+                            paramsList.Add(headerParam);
                         }
                     }
                 }

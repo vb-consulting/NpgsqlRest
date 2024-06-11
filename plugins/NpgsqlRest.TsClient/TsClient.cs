@@ -108,13 +108,17 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
         }
 
+        bool handled = false;
         foreach (var (routine, endpoint) in endpoints
             .Where(e => e.routine.Type == RoutineType.Table || e.routine.Type == RoutineType.View)
             .OrderBy(e => e.routine.Schema)
             .ThenBy(e => e.routine.Type)
             .ThenBy(e => e.routine.Name))
         {
-            Handle(routine, endpoint);
+            if (Handle(routine, endpoint) && handled is false)
+            {
+                handled = true;
+            }
         }
 
         foreach (var (routine, endpoint) in endpoints
@@ -122,7 +126,15 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             .OrderBy(e => e.routine.Schema)
             .ThenBy(e => e.routine.Name))
         {
-            Handle(routine, endpoint);
+            if (Handle(routine, endpoint) && handled is false)
+            {
+                handled = true;
+            }
+        }
+
+        if (handled is false)
+        {
+            return;
         }
 
         if (!options.FileOverwrite && File.Exists(fileName))
@@ -166,19 +178,19 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             sb.Insert(0, string.Join(Environment.NewLine, options.HeaderLines.Select(l => string.Format(l, now))));
         }
 
-        void Handle(Routine routine, RoutineEndpoint endpoint)
+        bool Handle(Routine routine, RoutineEndpoint endpoint)
         {
             if (options.SkipRoutineNames.Contains(routine.Name))
             {
-                return;
+                return false;
             }
             if (options.SkipSchemas.Contains(routine.Schema))
             {
-                return;
+                return false;
             }
             if (options.SkipPaths.Contains(endpoint.Url))
             {
-                return;
+                return false;
             }
 
             var name = string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..];
@@ -226,7 +238,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
             if (options.SkipFunctionNames.Contains(camel))
             {
-                return;
+                return false;
             }
 
             content.AppendLine();
@@ -456,6 +468,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 funcBody));
             content.AppendLine("}");
 
+            return true;
         } // void Handle
     }
 
