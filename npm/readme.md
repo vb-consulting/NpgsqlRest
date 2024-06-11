@@ -107,7 +107,7 @@ See the detailed change log:
 ```console
 Versions:
 Client Build         1.2.4.0
-Npgsql               2.8.2.0
+NpgsqlRest           2.8.2.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.8.0.0
 ```
@@ -117,7 +117,7 @@ NpgsqlRest.TsClient  1.8.0.0
 ```console
 Versions:
 Client Build         1.2.3.0
-Npgsql               2.8.1.0
+NpgsqlRest           2.8.1.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.7.0.0
 ```
@@ -127,7 +127,7 @@ NpgsqlRest.TsClient  1.7.0.0
 ```console
 Versions:
 Client Build         1.2.2.0
-Npgsql               2.8.1.0
+NpgsqlRest           2.8.1.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.7.0.0
 ```
@@ -137,7 +137,7 @@ NpgsqlRest.TsClient  1.7.0.0
 ```console
 Versions:
 Client Build         1.2.1.0
-Npgsql               2.8.1.0
+NpgsqlRest           2.8.1.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.7.0.0
 ```
@@ -151,7 +151,7 @@ Fix readme
 ```console
 Versions:
 Client Build         1.2.0.0
-Npgsql               2.8.0.0
+NpgsqlRest           2.8.0.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.7.0.0
 ```
@@ -187,7 +187,7 @@ New build versions:
 
 ```console
 Client Build         1.1.0.0
-Npgsql               2.7.1.0
+NpgsqlRest           2.7.1.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.6.0.0
 ```
