@@ -92,3 +92,40 @@ Login
 - Note: this message is only returned in a case when the configured authentication scheme doesn't write anything into the response body on a sign-in operation.
 
 - For example, the Cookie authentication scheme doesn't write anything into the body and this message is safely written to the response body. On the other hand, the Bearer Token schemes will always write the response body and this message will not be written to the response body.
+
+## External Logins
+
+External logins are functionality from the client application. They are configured in the following configuration section:
+
+```jsonc
+{
+    //
+    // ...
+    //
+    "Auth": {
+        //
+        // ...
+        //
+        "External": {
+            //
+            // ...
+            //
+            "LoginCommand": "select * from external_login($1,$2,$3)",
+            //
+            // ...
+            //
+        }
+    }
+}
+```
+
+See the [Client Application Default Config](https://vb-consulting.github.io/npgsqlrest/config/) for more info.
+
+Return values from this command follow the same convention [described above](https://vb-consulting.github.io/npgsqlrest/login-endpoints/#login-endpoint-conventions).
+
+This command can have up to three parameters maximum. The second and third parameters are optional. These are:
+
+1) Email (text) received from the external provider.
+2) Name (text) received from the external provider. If the external provider doesn't provide a name this is null.
+3) Parameters (JSON). Includes a collection of parameter values received from the external provider, plus the original query strings if any (for example `/signin-google?param1=test`). This allows for different types of processing of external provider data (registration or just login for example).
+

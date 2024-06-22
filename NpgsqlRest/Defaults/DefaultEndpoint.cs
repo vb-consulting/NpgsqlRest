@@ -60,7 +60,7 @@ internal static class DefaultEndpoint
             routineEndpoint.LogCallback = LoggerMessage.Define<string, string>(LogLevel.Information,
                 new EventId(5, nameof(routineEndpoint.LogCallback)),
                 "{parameters}{command}",
-                Logger.LogDefineOptions);
+                NpgsqlRestLogger.LogDefineOptions);
         }
         else
         {

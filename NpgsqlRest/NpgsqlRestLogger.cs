@@ -98,7 +98,7 @@ public static partial class Log
     public static partial void InvalidBufferRows(this ILogger logger, string buffer, string schema, string name, ulong defaultBufferRows);
 }
 
-internal static class Logger
+public static class NpgsqlRestLogger
 {
     private const string Info = "INFO";
     private const string Notice = "NOTICE";

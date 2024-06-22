@@ -78,6 +78,17 @@ Example:                               npgsqlrest appsettings.json -o appsetting
 
 ## Changelog
 
+### Version 1.2.7
+
+- Upgrade NpgsqlRest to 2.8.3.
+
+- Version from 1.2.4 to 1.2.7 is to sync with the version of the NPM package.
+
+- Improvements in external auth:
+  - The optional third parameter receives JSON with parameters received from an external provider and query string parameters supplied to the original endpoint.
+  - Login command number of parameters is optional i.e. it can be either `select * from auth($1)` or `select * from auth($1,$2)` or `select * from auth($1,$2,3)` (three is max).
+  - Calls to external login/auth commands are logged by the same options, same rules, same format and the same logger as all other commands.
+
 ### Version 1.2.4
 
 - Upgrade NpgsqlRest to 2.8.2.
@@ -104,7 +115,7 @@ The `NpgsqlRest.InstanceIdRequestHeaderName` setting allows you to specify the h
 
 This is useful when you have multiple instances of the application running behind a load balancer, and you want to identify which instance is handling the request.
 
-Default is `null` (not used).
+The default is `null`` (not used).
 
 ### Version 1.2.2
 

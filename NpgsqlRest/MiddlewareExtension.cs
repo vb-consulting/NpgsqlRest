@@ -19,13 +19,15 @@ using Tuple = (
     NpgsqlRest.RoutineEndpoint endpoint,
     NpgsqlRest.IRoutineSourceParameterFormatter formatter
 );
+
 using NpgsqlRest.Auth;
-using System.Reflection.PortableExecutable;
 
 namespace NpgsqlRest;
 
 public static class NpgsqlRestMiddlewareExtensions
 {
+    private static ILogger? logger = null;
+    public static ILogger? GetLogger() => logger;
     public static IApplicationBuilder UseNpgsqlRest(this IApplicationBuilder builder, NpgsqlRestOptions options)
     {
         if (options.ConnectionString is null && options.ConnectionFromServiceProvider is false)
@@ -33,7 +35,6 @@ public static class NpgsqlRestMiddlewareExtensions
             throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
         }
 
-        ILogger? logger = null;
         if (options.Logger is not null)
         {
             logger = options.Logger;
@@ -529,7 +530,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         connection.Notice += (sender, args) =>
                         {
-                            Logger.LogConnectionNotice(ref logger, ref args);
+                            NpgsqlRestLogger.LogConnectionNotice(ref logger, ref args);
                         };
                     }
 
@@ -644,7 +645,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                     if (shouldLog)
                     {
-                        Logger.LogEndpoint(ref logger, ref endpoint, cmdLog?.ToString() ?? "", command.CommandText);
+                        NpgsqlRestLogger.LogEndpoint(ref logger, ref endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                     }
 
                     if (endpoint.CommandTimeout.HasValue)
@@ -915,7 +916,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                     if (context.Response.StatusCode != 200 || context.Response.HasStarted)
                     {
-                        logger?.LogError(exception, "Error executing command: {0} mapped to endpoint: {1}", commandText, endpoint.Url);
+                        logger?.LogError(exception, "Error executing command: {commandText} mapped to endpoint: {Url}", commandText, endpoint.Url);
                         await context.Response.CompleteAsync();
                         return;
                     }

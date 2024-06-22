@@ -4,6 +4,12 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.8.4](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.4) (2024-06-22)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.3...2.8.4)
+
+Slight improvements in logging and enabling it to work with the client application.
+
 ## Version [2.8.3](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.3) (2024-06-11)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.2...2.8.3)

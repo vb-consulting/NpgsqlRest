@@ -88,7 +88,6 @@ NpgsqlRestOptions options = new()
     CustomRequestHeaders = GetCustomHeaders()
 };
 
-ExternalAuth.Configure(app, options);
-
 app.UseNpgsqlRest(options);
+ExternalAuth.Configure(app, options);
 app.Run();

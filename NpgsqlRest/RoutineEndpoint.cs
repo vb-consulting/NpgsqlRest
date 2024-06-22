@@ -41,6 +41,6 @@ public struct RoutineEndpoint(
     public HashSet<string>? AuthorizeRoles { get; set; } = authorizeRoles;
     public bool Login { get; set; } = login;
     public bool Logout { get; set; } = logout;
-    public bool IsAuth => Login || Logout;
+    public readonly bool IsAuth => Login || Logout;
     public ulong? BufferRows { get; set; } = bufferRows;
 }

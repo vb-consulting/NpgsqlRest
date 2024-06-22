@@ -12,6 +12,7 @@ using static System.Net.Mime.MediaTypeNames;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRest.Auth.ClaimsDictionary;
+using Microsoft.AspNetCore.Routing;
 
 namespace NpgsqlRestClient;
 
@@ -36,7 +37,7 @@ public static class ExternalAuthConfig
     public static string ReturnToPath { get; private set; } = default!;
     public static string ReturnToPathQueryStringKey { get; private set; } = default!;
     public static string LoginCommand { get; private set; } = default!;
-    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = new();
+    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = [];
 
     public static void Build(IConfigurationSection authConfig)
     {
@@ -126,7 +127,7 @@ public static class ExternalAuth
                     string code = (node["code"]?.ToString()) ??
                         throw new ArgumentException("code retrieved from the external provider is null");
 
-                    await ProcessAsync(code, config, context, options);
+                    await ProcessAsync(code, body, config, context, options);
                     return;
                 }
                 catch (Exception e)
@@ -158,7 +159,12 @@ public static class ExternalAuth
     private const string browserSessionStateKey = "__external_state";
     private const string browserSessionParamsKey = "__external_params";
 
-    private static async Task ProcessAsync(string code, ExternalAuthClientConfig config, HttpContext context, NpgsqlRestOptions options)
+    private static async Task ProcessAsync(
+        string code,
+        string body,
+        ExternalAuthClientConfig config, 
+        HttpContext context, 
+        NpgsqlRestOptions options)
     {
         string? email;
         string? name;
@@ -265,18 +271,61 @@ public static class ExternalAuth
             throw new ArgumentException("email retrieved from the external provider is null");
         }
 
+        var logger = NpgsqlRestMiddlewareExtensions.GetLogger();
         using var connection = new NpgsqlConnection(options.ConnectionString);
+        if (options.LogConnectionNoticeEvents && logger != null)
+        {
+            connection.Notice += (sender, args) =>
+            {
+                NpgsqlRestLogger.LogConnectionNotice(ref logger, ref args);
+            };
+        }
+
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = ExternalAuthConfig.LoginCommand;
-        command.Parameters.Add(new NpgsqlParameter()
+        var paramCount = command.CommandText[command.CommandText.IndexOf('(')..].Split(',').Length;
+
+        if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
         {
             Value = email,
+            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
         });
-        command.Parameters.Add(new NpgsqlParameter()
+        if (paramCount >= 2) command.Parameters.Add(new NpgsqlParameter()
         {
-            Value = name is not null ? name : DBNull.Value
+            Value = name is not null ? name : DBNull.Value,
+            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
         });
+        if (paramCount >= 3) command.Parameters.Add(new NpgsqlParameter()
+        {
+            Value = body is not null ? body : DBNull.Value,
+            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Json
+        });
+
+        if (logger?.IsEnabled(LogLevel.Information) is true && options.LogCommands)
+        {
+            var commandToLog = command.CommandText;
+            if (options.LogCommandParameters)
+            {
+                StringBuilder paramsToLog = new();
+                for (var i = 0; i < command.Parameters.Count; i++)
+                {
+                    var p = command.Parameters[i];
+                    paramsToLog!.AppendLine(string.Concat(
+                        "-- $",
+                        (i + 1).ToString(),
+                        " ", p.DataTypeName,
+                        " = ",
+                        p.Value));
+                }
+                logger?.Log(LogLevel.Information, "{paramsToLog}{commandToLog}", paramsToLog, commandToLog);
+            }
+            else
+            {
+                logger?.Log(LogLevel.Information, "{commandToLog}", commandToLog);
+            }
+        }
+
         await using NpgsqlDataReader reader = await command.ExecuteReaderAsync();
 
         if (await reader.ReadAsync() is false || reader.FieldCount == 0)
@@ -473,7 +522,7 @@ public static class ExternalAuth
             var externalType = "{9}";
             var params = paramsToObject(window.location.search);
             var keys = Object.keys(params);
-            if (keys.length==0 || (keys.length==1 && params[returnToPathQueryStringKey])) {{
+            if (!params.error && !params.state) {{
                 if (params[returnToPathQueryStringKey]) {{
                     sessionStorage.setItem(returnToKey, params[returnToPathQueryStringKey]);
                     delete params[returnToPathQueryStringKey];
