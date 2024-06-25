@@ -78,9 +78,13 @@ Example:                               npgsqlrest appsettings.json -o appsetting
 
 ## Changelog
 
+### 1.2.8
+
+- Upgrade NpgsqlRest to 2.8.5.
+
 ### Version 1.2.7
 
-- Upgrade NpgsqlRest to 2.8.3.
+- Upgrade NpgsqlRest to 2.8.4.
 
 - Version from 1.2.4 to 1.2.7 is to sync with the version of the NPM package.
 

@@ -4,6 +4,12 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.8.5](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.5) (2024-06-25)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.4...2.8.5)
+
+Fix default parameter validation callback.
+
 ## Version [2.8.4](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.4) (2024-06-22)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.3...2.8.4)
