@@ -102,6 +102,40 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+## 1.3.0
+
+```console
+Versions:
+Client Build         1.3.0.0
+Npgsql               8.0.3.0
+NpgsqlRest           2.8.5.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.9.0.0
+```
+
+### Upgrade System.Text.Json to 8.0.4
+
+### New option: NpgsqlRest.UseEnvironmentConnection
+
+`NpgsqlRest.UseEnvironmentConnection`:
+
+If the connection string is not found, empty, or missing host, port or database, the connection string is created from the environment variables.
+
+See https://www.postgresql.org/docs/current/libpq-envars.html for the list of the environment variables.
+
+Note: Npgsql will use the environment variables by default but only for the small set of the connection string parameters like username and password (see https://www.npgsql.org/doc/connection-string-parameters.html#environment-variables).
+
+Set this option to true to use environment variables for host, port and database as well. 
+
+When this option is enabled and these environment variables are set, connection string doesn't have to be defined at all and it will be created from the environment variables.
+
+### New option: NpgsqlRest.TsClient.DefaultJsonType
+
+`NpgsqlRest.TsClient.DefaultJsonType`:
+
+Sets the default TypeScript type for JSON types when generating the TypeScript client.
+
+
 ### 1.2.8
 
 ```console
