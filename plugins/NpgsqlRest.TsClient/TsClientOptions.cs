@@ -16,7 +16,8 @@ public class TsClientOptions(
     bool includeParseRequestParam = false,
     string[]? skipRoutineNames = null,
     string[]? skipFunctionNames = null,
-    string[]? skipPaths = null)
+    string[]? skipPaths = null,
+    string defaultJsonType = "string")
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -110,4 +111,9 @@ public class TsClientOptions(
     /// Array of schema names to skip
     /// </summary>
     public string[] SkipSchemas { get; set; } = skipPaths ?? [];
+
+    /// <summary>
+    /// Default TypeScript type for JSON types.
+    /// </summary>
+    public string DefaultJsonType { get; set; } = defaultJsonType;
 }

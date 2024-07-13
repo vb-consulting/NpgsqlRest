@@ -186,7 +186,7 @@ public static class Config
 
     private static JsonNode? SerializeConfig(IConfiguration config)
     {
-        JsonObject obj = new();
+        JsonObject obj = [];
 
         foreach (var child in config.GetChildren())
         {
@@ -207,7 +207,7 @@ public static class Config
             }
         }
 
-        if (obj.Count() == 0 && config is IConfigurationSection section)
+        if (obj.Count == 0 && config is IConfigurationSection section)
         {
             if (bool.TryParse(section.Value, out bool boolean))
             {

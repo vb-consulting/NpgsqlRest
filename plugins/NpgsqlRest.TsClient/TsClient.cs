@@ -1,9 +1,10 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 
 namespace NpgsqlRest.TsClient;
 
-public class TsClient(TsClientOptions options) : IEndpointCreateHandler
+public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 {
     private IApplicationBuilder _builder = default!;
     private ILogger? _logger;
@@ -153,18 +154,18 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
             interfaces.AppendLine(content.ToString());
             AddHeader(interfaces);
             File.WriteAllText(fileName, interfaces.ToString());
-            _logger?.LogInformation("Created Typescript file: {0}", fileName);
+            _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
         }
         else
         {
             var typeFile = fileName.Replace(".ts", "Types.d.ts");
             AddHeader(interfaces);
             File.WriteAllText(typeFile, interfaces.ToString());
-            _logger?.LogInformation("Created Typescript type file: {0}", typeFile);
+            _logger?.LogInformation("Created Typescript type file: {typeFile}", typeFile);
 
             AddHeader(content);
             File.WriteAllText(fileName, content.ToString());
-            _logger?.LogInformation("Created Typescript file: {0}", fileName);
+            _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
         }
         return;
 
@@ -531,7 +532,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         return sb.ToString();
     }
 
-    private static string GetTsType(TypeDescriptor descriptor, bool useDateType)
+    private string GetTsType(TypeDescriptor descriptor, bool useDateType)
     {
         var type = "string";
         
@@ -549,7 +550,7 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         }
         else if (descriptor.IsJson)
         {
-            type = "{ [key: string]: any }";
+            type = options.DefaultJsonType;
         }
 
         if (descriptor.IsArray)
@@ -564,10 +565,10 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
     public string SanitizeJavaScriptVariableName(string name)
     {
         // Replace invalid starting characters with underscore
-        name = Regex.Replace(name, "^[^a-zA-Z_$]", "_");
+        name = InvalidChars1().Replace(name, "_");
 
         // Replace any other invalid characters with underscore
-        name = Regex.Replace(name, "[^a-zA-Z0-9_$]", "_");
+        name = InvalidChars2().Replace(name, "_");
 
         return name;
     }
@@ -626,4 +627,9 @@ public class TsClient(TsClientOptions options) : IEndpointCreateHandler
         host ??= "http://localhost:5000";
         return host;
     }
+
+    [GeneratedRegex("^[^a-zA-Z_$]")]
+    private static partial Regex InvalidChars1();
+    [GeneratedRegex("[^a-zA-Z0-9_$]")]
+    private static partial Regex InvalidChars2();
 }

@@ -250,16 +250,21 @@ public static class Builder
             var section = Cfg.GetSection("ConnectionStrings");
             connectionString = section.GetChildren().FirstOrDefault()?.Value;
         }
-        if (string.IsNullOrEmpty(connectionString?.Trim()) is true)
-        {
-            Logger?.Fatal("ERROR: Connection string could not be initialized! Check your configuration and try again.");
-            return null;
-        }
 
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
         if (GetConfigBool("SetApplicationNameInConnection", NpgsqlRestCfg) is true)
         {
             connectionStringBuilder.ApplicationName = Instance.Environment.ApplicationName;
+        }
+
+        if (GetConfigBool("UseEnvironmentConnection", NpgsqlRestCfg) is true)
+        {
+            connectionStringBuilder.Host ??= Environment.GetEnvironmentVariable("PGHOST") ?? Environment.GetEnvironmentVariable("PGHOSTADDR");
+            if (int.TryParse(Environment.GetEnvironmentVariable("PGPORT"), out int port) is true)
+            {
+                connectionStringBuilder.Port = port;
+            }
+            connectionStringBuilder.Database ??= Environment.GetEnvironmentVariable("PGDATABASE");
         }
 
         connectionString = connectionStringBuilder.ConnectionString;
