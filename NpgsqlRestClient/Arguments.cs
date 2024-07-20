@@ -3,7 +3,6 @@ using Npgsql;
 using NpgsqlRest;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
-
 using static NpgsqlRestClient.Config;
 
 namespace NpgsqlRestClient;
@@ -25,14 +24,18 @@ public static class Arguments
                 ("npgsqlrest [files...]", "Run with the custom configuration files. All configuration files are required."),
                 ("npgsqlrest [file1 -o file2...]", "Use the -o switch to mark the next configuration file as optional. The first file after the -o switch is optional."),
                 ("npgsqlrest [file1 --optional file2...]", "Use --optional switch to mark the next configuration file as optional. The first file after the --optional switch is optional."),
+                ("Note:", "Values in the later file will override the values in the previous one."),
+                ("npgsqlrest [--key=value]", "Override the configuration with this key with a new value (case insensitive, use : to separate sections). "),
                 (" ", " "),
                 ("npgsqlrest -v, --version", "Show version information."),
                 ("npgsqlrest -h, --help", "Show command line help."),
                 (" ", " "),
-                ("Note:", "Values in the later file will override the values in the previous one."),
                 (" ", " "),
-                ("Example:", "npgsqlrest appsettings.json appsettings.Development.json"),
-                ("Example:", "npgsqlrest appsettings.json -o appsettings.Development.json"),
+                ("Examples:", " "),
+                ("Example: use two config files", "npgsqlrest appsettings.json appsettings.Development.json"),
+                ("Example: second config file optional", "npgsqlrest appsettings.json -o appsettings.Development.json"),
+                ("Example: override ApplicationName config", "npgsqlrest --applicationname=Test"),
+                ("Example: override Auth:CookieName config", "npgsqlrest --auth:cookiename=Test"),
                 ]);
         }
 
@@ -53,28 +56,61 @@ public static class Arguments
         return false;
     }
 
-    public static IEnumerable<(string fileName, bool optional)> EnumerateConfigFiles(string[] args)
+    //public static IEnumerable<(string fileName, bool optional)> EnumerateConfigFiles(string[] args)
+    //{
+    //    bool nextIsOptional = false;
+    //    foreach(var arg in args)
+    //    {
+    //        if (arg.StartsWith('-'))
+    //        { 
+    //            if (arg.ToLowerInvariant() is "-o" or "--optional")
+    //            {
+    //                nextIsOptional = true;
+    //            }
+    //            //else
+    //            //{
+    //            //    throw new ArgumentException($"Unknown parameter {arg}");
+    //            //}
+    //        }
+    //        else
+    //        {
+    //            yield return (arg, nextIsOptional);
+    //            nextIsOptional = false;
+    //        }
+    //    }
+    //}
+    public static (List<(string fileName, bool optional)> configFiles, string[] commanLineArgs) BuildFromArgs(string[] args)
     {
+        var configFiles = new List<(string fileName, bool optional)>();
+        var commandLineArgs = new List<string>();
+
         bool nextIsOptional = false;
-        foreach(var arg in args)
+        foreach (var arg in args)
         {
+           
             if (arg.StartsWith('-'))
-            { 
-                if (arg.ToLowerInvariant() is "-o" or "--optional")
+            {
+                var lower = arg.ToLowerInvariant();
+                if (lower is "-o" or "--optional")
                 {
                     nextIsOptional = true;
                 }
+                else if (arg.StartsWith("--") && arg.Contains("="))
+                {
+                    commandLineArgs.Add(arg);
+                }
                 else
                 {
-                    throw new ArgumentException($"Unknown parameter {arg}");
+                     throw new ArgumentException($"Unknown parameter {arg}");
                 }
             }
             else
             {
-                yield return (arg, nextIsOptional);
+                configFiles.Add((arg, nextIsOptional));
                 nextIsOptional = false;
             }
         }
+        return (configFiles, commandLineArgs.ToArray());
     }
 
     private static void NL() => Console.WriteLine();

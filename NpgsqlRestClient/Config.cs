@@ -7,6 +7,8 @@ public static class Config
 {
     public static IConfigurationRoot Cfg { get; private set; } = null!;
     public static IConfigurationSection NpgsqlRestCfg { get; private set; } = null!;
+    public static IConfigurationSection ConnectionSettingsCfg { get; private set; } = null!;
+    public static bool UseConnectionApplicationNameWithUsername { get; private set; }
     public static IConfigurationSection AuthCfg { get; private set; } = null!;
     public static string CurrentDir => Directory.GetCurrentDirectory();
 
@@ -16,9 +18,11 @@ public static class Config
         var tempBuilder = new ConfigurationBuilder();
         IConfigurationRoot tempCfg;
 
-        if (args.Length > 0)
+        var (configFiles, commandLineArgs) = Arguments.BuildFromArgs(args);
+
+        if (configFiles.Count > 0)
         {
-            foreach (var (fileName, optional) in Arguments.EnumerateConfigFiles(args))
+            foreach (var (fileName, optional) in configFiles)
             {
                 tempBuilder.AddJsonFile(Path.GetFullPath(fileName, CurrentDir), optional: optional);
             }
@@ -41,24 +45,28 @@ public static class Config
             configBuilder = new ConfigurationBuilder();
         }
 
-        if (args.Length > 0)
+        if (configFiles.Count > 0)
         {
-            foreach (var (fileName, optional) in Arguments.EnumerateConfigFiles(args))
+            foreach (var (fileName, optional) in configFiles)
             {
                 configBuilder.AddJsonFile(Path.GetFullPath(fileName, CurrentDir), optional: optional);
             }
+            configBuilder.AddCommandLine(commandLineArgs);
             Cfg = configBuilder.Build();
         }
         else
         {
             Cfg = configBuilder
-                .AddJsonFile("appsettings.json", optional: false)
-                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddJsonFile(Path.GetFullPath("appsettings.json", CurrentDir), optional: false)
+                .AddJsonFile(Path.GetFullPath("appsettings.Development.json", CurrentDir), optional: true)
+                .AddCommandLine(commandLineArgs)
                 .Build();
         }
 
         NpgsqlRestCfg = Cfg.GetSection("NpgsqlRest");
         AuthCfg = NpgsqlRestCfg.GetSection("AuthenticationOptions");
+        ConnectionSettingsCfg = Cfg.GetSection("ConnectionSettings");
+        UseConnectionApplicationNameWithUsername = GetConfigBool("UseJsonApplicationName", ConnectionSettingsCfg);
     }
 
     public static bool Exists(this IConfigurationSection? section)

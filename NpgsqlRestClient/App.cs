@@ -197,8 +197,7 @@ public static class App
 
     public static Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen(string connectionString)
     {
-        var useConnectionApplicationNameWithUsername = GetConfigBool("UseJsonApplicationName", NpgsqlRestCfg);
-        if (useConnectionApplicationNameWithUsername is false)
+        if (Config.UseConnectionApplicationNameWithUsername is false)
         {
             return null;
         }

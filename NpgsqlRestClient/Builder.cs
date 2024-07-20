@@ -252,19 +252,55 @@ public static class Builder
         }
 
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-        if (GetConfigBool("SetApplicationNameInConnection", NpgsqlRestCfg) is true)
+        if (GetConfigBool("SetApplicationNameInConnection", ConnectionSettingsCfg) is true)
         {
             connectionStringBuilder.ApplicationName = Instance.Environment.ApplicationName;
         }
 
-        if (GetConfigBool("UseEnvironmentConnection", NpgsqlRestCfg) is true)
+        if (GetConfigBool("UseEnvironmentConnection", ConnectionSettingsCfg) is true)
         {
-            connectionStringBuilder.Host ??= Environment.GetEnvironmentVariable("PGHOST") ?? Environment.GetEnvironmentVariable("PGHOSTADDR");
-            if (int.TryParse(Environment.GetEnvironmentVariable("PGPORT"), out int port) is true)
+            var whenMissing = GetConfigBool("UseEnvironmentConnectionWhenMissing", ConnectionSettingsCfg);
+
+            var hostEnvVar = GetConfigStr("HostEnvVar", ConnectionSettingsCfg);
+            if (string.IsNullOrEmpty(hostEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(hostEnvVar)) is false)
             {
-                connectionStringBuilder.Port = port;
+                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Host))
+                {
+                    connectionStringBuilder.Host = Environment.GetEnvironmentVariable(hostEnvVar);
+                }
             }
-            connectionStringBuilder.Database ??= Environment.GetEnvironmentVariable("PGDATABASE");
+            var portEnvVar = GetConfigStr("PortEnvVar", ConnectionSettingsCfg);
+            if (string.IsNullOrEmpty(portEnvVar) is false && int.TryParse(Environment.GetEnvironmentVariable(portEnvVar), out int port) is true)
+            {
+                if (whenMissing is true || connectionStringBuilder.Port != port)
+                {
+                    connectionStringBuilder.Port = port;
+                }
+            }
+            var dbEnvVar = GetConfigStr("DatabaseEnvVar", ConnectionSettingsCfg);
+            if (string.IsNullOrEmpty(dbEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(dbEnvVar)) is false)
+            {
+                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Database))
+                {
+                    connectionStringBuilder.Database = Environment.GetEnvironmentVariable(dbEnvVar);
+                }
+            }
+            var userEnvVar = GetConfigStr("UserEnvVar", ConnectionSettingsCfg);
+            if (string.IsNullOrEmpty(userEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(userEnvVar)) is false)
+            {
+                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Username))
+                {
+                    connectionStringBuilder.Username = Environment.GetEnvironmentVariable(userEnvVar);
+                }
+            }
+            var passEnvVar = GetConfigStr("PasswordEnvVar", ConnectionSettingsCfg);
+            if (string.IsNullOrEmpty(passEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(passEnvVar)) is false)
+            {
+                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Password))
+                {
+                    connectionStringBuilder.Password = Environment.GetEnvironmentVariable(passEnvVar);
+                }
+            }
         }
 
         connectionString = connectionStringBuilder.ConnectionString;

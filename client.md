@@ -62,21 +62,40 @@ See the [default configuration file](https://vb-consulting.github.io/npgsqlrest/
 ```console
 ❯ npgsqlrest --help
 Usage:
-npgsqlrest                             Run with the default configuration files: appsettings.json (required) and appsettings.Development.json (optional).
-npgsqlrest [files...]                  Run with the custom configuration files. All configuration files are required.
-npgsqlrest [file1 -o file2...]         Use the -o switch to mark the next configuration file as optional. The first file after the -o switch is optional.
-npgsqlrest [file1 --optional file2...] Use --optional switch to mark the next configuration file as optional. The first file after the --optional switch is optional.
+npgsqlrest                               Run with the default configuration files: appsettings.json (required) and
+                                         appsettings.Development.json (optional).
+npgsqlrest [files...]                    Run with the custom configuration files. All configuration files are required.
+npgsqlrest [file1 -o file2...]           Use the -o switch to mark the next configuration file as optional. The first
+                                         file after the -o switch is optional.
+npgsqlrest [file1 --optional file2...]   Use --optional switch to mark the next configuration file as optional. The
+                                         first file after the --optional switch is optional.
+Note:                                    Values in the later file will override the values in the previous one.
+npgsqlrest [--key=value]                 Override the configuration with this key with a new value (case insensitive,
+                                         use : to separate sections).
 
-npgsqlrest -v, --version               Show version information.
-npgsqlrest -h, --help                  Show command line help.
+npgsqlrest -v, --version                 Show version information.
+npgsqlrest -h, --help                    Show command line help.
 
-Note:                                  Values in the later file will override the values in the previous one.
 
-Example:                               npgsqlrest appsettings.json appsettings.Development.json
-Example:                               npgsqlrest appsettings.json -o appsettings.Development.json
+Examples:
+Example: use two config files            npgsqlrest appsettings.json appsettings.Development.json
+Example: second config file optional     npgsqlrest appsettings.json -o appsettings.Development.json
+Example: override ApplicationName config npgsqlrest --applicationname=Test
+Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 ```
 
 ## Changelog
+
+## 1.4.0
+
+See the [full diff here](https://github.com/vb-consulting/NpgsqlRest/compare/client-1.3.0...client-1.4.0)
+
+- Added new configuration section: `ConnectionSettings` and moved `UseEnvironmentConnection`, `SetApplicationNameInConnection`, and `UseJsonApplicationName` from `NpgsqlRest` to `ConnectionSettings`.
+- Added connections settings for customize connection parameters environment variable names (`HostEnvVar`, `PortEnvVar`, `DatabaseEnvVar`, `UserEnvVar` and `PasswordEnvVar`). Some Docker environments have different environment variable names.
+- Added connections settings `"UseEnvironmentConnectionWhenMissing": false` to be able to override connection string with environment variable names and vice versa.
+- Added support for overriding configuration settings from the command line. Command line configuration has to have this format: `--key=value`. See updated help for more info.
+- Configuration value `ExposeAsEndpoint` is now set to NULL (disabled) as the default configuration. This may be enabled in the development environment.
+- Fix: Default configuration files `appsettings.json` and optional `appsettings.Development.json` are now loaded from the same directory as all others (current directory as opposed to the exe location dir).
 
 ## 1.3.0
 
