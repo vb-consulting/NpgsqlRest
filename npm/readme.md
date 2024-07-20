@@ -102,6 +102,26 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+## 1.4.0
+
+See the [full diff here](https://github.com/vb-consulting/NpgsqlRest/compare/client-1.3.0...client-1.4.0)
+
+- Added new configuration section: `ConnectionSettings` and moved `UseEnvironmentConnection`, `SetApplicationNameInConnection`, and `UseJsonApplicationName` from `NpgsqlRest` to `ConnectionSettings`.
+- Added connections settings for customize connection parameters environment variable names (`HostEnvVar`, `PortEnvVar`, `DatabaseEnvVar`, `UserEnvVar` and `PasswordEnvVar`). Some Docker environments have different environment variable names.
+- Added connections settings `"UseEnvironmentConnectionWhenMissing": false` to be able to override connection string with environment variable names and vice versa.
+- Added support for overriding configuration settings from the command line. Command line configuration has to have this format: `--key=value`. See updated help for more info.
+- Configuration value `ExposeAsEndpoint` is now set to NULL (disabled) as the default configuration. This may be enabled in the development environment.
+- Fix: Default configuration files `appsettings.json` and optional `appsettings.Development.json` are now loaded from the same directory as all others (current directory as opposed to the exe location dir).
+
+```console
+Versions:
+Client Build         1.4.0.0
+Npgsql               8.0.3.0
+NpgsqlRest           2.8.5.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.9.0.0
+```
+
 ## 1.3.0
 
 ```console

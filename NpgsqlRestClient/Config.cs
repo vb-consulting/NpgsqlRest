@@ -31,8 +31,8 @@ public static class Config
         else
         {
             tempCfg = tempBuilder
-                .AddJsonFile("appsettings.json", optional: false)
-                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddJsonFile(Path.GetFullPath("appsettings.json", CurrentDir), optional: false)
+                .AddJsonFile(Path.GetFullPath("appsettings.Development.json", CurrentDir), optional: true)
                 .Build();
         }
         var cfgCfg = tempCfg.GetSection("Config");
