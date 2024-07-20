@@ -56,29 +56,6 @@ public static class Arguments
         return false;
     }
 
-    //public static IEnumerable<(string fileName, bool optional)> EnumerateConfigFiles(string[] args)
-    //{
-    //    bool nextIsOptional = false;
-    //    foreach(var arg in args)
-    //    {
-    //        if (arg.StartsWith('-'))
-    //        { 
-    //            if (arg.ToLowerInvariant() is "-o" or "--optional")
-    //            {
-    //                nextIsOptional = true;
-    //            }
-    //            //else
-    //            //{
-    //            //    throw new ArgumentException($"Unknown parameter {arg}");
-    //            //}
-    //        }
-    //        else
-    //        {
-    //            yield return (arg, nextIsOptional);
-    //            nextIsOptional = false;
-    //        }
-    //    }
-    //}
     public static (List<(string fileName, bool optional)> configFiles, string[] commanLineArgs) BuildFromArgs(string[] args)
     {
         var configFiles = new List<(string fileName, bool optional)>();
