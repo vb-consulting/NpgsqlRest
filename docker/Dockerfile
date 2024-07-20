@@ -16,4 +16,6 @@ RUN apt-get update && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-ENTRYPOINT ["/usr/local/bin/npgsqlrest"]
+ENV PATH="/usr/local/bin:${PATH}"
+
+ENTRYPOINT ["npgsqlrest"]
