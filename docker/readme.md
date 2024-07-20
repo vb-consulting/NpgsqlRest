@@ -29,7 +29,7 @@ Outputs:
 
 ```
 Versions:
-Client Build         1.3.0.0
+Client Build         1.4.0.0
 Npgsql               8.0.3.0
 NpgsqlRest           2.8.5.0
 NpgsqlRest.HttpFiles 1.0.2.0
@@ -47,22 +47,26 @@ Outputs:
 
 ```
 Usage:
-npgsqlrest                             Run with the default configuration files: appsettings.json (required) and
-                                       appsettings.Development.json (optional).
-npgsqlrest [files...]                  Run with the custom configuration files. All configuration files are required.
-npgsqlrest [file1 -o file2...]         Use the -o switch to mark the next configuration file as optional. The first file
-                                       after the -o switch is optional.
-npgsqlrest [file1 --optional file2...] Use --optional switch to mark the next configuration file as optional. The first file
-                                       after the --optional switch is optional.
+npgsqlrest                               Run with the default configuration files: appsettings.json (required) and
+                                         appsettings.Development.json (optional).
+npgsqlrest [files...]                    Run with the custom configuration files. All configuration files are required.
+npgsqlrest [file1 -o file2...]           Use the -o switch to mark the next configuration file as optional. The first
+                                         file after the -o switch is optional.
+npgsqlrest [file1 --optional file2...]   Use --optional switch to mark the next configuration file as optional. The
+                                         first file after the --optional switch is optional.
+Note:                                    Values in the later file will override the values in the previous one.
+npgsqlrest [--key=value]                 Override the configuration with this key with a new value (case insensitive,
+                                         use : to separate sections).
 
-npgsqlrest -v, --version               Show version information.
-npgsqlrest -h, --help                  Show command line help.
+npgsqlrest -v, --version                 Show version information.
+npgsqlrest -h, --help                    Show command line help.
 
-Note:                                  Values in the later file will override the values in the previous one.
 
-Example:                               npgsqlrest appsettings.json appsettings.Development.json
-Example:                               npgsqlrest appsettings.json -o appsettings.Development.json
-
+Examples:
+Example: use two config files            npgsqlrest appsettings.json appsettings.Development.json
+Example: second config file optional     npgsqlrest appsettings.json -o appsettings.Development.json
+Example: override ApplicationName config npgsqlrest --applicationname=Test
+Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 ```
 
 Running in the current directory with two configuration files and exposing port 5000:
