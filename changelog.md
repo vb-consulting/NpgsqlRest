@@ -4,6 +4,51 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.9.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.9.0) (2024-08-02)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.5...2.9.0)
+
+Added `raw` endpoint options and comment annotation:
+
+Sets response to a "raw" mode. HTTP response is written exactly as it is received from PostgreSQL (raw mode).
+
+This is useful for creating CSV responses automatically. For example:
+
+```sql
+create function raw_csv_response1() 
+returns setof text
+language sql
+as 
+$$
+select trim(both '()' FROM sub::text) || E'\n' from (
+values 
+    (123, '2024-01-01'::timestamp, true, 'some text'),
+    (456, '2024-12-31'::timestamp, false, 'another text')
+)
+sub (n, d, b, t)
+$$;
+comment on function raw_csv_response1() is '
+raw
+Content-Type: text/csv
+';
+```
+
+Produces the following response:
+
+```
+HTTP/1.1 200 OK                                                  
+Connection: close
+Content-Type: text/csv
+Date: Tue, 08 Aug 2024 14:25:26 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+
+123,"2024-01-01 00:00:00",t,"some text"
+456,"2024-12-31 00:00:00",f,"another text"
+
+```
+
+
 ## Version [2.8.5](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.5) (2024-06-25)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.4...2.8.5)

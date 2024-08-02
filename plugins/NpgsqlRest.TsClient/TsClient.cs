@@ -92,7 +92,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 """
                 const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
                     .map(key => {{
-                        const value = query[key] ? query[key] : "";
+                        const value = query[key] != null ? query[key] : "";
                         if (Array.isArray(value)) {{
                             return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
                         }}
@@ -194,7 +194,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 return false;
             }
 
-            var name = string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..];
+            var name = options.UseRoutineNameInsteadOfEndpoint ?
+                        string.Concat(routine.Schema, "/", routine.Name)
+                        :
+                        (string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..]);
             var routineType = routine.Type;
             var paramCount = routine.ParamCount;
             var paramTypeDescriptors = routine.ParamTypeDescriptor;

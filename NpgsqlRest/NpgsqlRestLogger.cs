@@ -96,6 +96,9 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid buffer rows '{buffer}' in comment for routine '{schema}.{name}'. Using the default buffer rows '{defaultBufferRows}'")]
     public static partial void InvalidBufferRows(this ILogger logger, string buffer, string schema, string name, ulong defaultBufferRows);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set RAW MODE by the comment annotation.")]
+    public static partial void CommentSetRawMode(this ILogger logger, RoutineType type, string schema, string name);
 }
 
 public static class NpgsqlRestLogger

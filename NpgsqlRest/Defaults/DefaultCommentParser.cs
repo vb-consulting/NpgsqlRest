@@ -115,6 +115,8 @@ internal static class DefaultCommentParser
         "buffer"
     ];
 
+    private const string RawKey = "raw";
+
     public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -526,6 +528,12 @@ internal static class DefaultCommentParser
                     {
                         logger?.InvalidBufferRows(words[1], routine.Schema, routine.Name, options.BufferRows);
                     }
+                }
+
+                else if (haveTag is true && StrEquals(ref words[0], RawKey))
+                {
+                    logger?.CommentSetRawMode(routine.Type, routine.Schema, routine.Name);
+                    routineEndpoint.Raw = true;
                 }
 
                 // key: value

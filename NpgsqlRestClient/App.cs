@@ -252,6 +252,7 @@ public static class App
                 ImportParseQueryFrom = GetConfigStr("ImportParseQueryFrom", tsClientCfg),
                 IncludeParseUrlParam = GetConfigBool("IncludeParseUrlParam", tsClientCfg),
                 IncludeParseRequestParam = GetConfigBool("IncludeParseRequestParam", tsClientCfg),
+                UseRoutineNameInsteadOfEndpoint = GetConfigBool("UseRoutineNameInsteadOfEndpoint", tsClientCfg),
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);

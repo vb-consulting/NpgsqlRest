@@ -20,7 +20,8 @@ public struct RoutineEndpoint(
     HashSet<string>? authorizeRoles = null,
     bool login = false,
     bool logout = false,
-    ulong? bufferRows = null)
+    ulong? bufferRows = null,
+    bool raw = false)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
@@ -43,4 +44,5 @@ public struct RoutineEndpoint(
     public bool Logout { get; set; } = logout;
     public readonly bool IsAuth => Login || Logout;
     public ulong? BufferRows { get; set; } = bufferRows;
+    public bool Raw { get; set; } = raw;
 }

@@ -29,11 +29,11 @@ Outputs:
 
 ```
 Versions:
-Client Build         1.4.0.0
+Client Build         1.5.0.0
 Npgsql               8.0.3.0
-NpgsqlRest           2.8.5.0
+NpgsqlRest           2.9.0.0
 NpgsqlRest.HttpFiles 1.0.2.0
-NpgsqlRest.TsClient  1.9.0.0
+NpgsqlRest.TsClient  1.9.1.0
 
 CurrentDirectory     /app
 

@@ -239,3 +239,49 @@ This annotation will transform the routine into the endpoint that performs the l
 If the routine doesn't return any data, the default authorization scheme is signed out. Any values returned will be interpreted as scheme names (converted to string) to sign out.
 
 For more information on the login and the logout see the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/login-endpoints).
+
+## Raw
+
+```console
+                                                
+raw                                             
+                                                
+```
+
+Sets response to a "raw" mode. HTTP response is written exactly as it is received from PostgreSQL (raw mode).
+
+This is useful for creating CSV responses automatically. For example:
+
+```sql
+create function raw_csv_response1() 
+returns setof text
+language sql
+as 
+$$
+select trim(both '()' FROM sub::text) || E'\n' from (
+values 
+    (123, '2024-01-01'::timestamp, true, 'some text'),
+    (456, '2024-12-31'::timestamp, false, 'another text')
+)
+sub (n, d, b, t)
+$$;
+comment on function raw_csv_response1() is '
+raw
+Content-Type: text/csv
+';
+```
+
+Produces the following response:
+
+```
+HTTP/1.1 200 OK                                                  
+Connection: close
+Content-Type: text/csv
+Date: Tue, 08 Aug 2024 14:25:26 GMT
+Server: Kestrel
+Transfer-Encoding: chunked
+
+123,"2024-01-01 00:00:00",t,"some text"
+456,"2024-12-31 00:00:00",f,"another text"
+
+```

@@ -420,6 +420,8 @@ export async function getLatestCustomer() : Promise<ICustomersGetResponse> {
 See the [`TsClientOptions.cs` source file](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient/TsClientOptions.cs).
 
 ```csharp
+namespace NpgsqlRest.TsClient;
+
 public class TsClientOptions(
     string filePath = default!,
     bool fileOverwrite = false,
@@ -437,7 +439,8 @@ public class TsClientOptions(
     string[]? skipRoutineNames = null,
     string[]? skipFunctionNames = null,
     string[]? skipPaths = null,
-    string defaultJsonType = "string")
+    string defaultJsonType = "string",
+    bool useRoutineNameInsteadOfEndpoint = false)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -536,6 +539,11 @@ public class TsClientOptions(
     /// Default TypeScript type for JSON types.
     /// </summary>
     public string DefaultJsonType { get; set; } = defaultJsonType;
+
+    /// <summary>
+    /// Use routine name instead of endpoint name when generating a function name.
+    /// </summary>
+    public bool UseRoutineNameInsteadOfEndpoint { get; set; } = useRoutineNameInsteadOfEndpoint;
 }
 
 ```
