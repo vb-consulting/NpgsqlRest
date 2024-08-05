@@ -206,4 +206,28 @@ internal static class PgConverters
         result.Append(']');
         return result.ToString();
     }
+
+    public static string ParseParameters(ref List<NpgsqlRestParameter> paramsList, string value)
+    {
+        var letPos = value.IndexOf("{", StringComparison.OrdinalIgnoreCase);
+        if (letPos == -1)
+        {
+            return value;
+        }
+        var rightPos = value.IndexOf("}", letPos, StringComparison.OrdinalIgnoreCase);
+        if (rightPos == -1)
+        {
+            return value;
+        }
+        var name = value.Substring(letPos + 1, rightPos - letPos - 1);
+        for(var i = 0; i < paramsList.Count; i++)
+        {
+            if (string.Equals(paramsList[i].ActualName, name, StringComparison.Ordinal))
+            {
+                var val = paramsList[i].Value == DBNull.Value ? "" : paramsList[i].Value?.ToString() ?? "";
+                return string.Concat(value.Substring(0, letPos), val, value.Substring(rightPos + 1));
+            }
+        }
+        return value;
+    }
 }

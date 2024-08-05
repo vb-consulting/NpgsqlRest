@@ -83,7 +83,7 @@ public class MultiParamsQueryStringTests2(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
 
         var node = JsonNode.Parse(response);
         node["real"].ToJsonString().Should().Be("1.1");

@@ -76,7 +76,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 2, \"p3\" : 3, \"p4\" : 4}");
     }
 
@@ -88,7 +88,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 22, \"p3\" : 3, \"p4\" : 4}");
     }
 
@@ -100,7 +100,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 22, \"p3\" : 33, \"p4\" : 4}");
     }
 
@@ -112,7 +112,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 22, \"p3\" : 33, \"p4\" : 44}");
     }
 
@@ -133,7 +133,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 2, \"p3\" : 3, \"p4\" : 4}");
     }
 
@@ -144,7 +144,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 22, \"p3\" : 3, \"p4\" : 4}");
     }
 
@@ -155,7 +155,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 22, \"p3\" : 33, \"p4\" : 4}");
     }
 
@@ -166,7 +166,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("{\"p1\" : 11, \"p2\" : 22, \"p3\" : 33, \"p4\" : 44}");
     }
 
@@ -187,7 +187,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("abc");
     }
 
@@ -199,7 +199,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("xyz");
     }
 
@@ -210,7 +210,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("xyz");
     }
 
@@ -221,7 +221,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("aabb");
     }
 
@@ -232,7 +232,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("aaxyz");
     }
 
@@ -243,7 +243,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("abcbb");
     }
 
@@ -254,7 +254,7 @@ public class DefaultParametersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("abcxyz");
     }
 }

@@ -64,7 +64,7 @@ public class CommentHttpAttrTests(TestFixture test)
     {
         var content = await response.Content.ReadAsStringAsync();
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         content.Should().Be(expectedContent);
     }
 }

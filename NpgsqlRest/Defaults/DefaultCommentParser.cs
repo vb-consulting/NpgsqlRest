@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using System.Text.RegularExpressions;
+using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest.Defaults;
 
@@ -116,6 +117,8 @@ internal static class DefaultCommentParser
     ];
 
     private const string RawKey = "raw";
+    private const string SeparatorKey = "separator";
+    private const string NewLineKey = "newline";
 
     public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
     {
@@ -530,10 +533,27 @@ internal static class DefaultCommentParser
                     }
                 }
 
+                // raw
                 else if (haveTag is true && StrEquals(ref words[0], RawKey))
                 {
                     logger?.CommentSetRawMode(routine.Type, routine.Schema, routine.Name);
                     routineEndpoint.Raw = true;
+                }
+
+                // separator [ value ]
+                else if (haveTag is true && line.StartsWith(string.Concat(SeparatorKey, " ")))
+                {
+                    var sep = line[(words[0].Length + 1)..];
+                    logger?.CommentSetRawValueSeparator(routine.Type, routine.Schema, routine.Name, sep);
+                    routineEndpoint.RawValueSeparator = Regex.Unescape(sep);
+                }
+
+                // newline [ value ]
+                else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(NewLineKey, " ")))
+                {
+                    var nl = line.Substring(words[0].Length + 1);
+                    logger?.CommentSetRawNewLineSeparator(routine.Type, routine.Schema, routine.Name, nl);
+                    routineEndpoint.RawNewLineSeparator = Regex.Unescape(nl);
                 }
 
                 // key: value
@@ -545,6 +565,10 @@ internal static class DefaultCommentParser
                     {
                         var headerName = parts[0].Trim();
                         var headerValue = parts[1].Trim();
+                        if (headerValue.Contains('{') && headerValue.Contains('}'))
+                        {
+                            routineEndpoint.NeedsParsing = true;
+                        }
                         if (StrEquals(ref headerName, ContentTypeKey))
                         {
                             if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))

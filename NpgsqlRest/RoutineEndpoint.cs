@@ -21,10 +21,13 @@ public struct RoutineEndpoint(
     bool login = false,
     bool logout = false,
     ulong? bufferRows = null,
-    bool raw = false)
+    bool raw = false,
+    string? rawValueSeparator = null,
+    string? rawNewLineSeparator = null)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
+    internal bool NeedsParsing { get; set; } = false;
     public string Url { get; set; } = url;
     public Method Method { get; set; } = method;
     public RequestParamType RequestParamType { get; set; } = requestParamType;
@@ -45,4 +48,6 @@ public struct RoutineEndpoint(
     public readonly bool IsAuth => Login || Logout;
     public ulong? BufferRows { get; set; } = bufferRows;
     public bool Raw { get; set; } = raw;
+    public string? RawValueSeparator { get; set; } = rawValueSeparator;
+    public string? RawNewLineSeparator { get; set; } = rawNewLineSeparator;
 }

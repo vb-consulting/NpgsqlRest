@@ -41,9 +41,12 @@ public static class Arguments
 
         if (args.Any(a => a.ToLowerInvariant() is "-v" or "--version") is true)
         {
+            var versions = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.Split(' ');
             Line("Versions:");
             Line([
+                (versions[0], versions[1]),
                 ("Client Build", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-"),
+                ("Serilog.AspNetCore", System.Reflection.Assembly.GetAssembly(typeof(Serilog.AspNetCore.RequestLoggingOptions))?.GetName()?.Version?.ToString() ?? "-"),
                 ("Npgsql", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlConnection))?.GetName()?.Version?.ToString() ?? "-"),
                 ("NpgsqlRest", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString() ?? "-"),
                 ("NpgsqlRest.HttpFiles", System.Reflection.Assembly.GetAssembly(typeof(HttpFileOptions))?.GetName()?.Version?.ToString() ?? "-"),

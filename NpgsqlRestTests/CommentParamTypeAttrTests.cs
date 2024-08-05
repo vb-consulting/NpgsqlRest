@@ -51,7 +51,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         content.Should().Be("comment-param-type-query1");
     }
 
@@ -71,7 +71,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         content.Should().Be("comment-param-type-query2");
     }
 
@@ -96,7 +96,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         content.Should().Be("comment-get-param-type-json1");
     }
 
@@ -121,7 +121,7 @@ public class CommentParamTypeAttrTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        response.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         content.Should().Be("comment-get-param-type-json2");
     }
 }

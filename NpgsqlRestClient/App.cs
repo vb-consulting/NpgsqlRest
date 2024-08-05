@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using Npgsql;
 using NpgsqlRest;
-using NpgsqlRest.CrudSource;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
 using Serilog;
@@ -311,25 +310,5 @@ public static class App
             sources[0].Query = GetConfigStr("Query", routineCfg);
             sources[0].CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", routineCfg);
         }
-
-        var crudSourceCfg = NpgsqlRestCfg.GetSection("CrudSource");
-        if (crudSourceCfg.Exists() is false || GetConfigBool("Enabled", crudSourceCfg) is false)
-        {
-            return;
-        }
-        sources.Add(new CrudSource()
-        {
-            SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", crudSourceCfg),
-            SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", crudSourceCfg),
-            IncludeSchemas = GetConfigEnumerable("IncludeSchemas", crudSourceCfg)?.ToArray(),
-            ExcludeSchemas = GetConfigEnumerable("ExcludeSchemas", crudSourceCfg)?.ToArray(),
-            NameSimilarTo = GetConfigStr("NameSimilarTo", crudSourceCfg),
-            NameNotSimilarTo = GetConfigStr("NameNotSimilarTo", crudSourceCfg),
-            IncludeNames = GetConfigEnumerable("IncludeNames", crudSourceCfg)?.ToArray(),
-            ExcludeNames = GetConfigEnumerable("ExcludeNames", crudSourceCfg)?.ToArray(),
-            Query = GetConfigStr("Query", crudSourceCfg),
-            CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", crudSourceCfg),
-            CrudTypes = GetConfigFlag<CrudCommandType>("CrudTypes", crudSourceCfg),
-        });
     }
 }

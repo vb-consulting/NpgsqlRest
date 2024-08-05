@@ -58,7 +58,7 @@ public class OverloadQueryStringTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("no params");
     }
 
@@ -70,7 +70,7 @@ public class OverloadQueryStringTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("1 param");
     }
 
@@ -82,7 +82,7 @@ public class OverloadQueryStringTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("2 params");
     }
 
@@ -94,7 +94,7 @@ public class OverloadQueryStringTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("3 params");
     }
 

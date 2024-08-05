@@ -99,6 +99,12 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set RAW MODE by the comment annotation.")]
     public static partial void CommentSetRawMode(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set SEPARATOR by the comment annotation to {value}.")]
+    public static partial void CommentSetRawValueSeparator(this ILogger logger, RoutineType type, string schema, string name, string value);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set NEW LINE by the comment annotation to {value}.")]
+    public static partial void CommentSetRawNewLineSeparator(this ILogger logger, RoutineType type, string schema, string name, string value);
 }
 
 public static class NpgsqlRestLogger

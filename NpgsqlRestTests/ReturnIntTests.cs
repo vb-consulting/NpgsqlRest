@@ -41,7 +41,7 @@ public class ReturnIntTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("999");
     }
 
@@ -61,7 +61,7 @@ public class ReturnIntTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/plain");
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/plain");
         response.Should().Be("999");
     }
 }

@@ -123,7 +123,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("[1,2,3]");
     }
 
@@ -134,7 +134,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("""["a","bc","x,y","foo\"bar\"","\"foo\",\"bar\"","foo\\bar"]""");
 
         var array = JsonNode.Parse(response).AsArray();
@@ -154,7 +154,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("[true,false]");
     }
 
@@ -165,7 +165,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("[[1,2,3],[4,5,6],[7,8,9]]");
     }
 
@@ -176,7 +176,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("[[true,false],[false,true]]");
     }
 
@@ -187,7 +187,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("""[["a","bc"],["x","yz","foo","bar"]]""");
     }
 
@@ -198,7 +198,7 @@ public class ArrayTypeTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
         response.Should().Be("[4,5,6,null]");
     }
 
@@ -209,7 +209,7 @@ public class ArrayTypeTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Content.Headers.ContentType.MediaType.Should().Be("application/json");
 
         var expextedContent = """""
         [

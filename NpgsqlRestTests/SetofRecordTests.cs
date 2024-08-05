@@ -44,7 +44,7 @@ public class SetofRecordTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        response.Content.Headers.ContentType.MediaType.Should().Be("application/json");
 
         var expextedContent = """
         [

@@ -81,6 +81,7 @@ public class Program
 
         app.UseNpgsqlRest(new(connectionString)
         {
+            //NameSimilarTo = "header_template_response1",
             ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async p =>

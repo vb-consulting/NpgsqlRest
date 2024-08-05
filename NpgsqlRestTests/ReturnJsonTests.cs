@@ -31,7 +31,7 @@ public class ReturnJsonTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
 
         var node = JsonNode.Parse(response);
         node["a"].ToJsonString().Should().Be("1");

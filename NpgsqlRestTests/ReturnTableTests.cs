@@ -83,7 +83,7 @@ public class ReturnTableTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
 
         var array = JsonNode.Parse(response).AsArray();
         array.Count.Should().Be(3);
@@ -117,7 +117,7 @@ public class ReturnTableTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
 
         var array = JsonNode.Parse(response).AsArray();
 

@@ -699,7 +699,10 @@ public static class NpgsqlRestMiddlewareExtensions
                                 TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
                                 if (endpoint.ResponseContentType is not null)
                                 {
-                                    context.Response.ContentType = endpoint.ResponseContentType;
+                                    context.Response.ContentType = endpoint.NeedsParsing ?
+                                        PgConverters.ParseParameters(ref paramsList, endpoint.ResponseContentType) : 
+                                        endpoint.ResponseContentType;
+
                                 }
                                 else if (descriptor.IsJson || descriptor.IsArray)
                                 {
@@ -713,7 +716,9 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     foreach ((string headerKey, StringValues headerValue) in endpoint.ResponseHeaders)
                                     {
-                                        context.Response.Headers.Append(headerKey, headerValue);
+                                        context.Response.Headers.Append(headerKey, 
+                                            endpoint.NeedsParsing ? 
+                                            PgConverters.ParseParameters(ref paramsList, headerValue.ToString()) : headerValue);
                                     }
                                 }
 
@@ -760,7 +765,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             if (endpoint.ResponseContentType is not null)
                             {
-                                context.Response.ContentType = endpoint.ResponseContentType;
+                                context.Response.ContentType = endpoint.NeedsParsing ?
+                                    PgConverters.ParseParameters(ref paramsList, endpoint.ResponseContentType) :
+                                    endpoint.ResponseContentType;
                             }
                             else
                             {
@@ -770,7 +777,9 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 foreach (var (headerKey, headerValue) in endpoint.ResponseHeaders)
                                 {
-                                    context.Response.Headers.Append(headerKey, headerValue);
+                                    context.Response.Headers.Append(headerKey,
+                                        endpoint.NeedsParsing ?
+                                        PgConverters.ParseParameters(ref paramsList, headerValue.ToString()) : headerValue);
                                 }
                             }
 
@@ -795,6 +804,10 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         row.Append(',');
                                     }
+                                    else if (endpoint.RawNewLineSeparator is not null)
+                                    {
+                                        row.Append(endpoint.RawNewLineSeparator);
+                                    }
                                 }
                                 else
                                 {
@@ -810,7 +823,28 @@ public static class NpgsqlRestMiddlewareExtensions
                                     // if raw
                                     if (endpoint.Raw)
                                     {
-                                        row.Append(raw);
+                                        if (endpoint.RawValueSeparator is not null)
+                                        {
+                                            var descriptor = routine.ColumnsTypeDescriptor[i];
+                                            if (descriptor.IsText || descriptor.IsDate || descriptor.IsDateTime)
+                                            {
+                                                row.Append('\"');
+                                                row.Append(raw.Replace("\"", "\"\""));
+                                                row.Append('\"');
+                                            }
+                                            else
+                                            {
+                                                row.Append(raw);
+                                            }
+                                            if (i < routineReturnRecordCount - 1)
+                                            {
+                                                row.Append(endpoint.RawValueSeparator);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            row.Append(raw);
+                                        }
                                     }
                                     else
                                     {
