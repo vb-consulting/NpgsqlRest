@@ -289,26 +289,4 @@ public static class App
 
         return handlers;
     }
-
-    public static void SourcesCreated(List<IRoutineSource> sources)
-    {
-        var routineCfg = NpgsqlRestCfg.GetSection("RoutinesSource");
-        if (routineCfg is null || GetConfigBool("Enabled", routineCfg) is false)
-        {
-            sources.Clear();
-        }
-        else
-        {
-            sources[0].SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", routineCfg);
-            sources[0].SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", routineCfg);
-            sources[0].IncludeSchemas = GetConfigEnumerable("IncludeSchemas", routineCfg)?.ToArray();
-            sources[0].ExcludeSchemas = GetConfigEnumerable("ExcludeSchemas", routineCfg)?.ToArray();
-            sources[0].NameSimilarTo = GetConfigStr("NameSimilarTo", routineCfg);
-            sources[0].NameNotSimilarTo = GetConfigStr("NameNotSimilarTo", routineCfg);
-            sources[0].IncludeNames = GetConfigEnumerable("IncludeNames", routineCfg)?.ToArray();
-            sources[0].ExcludeNames = GetConfigEnumerable("ExcludeNames", routineCfg)?.ToArray();
-            sources[0].Query = GetConfigStr("Query", routineCfg);
-            sources[0].CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", routineCfg);
-        }
-    }
 }

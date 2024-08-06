@@ -83,8 +83,6 @@ NpgsqlRestOptions options = new()
     },
 
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
-    SourcesCreated = SourcesCreated,
-
     CustomRequestHeaders = GetCustomHeaders()
 };
 
