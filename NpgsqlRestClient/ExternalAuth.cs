@@ -12,20 +12,20 @@ using static System.Net.Mime.MediaTypeNames;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRest.Auth.ClaimsDictionary;
-using Microsoft.AspNetCore.Routing;
 
 namespace NpgsqlRestClient;
 
 public class ExternalAuthClientConfig
 {
-    public string ClientId { get; init; } = default!;
-    public string ClientSecret { get; init; } = default!;
-    public string AuthUrl { get; init; } = default!;
-    public string TokenUrl { get; init; } = default!;
-    public string InfoUrl { get; init; } = default!;
-    public string? EmailUrl { get; init; }
-    public string SigninUrl { get; init; } = default!;
-    public string ExternalType { get; init; } = default!;
+    public bool Enabled { get; set; } = false;
+    public string ClientId { get; set; } = default!;
+    public string ClientSecret { get; set; } = default!;
+    public string AuthUrl { get; set; } = default!;
+    public string TokenUrl { get; set; } = default!;
+    public string InfoUrl { get; set; } = default!;
+    public string? EmailUrl { get; set; } = null;
+    public string SigninUrl { get; set; } = default!;
+    public string ExternalType { get; set; } = default!;
 }
 
 public static class ExternalAuthConfig
@@ -37,7 +37,31 @@ public static class ExternalAuthConfig
     public static string ReturnToPath { get; private set; } = default!;
     public static string ReturnToPathQueryStringKey { get; private set; } = default!;
     public static string LoginCommand { get; private set; } = default!;
-    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = [];
+    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = new Dictionary<string, ExternalAuthClientConfig>
+    {
+        { "google", new ExternalAuthClientConfig
+            {
+                AuthUrl = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={0}&redirect_uri={1}&scope=openid profile email&state={2}",
+                TokenUrl = "https://oauth2.googleapis.com/token",
+                InfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo",
+            }
+        },
+        { "linkedin", new ExternalAuthClientConfig
+            {
+                AuthUrl = "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id={0}&redirect_uri={1}&state={2}&scope=r_liteprofile%20r_emailaddress",
+                TokenUrl = "https://www.linkedin.com/oauth/v2/accessToken",
+                InfoUrl = "https://api.linkedin.com/v2/me",
+                EmailUrl = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements//(handle~))"
+            }
+        },
+        { "github", new ExternalAuthClientConfig
+            {
+                AuthUrl = "https://github.com/login/oauth/authorize?client_id={0}&redirect_uri={1}&state={2}&allow_signup=false",
+                TokenUrl = "https://github.com/login/oauth/access_token",
+                InfoUrl = "https://api.github.com/user",
+            }
+        }
+    };
 
     public static void Build(IConfigurationSection authConfig)
     {
@@ -59,22 +83,29 @@ public static class ExternalAuthConfig
             {
                 continue;
             }
-            var signinUrl = string.Format(signinUrlTemplate, section.Key.ToLowerInvariant());
-            ClientConfigs.Add(signinUrl, new()
+            var key = section.Key.ToLowerInvariant();
+            var signinUrl = string.Format(signinUrlTemplate, key);
+
+            if (ClientConfigs.TryGetValue(key, out var config) is false)
             {
-                ClientId = GetConfigStr("ClientId", section) ?? throw new ArgumentException($"ClientId can not be null. Auth config section: {section.Key}"),
-                ClientSecret = GetConfigStr("ClientSecret", section) ?? throw new ArgumentException($"ClientSecret can not be null. Auth config section: {section.Key}"),
-                AuthUrl = GetConfigStr("AuthUrl", section) ?? throw new ArgumentException($"AuthUrl can not be null. Auth config section: {section.Key}"),
-                TokenUrl = GetConfigStr("TokenUrl", section) ?? throw new ArgumentException($"TokenUrl can not be null. Auth config section: {section.Key}"),
-                InfoUrl = GetConfigStr("InfoUrl", section) ?? throw new ArgumentException($"InfoUrl can not be null. Auth config section: {section.Key}"),
-                EmailUrl = GetConfigStr("EmailUrl", section),
-                SigninUrl = signinUrl,
-                ExternalType = section.Key
-            });
+                config = new ExternalAuthClientConfig();
+                ClientConfigs.Add(key, config);
+            }
+
+            config.Enabled = GetConfigBool("Enabled", section, config.Enabled);
+            config.ClientId = GetConfigStr("ClientId", section) ?? config.ClientId;
+            config.ClientSecret = GetConfigStr("ClientSecret", section) ?? config.ClientSecret;
+            config.AuthUrl = GetConfigStr("AuthUrl", section) ?? config.AuthUrl;
+            config.TokenUrl = GetConfigStr("TokenUrl", section) ?? config.TokenUrl;
+            config.InfoUrl = GetConfigStr("InfoUrl", section) ?? config.InfoUrl;
+            config.EmailUrl = GetConfigStr("EmailUrl", section) ?? config.EmailUrl;
+            config.SigninUrl = signinUrl;
+            config.ExternalType = section.Key;
+
             Logger?.Information("External login available for {0} available on path: {1}", section.Key, signinUrl);
         }
 
-        if (ClientConfigs.Count == 0)
+        if (ClientConfigs.Where(c => c.Value.Enabled).Any())
         {
             return;
         }
@@ -94,7 +125,7 @@ public static class ExternalAuth
 {
     public static void Configure(WebApplication app, NpgsqlRestOptions options)
     {
-        if (ExternalAuthConfig.ClientConfigs.Count == 0)
+        if (ExternalAuthConfig.ClientConfigs.Where(c => c.Value.Enabled).Any())
         {
             return;
         }
@@ -102,6 +133,12 @@ public static class ExternalAuth
         app.Use(async (context, next) =>
         {
             if (ExternalAuthConfig.ClientConfigs.TryGetValue(context.Request.Path, out var config) is false)
+            {
+                await next(context);
+                return;
+            }
+
+            if (config.Enabled is false)
             {
                 await next(context);
                 return;

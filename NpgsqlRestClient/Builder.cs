@@ -23,7 +23,7 @@ public static class Builder
     public static void BuildInstance()
     {
         var staticFilesCfg = Cfg.GetSection("StaticFiles");
-        string? webRootPath = staticFilesCfg is not null && GetConfigBool("Enabled", staticFilesCfg) is true ? GetConfigStr("RootPath", staticFilesCfg) : null;
+        string? webRootPath = staticFilesCfg is not null && GetConfigBool("Enabled", staticFilesCfg) is true ? GetConfigStr("RootPath", staticFilesCfg) ?? "wwwroot" : null;
 
         var options = new WebApplicationOptions()
         {
@@ -45,13 +45,25 @@ public static class Builder
         {
             Instance.WebHost.UseUrls(urls.Split(';'));
         }
+        else
+        {
+           Instance.WebHost.UseUrls("http://localhost:5000", "http://localhost:5001");
+        }
 
         var ssqlCfg = Cfg.GetSection("Ssl");
-        if (ssqlCfg.Exists() is true && GetConfigBool("Enabled", ssqlCfg) is true)
+        if (ssqlCfg.Exists() is true)
         {
-            Instance.WebHost.UseKestrelHttpsConfiguration();
-            UseHttpsRedirection = GetConfigBool("UseHttpsRedirection", ssqlCfg);
-            UseHsts = GetConfigBool("UseHsts", ssqlCfg);
+            if (GetConfigBool("Enabled", ssqlCfg) is true)
+            {
+                Instance.WebHost.UseKestrelHttpsConfiguration();
+                UseHttpsRedirection = GetConfigBool("UseHttpsRedirection", ssqlCfg);
+                UseHsts = GetConfigBool("UseHsts", ssqlCfg);
+            }
+        }
+        else
+        {
+            UseHttpsRedirection = true;
+            UseHsts = true;
         }
     }
 
@@ -60,31 +72,34 @@ public static class Builder
     public static void BuildLogger()
     {
         var logCfg = Cfg.GetSection("Log");
-        if (logCfg.Exists() is false)
-        {
-            LogToConsole = false;
-            LogToFile = false;
-            return;
-        }
-
         Logger = null;
-        LogToConsole = GetConfigBool("ToConsole", logCfg);
+        LogToConsole = GetConfigBool("ToConsole", logCfg, true);
         LogToFile = GetConfigBool("ToFile", logCfg);
-        var filePath = GetConfigStr("FilePath", logCfg);
+        var filePath = GetConfigStr("FilePath", logCfg) ?? "logs/log.txt";
 
         if (LogToConsole is true || LogToFile is true)
         {
             var loggerConfig = new LoggerConfiguration().MinimumLevel.Verbose();
-            foreach (var level in logCfg.GetSection("MinimalLevels").GetChildren())
+            var levels = logCfg?.GetSection("MinimalLevels")?.GetChildren()?.ToList();
+            if (levels is null)
             {
-                var key = level.Key;
-                var value = GetEnum<Serilog.Events.LogEventLevel?>(level.Value);
-                if (value is not null && key is not null)
+                loggerConfig.MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+                loggerConfig.MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning);
+            }
+            else
+            {
+                foreach (var level in logCfg?.GetSection("MinimalLevels")?.GetChildren() ?? [])
                 {
-                    loggerConfig.MinimumLevel.Override(key, value.Value);
+                    var key = level.Key;
+                    var value = GetEnum<Serilog.Events.LogEventLevel?>(level.Value);
+                    if (value is not null && key is not null)
+                    {
+                        loggerConfig.MinimumLevel.Override(key, value.Value);
+                    }
                 }
             }
-            string outputTemplate = GetConfigStr("OutputTemplate", logCfg) ?? "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj} [{SourceContext}]{NewLine}{Exception}";
+            string outputTemplate = GetConfigStr("OutputTemplate", logCfg) ?? 
+                "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj} [{SourceContext}]{NewLine}{Exception}";
             if (LogToConsole is true)
             {
                 loggerConfig = loggerConfig.WriteTo.Console(
@@ -112,12 +127,15 @@ public static class Builder
     public static void BuildAuthentication()
     {
         var authCfg = Cfg.GetSection("Auth");
-        if (authCfg.Exists() is false)
+        bool cookieAuth = false;
+        bool bearerTokenAuth = false;
+        if (authCfg.Exists() is true)
         {
-            return;
+            cookieAuth = GetConfigBool("CookieAuth", authCfg);
+            bearerTokenAuth = GetConfigBool("BearerTokenAuth", authCfg);
+
         }
-        var cookieAuth = GetConfigBool("CookieAuth", authCfg);
-        var bearerTokenAuth = GetConfigBool("BearerTokenAuth", authCfg);
+
         if (cookieAuth is true || bearerTokenAuth is true)
         {
             var cookieScheme = GetConfigStr("CookieAuthScheme", authCfg) ?? CookieAuthenticationDefaults.AuthenticationScheme;
@@ -144,8 +162,8 @@ public static class Builder
                     }
                     options.Cookie.Path = GetConfigStr("CookiePath", authCfg);
                     options.Cookie.Domain = GetConfigStr("CookieDomain", authCfg);
-                    options.Cookie.MaxAge = GetConfigBool("CookieMultiSessions", authCfg) is true ? TimeSpan.FromDays(days) : null;
-                    options.Cookie.HttpOnly = GetConfigBool("CookieHttpOnly", authCfg) is true;
+                    options.Cookie.MaxAge = GetConfigBool("CookieMultiSessions", authCfg, true) is true ? TimeSpan.FromDays(days) : null;
+                    options.Cookie.HttpOnly = GetConfigBool("CookieHttpOnly", authCfg, true) is true;
                 });
                 Logger?.Information("Using Cookie Authentication with scheme {0}. Cookie expires in {1} days.", cookieScheme, days);
             }
@@ -194,9 +212,9 @@ public static class Builder
             return;
         }
 
-        var allowedOrigins = GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? [];
-        var allowedMethods = GetConfigEnumerable("AllowedMethods", corsCfg)?.ToArray() ?? [];
-        var allowedHeaders = GetConfigEnumerable("AllowedHeaders", corsCfg)?.ToArray() ?? [];
+        var allowedOrigins = GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? ["*"];
+        var allowedMethods = GetConfigEnumerable("AllowedMethods", corsCfg)?.ToArray() ?? ["*"];
+        var allowedHeaders = GetConfigEnumerable("AllowedHeaders", corsCfg)?.ToArray() ?? ["*"];
 
         Instance.Services.AddCors(options => options.AddDefaultPolicy(policy =>
         {
@@ -252,7 +270,7 @@ public static class Builder
         }
 
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-        if (GetConfigBool("SetApplicationNameInConnection", ConnectionSettingsCfg) is true)
+        if (GetConfigBool("SetApplicationNameInConnection", ConnectionSettingsCfg, true) is true)
         {
             connectionStringBuilder.ApplicationName = Instance.Environment.ApplicationName;
         }
@@ -261,7 +279,7 @@ public static class Builder
         {
             var whenMissing = GetConfigBool("UseEnvironmentConnectionWhenMissing", ConnectionSettingsCfg);
 
-            var hostEnvVar = GetConfigStr("HostEnvVar", ConnectionSettingsCfg);
+            var hostEnvVar = GetConfigStr("HostEnvVar", ConnectionSettingsCfg) ?? "PGHOST";
             if (string.IsNullOrEmpty(hostEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(hostEnvVar)) is false)
             {
                 if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Host))
@@ -269,7 +287,7 @@ public static class Builder
                     connectionStringBuilder.Host = Environment.GetEnvironmentVariable(hostEnvVar);
                 }
             }
-            var portEnvVar = GetConfigStr("PortEnvVar", ConnectionSettingsCfg);
+            var portEnvVar = GetConfigStr("PortEnvVar", ConnectionSettingsCfg) ?? "PGPORT";
             if (string.IsNullOrEmpty(portEnvVar) is false && int.TryParse(Environment.GetEnvironmentVariable(portEnvVar), out int port) is true)
             {
                 if (whenMissing is true || connectionStringBuilder.Port != port)
@@ -277,7 +295,7 @@ public static class Builder
                     connectionStringBuilder.Port = port;
                 }
             }
-            var dbEnvVar = GetConfigStr("DatabaseEnvVar", ConnectionSettingsCfg);
+            var dbEnvVar = GetConfigStr("DatabaseEnvVar", ConnectionSettingsCfg) ?? "PGDATABASE";
             if (string.IsNullOrEmpty(dbEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(dbEnvVar)) is false)
             {
                 if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Database))
@@ -285,7 +303,7 @@ public static class Builder
                     connectionStringBuilder.Database = Environment.GetEnvironmentVariable(dbEnvVar);
                 }
             }
-            var userEnvVar = GetConfigStr("UserEnvVar", ConnectionSettingsCfg);
+            var userEnvVar = GetConfigStr("UserEnvVar", ConnectionSettingsCfg) ?? "PGUSER";
             if (string.IsNullOrEmpty(userEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(userEnvVar)) is false)
             {
                 if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Username))
@@ -293,7 +311,7 @@ public static class Builder
                     connectionStringBuilder.Username = Environment.GetEnvironmentVariable(userEnvVar);
                 }
             }
-            var passEnvVar = GetConfigStr("PasswordEnvVar", ConnectionSettingsCfg);
+            var passEnvVar = GetConfigStr("PasswordEnvVar", ConnectionSettingsCfg) ?? "PGPASSWORD";
             if (string.IsNullOrEmpty(passEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(passEnvVar)) is false)
             {
                 if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Password))

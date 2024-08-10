@@ -28,7 +28,6 @@ if (connectionString is null)
 BuildAuthentication();
 BuildCors();
 
-
 WebApplication app = Build();
 
 Configure(app, () =>
@@ -53,23 +52,23 @@ NpgsqlRestOptions options = new()
     NameNotSimilarTo = GetConfigStr("NameNotSimilarTo", NpgsqlRestCfg),
     IncludeNames = GetConfigEnumerable("IncludeNames", NpgsqlRestCfg)?.ToArray(),
     ExcludeNames = GetConfigEnumerable("ExcludeNames", NpgsqlRestCfg)?.ToArray(),
-    UrlPathPrefix = GetConfigStr("UrlPathPrefix", NpgsqlRestCfg),
-    UrlPathBuilder = GetConfigBool("KebabCaseUrls", NpgsqlRestCfg) ? DefaultUrlBuilder.CreateUrl : App.CreateUrl,
-    NameConverter = GetConfigBool("CamelCaseNames", NpgsqlRestCfg) ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
-    RequiresAuthorization = GetConfigBool("RequiresAuthorization", NpgsqlRestCfg),
+    UrlPathPrefix = GetConfigStr("UrlPathPrefix", NpgsqlRestCfg) ?? "/api",
+    UrlPathBuilder = GetConfigBool("KebabCaseUrls", NpgsqlRestCfg, true) ? DefaultUrlBuilder.CreateUrl : App.CreateUrl,
+    NameConverter = GetConfigBool("CamelCaseNames", NpgsqlRestCfg, true) ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
+    RequiresAuthorization = GetConfigBool("RequiresAuthorization", NpgsqlRestCfg, true),
 
-    LogEndpointCreatedInfo = GetConfigBool("LogEndpointCreatedInfo", NpgsqlRestCfg),
-    LogAnnotationSetInfo = GetConfigBool("LogEndpointCreatedInfo", NpgsqlRestCfg),
-    LogConnectionNoticeEvents = GetConfigBool("LogConnectionNoticeEvents", NpgsqlRestCfg),
+    LogEndpointCreatedInfo = GetConfigBool("LogEndpointCreatedInfo", NpgsqlRestCfg, true),
+    LogAnnotationSetInfo = GetConfigBool("LogEndpointCreatedInfo", NpgsqlRestCfg, true),
+    LogConnectionNoticeEvents = GetConfigBool("LogConnectionNoticeEvents", NpgsqlRestCfg, true),
     LogCommands = GetConfigBool("LogCommands", NpgsqlRestCfg),
     LogCommandParameters = GetConfigBool("LogCommandParameters", NpgsqlRestCfg),
 
     CommandTimeout = GetConfigInt("CommandTimeout", NpgsqlRestCfg),
     DefaultHttpMethod = GetConfigEnum<Method?>("DefaultHttpMethod", NpgsqlRestCfg),
     DefaultRequestParamType = GetConfigEnum<RequestParamType?>("DefaultRequestParamType", NpgsqlRestCfg),
-    CommentsMode = GetConfigEnum<CommentsMode>("CommentsMode", NpgsqlRestCfg),
-    RequestHeadersMode = GetConfigEnum<RequestHeadersMode>("RequestHeadersMode", NpgsqlRestCfg),
-    RequestHeadersParameterName = GetConfigStr("RequestHeadersParameterName", NpgsqlRestCfg) ?? "headers",
+    CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", NpgsqlRestCfg) ?? CommentsMode.ParseAll,
+    RequestHeadersMode = GetConfigEnum<RequestHeadersMode?>("RequestHeadersMode", NpgsqlRestCfg) ?? RequestHeadersMode.Ignore,
+    RequestHeadersParameterName = GetConfigStr("RequestHeadersParameterName", NpgsqlRestCfg) ?? "_headers",
 
     EndpointCreated = CreateEndpointCreatedHandler(),
     ValidateParameters = CreateValidateParametersHandler(),

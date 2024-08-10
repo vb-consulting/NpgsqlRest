@@ -60,9 +60,11 @@ public static class App
             return;
         }
 
-        var redirect = GetConfigStr("LoginRedirectPath", staticFilesCfg);
-        var anonPaths = GetConfigEnumerable("AnonymousPaths", staticFilesCfg);
-        HashSet<string>? anonPathsHash = anonPaths is null ? null : new(Config.GetConfigEnumerable("AnonymousPaths", staticFilesCfg) ?? []);
+        var redirect = GetConfigStr("LoginRedirectPath", staticFilesCfg) ?? "/login/";
+        var anonPaths = GetConfigEnumerable("AnonymousPaths", staticFilesCfg) ?? ["*"];
+        HashSet<string>? anonPathsHash = anonPaths is null ?
+            null : 
+            new(Config.GetConfigEnumerable("AnonymousPaths", staticFilesCfg) ?? ["*"]);
 
         app.UseDefaultFiles();
         if (anonPathsHash?.Contains("*") is true)
@@ -182,7 +184,21 @@ public static class App
 
     public static Dictionary<string, int> CreatePostgreSqlErrorCodeToHttpStatusCodeMapping()
     {
+        if (NpgsqlRestCfg.Exists() is false)
+        {
+            return new()
+            {
+                { "57014", 205 }, //query_canceled -> 205 Reset Content
+            };
+        }
         var config = NpgsqlRestCfg.GetSection("PostgreSqlErrorCodeToHttpStatusCodeMapping");
+        if (config.Exists() is false)
+        {
+            return new()
+            {
+                { "57014", 205 }, //query_canceled -> 205 Reset Content
+            };
+        }
         var result = new Dictionary<string, int>();
         foreach (var section in config.GetChildren())
         {
@@ -224,12 +240,12 @@ public static class App
             handlers.Add(new HttpFile(new HttpFileOptions
             {
                 Name = GetConfigStr("Name", httpFilecfg),
-                Option = GetConfigEnum<HttpFileOption>("Option", httpFilecfg),
+                Option = GetConfigEnum<HttpFileOption?>("Option", httpFilecfg) ?? HttpFileOption.File,
                 NamePattern = GetConfigStr("NamePattern", httpFilecfg) ?? "{0}{1}",
-                CommentHeader = GetConfigEnum<CommentHeader>("CommentHeader", httpFilecfg),
-                CommentHeaderIncludeComments = GetConfigBool("CommentHeaderIncludeComments", httpFilecfg),
-                FileMode = GetConfigEnum<HttpFileMode>("FileMode", httpFilecfg),
-                FileOverwrite = GetConfigBool("FileOverwrite", httpFilecfg),
+                CommentHeader = GetConfigEnum<CommentHeader?>("CommentHeader", httpFilecfg) ?? CommentHeader.Simple,
+                CommentHeaderIncludeComments = GetConfigBool("CommentHeaderIncludeComments", httpFilecfg, true),
+                FileMode = GetConfigEnum<HttpFileMode?>("FileMode", httpFilecfg) ?? HttpFileMode.Schema,
+                FileOverwrite = GetConfigBool("FileOverwrite", httpFilecfg, true),
                 ConnectionString = connectionString
             }));
         }
@@ -239,19 +255,20 @@ public static class App
             var ts = new TsClientOptions
             {
                 FilePath = GetConfigStr("FilePath", tsClientCfg),
-                FileOverwrite = GetConfigBool("FileOverwrite", tsClientCfg),
-                IncludeHost = GetConfigBool("IncludeHost", tsClientCfg),
+                FileOverwrite = GetConfigBool("FileOverwrite", tsClientCfg, true),
+                IncludeHost = GetConfigBool("IncludeHost", tsClientCfg, true),
                 CustomHost = GetConfigStr("CustomHost", tsClientCfg),
-                CommentHeader = GetConfigEnum<CommentHeader>("CommentHeader", tsClientCfg),
-                CommentHeaderIncludeComments = GetConfigBool("CommentHeaderIncludeComments", tsClientCfg),
-                BySchema = GetConfigBool("BySchema", tsClientCfg),
-                IncludeStatusCode = GetConfigBool("IncludeStatusCode", tsClientCfg),
-                CreateSeparateTypeFile = GetConfigBool("CreateSeparateTypeFile", tsClientCfg),
+                CommentHeader = GetConfigEnum<CommentHeader?>("CommentHeader", tsClientCfg) ?? CommentHeader.Simple,
+                CommentHeaderIncludeComments = GetConfigBool("CommentHeaderIncludeComments", tsClientCfg, true),
+                BySchema = GetConfigBool("BySchema", tsClientCfg, true),
+                IncludeStatusCode = GetConfigBool("IncludeStatusCode", tsClientCfg, true),
+                CreateSeparateTypeFile = GetConfigBool("CreateSeparateTypeFile", tsClientCfg, true),
                 ImportBaseUrlFrom = GetConfigStr("ImportBaseUrlFrom", tsClientCfg),
                 ImportParseQueryFrom = GetConfigStr("ImportParseQueryFrom", tsClientCfg),
                 IncludeParseUrlParam = GetConfigBool("IncludeParseUrlParam", tsClientCfg),
                 IncludeParseRequestParam = GetConfigBool("IncludeParseRequestParam", tsClientCfg),
                 UseRoutineNameInsteadOfEndpoint = GetConfigBool("UseRoutineNameInsteadOfEndpoint", tsClientCfg),
+                DefaultJsonType = GetConfigStr("DefaultJsonType", tsClientCfg) ?? "string",
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);

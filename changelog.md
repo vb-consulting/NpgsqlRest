@@ -4,6 +4,14 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.9.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.10.0) (2024-08-06)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.9.0...2.10.0)
+
+Added the `separator`
+
+Added ``
+
 ## Version [2.9.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.9.0) (2024-08-02)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.5...2.9.0)
