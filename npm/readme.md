@@ -60,18 +60,31 @@ npm install npgsqlrest --save-dev
 ```console
 $ npx npgsqlrest --help
 Usage:
-npgsqlrest                             Run with the default configuration files: appsettings.json (required) and appsettings.Development.json (optional).
-npgsqlrest [files...]                  Run with the custom configuration files. All configuration files are required.
-npgsqlrest [file1 -o file2...]         Use the -o switch to mark the next configuration file as optional. The first file after the -o switch is optional.
-npgsqlrest [file1 --optional file2...] Use --optional switch to mark the next configuration file as optional. The first file after the --optional switch is optional.
+npgsqlrest                               Run with the optional default configuration files: appsettings.json and
+                                         appsettings.Development.json. If these file are not found, default
+                                         configuration setting is used (see
+                                         https://vb-consulting.github.io/npgsqlrest/config/).
+npgsqlrest [files...]                    Run with the custom configuration files. All configuration files are required.
+                                         Any configuration values will override default values in order of appearance.
+npgsqlrest [file1 -o file2...]           Use the -o switch to mark the next configuration file as optional. The first
+                                         file after the -o switch is optional.
+npgsqlrest [file1 --optional file2...]   Use --optional switch to mark the next configuration file as optional. The
+                                         first file after the --optional switch is optional.
+Note:                                    Values in the later file will override the values in the previous one.
 
-npgsqlrest -v, --version               Show version information.
-npgsqlrest -h, --help                  Show command line help.
+npgsqlrest [--key=value]                 Override the configuration with this key with a new value (case insensitive,
+                                         use : to separate sections).
 
-Note:                                  Values in the later file will override the values in the previous one.
+npgsqlrest -v, --version                 Show version information.
+npgsqlrest -h, --help                    Show command line help.
 
-Example:                               npgsqlrest appsettings.json appsettings.Development.json
-Example:                               npgsqlrest appsettings.json -o appsettings.Development.json
+
+Examples:
+Example: use two config files            npgsqlrest appsettings.json appsettings.Development.json
+Example: second config file optional     npgsqlrest appsettings.json -o appsettings.Development.json
+Example: override ApplicationName config npgsqlrest --applicationname=Test
+Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
+
 ```
 
 - Use the `npgsqlrest-config-copy` command to copy the default config to the current directory (or, optionally, directory from the first argument).
