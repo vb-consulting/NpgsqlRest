@@ -285,3 +285,23 @@ Transfer-Encoding: chunked
 456,"2024-12-31 00:00:00",f,"another text"
 
 ```
+
+## Separator
+
+```console
+                                                
+separator [ separator_value ]                   
+                                                
+```
+
+Defines a standard separator between raw values. It only applies when `raw` is on.
+
+## NewLine
+
+```console
+                                                
+newline [ newline ]                   
+                                                
+```
+
+Defines a standard separator between raw value columns. It only applies when `raw` is on.

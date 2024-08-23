@@ -29,9 +29,11 @@ Outputs:
 
 ```
 Versions:
-Client Build         1.5.0.0
+.NET                 8.0.7
+Client Build         2.0.0.0
+Serilog.AspNetCore   8.0.2.0
 Npgsql               8.0.3.0
-NpgsqlRest           2.9.0.0
+NpgsqlRest           2.10.0.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.9.1.0
 
@@ -47,14 +49,18 @@ Outputs:
 
 ```
 Usage:
-npgsqlrest                               Run with the default configuration files: appsettings.json (required) and
-                                         appsettings.Development.json (optional).
+npgsqlrest                               Run with the optional default configuration files: appsettings.json and
+                                         appsettings.Development.json. If these file are not found, default
+                                         configuration setting is used (see
+                                         https://vb-consulting.github.io/npgsqlrest/config/).
 npgsqlrest [files...]                    Run with the custom configuration files. All configuration files are required.
+                                         Any configuration values will override default values in order of appearance.
 npgsqlrest [file1 -o file2...]           Use the -o switch to mark the next configuration file as optional. The first
                                          file after the -o switch is optional.
 npgsqlrest [file1 --optional file2...]   Use --optional switch to mark the next configuration file as optional. The
                                          first file after the --optional switch is optional.
 Note:                                    Values in the later file will override the values in the previous one.
+
 npgsqlrest [--key=value]                 Override the configuration with this key with a new value (case insensitive,
                                          use : to separate sections).
 
@@ -67,6 +73,7 @@ Example: use two config files            npgsqlrest appsettings.json appsettings
 Example: second config file optional     npgsqlrest appsettings.json -o appsettings.Development.json
 Example: override ApplicationName config npgsqlrest --applicationname=Test
 Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
+
 ```
 
 Running in the current directory with two configuration files and exposing port 5000:

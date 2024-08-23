@@ -4,13 +4,69 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
-## Version [2.9.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.10.0) (2024-08-06)
+## Version [2.10.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.10.0) (2024-08-06)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.9.0...2.10.0)
 
-Added the `separator`
+### New Routine Endpoint Options With Annotations
 
-Added ``
+These two options will only apply when [`raw`](https://vb-consulting.github.io/npgsqlrest/annotations/#raw) is on. Also, comment annotation values will accept standard escape sequences such as `\n`, `\r` or `\t`, etc.
+
+These are:
+
+- `RoutineEndpoint` option `public string? RawValueSeparator { get; set; } = null;` that maps to new comment annotation `separator`
+
+Defines a standard separator between raw values.
+
+- `RoutineEndpoint` option `public string? RawNewLineSeparator { get; set; } = null;` that maps to new comment annotation `newline`
+
+Defines a standard separator between raw value columns.
+
+### Dynamic Custom Header Values
+
+In this version, when you define custom headers, either trough:
+
+- [`CustomRequestHeaders` option](https://vb-consulting.github.io/npgsqlrest/options/#customrequestheaders) for all requests.
+- On [`EndpointsCreated` option event](https://vb-consulting.github.io/npgsqlrest/options/#endpointscreated) as `ResponseHeaders` on a specific endpoint.
+- Or, as [comment annotation](https://vb-consulting.github.io/npgsqlrest/annotations/#headers) on a PostgreSQL routine.
+
+Now, you can set header value from a routine parameter. For, example, if the header value has a name in curly brackets like this `Content-Type: {_type}`, then a `Content-Type` header will have to value of the `_type` routine parameter (if the parameter exists).
+
+See CSV example:
+
+### CSV Example:
+
+- Routine:
+
+```sql
+create function header_template_response1(_type text, _file text) 
+returns table(n numeric, d timestamp, b boolean, t text)
+language sql
+as 
+$$
+select sub.* 
+from (
+values 
+    (123, '2024-01-01'::timestamp, true, 'some text'),
+    (456, '2024-12-31'::timestamp, false, 'another text')
+)
+sub (n, d, b, t)
+$$;
+
+comment on function header_template_response1(text, text) is '
+raw
+separator ,
+newline \n
+Content-Type: {_type}
+Content-Disposition: attachment; filename={_file}
+';
+```
+
+Request on this enpoint with parameters:
+- _type = 'text/csv'
+- _file = 'test.csv'
+
+Will produce a download response to a 'test.csv' file with content type 'test.csv'. Raw values separator will be `,` character and row values separator will be new line.
 
 ## Version [2.9.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.9.0) (2024-08-02)
 
@@ -55,7 +111,6 @@ Transfer-Encoding: chunked
 456,"2024-12-31 00:00:00",f,"another text"
 
 ```
-
 
 ## Version [2.8.5](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.5) (2024-06-25)
 
