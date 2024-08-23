@@ -2,14 +2,12 @@ FROM ubuntu:22.04 AS builder
 WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget ca-certificates && \
-    wget https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.9.0-client-v1.5.0/npgsqlrest-linux64 -O npgsqlrest && \
-    wget https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.9.0-client-v1.5.0/appsettings.json -O appsettings.json && \
+    wget https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.10.0-client-v2.0.0/npgsqlrest-linux64 -O npgsqlrest && \
     chmod +x npgsqlrest
 
 FROM ubuntu:22.04
 WORKDIR /app
 COPY --from=builder /app/npgsqlrest /usr/local/bin/npgsqlrest
-COPY --from=builder /app/appsettings.json /app/appsettings.json
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libssl3 && \
