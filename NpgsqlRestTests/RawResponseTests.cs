@@ -56,6 +56,27 @@ public static partial class Database
         newline \n
         Content-Type: text/csv
         ';
+
+        create function raw_csv_separators_with_headers_response1() 
+        returns table(n numeric, d timestamp, b boolean, t text)
+        language sql
+        as 
+        $$
+        select sub.* 
+        from (
+        values 
+            (123, '2024-01-01'::timestamp, true, 'some text'),
+            (456, '2024-12-31'::timestamp, false, 'another text')
+        )
+        sub (n, d, b, t)
+        $$;
+        comment on function raw_csv_separators_with_headers_response1() is '
+        raw
+        separator ,
+        newline \n
+        column_names
+        Content-Type: text/csv
+        ';
         """);
     }
 }
@@ -98,6 +119,22 @@ public class RawResponseTests(TestFixture test)
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
         result.Content.Headers.ContentType.MediaType.Should().Be("text/csv");
         response.Should().Be(string.Concat(
+            "123,\"2024-01-01 00:00:00\",t,\"some text\"",
+            "\n",
+            "456,\"2024-12-31 00:00:00\",f,\"another text\""));
+    }
+
+    [Fact]
+    public async Task Test_raw_csv_separators_with_headers_response1()
+    {
+        using var result = await test.Client.PostAsync("/api/raw-csv-separators-with-headers-response1/", null);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Content.Headers.ContentType.MediaType.Should().Be("text/csv");
+        response.Should().Be(string.Concat(
+            "\"n\",\"d\",\"b\",\"t\"",
+            "\n",
             "123,\"2024-01-01 00:00:00\",t,\"some text\"",
             "\n",
             "456,\"2024-12-31 00:00:00\",f,\"another text\""));

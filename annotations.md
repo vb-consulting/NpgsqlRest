@@ -305,3 +305,15 @@ newline [ newline ]
 ```
 
 Defines a standard separator between raw value columns. It only applies when `raw` is on.
+
+## ColumnNames
+
+```console
+                                                
+columnnames                                     
+column_names                                    
+column-names                                    
+                                                
+```
+
+If this option is set to true - and if the endpoint is int the "raw" mode - the endpoint will contain a header names. If separators are applied, they will be used also.

@@ -4,6 +4,13 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.11.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.11.0) (2024-09-03)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.10.0...2.11.0)
+
+1) Default value for the `CommentsMode` is changed. For now on, default value for this option is more restrictive `OnlyWithHttpTag` instead of previously `ParseAll`.
+2) New routine endpoint option `bool RawColumnNames` (default false) with the following annotation `columnnames` or `column_names` or `column-names`. If this option is set to true (in code or with comment annotation) - and if the endpoint is int the "raw" mode - the endpoint will contain a header names. If separators are applied, they will be used also.
+
 ## Version [2.10.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.10.0) (2024-08-06)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.9.0...2.10.0)

@@ -269,6 +269,7 @@ public static class App
                 IncludeParseRequestParam = GetConfigBool("IncludeParseRequestParam", tsClientCfg),
                 UseRoutineNameInsteadOfEndpoint = GetConfigBool("UseRoutineNameInsteadOfEndpoint", tsClientCfg),
                 DefaultJsonType = GetConfigStr("DefaultJsonType", tsClientCfg) ?? "string",
+                ExportUrls =  GetConfigBool("ExportUrls", tsClientCfg),
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);

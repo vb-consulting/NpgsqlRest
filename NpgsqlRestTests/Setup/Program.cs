@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using NpgsqlRest;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -81,7 +82,7 @@ public class Program
 
         app.UseNpgsqlRest(new(connectionString)
         {
-            //NameSimilarTo = "header_template_response1",
+            CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async p =>

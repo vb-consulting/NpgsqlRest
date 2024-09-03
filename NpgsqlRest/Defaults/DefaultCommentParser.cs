@@ -119,6 +119,11 @@ internal static class DefaultCommentParser
     private const string RawKey = "raw";
     private const string SeparatorKey = "separator";
     private const string NewLineKey = "newline";
+    private static readonly string[] columnNamesKey = [
+        "columnnames",
+        "column_names",
+        "column-names"
+    ];
 
     public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
     {
@@ -554,6 +559,18 @@ internal static class DefaultCommentParser
                     var nl = line.Substring(words[0].Length + 1);
                     logger?.CommentSetRawNewLineSeparator(routine.Type, routine.Schema, routine.Name, nl);
                     routineEndpoint.RawNewLineSeparator = Regex.Unescape(nl);
+                }
+
+                // columnnames
+                // column_names
+                // column-names
+                else if (haveTag is true && StrEqualsToArray(ref words[0], columnNamesKey))
+                {
+                    routineEndpoint.RawColumnNames = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentRawSetColumnNames(routine.Type, routine.Schema, routine.Name);
+                    }
                 }
 
                 // key: value

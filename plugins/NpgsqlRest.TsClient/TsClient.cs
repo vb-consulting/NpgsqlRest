@@ -76,17 +76,18 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         }
         Dictionary<string, string> modelsDict = [];
         Dictionary<string, int> names = [];
+        StringBuilder contentHeader = new();
         StringBuilder content = new();
         StringBuilder interfaces = new();
 
         if (endpoints.Where(e => e.endpoint.RequestParamType == RequestParamType.QueryString).Any())
         {
-            content.AppendLine(
+            contentHeader.AppendLine(
                 options.ImportBaseUrlFrom is not null ? 
                     string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) : 
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
 
-            content.AppendLine(options.ImportParseQueryFrom is not null ? 
+            contentHeader.AppendLine(options.ImportParseQueryFrom is not null ? 
                 string.Format(
                 "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
                 """
@@ -103,10 +104,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         }
         else
         {
-            content.AppendLine(
+            contentHeader.AppendLine(
                 options.ImportBaseUrlFrom is not null ?
                     string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) :
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
+        }
+        if (options.ExportUrls is true)
+        {
+            contentHeader.AppendLine();
         }
 
         bool handled = false;
@@ -148,10 +153,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         {
             Directory.CreateDirectory(dir);
         }
-
         if (options.CreateSeparateTypeFile is false)
         {
             interfaces.AppendLine(content.ToString());
+            if (contentHeader.Length > 0)
+            {
+                contentHeader.AppendLine();
+                interfaces.Insert(0, contentHeader.ToString());
+            }
             AddHeader(interfaces);
             File.WriteAllText(fileName, interfaces.ToString());
             _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
@@ -163,6 +172,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             File.WriteAllText(typeFile, interfaces.ToString());
             _logger?.LogInformation("Created Typescript type file: {typeFile}", typeFile);
 
+            if (contentHeader.Length > 0)
+            {
+                content.Insert(0, contentHeader.ToString());
+            }
             AddHeader(content);
             File.WriteAllText(fileName, content.ToString());
             _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
@@ -425,6 +438,27 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 parameters = string.Concat(parameters, Environment.NewLine);
             }
 
+            string url;
+            if (options.ExportUrls is false)
+            {
+                url = options.IncludeParseUrlParam is true ?
+                    string.Format("parseUrl(baseUrl + \"{0}\"{1})", endpoint.Url, qs) :
+                    string.Format("baseUrl + \"{0}\"{1}", endpoint.Url, qs);
+            }
+            else
+            {
+                url = options.IncludeParseUrlParam is true ?
+                    (requestName is not null && body is null ? string.Format("parseUrl({0}Url(request))", camel) : string.Format("parseUrl({0}Url())", camel)) :
+                    string.Format("{0}Url(request)", camel);
+
+                contentHeader.AppendLine(string.Format(
+                    "export const {0}Url = {1} => baseUrl + \"{2}\"{3};", 
+                    camel, 
+                    requestName is not null && body is null ? string.Format("(request: {0})", requestName) : "()",
+                    endpoint.Url, 
+                    qs));
+            }
+
             var funcBody = string.Format(
                 """
                 {0}await fetch({1}, {2}{{
@@ -432,10 +466,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }}{6});{7}
             """,
                 isVoid && options.IncludeStatusCode is false ? "" : "const response = ",
-
-                options.IncludeParseUrlParam is true ? 
-                    string.Format("parseUrl(baseUrl + \"{0}\"{1})", endpoint.Url, qs) : 
-                    string.Format("baseUrl + \"{0}\"{1}", endpoint.Url, qs),
+                url,
                 options.IncludeParseRequestParam ? "parseRequest(" : "",
                 endpoint.Method,
                 NewLine(headers, 2),

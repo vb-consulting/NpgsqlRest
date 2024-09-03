@@ -23,7 +23,8 @@ public struct RoutineEndpoint(
     ulong? bufferRows = null,
     bool raw = false,
     string? rawValueSeparator = null,
-    string? rawNewLineSeparator = null)
+    string? rawNewLineSeparator = null,
+    bool rawColumnNames = false)
 {
     internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
@@ -50,4 +51,5 @@ public struct RoutineEndpoint(
     public bool Raw { get; set; } = raw;
     public string? RawValueSeparator { get; set; } = rawValueSeparator;
     public string? RawNewLineSeparator { get; set; } = rawNewLineSeparator;
+    public bool RawColumnNames { get; set; } = rawColumnNames;
 }

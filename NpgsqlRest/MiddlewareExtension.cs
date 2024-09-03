@@ -793,6 +793,26 @@ public static class NpgsqlRestMiddlewareExtensions
                             StringBuilder row = new();
                             ulong rowCount = 0;
 
+                            if (endpoint.Raw is true && endpoint.RawColumnNames is true)
+                            {
+                                StringBuilder columns = new();
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    if (endpoint.RawValueSeparator is not null && i > 0)
+                                    {
+                                        columns.Append(endpoint.RawValueSeparator);
+                                    }
+                                    columns.Append('\"');
+                                    columns.Append(reader.GetName(i).Replace("\"", "\"\""));
+                                    columns.Append('\"');
+                                }
+                                if (endpoint.RawNewLineSeparator is not null)
+                                {
+                                    columns.Append(endpoint.RawNewLineSeparator);
+                                }
+                                row.Append(columns);
+                            }
+
                             var bufferRows = endpoint.BufferRows ?? options.BufferRows;
                             while (await reader.ReadAsync())
                             {

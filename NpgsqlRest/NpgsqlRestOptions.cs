@@ -35,7 +35,7 @@ public class NpgsqlRestOptions(
     RequestParamType? defaultRequestParamType = null,
     Action<ParameterValidationValues>? validateParameters = null,
     Func<ParameterValidationValues, Task>? validateParametersAsync = null,
-    CommentsMode commentsMode = CommentsMode.ParseAll,
+    CommentsMode commentsMode = CommentsMode.OnlyWithHttpTag,
     RequestHeadersMode requestHeadersMode = RequestHeadersMode.Ignore,
     string requestHeadersParameterName = "headers",
     Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,

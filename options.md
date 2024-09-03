@@ -514,7 +514,7 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 ## CommentsMode
 
 - Type: `CommentsMode`
-- Default: `ParseAll`
+- Default: `OnlyWithHttpTag`
 
 Configure how the comment annotations will behave: 
 - `Ignore` will create all endpoints and ignore comment annotations. 

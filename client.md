@@ -91,6 +91,12 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.1.0
+
+- NpgsqlRest version    2.11.0.0
+- NpgsqlRest.TsClient   1.10.0.0
+- Changed the default configuration value for the `CommentsMode`. For now on, default value for this option is more restrictive `OnlyWithHttpTag` instead of previously `ParseAll`.
+
 ## 2.0.0
 
 Big changes:
