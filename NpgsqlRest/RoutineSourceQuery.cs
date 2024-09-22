@@ -3,64 +3,26 @@
 internal class RoutineSourceQuery
 {
     public const string Query = """
-    with cte1 as (
+    with r as (
         select
-            lower(r.routine_type) as type,
-            quote_ident(r.specific_schema) as schema,
-            quote_ident(r.routine_name) as name,
-            proc.oid as oid,
+            r.routine_type, 
+            r.specific_schema, 
             r.specific_name,
-            des.description as comment,
-            proc.proisstrict as is_strict,
-            proc.provolatile as volatility_option,
-            proc.proretset as returns_set,
-            (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
-
-            coalesce(
-                array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
-                '{}'::text[]
-            ) as in_params,
-
-            case when r.data_type = 'USER-DEFINED' then null
-            else
-                coalesce(
-                    (array_agg(quote_ident(p.parameter_name::text) order by p.ordinal_position) 
-                    filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')),
-                    '{}'::text[]
-                )
-            end as out_params,
-
-            coalesce(
-                array_agg(
-                    case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end
-                    order by p.ordinal_position
-                ) filter(where p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT'),
-                '{}'::text[]
-            ) as in_param_types,
-
-            case when r.data_type = 'USER-DEFINED' then null
-            else
-                coalesce(
-                    (array_agg(case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end 
-                               order by p.ordinal_position) 
-                    filter(where p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT')),
-                    '{}'::text[]
-                )
-            end as out_param_types,
-            
-            pg_get_function_arguments(proc.oid) as arguments_def,
-
-            case when proc.provariadic <> 0 then true else false end as has_variadic,
-
+            r.routine_name,
+            r.data_type, 
             r.type_udt_schema,
             r.type_udt_name,
-            r.data_type
-        from
-            information_schema.routines r
-            join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
-            left join pg_catalog.pg_description des on proc.oid = des.objoid
-            left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
+            (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
+            r.data_type = 'USER-DEFINED' as is_user_defined,
 
+            quote_ident(p.parameter_name::text) as param_name,
+            p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT' as is_in_param,
+            p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT' as is_out_param,
+            p.ordinal_position as param_position,
+            case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end as param_type
+
+        from information_schema.routines r
+        left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
         where
             r.specific_schema = any(
                 select
@@ -75,20 +37,71 @@ internal class RoutineSourceQuery
                     and ($3 is null or nspname = any($3))
                     and ($4 is null or not nspname = any($4))
             )
-            and ($5 is null or r.routine_name similar to $5)
-            and ($6 is null or r.routine_name not similar to $6)
-            and ($7 is null or r.routine_name = any($7))
-            and ($8 is null or not r.routine_name = any($8))
+        and ($5 is null or r.routine_name similar to $5)
+        and ($6 is null or r.routine_name not similar to $6)
+        and ($7 is null or r.routine_name = any($7))
+        and ($8 is null or not r.routine_name = any($8))
+        and not lower(r.external_language) = any(array['c', 'internal'])
+        and coalesce(r.type_udt_name, '') <> 'trigger'
+        and r.routine_type in ('FUNCTION', 'PROCEDURE')
 
-            and proc.prokind in ('f', 'p')
-            and not lower(r.external_language) = any(array['c', 'internal'])
-            and coalesce(r.type_udt_name, '') <> 'trigger'
+    ), cte1 as (
+
+        select
+            lower(r.routine_type) as type,
+            quote_ident(r.specific_schema) as schema,
+            quote_ident(r.routine_name) as name,
+            proc.oid as oid,
+            r.specific_name,
+            des.description as comment,
+            proc.proisstrict as is_strict,
+            proc.provolatile as volatility_option,
+            proc.proretset as returns_set,
+            r.return_type,
+
+            coalesce(array_agg(r.param_name order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as in_params,
+            case 
+                when r.is_user_defined then null
+                else coalesce((array_agg(r.param_name order by r.param_position) filter(where r.is_out_param)),'{}'::text[])
+            end as out_params,
+
+            coalesce(array_agg(r.param_type order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as in_param_types,
+
+            case 
+                when  r.is_user_defined then null
+                else coalesce((array_agg(r.param_type order by r.param_position) filter(where r.is_out_param)), '{}'::text[])
+            end as out_param_types,
+
+            pg_get_function_arguments(proc.oid) as arguments_def,
+
+            case when proc.provariadic <> 0 then true else false end as has_variadic,
+
+            r.type_udt_schema,
+            r.type_udt_name,
+            r.data_type
+        from
+            r
+            join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
+            left join pg_catalog.pg_description des on proc.oid = des.objoid
         group by
-            r.routine_type, r.specific_schema, r.routine_name,
-            proc.oid, r.specific_name, des.description,
-            r.data_type, r.type_udt_schema, r.type_udt_name,
-            proc.proisstrict, proc.procost, proc.prorows, proc.proparallel, proc.provolatile,
-            proc.proretset, proc.provariadic
+            r.routine_type, 
+            r.specific_schema, 
+            r.routine_name,
+            r.specific_name, 
+            r.data_type, 
+            r.type_udt_schema, 
+            r.type_udt_name, 
+            r.return_type, 
+            r.is_user_defined,
+            des.description,
+            proc.oid,
+            proc.proisstrict, 
+            proc.procost, 
+            proc.prorows, 
+            proc.proparallel, 
+            proc.provolatile,
+            proc.proretset, 
+            proc.provariadic
 
     ), cte2 as (
 
@@ -105,7 +118,7 @@ internal class RoutineSourceQuery
             join cte1 on 
             cte1.data_type = 'USER-DEFINED' and col.table_schema = cte1.type_udt_schema and col.table_name = cte1.type_udt_name 
         group by
-           cte1.schema, cte1.specific_name
+            cte1.schema, cte1.specific_name
 
     )
     select

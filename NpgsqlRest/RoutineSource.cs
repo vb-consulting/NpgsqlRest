@@ -91,8 +91,10 @@ public class RoutineSource(
             var routineType = type.GetEnum<RoutineType>();
             var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
             var paramCount = reader.Get<int>(12);// "param_count");
-
             var argumentDef = reader.Get<string>(15);
+
+
+
             string?[] paramDefaults = new string?[paramCount];
             bool[] hasParamDefaults = new bool[paramCount];
 
@@ -144,7 +146,6 @@ public class RoutineSource(
                         hasParamDefaults[i] = false;
                     }
                 }
-
             }
 
             var returnRecordCount = reader.Get<int>(8);// "return_record_count");
@@ -165,8 +166,11 @@ public class RoutineSource(
                 schema, ".",
                 name, "(",
                 paramCount == 0 ? ")" : ""));
+            
+            TypeDescriptor[] descriptors;
             if (paramCount > 0)
             {
+                descriptors = new TypeDescriptor[paramCount];
                 for (var i = 0; i < paramCount; i++)
                 {
                     var paramName = paramNames[i];
@@ -175,9 +179,15 @@ public class RoutineSource(
                     var fullParamType = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
                     simpleDefinition
                         .AppendLine(string.Concat("    ", paramName, " ", fullParamType, i == paramCount - 1 ? "" : ","));
+                    descriptors[i] = new TypeDescriptor(paramType, hasDefault: hasParamDefaults[i]);
                 }
                 simpleDefinition.AppendLine(")");
             }
+            else
+            {
+                descriptors = [];
+            }
+
             if (!returnsSet)
             {
                 simpleDefinition.AppendLine(string.Concat("returns ", returnType));
@@ -222,9 +232,7 @@ public class RoutineSource(
 
                     paramCount: paramCount,
                     paramNames: paramNames,
-                    paramTypeDescriptor: paramTypes
-                        .Select((x, i) => new TypeDescriptor(x, hasDefault: hasParamDefaults[i] is true))
-                        .ToArray(),
+                    paramTypeDescriptor: descriptors,
 
                     expression: expression,
                     fullDefinition: reader.Get<string>(17),//"definition"),

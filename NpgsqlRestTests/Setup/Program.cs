@@ -82,6 +82,7 @@ public class Program
 
         app.UseNpgsqlRest(new(connectionString)
         {
+            //NameSimilarTo = "get_custom_param_query_1p",
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),

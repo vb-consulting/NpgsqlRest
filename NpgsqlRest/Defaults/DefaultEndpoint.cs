@@ -25,19 +25,22 @@ internal static class DefaultEndpoint
             RequestParamType.QueryString :
             RequestParamType.BodyJson;
 
-        string[] returnRecordNames = routine.ColumnNames.Select(s => options.NameConverter(s) ?? "").ToArray();
-        string[] paramNames = routine
-            .ParamNames
-            .Select((s, i) =>
+        string[] returnRecordNames = new string[routine.ColumnNames.Length];
+        for (int i = 0; i < routine.ColumnNames.Length; i++)
+        {
+            returnRecordNames[i] = options.NameConverter(routine.ColumnNames[i]) ?? "";
+        }
+
+        string[] paramNames = new string[routine.ParamNames.Length];
+        for (int i = 0; i < routine.ParamNames.Length; i++)
+        {
+            var result = options.NameConverter(routine.ParamNames[i]) ?? "";
+            if (string.IsNullOrEmpty(result))
             {
-                var result = options.NameConverter(s) ?? "";
-                if (string.IsNullOrEmpty(result))
-                {
-                    result = $"${i + 1}";
-                }
-                return result;
-            })
-            .ToArray();
+                result = $"${i + 1}";
+            }
+            paramNames[i] = result;
+        }
 
         RoutineEndpoint routineEndpoint = new(
                 url: url,
