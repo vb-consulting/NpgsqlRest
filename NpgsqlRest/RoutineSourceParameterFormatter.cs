@@ -1,4 +1,7 @@
-﻿namespace NpgsqlRest;
+﻿using System.Text;
+using Microsoft.Extensions.Primitives;
+
+namespace NpgsqlRest;
 
 public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
 {
@@ -31,4 +34,45 @@ public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
     }
 
     public string? AppendEmpty() => ")";
+}
+
+public class RoutineSourceCustomTypesParameterFormatter : IRoutineSourceParameterFormatter
+{
+    public bool IsFormattable { get; } = true;
+
+    public string FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters)
+    {
+        var sb = new StringBuilder(routine.Expression);
+        var count = parameters.Count;
+        for (var i = 0; i < count; i++)
+        {
+            var parameter = parameters[i];
+            var suffix = parameter.TypeDescriptor.IsCastToText() ? $"::{parameter.TypeDescriptor.OriginalType}" : "";
+            if (i > 0)
+            {
+                sb.Append(',');
+            }
+            if (parameter.TypeDescriptor.CustomType is null)
+            {
+                sb.Append(parameter.ActualName is null ? 
+                    string.Concat("$", (i + 1).ToString(), suffix) : 
+                    string.Concat(parameter.ActualName, "=>$", (i+1).ToString()));
+            }
+            else
+            {
+                if (parameter.TypeDescriptor.CustomTypePosition == 1)
+                {
+                    sb.Append(parameter.TypeDescriptor.OriginalParameterName);
+                    sb.Append("=>row(");
+                }
+                sb.Append(string.Concat("$", (i + 1).ToString(), suffix));
+                if (i == count - 1 || parameter.TypeDescriptor.CustomTypePosition != parameters[i + 1].TypeDescriptor.CustomTypePosition - 1)
+                {
+                    sb.Append(string.Concat(")::", parameters[i].TypeDescriptor.CustomType));
+                }
+            }
+        }
+        sb.Append(')');
+        return sb.ToString();
+    }
 }

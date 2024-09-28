@@ -49,7 +49,8 @@ public class NpgsqlRestOptions(
     bool returnNpgsqlExceptionMessage = true,
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
     Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
-    Dictionary<string, StringValues>? customRequestHeaders = null)
+    Dictionary<string, StringValues>? customRequestHeaders = null,
+    string? customTypeParameterSeparator = ".")
 {
 
     /// <summary>
@@ -289,6 +290,12 @@ public class NpgsqlRestOptions(
     /// Note: these values are added to the request headers dictionary before they are sent as a context or parameter to the PostgreSQL routine and as such not visible to the browser debugger.
     /// </summary>
     public Dictionary<string, StringValues> CustomRequestHeaders { get; set; } = customRequestHeaders ?? [];
+
+    /// <summary>
+    /// Custom type parameter separator. Default is `.`.
+    /// </summary>
+    public string? CustomTypeParameterSeparator { get; set; } = customTypeParameterSeparator;
+
 
     internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }

@@ -2,7 +2,6 @@
 using Npgsql;
 using NpgsqlTypes;
 using NpgsqlRest.Extensions;
-using System.Text.RegularExpressions;
 
 namespace NpgsqlRest;
 
@@ -18,7 +17,6 @@ public class RoutineSource(
         string? query = null,
         CommentsMode? commentsMode = null) : IRoutineSource
 {
-    private readonly IRoutineSourceParameterFormatter _formatter = new RoutineSourceParameterFormatter();
     public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
     public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
     public string[]? IncludeSchemas { get; set; } = includeSchemas;
@@ -166,20 +164,49 @@ public class RoutineSource(
                 schema, ".",
                 name, "(",
                 paramCount == 0 ? ")" : ""));
-            
+
+
+            var customTypeNames = reader.Get<string?[]>(18);
+            var customTypeTypes = reader.Get<string?[]>(19);
+            var customTypePositions = reader.Get<short?[]>(20);
+
             TypeDescriptor[] descriptors;
+            bool hasCustomType = false;
             if (paramCount > 0)
             {
                 descriptors = new TypeDescriptor[paramCount];
                 for (var i = 0; i < paramCount; i++)
                 {
                     var paramName = paramNames[i];
+                    var originalParameterName = paramName;
+                    var customTypeName = customTypeNames[i];
+                    string? customType;
+                    if (customTypeName != null)
+                    {
+                        customType = paramTypes[i];
+                        paramTypes[i] = customTypeTypes[i] ?? customType;
+                        paramName = string.Concat(paramName, options.CustomTypeParameterSeparator, customTypeName);
+                        paramNames[i] = paramName;
+                        if (hasCustomType is false)
+                        {
+                            hasCustomType = true;
+                        }
+                    }
+                    else
+                    {
+                        customType = null;
+                    }
                     var defaultValue = paramDefaults[i];
                     var paramType = paramTypes[i];
                     var fullParamType = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
                     simpleDefinition
                         .AppendLine(string.Concat("    ", paramName, " ", fullParamType, i == paramCount - 1 ? "" : ","));
-                    descriptors[i] = new TypeDescriptor(paramType, hasDefault: hasParamDefaults[i]);
+                    descriptors[i] = new TypeDescriptor(
+                        paramType, 
+                        hasDefault: hasParamDefaults[i], 
+                        customType: customType,
+                        customTypePosition: customTypePositions[i],
+                        originalParameterName: originalParameterName);
                 }
                 simpleDefinition.AppendLine(")");
             }
@@ -211,6 +238,16 @@ public class RoutineSource(
                     }
                     simpleDefinition.AppendLine(")");
                 }
+            }
+
+            IRoutineSourceParameterFormatter formatter;
+            if (hasCustomType is false)
+            {
+                formatter = new RoutineSourceParameterFormatter();
+            }
+            else
+            {
+                formatter = new RoutineSourceCustomTypesParameterFormatter();
             }
 
             yield return (
@@ -245,7 +282,7 @@ public class RoutineSource(
                         'i' => "immutable",
                         _ => "other"
                     }]), 
-                _formatter);
+                formatter);
         }
 
         yield break;

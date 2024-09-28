@@ -271,7 +271,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     var descriptor = paramTypeDescriptors[i];
                     var nameSuffix = descriptor.HasDefault ? "?" : "";
                     var type = GetTsType(descriptor, false);
-
+                    // skip BodyParameterName
                     req.AppendLine($"    {endpoint.ParamNames[i]}{nameSuffix}: {type} | null;");
                 }
 
@@ -458,6 +458,9 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     endpoint.Url, 
                     qs));
             }
+
+            //BodyParameterName
+            //body
 
             var funcBody = string.Format(
                 """

@@ -6,7 +6,16 @@ public static class Ext
 {
     public static T Get<T>(this NpgsqlDataReader reader, int ordinal)
     {
-        var value = reader[ordinal];
+        object? value;
+        if (typeof(T) == typeof(short?[]))
+        {
+            value = reader.GetFieldValue<short?[]>(ordinal);
+        } 
+        else
+        {
+            value = reader[ordinal];
+        }
+
         if (value == DBNull.Value)
         {
             return default!;

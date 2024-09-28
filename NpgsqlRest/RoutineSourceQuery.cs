@@ -3,7 +3,36 @@
 internal class RoutineSourceQuery
 {
     public const string Query = """
-    with r as (
+    with s as (
+
+        select
+            array_agg(nspname) as s
+        from
+            pg_catalog.pg_namespace
+        where
+            nspname not like 'pg_%'
+            and nspname <> 'information_schema'
+            and ($1 is null or nspname similar to $1)
+            and ($2 is null or nspname not similar to $2)
+            and ($3 is null or nspname = any($3))
+            and ($4 is null or not nspname = any($4))
+    ), t as (
+
+        select
+            n.nspname::text as schema,
+            t.typname::text as name,
+            a.attnum as att_pos,
+            quote_ident(a.attname) as att_name,
+            pg_catalog.format_type(a.atttypid, a.atttypmod) as att_type
+        from 
+            pg_catalog.pg_type t
+            join pg_catalog.pg_namespace n on n.oid = t.typnamespace
+            join s on n.nspname = any(s.s)
+            join pg_catalog.pg_class c on t.typrelid = c.oid and c.relkind = 'c'
+            join pg_catalog.pg_attribute a on t.typrelid = a.attrelid and a.attisdropped is false
+
+    ), r as (
+
         select
             r.routine_type, 
             r.specific_schema, 
@@ -18,32 +47,29 @@ internal class RoutineSourceQuery
             quote_ident(p.parameter_name::text) as param_name,
             p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT' as is_in_param,
             p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT' as is_out_param,
-            p.ordinal_position as param_position,
-            case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end as param_type
+
+            row_number() over (partition by r.specific_schema, r.specific_name order by p.ordinal_position, t.att_pos) as param_position,
+            case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end as param_type,
+
+            t.att_name as custom_type_name,
+            t.att_type as custom_type_type,
+            t.att_pos as custom_type_pos
 
         from information_schema.routines r
+        join s on r.specific_schema = any(s.s)
         left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
+        left join t on r.specific_schema = t.schema and p.data_type = 'USER-DEFINED' and (p.udt_schema || '.' || p.udt_name)::regtype::text = t.name
+
         where
-            r.specific_schema = any(
-                select
-                    nspname
-                from
-                    pg_catalog.pg_namespace
-                where
-                    nspname not like 'pg_%'
-                    and nspname <> 'information_schema'
-                    and ($1 is null or nspname similar to $1)
-                    and ($2 is null or nspname not similar to $2)
-                    and ($3 is null or nspname = any($3))
-                    and ($4 is null or not nspname = any($4))
-            )
-        and ($5 is null or r.routine_name similar to $5)
-        and ($6 is null or r.routine_name not similar to $6)
-        and ($7 is null or r.routine_name = any($7))
-        and ($8 is null or not r.routine_name = any($8))
-        and not lower(r.external_language) = any(array['c', 'internal'])
-        and coalesce(r.type_udt_name, '') <> 'trigger'
-        and r.routine_type in ('FUNCTION', 'PROCEDURE')
+            not lower(r.external_language) = any(array['c', 'internal'])
+            and coalesce(r.type_udt_name, '') <> 'trigger'
+            and r.routine_type in ('FUNCTION', 'PROCEDURE')
+            and ($5 is null or r.routine_name similar to $5)
+            and ($6 is null or r.routine_name not similar to $6)
+            and ($7 is null or r.routine_name = any($7))
+            and ($8 is null or not r.routine_name = any($8))
+        order by 
+            r.specific_schema, r.specific_name, p.ordinal_position, t.att_pos
 
     ), cte1 as (
 
@@ -78,7 +104,11 @@ internal class RoutineSourceQuery
 
             r.type_udt_schema,
             r.type_udt_name,
-            r.data_type
+            r.data_type,
+
+            coalesce(array_agg(r.custom_type_name order by r.param_position), '{}'::text[]) as custom_type_names,
+            coalesce(array_agg(r.custom_type_type order by r.param_position), '{}'::text[]) as custom_type_types,
+            coalesce(array_agg(r.custom_type_pos order by r.param_position), '{}'::smallint[]) as custom_type_positions
         from
             r
             join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
@@ -152,8 +182,12 @@ internal class RoutineSourceQuery
         in_param_types as param_types,
         arguments_def,
         has_variadic,
-        pg_get_functiondef(oid) as definition
+        pg_get_functiondef(oid) as definition,
+        custom_type_names,
+        custom_type_types,
+        custom_type_positions
     from cte1
     left join cte2 on cte1.schema = cte2.schema and cte1.specific_name = cte2.specific_name
+    
     """;
 }

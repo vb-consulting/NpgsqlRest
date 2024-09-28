@@ -20,8 +20,18 @@ public readonly struct TypeDescriptor
     public bool NeedsEscape { get; }
     public bool IsPk { get; }
     public bool IsIdentity { get; }
+    public string? CustomType { get; }
+    public short? CustomTypePosition { get; }
+    public string? OriginalParameterName { get; }
 
-    public TypeDescriptor(string type, bool hasDefault = false, bool isPk = false, bool isIdentity = false)
+    public TypeDescriptor(
+        string type, 
+        bool hasDefault = false, 
+        bool isPk = false, 
+        bool isIdentity = false,
+        string? customType = null,
+        short? customTypePosition = null,
+        string? originalParameterName = null)
     {
         OriginalType = type;
         HasDefault = hasDefault;
@@ -89,6 +99,10 @@ public readonly struct TypeDescriptor
             BaseDbType == NpgsqlDbType.LTxtQuery ||
             BaseDbType == NpgsqlDbType.TsVector ||
             BaseDbType == NpgsqlDbType.Hstore;
+
+        CustomType = customType;
+        CustomTypePosition = customTypePosition;
+        OriginalParameterName = originalParameterName;
     }
 
     public bool IsCastToText() => CastToText(BaseDbType);

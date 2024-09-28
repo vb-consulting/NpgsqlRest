@@ -112,4 +112,57 @@ public class MultiParamsTests1(TestFixture test)
         node["jsonArray"].ToJsonString().Should().Be("[{\"a\":\"b\"},{\"c\":\"d\"}]");
         node["jsonbArray"].ToJsonString().Should().Be("[{\"x\":\"y\"},{\"i\":\"j\"}]");
     }
+
+    [Fact]
+    public async Task Test_case_multi_params1_reverse_order()
+    {
+        string body = """
+        {  
+            "jsonbArray": [{"x": "y"},{"i": "j"}],
+            "jsonArray": [{"a": "b"},{"c": "d"}],
+            "charArray": ["abc","xyz"],
+            "varcharArray": ["varchar1","varchar2"],
+            "textArray": ["text1","text2"],
+            "numericArray": [4,5,6],
+            "bigintArray": [3,4,5],
+            "integerArray": [2,3,4],
+            "smallintArray": [1,2,3],
+            "jsonb": {"c": "d"},
+            "json": {"a": "b"},
+            "char": "abc",
+            "varchar": "varchar",
+            "text": "text",
+            "numeric": 4,
+            "bigint": 3,
+            "integer": 2,
+            "smallint": 1
+        }
+""";
+        using var content = new StringContent(body, Encoding.UTF8, "application/json");
+        using var result = await test.Client.PostAsync("/api/case-multi-params1/", content);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+
+        var node = JsonNode.Parse(response);
+        node["smallint"].ToJsonString().Should().Be("1");
+        node["integer"].ToJsonString().Should().Be("2");
+        node["bigint"].ToJsonString().Should().Be("3");
+        node["numeric"].ToJsonString().Should().Be("4");
+        node["text"].ToJsonString().Should().Be("\"text\"");
+        node["varchar"].ToJsonString().Should().Be("\"varchar\"");
+        node["char"].ToJsonString().Should().Be("\"abc\"");
+        node["json"].ToJsonString().Should().Be("{\"a\":\"b\"}");
+        node["jsonb"].ToJsonString().Should().Be("{\"c\":\"d\"}");
+        node["smallintArray"].ToJsonString().Should().Be("[1,2,3]");
+        node["integerArray"].ToJsonString().Should().Be("[2,3,4]");
+        node["bigintArray"].ToJsonString().Should().Be("[3,4,5]");
+        node["numericArray"].ToJsonString().Should().Be("[4,5,6]");
+        node["textArray"].ToJsonString().Should().Be("[\"text1\",\"text2\"]");
+        node["varcharArray"].ToJsonString().Should().Be("[\"varchar1\",\"varchar2\"]");
+        node["charArray"].ToJsonString().Should().Be("[\"abc\",\"xyz\"]");
+        node["jsonArray"].ToJsonString().Should().Be("[{\"a\":\"b\"},{\"c\":\"d\"}]");
+        node["jsonbArray"].ToJsonString().Should().Be("[{\"x\":\"y\"},{\"i\":\"j\"}]");
+    }
 }
