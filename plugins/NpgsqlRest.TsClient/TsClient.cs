@@ -261,6 +261,19 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             content.AppendLine();
 
             string? requestName = null;
+            string[] paramNames = new string[paramCount];
+            string? bodyParameterName = null;
+            for (var i = 0; i < paramCount; i++)
+            {
+                var descriptor = paramTypeDescriptors[i];
+                var nameSuffix = descriptor.HasDefault ? "?" : "";
+                paramNames[i] = QuoteJavaScriptVariableName($"{endpoint.ParamNames[i]}{nameSuffix}");
+                if (string.Equals(endpoint.BodyParameterName, endpoint.ParamNames[i], StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(endpoint.BodyParameterName, descriptor.OriginalParameterName, StringComparison.OrdinalIgnoreCase))
+                {
+                    bodyParameterName = paramNames[i];
+                }
+            }
             if (paramCount > 0)
             {
                 StringBuilder req = new();
@@ -269,10 +282,8 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 for (var i = 0; i < paramCount; i++)
                 {
                     var descriptor = paramTypeDescriptors[i];
-                    var nameSuffix = descriptor.HasDefault ? "?" : "";
                     var type = GetTsType(descriptor, false);
-                    // skip BodyParameterName
-                    req.AppendLine($"    {endpoint.ParamNames[i]}{nameSuffix}: {type} | null;");
+                    req.AppendLine($"    {paramNames[i]}: {type} | null;");
                 }
 
                 if (modelsDict.TryGetValue(req.ToString(), out var newName))
@@ -405,7 +416,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             var body = endpoint.RequestParamType == RequestParamType.BodyJson && requestName is not null ?
                 @"body: JSON.stringify(request)" : null;
 
-            var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ? " + parseQuery(request)" : "";
+            var qs = endpoint.RequestParamType == RequestParamType.QueryString && requestName is not null ?
+                (bodyParameterName is null ? " + parseQuery(request)" : 
+                    $" + parseQuery((({{ [\"{bodyParameterName}\"]: _, ...rest }}) => rest)(request))" ) : 
+                "";
 
             string parameters = "";
             if (options.IncludeParseUrlParam is false && options.IncludeParseRequestParam is false)
@@ -459,8 +473,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     qs));
             }
 
-            //BodyParameterName
-            //body
+            if (body is null && bodyParameterName is not null)
+            {
+                body = $"body: request.{bodyParameterName}";
+            }
 
             var funcBody = string.Format(
                 """
@@ -468,14 +484,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     method: "{3}",{4}{5}
                 }}{6});{7}
             """,
-                isVoid && options.IncludeStatusCode is false ? "" : "const response = ",
-                url,
-                options.IncludeParseRequestParam ? "parseRequest(" : "",
-                endpoint.Method,
-                NewLine(headers, 2),
-                NewLine(body, 2),
-                options.IncludeParseRequestParam ? ")" : "",
-                NewLine(returnExp, 1));
+                isVoid && options.IncludeStatusCode is false ? "" : "const response = ",//0
+                url,//1
+                options.IncludeParseRequestParam ? "parseRequest(" : "",//2
+                endpoint.Method,//3
+                NewLine(headers, 2),//4
+                NewLine(body, 2),//5
+                options.IncludeParseRequestParam ? ")" : "",//6
+                NewLine(returnExp, 1));//7
 
             string resultType;
             if (string.Equals(responseName, "void", StringComparison.OrdinalIgnoreCase))
@@ -606,6 +622,24 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         // Replace any other invalid characters with underscore
         name = InvalidChars2().Replace(name, "_");
+
+        return name;
+    }
+
+    public string QuoteJavaScriptVariableName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+
+        var invalidChars1 = InvalidChars1();
+        var invalidChars2 = InvalidChars2();
+
+        if (invalidChars1.IsMatch(name) || invalidChars2.IsMatch(name))
+        {
+            return $"\"{name}\"";
+        }
 
         return name;
     }

@@ -325,6 +325,9 @@ public static class Builder
         connectionStringBuilder.Remove("password");
         Logger?.Information(messageTemplate: "Using connection: {0}", connectionStringBuilder.ConnectionString);
 
+        // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
+        AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
+
         return connectionString;
     }
 

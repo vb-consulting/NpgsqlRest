@@ -66,13 +66,21 @@ public static partial class Database
 
         create function get_custom_param_query_9p(
             _p2 custom_type1,
-                _p3 custom_type2,
+            _p3 custom_type2,
             _p0 text,
             _p1 int,
             _p4 text
         ) 
         returns text language sql as 'select _p1::text || _p3.value2';
 
+        create schema custom_param_schema;
+        create type custom_param_schema.custom_type as (value1 int, value2 text, value3 bool);
+        create function custom_param_schema.get_custom_type(
+            _p custom_param_schema.custom_type 
+        ) 
+        returns text language sql as $$
+        select _p.value1::text || ' ' || _p.value2 || ' ' || _p.value3::text;
+        $$;
 ");
     }
 }
@@ -287,5 +295,21 @@ public class CustomTypeParametersTests(TestFixture test)
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().Be("1test 123");
+    }
+
+    [Fact]
+    public async Task Test_custom_param_schema_get_custom_type()
+    {
+        var query = new QueryBuilder
+        {
+            { "p.value1", "1" },
+            { "p.value2", "test" },
+            { "p.value3", "true" },
+        };
+        using var response = await test.Client.GetAsync($"/api/custom-param-schema/get-custom-type/{query}");
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("1 test true");
     }
 }

@@ -7,7 +7,7 @@ using BenchmarkTests;
 using Perfolizer.Horology;
 
 
-BenchmarkRunner.Run<HttpClientTests>();
+BenchmarkRunner.Run<GetProviderSpecificValuesBenchmarks>();
 
 //BenchmarkRunner
 //    .Run<HttpClientTests>(

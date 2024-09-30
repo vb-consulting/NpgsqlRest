@@ -3,7 +3,20 @@
 internal class RoutineSourceQuery
 {
     public const string Query = """
-    with s as (
+    with _types as (
+
+        select
+            (n.nspname::text || '.' || t.typname::text)::regtype::text as name,
+            a.attnum as att_pos,
+            quote_ident(a.attname) as att_name,
+            pg_catalog.format_type(a.atttypid, a.atttypmod) as att_type
+        from 
+            pg_catalog.pg_type t
+            join pg_catalog.pg_namespace n on n.oid = t.typnamespace
+            join pg_catalog.pg_class c on t.typrelid = c.oid and c.relkind = 'c'
+            join pg_catalog.pg_attribute a on t.typrelid = a.attrelid and a.attisdropped is false
+
+    ), s as (
 
         select
             array_agg(nspname) as s
@@ -16,21 +29,6 @@ internal class RoutineSourceQuery
             and ($2 is null or nspname not similar to $2)
             and ($3 is null or nspname = any($3))
             and ($4 is null or not nspname = any($4))
-    ), t as (
-
-        select
-            n.nspname::text as schema,
-            t.typname::text as name,
-            a.attnum as att_pos,
-            quote_ident(a.attname) as att_name,
-            pg_catalog.format_type(a.atttypid, a.atttypmod) as att_type
-        from 
-            pg_catalog.pg_type t
-            join pg_catalog.pg_namespace n on n.oid = t.typnamespace
-            join s on n.nspname = any(s.s)
-            join pg_catalog.pg_class c on t.typrelid = c.oid and c.relkind = 'c'
-            join pg_catalog.pg_attribute a on t.typrelid = a.attrelid and a.attisdropped is false
-
     ), r as (
 
         select
@@ -58,7 +56,7 @@ internal class RoutineSourceQuery
         from information_schema.routines r
         join s on r.specific_schema = any(s.s)
         left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
-        left join t on r.specific_schema = t.schema and p.data_type = 'USER-DEFINED' and (p.udt_schema || '.' || p.udt_name)::regtype::text = t.name
+        left join _types t on p.data_type = 'USER-DEFINED' and (p.udt_schema || '.' || p.udt_name)::regtype::text = t.name
 
         where
             not lower(r.external_language) = any(array['c', 'internal'])

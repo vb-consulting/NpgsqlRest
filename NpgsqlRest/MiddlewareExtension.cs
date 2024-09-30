@@ -126,6 +126,8 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
 
                 List<NpgsqlRestParameter> paramsList = new(routine.ParamCount);
+                //NpgsqlRestParameter[] paramsList = new NpgsqlRestParameter[routine.ParamCount];
+
                 bool hasNulls = false;
                 NpgsqlRestParameter? headerParam = null;
                 if (routine.ParamCount > 0)
@@ -695,7 +697,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         {
                             if (await reader.ReadAsync())
                             {
-                                string? value = reader.GetValue(0) as string;
+                                string? value = reader.GetProviderSpecificValue(0) as string;
                                 TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
                                 if (endpoint.ResponseContentType is not null)
                                 {
@@ -814,8 +816,10 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
 
                             var bufferRows = endpoint.BufferRows ?? options.BufferRows;
+                            var values = new object[reader.FieldCount];
                             while (await reader.ReadAsync())
                             {
+                                reader.GetProviderSpecificValues(values);
                                 rowCount++;
                                 if (!first)
                                 {
@@ -836,7 +840,9 @@ public static class NpgsqlRestMiddlewareExtensions
 
                                 for (var i = 0; i < routineReturnRecordCount; i++)
                                 {
-                                    object value = reader.GetValue(i);
+                                    //object value = reader.GetProviderSpecificValue(i);
+                                    object value = values[i];
+
                                     // AllResultTypesAreUnknown = true always returns string, except for null
                                     string raw = value == DBNull.Value ? "" : (string)value;
 
