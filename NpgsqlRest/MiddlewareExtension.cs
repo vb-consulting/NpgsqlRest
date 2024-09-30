@@ -125,7 +125,7 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
 
-                List<NpgsqlRestParameter> paramsList = new(routine.ParamCount);
+                List<NpgsqlRestParameter> paramsList = new(routine.ParamCount + 5);
                 //NpgsqlRestParameter[] paramsList = new NpgsqlRestParameter[routine.ParamCount];
 
                 bool hasNulls = false;
