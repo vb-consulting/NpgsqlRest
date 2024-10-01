@@ -321,6 +321,9 @@ public static class Builder
             }
         }
 
+        // Connection doesn't participate in ambient TransactionScope
+        connectionStringBuilder.Enlist = false;
+
         connectionString = connectionStringBuilder.ConnectionString;
         connectionStringBuilder.Remove("password");
         Logger?.Information(messageTemplate: "Using connection: {0}", connectionStringBuilder.ConnectionString);
