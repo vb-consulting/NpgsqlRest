@@ -101,13 +101,13 @@ internal static class AuthHandler
                 {
                     if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
                     {
-                        claimType = name2;
+                        claimType = name1;
                     }
                 }
             }
             else
             {
-                claimType = name2;
+                claimType = name1;
             }
 
             if (reader?.IsDBNull(i) is true)
