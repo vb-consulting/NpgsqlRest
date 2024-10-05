@@ -91,8 +91,6 @@ public class RoutineSource(
             var paramCount = reader.Get<int>(12);// "param_count");
             var argumentDef = reader.Get<string>(15);
 
-
-
             string?[] paramDefaults = new string?[paramCount];
             bool[] hasParamDefaults = new bool[paramCount];
 

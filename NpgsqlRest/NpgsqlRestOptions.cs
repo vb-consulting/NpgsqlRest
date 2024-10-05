@@ -50,7 +50,7 @@ public class NpgsqlRestOptions(
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
     Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
     Dictionary<string, StringValues>? customRequestHeaders = null,
-    string? customTypeParameterSeparator = ".")
+    string? customTypeParameterSeparator = "_")
 {
 
     /// <summary>

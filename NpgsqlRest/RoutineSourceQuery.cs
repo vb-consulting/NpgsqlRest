@@ -13,8 +13,12 @@ internal class RoutineSourceQuery
         from 
             pg_catalog.pg_type t
             join pg_catalog.pg_namespace n on n.oid = t.typnamespace
-            join pg_catalog.pg_class c on t.typrelid = c.oid and c.relkind = 'c'
+            join pg_catalog.pg_class c on t.typrelid = c.oid and c.relkind in ('r', 'c')
             join pg_catalog.pg_attribute a on t.typrelid = a.attrelid and a.attisdropped is false
+        where
+            nspname not like 'pg_%'
+            and nspname <> 'information_schema'
+            and a.attnum > 0
 
     ), s as (
 

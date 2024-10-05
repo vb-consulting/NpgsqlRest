@@ -2,81 +2,80 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void CustomTypeParametersTests()
+    public static void CustomTableTypeParametersTests()
     {
         script.Append(@"
 
-        create type custom_type1 as (value text);
+        create table custom_table_type1 (value text);
         
-        create function get_custom_param_query_1p(
+        create function get_custom_table_param_query_1p(
             _i int, 
-            _p custom_type1, 
+            _p custom_table_type1, 
             _t text
         ) 
         returns text language sql as 'select _p.value';
 
-        create function get_custom_param_query_2p(
-            _p custom_type1
+        create function get_custom_table_param_query_2p(
+            _p custom_table_type1
         ) 
         returns text language sql as 'select _p.value';
 
-        create function get_custom_param_query_3p(
+        create function get_custom_table_param_query_3p(
             _i int, 
             _t text,
-            _p custom_type1
+            _p custom_table_type1
         ) 
         returns text language sql as 'select _p.value';
 
-        create type custom_type2 as (value1 int, value2 text, value3 bool);
+        create table custom_table_type2 (value1 int, value2 text, value3 bool);
 
-        create function get_custom_param_query_4p(
-            _p custom_type2
+        create function get_custom_table_param_query_4p(
+            _p custom_table_type2
         ) 
         returns text language sql as 'select _p.value2';
 
-        create function get_custom_param_query_5p(
-            _p1 custom_type1,
-            _p2 custom_type2
+        create function get_custom_table_param_query_5p(
+            _p1 custom_table_type1,
+            _p2 custom_table_type2
         ) 
         returns text language sql as 'select _p2.value2';
 
-        create function get_custom_param_query_6p(
+        create function get_custom_table_param_query_6p(
             _p1 int,
-            _p2 custom_type1,
-            _p3 custom_type2
+            _p2 custom_table_type1,
+            _p3 custom_table_type2
         ) 
         returns text language sql as 'select _p1::text || _p3.value2';
 
-        create function get_custom_param_query_7p(
-            _p2 custom_type1,
+        create function get_custom_table_param_query_7p(
+            _p2 custom_table_type1,
             _p1 int,
-            _p3 custom_type2
+            _p3 custom_table_type2
         ) 
         returns text language sql as 'select _p1::text || _p3.value2';
 
-        create function get_custom_param_query_8p(
+        create function get_custom_table_param_query_8p(
             _p0 text,
-            _p2 custom_type1,
+            _p2 custom_table_type1,
             _p1 int,
-            _p3 custom_type2,
+            _p3 custom_table_type2,
             _p4 text
         ) 
         returns text language sql as 'select _p1::text || _p3.value2';
 
-
-        create function get_custom_param_query_9p(
-            _p2 custom_type1,
-            _p3 custom_type2,
+        create function get_custom_table_param_query_9p(
+            _p2 custom_table_type1,
+            _p3 custom_table_type2,
             _p0 text,
             _p1 int,
             _p4 text
         ) 
         returns text language sql as 'select _p1::text || _p3.value2';
 
-        create schema custom_param_schema;
-        create type custom_param_schema.custom_type as (value1 int, value2 text, value3 bool);
-        create function custom_param_schema.get_custom_type(
-            _p custom_param_schema.custom_type 
+        create schema custom_table_param_schema;
+        create table custom_table_param_schema.custom_table_type (value1 int, value2 text, value3 bool);
+        create function custom_table_param_schema.get_custom_table_type(
+            _p custom_table_param_schema.custom_table_type 
         ) 
         returns text language sql as $$
         select _p.value1::text || ' ' || _p.value2 || ' ' || _p.value3::text;
@@ -86,10 +85,10 @@ public static partial class Database
 }
 
 [Collection("TestFixture")]
-public class CustomTypeParametersTests(TestFixture test)
+public class CustomTableTypeParametersTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_get_custom_param_query_1p()
+    public async Task Test_get_custom_table_param_query_1p()
     {
         var query = new QueryBuilder
         {
@@ -97,7 +96,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "pValue", "test 123" },
             { "t", "test XYZ" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-1p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-1p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -105,7 +104,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_1p_2()
+    public async Task Test_get_custom_table_param_query_1p_2()
     {
         var query = new QueryBuilder
         {
@@ -113,7 +112,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "i", "1" },
             { "t", "test XYZ" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-1p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-1p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -121,13 +120,13 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_2p()
+    public async Task Test_get_custom_table_param_query_2p()
     {
         var query = new QueryBuilder
         {
             { "pValue", "test 123" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-2p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-2p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -135,7 +134,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_3p()
+    public async Task Test_get_custom_table_param_query_3p()
     {
         var query = new QueryBuilder
         {
@@ -143,7 +142,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "i", "1" },
             { "t", "test XYZ" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-3p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-3p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -151,7 +150,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_4p()
+    public async Task Test_get_custom_table_param_query_4p()
     {
         var query = new QueryBuilder
         {
@@ -159,7 +158,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "pValue2", "test 123" },
             { "pValue3", "true" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-4p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-4p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -167,7 +166,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_5p()
+    public async Task Test_get_custom_table_param_query_5p()
     {
         var query = new QueryBuilder
         {
@@ -176,7 +175,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "p2Value3", "true" },
             { "p1Value", "test XYZ" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-5p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-5p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -184,7 +183,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_5p_2()
+    public async Task Test_get_custom_table_param_query_5p_2()
     {
         var query = new QueryBuilder
         {
@@ -193,7 +192,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "p2Value3", "true" },
             { "p2Value2", "test 123" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-5p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-5p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -201,7 +200,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_6p()
+    public async Task Test_get_custom_table_param_query_6p()
     {
         var query = new QueryBuilder
         {
@@ -212,7 +211,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "p3Value3", "true" },
             
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-6p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-6p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -220,7 +219,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_6p_2()
+    public async Task Test_get_custom_table_param_query_6p_2()
     {
         var query = new QueryBuilder
         {
@@ -231,7 +230,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "p3Value3", "true" },
 
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-6p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-6p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -239,7 +238,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_7p()
+    public async Task Test_get_custom_table_param_query_7p()
     {
         var query = new QueryBuilder
         {
@@ -250,7 +249,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "p3Value3", "true" },
 
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-7p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-7p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -258,27 +257,7 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_get_custom_param_query_8p()
-    {
-        var query = new QueryBuilder
-        {
-            { "p0", "AAA" },
-            { "p1", "1" },
-            { "p2Value", "test XYZ" },
-            { "p3Value1", "1" },
-            { "p3Value2", "test 123" },
-            { "p3Value3", "true" },
-            { "p4", "BBB" },
-        };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-8p/{query}");
-        var content = await response.Content.ReadAsStringAsync();
-
-        response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Be("1test 123");
-    }
-
-    [Fact]
-    public async Task Test_get_custom_param_query_9p()
+    public async Task Test_get_custom_table_param_query_8p()
     {
         var query = new QueryBuilder
         {
@@ -290,7 +269,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "p3Value3", "true" },
             { "p4", "BBB" },
         };
-        using var response = await test.Client.GetAsync($"/api/get-custom-param-query-9p/{query}");
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-8p/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -298,7 +277,27 @@ public class CustomTypeParametersTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_custom_param_schema_get_custom_type()
+    public async Task Test_get_custom_table_param_query_9p()
+    {
+        var query = new QueryBuilder
+        {
+            { "p0", "AAA" },
+            { "p1", "1" },
+            { "p2Value", "test XYZ" },
+            { "p3Value1", "1" },
+            { "p3Value2", "test 123" },
+            { "p3Value3", "true" },
+            { "p4", "BBB" },
+        };
+        using var response = await test.Client.GetAsync($"/api/get-custom-table-param-query-9p/{query}");
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("1test 123");
+    }
+
+    [Fact]
+    public async Task Test_custom_table_param_schema_custom_table_type()
     {
         var query = new QueryBuilder
         {
@@ -306,7 +305,7 @@ public class CustomTypeParametersTests(TestFixture test)
             { "pValue2", "test" },
             { "pValue3", "true" },
         };
-        using var response = await test.Client.GetAsync($"/api/custom-param-schema/get-custom-type/{query}");
+        using var response = await test.Client.GetAsync($"/api/custom-table-param-schema/get-custom-table-type/{query}");
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
