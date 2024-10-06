@@ -80,7 +80,7 @@ public class Program
 
         app.UseNpgsqlRest(new(connectionString)
         {
-            //NameSimilarTo = "get_custom_param_query_1p",
+            //NameSimilarTo = "get_test_table",
             //SchemaSimilarTo = "custom_param_schema",
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,

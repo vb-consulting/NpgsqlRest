@@ -108,9 +108,12 @@ internal class RoutineSourceQuery
             r.type_udt_name,
             r.data_type,
 
-            coalesce(array_agg(r.custom_type_name order by r.param_position), '{}'::text[]) as custom_type_names,
-            coalesce(array_agg(r.custom_type_type order by r.param_position), '{}'::text[]) as custom_type_types,
-            coalesce(array_agg(r.custom_type_pos order by r.param_position), '{}'::smallint[]) as custom_type_positions
+            coalesce(array_agg(r.custom_type_name order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as custom_param_type_names,
+            coalesce(array_agg(r.custom_type_type order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as custom_param_type_types,
+            coalesce(array_agg(r.custom_type_pos order by r.param_position) filter(where r.is_in_param), '{}'::smallint[]) as custom_param_type_positions,
+
+            coalesce(array_agg(r.custom_type_name order by r.param_position) filter(where r.is_out_param), '{}'::text[]) as custom_rec_type_names,
+            coalesce(array_agg(r.custom_type_type order by r.param_position) filter(where r.is_out_param), '{}'::text[]) as custom_rec_type_types
         from
             r
             join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
@@ -185,9 +188,12 @@ internal class RoutineSourceQuery
         arguments_def,
         has_variadic,
         pg_get_functiondef(oid) as definition,
-        custom_type_names,
-        custom_type_types,
-        custom_type_positions
+        custom_param_type_names,
+        custom_param_type_types,
+        custom_param_type_positions,
+
+        custom_rec_type_names,
+        custom_rec_type_types
     from cte1
     left join cte2 on cte1.schema = cte2.schema and cte1.specific_name = cte2.specific_name
     

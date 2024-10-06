@@ -73,7 +73,30 @@ public class RoutineSource(
             var schema = reader.Get<string>(1);//"schema");
             var returnsSet = reader.Get<bool>(6);//"returns_set");
 
+            var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
             var returnRecordTypes = reader.Get<string[]>(10);//"return_record_types");
+
+            string[] expNames = new string[returnRecordNames.Length];
+            var customRecTypeNames = reader.Get<string?[]>(21);
+            if (customRecTypeNames is not null && customRecTypeNames.Length > 0)
+            {
+                var customRecTypeTypes = reader.Get<string?[]>(22);
+                for(var i = 0; i < returnRecordNames.Length; i++)
+                {
+                    var customName = customRecTypeNames[i];
+                    if (customName is not null)
+                    {
+                        expNames[i] = string.Concat("(", returnRecordNames[i], "::", returnRecordTypes[i], ").", customName);
+                        returnRecordNames[i] = customName;
+                        returnRecordTypes[i] = customRecTypeTypes[i] ?? returnRecordTypes[i];
+                    }
+                    else
+                    {
+                        expNames[i] = returnRecordNames[i];
+                    }
+                }
+            }
+            
             TypeDescriptor[] returnTypeDescriptor;
             if (isVoid)
             {
@@ -83,7 +106,7 @@ public class RoutineSource(
             {
                 returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
             }
-            var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
+            
             
             bool isUnnamedRecord = reader.Get<bool>(11);// "is_unnamed_record");
             var routineType = type.GetEnum<RoutineType>();
@@ -146,10 +169,27 @@ public class RoutineSource(
 
             var returnRecordCount = reader.Get<int>(8);// "return_record_count");
             var variadic = reader.Get<bool>(16);// "has_variadic");
+            string from;
+            if (isVoid || returnRecordCount == 1)
+            {
+                from = callIdent;
+            }
+            else
+            {
+                //from = string.Concat(callIdent, string.Join(",", returnRecordNames), " from ");
+                StringBuilder sb = new();
+                for (int i = 0; i < returnRecordCount; i++)
+                {
+                    sb.Append(expNames[i] ?? returnRecordNames[i]);
+                    if (i < returnRecordCount - 1)
+                    {
+                        sb.Append(',');
+                    }
+                }
+                from = string.Concat(callIdent, sb.ToString(), " from ");
+            }
             var expression = string.Concat(
-                (isVoid || returnRecordCount == 1)
-                    ? callIdent
-                    : string.Concat(callIdent, string.Join(",", returnRecordNames), " from "),
+                from,
                 schema,
                 ".",
                 name,
