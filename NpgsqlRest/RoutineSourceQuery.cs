@@ -20,10 +20,10 @@ internal class RoutineSourceQuery
             and nspname <> 'information_schema'
             and a.attnum > 0
 
-    ), s as (
+    ), _schemas as (
 
         select
-            array_agg(nspname) as s
+            array_agg(nspname) as schemas
         from
             pg_catalog.pg_namespace
         where
@@ -33,7 +33,8 @@ internal class RoutineSourceQuery
             and ($2 is null or nspname not similar to $2)
             and ($3 is null or nspname = any($3))
             and ($4 is null or not nspname = any($4))
-    ), r as (
+
+    ), _routines as (
 
         select
             r.routine_type, 
@@ -45,23 +46,20 @@ internal class RoutineSourceQuery
             r.type_udt_name,
             (r.type_udt_schema || '.' || r.type_udt_name)::regtype::text as return_type,
             r.data_type = 'USER-DEFINED' as is_user_defined,
-
             quote_ident(p.parameter_name::text) as param_name,
             p.parameter_mode = 'IN' or p.parameter_mode = 'INOUT' as is_in_param,
             p.parameter_mode = 'INOUT' or p.parameter_mode = 'OUT' as is_out_param,
-
             row_number() over (partition by r.specific_schema, r.specific_name order by p.ordinal_position, t.att_pos) as param_position,
             case when p.data_type = 'bit' then 'varbit' else (p.udt_schema || '.' || p.udt_name)::regtype::text end as param_type,
-
             t.att_name as custom_type_name,
             t.att_type as custom_type_type,
             t.att_pos as custom_type_pos
-
         from information_schema.routines r
-        join s on r.specific_schema = any(s.s)
+        join _schemas on r.specific_schema = any(_schemas.schemas)
         left join information_schema.parameters p on r.specific_name = p.specific_name and r.specific_schema = p.specific_schema
-        left join _types t on p.data_type = 'USER-DEFINED' and (p.udt_schema || '.' || p.udt_name)::regtype::text = t.name
-
+        left join _types t on 
+            p.data_type = 'USER-DEFINED' 
+            and (p.udt_schema || '.' || p.udt_name)::regtype::text = t.name 
         where
             not lower(r.external_language) = any(array['c', 'internal'])
             and coalesce(r.type_udt_name, '') <> 'trigger'
@@ -73,7 +71,7 @@ internal class RoutineSourceQuery
         order by 
             r.specific_schema, r.specific_name, p.ordinal_position, t.att_pos
 
-    ), cte1 as (
+    ), _routine_aggs as (
 
         select
             lower(r.routine_type) as type,
@@ -86,36 +84,22 @@ internal class RoutineSourceQuery
             proc.provolatile as volatility_option,
             proc.proretset as returns_set,
             r.return_type,
-
             coalesce(array_agg(r.param_name order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as in_params,
-            case 
-                when r.is_user_defined then null
-                else coalesce((array_agg(r.param_name order by r.param_position) filter(where r.is_out_param)),'{}'::text[])
-            end as out_params,
-
+            coalesce((array_agg(r.param_name order by r.param_position) filter(where r.is_out_param)),'{}'::text[]) as out_params,
             coalesce(array_agg(r.param_type order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as in_param_types,
-
-            case 
-                when  r.is_user_defined then null
-                else coalesce((array_agg(r.param_type order by r.param_position) filter(where r.is_out_param)), '{}'::text[])
-            end as out_param_types,
-
+            coalesce((array_agg(r.param_type order by r.param_position) filter(where r.is_out_param)), '{}'::text[]) as out_param_types,
             pg_get_function_arguments(proc.oid) as arguments_def,
-
             case when proc.provariadic <> 0 then true else false end as has_variadic,
-
             r.type_udt_schema,
             r.type_udt_name,
             r.data_type,
-
             coalesce(array_agg(r.custom_type_name order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as custom_param_type_names,
             coalesce(array_agg(r.custom_type_type order by r.param_position) filter(where r.is_in_param), '{}'::text[]) as custom_param_type_types,
             coalesce(array_agg(r.custom_type_pos order by r.param_position) filter(where r.is_in_param), '{}'::smallint[]) as custom_param_type_positions,
-
             coalesce(array_agg(r.custom_type_name order by r.param_position) filter(where r.is_out_param), '{}'::text[]) as custom_rec_type_names,
             coalesce(array_agg(r.custom_type_type order by r.param_position) filter(where r.is_out_param), '{}'::text[]) as custom_rec_type_types
         from
-            r
+            _routines r
             join pg_catalog.pg_proc proc on r.specific_name = proc.proname || '_' || proc.oid
             left join pg_catalog.pg_description des on proc.oid = des.objoid
         group by
@@ -137,51 +121,22 @@ internal class RoutineSourceQuery
             proc.provolatile,
             proc.proretset, 
             proc.provariadic
-
-    ), cte2 as (
-
-        select 
-            cte1.schema, 
-            cte1.specific_name,
-            array_agg(quote_ident(col.column_name) order by col.ordinal_position) as out_params,
-            array_agg(
-                case when col.data_type = 'bit' then 'varbit' else (col.udt_schema || '.' || col.udt_name)::regtype::text end
-                order by col.ordinal_position
-            ) as out_param_types
-        from 
-            information_schema.columns col
-            join cte1 on 
-            cte1.data_type = 'USER-DEFINED' and col.table_schema = cte1.type_udt_schema and col.table_name = cte1.type_udt_name 
-        group by
-            cte1.schema, cte1.specific_name
-
     )
     select
         type,
-        cte1.schema,
-        cte1.name,
+        r1.schema,
+        r1.name,
         comment,
         is_strict,
         volatility_option,
-
         returns_set,
-        coalesce(return_type, 'void') as return_type,
+        case when custom_types.col_name is not null then 'record' else coalesce(return_type, 'void') end as return_type,
 
-        coalesce(array_length(coalesce(cte1.out_params, cte2.out_params), 1), 1) as return_record_count,
-        case 
-            when array_length(coalesce(cte1.out_params, cte2.out_params), 1) is null 
-            then array[cte1.name]::text[] 
-            else coalesce(cte1.out_params, cte2.out_params) 
-        end as return_record_names,
+        array_length(coalesce(custom_types.col_name, case when array_length(r1.out_params, 1) is null then array[r1.name]::text[] else r1.out_params end), 1) as return_record_count,
+        coalesce(custom_types.col_name, case when array_length(r1.out_params, 1) is null then array[r1.name]::text[] else r1.out_params end) as return_record_names,
+        coalesce(custom_types.col_type, case when array_length(r1.out_param_types, 1) is null then array[return_type]::text[] else r1.out_param_types end) as return_record_types,
 
-        case 
-            when array_length(coalesce(cte1.out_param_types, cte2.out_param_types), 1) is null 
-            then array[return_type]::text[] 
-            else coalesce(cte1.out_param_types, cte2.out_param_types)
-        end as return_record_types,
-
-        coalesce(cte1.out_params, cte2.out_params) = '{}' as is_unnamed_record,
-
+        coalesce(custom_types.col_type, r1.out_params) = '{}' as is_unnamed_record,
         array_length(in_params, 1) as param_count,
         in_params as param_names,
         in_param_types as param_types,
@@ -191,11 +146,13 @@ internal class RoutineSourceQuery
         custom_param_type_names,
         custom_param_type_types,
         custom_param_type_positions,
-
-        custom_rec_type_names,
-        custom_rec_type_types
-    from cte1
-    left join cte2 on cte1.schema = cte2.schema and cte1.specific_name = cte2.specific_name
-    
+        case when custom_types.col_name is not null then null else custom_rec_type_names end as custom_rec_type_names,
+        case when custom_types.col_name is not null then null else custom_rec_type_types end as custom_rec_type_types
+    from _routine_aggs r1
+    left join lateral (
+        select array_agg(t.att_name order by t.att_pos) as col_name, array_agg(t.att_type order by t.att_pos) as col_type
+        from _types t 
+        where t.name = r1.return_type
+    ) custom_types on true
     """;
 }

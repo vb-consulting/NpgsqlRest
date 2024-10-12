@@ -77,11 +77,11 @@ public class RoutineSource(
             var returnRecordTypes = reader.Get<string[]>(10);//"return_record_types");
 
             string[] expNames = new string[returnRecordNames.Length];
-            var customRecTypeNames = reader.Get<string?[]>(21);
+            var customRecTypeNames = reader.Get<string?[]>(21); //custom_rec_type_names
             if (customRecTypeNames is not null && customRecTypeNames.Length > 0)
             {
-                var customRecTypeTypes = reader.Get<string?[]>(22);
-                for(var i = 0; i < returnRecordNames.Length; i++)
+                var customRecTypeTypes = reader.Get<string?[]>(22); //custom_rec_type_types
+                for (var i = 0; i < returnRecordNames.Length; i++)
                 {
                     var customName = customRecTypeNames[i];
                     if (customName is not null)
