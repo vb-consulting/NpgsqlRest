@@ -51,6 +51,36 @@ public static partial class Database
         from 
             test_return_table t;
         $$;
+
+        create or replace function test_return_mixed_table_records_3()
+        returns table (
+            value1 text,
+            value2 test_return_table
+        )
+        language sql as 
+        $$
+        select 
+            'test1',
+            row(t.*)::test_return_table
+        from 
+            test_return_table t;
+        $$;
+
+        create or replace function test_return_mixed_table_records_4()
+        returns table (
+            value1 text,
+            value2 test_return_table,
+            value3 text
+        )
+        language sql as 
+        $$
+        select 
+            'test1',
+            row(t.*)::test_return_table,
+            'test2' 
+        from 
+            test_return_table t;
+        $$;
 ");
     }
 }
@@ -100,5 +130,27 @@ public class ReturnTableTypeTests(TestFixture test)
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
         response?.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
         content.Should().Be("[{\"id\":1,\"value\":\"test1\",\"value2\":\"test2\",\"value2\":\"test1\"},{\"id\":2,\"value\":\"test3\",\"value2\":\"test4\",\"value2\":\"test1\"}]");
+    }
+
+    [Fact]
+    public async Task Test_test_return_mixed_table_records_3()
+    {
+        using var response = await test.Client.PostAsync($"/api/test-return-mixed-table-records-3", null);
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        response?.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        content.Should().Be("[{\"value1\":\"test1\",\"id\":1,\"value\":\"test1\",\"value2\":\"test2\"},{\"value1\":\"test1\",\"id\":2,\"value\":\"test3\",\"value2\":\"test4\"}]");
+    }
+
+    [Fact]
+    public async Task Test_test_return_mixed_table_records_4()
+    {
+        using var response = await test.Client.PostAsync($"/api/test-return-mixed-table-records-4", null);
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        response?.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
+        content.Should().Be("[{\"value1\":\"test1\",\"id\":1,\"value\":\"test1\",\"value2\":\"test2\",\"value3\":\"test2\"},{\"value1\":\"test1\",\"id\":2,\"value\":\"test3\",\"value2\":\"test4\",\"value3\":\"test2\"}]");
     }
 }
