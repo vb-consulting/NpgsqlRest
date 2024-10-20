@@ -6,7 +6,7 @@ internal class RoutineSourceQuery
     with _types as (
 
         select
-            (n.nspname::text || '.' || t.typname::text)::regtype::text as name,
+            case when n.nspname = 'public' then quote_ident(t.typname) else quote_ident(n.nspname) || '.' || quote_ident(t.typname) end as name,
             a.attnum as att_pos,
             quote_ident(a.attname) as att_name,
             pg_catalog.format_type(a.atttypid, a.atttypmod) as att_type
