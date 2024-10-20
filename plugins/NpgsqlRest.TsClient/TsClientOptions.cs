@@ -19,7 +19,8 @@ public class TsClientOptions(
     string[]? skipPaths = null,
     string defaultJsonType = "string",
     bool useRoutineNameInsteadOfEndpoint = false,
-    bool exportUrls = false)
+    bool exportUrls = false,
+    bool skipTypes = false)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -128,4 +129,9 @@ public class TsClientOptions(
     /// Export URLs as constants.
     /// </summary>
     public bool ExportUrls { get; set; } = exportUrls;
+
+    /// <summary>
+    /// Skip generating types and produce pure JavaScript code. Setting this to true will also change .ts extension to .js where applicable.
+    /// </summary>
+    public bool SkipTypes { get; set; } = skipTypes;
 }

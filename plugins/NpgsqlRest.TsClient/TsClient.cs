@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Options;
 
 namespace NpgsqlRest.TsClient;
 
@@ -26,7 +25,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             var factory = app.Services.GetRequiredService<ILoggerFactory>();
             if (factory is not null)
             {
-                _logger = factory.CreateLogger(options.LoggerName ?? typeof(TsClient).Namespace ?? "NpgsqlRest.HttpFiles");
+                _logger = factory.CreateLogger(options.LoggerName ?? typeof(TsClient).Namespace ?? "NpgsqlRest.TsClient");
             }
             else
             {
@@ -63,6 +62,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             foreach (var group in endpoints.GroupBy(e => e.routine.Schema))
             {
                 var filename = string.Format(options.FilePath, ConvertToCamelCase(group.Key));
+                if (options.SkipTypes && filename.EndsWith(".ts"))
+                {
+                    filename = filename[..^3] + ".js";
+                }
                 Run([.. group], filename);
             }
         }
@@ -87,20 +90,40 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) : 
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
 
-            contentHeader.AppendLine(options.ImportParseQueryFrom is not null ? 
-                string.Format(
-                "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
-                """
-                const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
-                    .map(key => {{
-                        const value = query[key] != null ? query[key] : "";
-                        if (Array.isArray(value)) {{
-                            return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
-                        }}
-                        return `${{key}}=${{encodeURIComponent(value)}}`;
-                    }})
-                    .join("&");
-                """);
+            if (options.SkipTypes is false)
+            {
+                contentHeader.AppendLine(options.ImportParseQueryFrom is not null ? 
+                    string.Format(
+                    "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
+                    """
+                    const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
+                        .map(key => {{
+                            const value = query[key] != null ? query[key] : "";
+                            if (Array.isArray(value)) {{
+                                return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
+                            }}
+                            return `${{key}}=${{encodeURIComponent(value)}}`;
+                        }})
+                        .join("&");
+                    """);
+            }
+            else
+            {
+                contentHeader.AppendLine(options.ImportParseQueryFrom is not null ?
+                    string.Format(
+                    "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
+                    """
+                    const parseQuery = query => "?" + Object.keys(query)
+                        .map(key => {{
+                            const value = query[key] != null ? query[key] : "";
+                            if (Array.isArray(value)) {{
+                                return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
+                            }}
+                            return `${{key}}=${{encodeURIComponent(value)}}`;
+                        }})
+                        .join("&");
+                    """);
+            }
         }
         else
         {
@@ -155,22 +178,28 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         }
         if (options.CreateSeparateTypeFile is false)
         {
-            interfaces.AppendLine(content.ToString());
-            if (contentHeader.Length > 0)
+            if (options.SkipTypes is false)
             {
-                contentHeader.AppendLine();
-                interfaces.Insert(0, contentHeader.ToString());
+                interfaces.AppendLine(content.ToString());
+                if (contentHeader.Length > 0)
+                {
+                    contentHeader.AppendLine();
+                    interfaces.Insert(0, contentHeader.ToString());
+                }
+                AddHeader(interfaces);
+                File.WriteAllText(fileName, interfaces.ToString());
+                _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
             }
-            AddHeader(interfaces);
-            File.WriteAllText(fileName, interfaces.ToString());
-            _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
         }
         else
         {
-            var typeFile = fileName.Replace(".ts", "Types.d.ts");
-            AddHeader(interfaces);
-            File.WriteAllText(typeFile, interfaces.ToString());
-            _logger?.LogInformation("Created Typescript type file: {typeFile}", typeFile);
+            if (options.SkipTypes is false)
+            {
+                var typeFile = fileName.Replace(".ts", "Types.d.ts");
+                AddHeader(interfaces);
+                File.WriteAllText(typeFile, interfaces.ToString());
+                _logger?.LogInformation("Created Typescript type file: {typeFile}", typeFile);
+            }
 
             if (contentHeader.Length > 0)
             {
@@ -178,7 +207,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             }
             AddHeader(content);
             File.WriteAllText(fileName, content.ToString());
-            _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
+            if (options.SkipTypes is false)
+            {
+                _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
+            }
+            else
+            {
+                _logger?.LogInformation("Created Javascript file: {fileName}", fileName);
+            }
         }
         return;
 
@@ -292,11 +328,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }
                 else
                 {
-                    modelsDict.Add(req.ToString(), requestName);
-                    req.Insert(0, $"interface {requestName} {{{Environment.NewLine}");
-                    req.AppendLine("}");
-                    req.AppendLine();
-                    interfaces.Append(req);
+                    if (options.SkipTypes is false)
+                    {
+                        modelsDict.Add(req.ToString(), requestName);
+                        req.Insert(0, $"interface {requestName} {{{Environment.NewLine}");
+                        req.AppendLine("}");
+                        req.AppendLine();
+                        interfaces.Append(req);
+                    }
                 }
             }
 
@@ -330,7 +369,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     if (descriptor.IsArray)
                     {
                         json = true;
-                        returnExp = GetReturnExp($"await response.json() as {responseName}[]");
+                        if (options.SkipTypes is false)
+                        {
+                            returnExp = GetReturnExp($"await response.json() as {responseName}[]");
+                        }
+                        else
+                        {
+                            returnExp = GetReturnExp("await response.json()");
+                        }
                     }
                     else
                     {
@@ -385,18 +431,28 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         }
                         else
                         {
-                            modelsDict.Add(resp.ToString(), responseName);
-                            resp.Insert(0, $"interface {responseName} {{{Environment.NewLine}");
-                            resp.AppendLine("}");
-                            resp.AppendLine();
-                            interfaces.Append(resp);
+                            if (options.SkipTypes is false)
+                            {
+                                modelsDict.Add(resp.ToString(), responseName);
+                                resp.Insert(0, $"interface {responseName} {{{Environment.NewLine}");
+                                resp.AppendLine("}");
+                                resp.AppendLine();
+                                interfaces.Append(resp);
+                            }
                         }
                     }
                     if (returnsSet)
                     {
                         responseName = string.Concat(responseName, "[]");
                     }
-                    returnExp = GetReturnExp($"await response.json() as {responseName}"); 
+                    if (options.SkipTypes is false)
+                    {
+                        returnExp = GetReturnExp($"await response.json() as {responseName}");
+                    }
+                    else
+                    {
+                        returnExp = GetReturnExp("await response.json()");
+                    }
                 }
             }
             else
@@ -431,7 +487,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 parameters = string.Concat(parameters, Environment.NewLine);
                 if (requestName is not null) 
                 {
-                    parameters = string.Concat(parameters, "    request: ", requestName);
+                    if (options.SkipTypes is false)
+                    {
+                        parameters = string.Concat(parameters, "    request: ", requestName);
+                    }
+                    else
+                    {
+                        parameters = string.Concat(parameters, "    request");
+                    }
                 }
                 if (options.IncludeParseUrlParam is true)
                 {
@@ -439,7 +502,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     {
                         parameters = string.Concat(parameters, ",", Environment.NewLine);
                     }
-                    parameters = string.Concat(parameters, "    parseUrl: (url: string) => string = url=>url");
+                    if (options.SkipTypes is false)
+                    {
+                        parameters = string.Concat(parameters, "    parseUrl: (url: string) => string = url=>url");
+                    }
+                    else
+                    {
+                        parameters = string.Concat(parameters, "    parseUrl");
+                    }
                 }
                 if (options.IncludeParseRequestParam is true)
                 {
@@ -447,7 +517,14 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     {
                         parameters = string.Concat(parameters, ",", Environment.NewLine);
                     }
-                    parameters = string.Concat(parameters, "    parseRequest: (request: RequestInit) => RequestInit = request=>request");
+                    if (options.SkipTypes is false)
+                    {
+                        parameters = string.Concat(parameters, "    parseRequest: (request: RequestInit) => RequestInit = request=>request");
+                    }
+                    else
+                    {
+                        parameters = string.Concat(parameters, "    parseRequest");
+                    }
                 }
                 parameters = string.Concat(parameters, Environment.NewLine);
             }
@@ -465,12 +542,24 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     (requestName is not null && body is null ? string.Format("parseUrl({0}Url(request))", camel) : string.Format("parseUrl({0}Url())", camel)) :
                     string.Format("{0}Url(request)", camel);
 
-                contentHeader.AppendLine(string.Format(
-                    "export const {0}Url = {1} => baseUrl + \"{2}\"{3};", 
-                    camel, 
-                    requestName is not null && body is null ? string.Format("(request: {0})", requestName) : "()",
-                    endpoint.Url, 
-                    qs));
+                if (options.SkipTypes is false)
+                {
+                    contentHeader.AppendLine(string.Format(
+                        "export const {0}Url = {1} => baseUrl + \"{2}\"{3};",
+                        camel,
+                        requestName is not null && body is null ? string.Format("(request: {0})", requestName) : "()",
+                        endpoint.Url,
+                        qs));
+                }
+                else
+                {
+                    contentHeader.AppendLine(string.Format(
+                        "export const {0}Url = {1} => baseUrl + \"{2}\"{3};",
+                        camel,
+                        requestName is not null && body is null ? "request" : "()",
+                        endpoint.Url,
+                        qs));
+                }
             }
 
             if (body is null && bodyParameterName is not null)
@@ -507,21 +596,39 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     responseName;
             }
 
-            content.AppendLine(string.Format(
-                """
-            /**
-            {0}
-            */
-            export async function {1}({2}) : Promise<{3}> {{
-            {4}
-            """,
-                GetComment(routine),
-                camel,
-                parameters,
-                resultType,
-                funcBody));
-            content.AppendLine("}");
-
+            if (options.SkipTypes is false)
+            { 
+                content.AppendLine(string.Format(
+                    """
+                /**
+                {0}
+                */
+                export async function {1}({2}) : Promise<{3}> {{
+                {4}
+                """,
+                    GetComment(routine),
+                    camel,
+                    parameters,
+                    resultType,
+                    funcBody));
+                content.AppendLine("}");
+            }
+            else
+            {
+                content.AppendLine(string.Format(
+                    """
+                /**
+                {0}
+                */
+                export async function {1}({2}) {{
+                {3}
+                """,
+                    GetComment(routine),
+                    camel,
+                    parameters,
+                    funcBody));
+                content.AppendLine("}");
+            }
             return true;
         } // void Handle
     }
@@ -635,6 +742,16 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         var invalidChars1 = InvalidChars1();
         var invalidChars2 = InvalidChars2();
+
+        if (name.EndsWith('?'))
+        {
+            var part = name[..^1];
+            if (invalidChars1.IsMatch(part) || invalidChars2.IsMatch(part))
+            {
+                return $"\"{part}\"?";
+            }
+            return name;
+        }
 
         if (invalidChars1.IsMatch(name) || invalidChars2.IsMatch(name))
         {

@@ -22,7 +22,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="src\" />
+    <Folder Include="src\app\" />
   </ItemGroup>
 
 </Project>

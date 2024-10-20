@@ -249,7 +249,8 @@ public static class App
                 ConnectionString = connectionString
             }));
         }
-        var tsClientCfg = NpgsqlRestCfg.GetSection("TsClient");
+
+        var tsClientCfg = NpgsqlRestCfg.GetSection("ClientCodeGen");
         if (tsClientCfg is not null && GetConfigBool("Enabled", tsClientCfg) is true)
         {
             var ts = new TsClientOptions
@@ -270,6 +271,7 @@ public static class App
                 UseRoutineNameInsteadOfEndpoint = GetConfigBool("UseRoutineNameInsteadOfEndpoint", tsClientCfg),
                 DefaultJsonType = GetConfigStr("DefaultJsonType", tsClientCfg) ?? "string",
                 ExportUrls =  GetConfigBool("ExportUrls", tsClientCfg),
+                SkipTypes = GetConfigBool("SkipTypes", tsClientCfg),
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);
