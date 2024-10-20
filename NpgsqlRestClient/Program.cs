@@ -82,7 +82,9 @@ NpgsqlRestOptions options = new()
     },
 
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
-    CustomRequestHeaders = GetCustomHeaders()
+    CustomRequestHeaders = GetCustomHeaders(),
+
+    RoutineSources = CreateRoutineSources()
 };
 
 app.UseNpgsqlRest(options);

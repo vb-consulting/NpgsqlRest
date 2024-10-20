@@ -15,7 +15,10 @@ public class RoutineSource(
         string[]? includeNames = null,
         string[]? excludeNames = null,
         string? query = null,
-        CommentsMode? commentsMode = null) : IRoutineSource
+        CommentsMode? commentsMode = null,
+        string? customTypeParameterSeparator = "_",
+        string[]? includeLanguagues = null,
+        string[]? excludeLanguagues = null) : IRoutineSource
 {
     public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
     public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
@@ -27,6 +30,9 @@ public class RoutineSource(
     public string[]? ExcludeNames { get; set; } = excludeNames;
     public string? Query { get; set; } = query ?? RoutineSourceQuery.Query;
     public CommentsMode? CommentsMode { get; set; } = commentsMode;
+    public string? CustomTypeParameterSeparator { get; set; } = customTypeParameterSeparator;
+    public string[]? IncludeLanguagues { get; set; } = includeLanguagues;
+    public string[]? ExcludeLanguagues { get; set; } = excludeLanguagues;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
@@ -35,7 +41,7 @@ public class RoutineSource(
         Query ??= RoutineSourceQuery.Query;
         if (Query.Contains(' ') is false)
         {
-            command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8)");
+            command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)");
         }
         else
         {
@@ -50,6 +56,8 @@ public class RoutineSource(
         AddParameter(NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
         AddParameter(IncludeNames ?? options.IncludeNames, true); // $7
         AddParameter(ExcludeNames ?? options.ExcludeNames, true); // $8
+        AddParameter(IncludeLanguagues?.Select(l => l.ToLowerInvariant()), true); // $9
+        AddParameter(ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues.Select(l => l.ToLowerInvariant()), true); // $10
 
         connection.Open();
         using NpgsqlDataReader reader = command.ExecuteReader();
@@ -223,7 +231,7 @@ public class RoutineSource(
                     {
                         customType = paramTypes[i];
                         paramTypes[i] = customTypeTypes[i] ?? customType;
-                        paramName = string.Concat(paramName, options.CustomTypeParameterSeparator, customTypeName);
+                        paramName = string.Concat(paramName, CustomTypeParameterSeparator, customTypeName);
                         paramNames[i] = paramName;
                         if (hasCustomType is false)
                         {

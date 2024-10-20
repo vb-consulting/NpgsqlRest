@@ -307,4 +307,31 @@ public static class App
 
         return handlers;
     }
+
+    public static List<IRoutineSource> CreateRoutineSources()
+    {
+        var source = new RoutineSource();
+        var routineOptionsCfg = NpgsqlRestCfg.GetSection("RoutineOptions");
+        if (routineOptionsCfg.Exists() is false)
+        {
+            return [source];
+        }
+        var customTypeParameterSeparator = GetConfigStr("CustomTypeParameterSeparator", routineOptionsCfg);
+        if (customTypeParameterSeparator is not null)
+        {
+            source.CustomTypeParameterSeparator = customTypeParameterSeparator;
+        }
+        var includeLanguagues = GetConfigEnumerable("IncludeLanguagues", routineOptionsCfg);
+        if (includeLanguagues is not null)
+        {
+            source.IncludeLanguagues = includeLanguagues.ToArray();
+        }
+        var excludeLanguagues = GetConfigEnumerable("ExcludeLanguagues", routineOptionsCfg);
+        if (excludeLanguagues is not null)
+        {
+            source.ExcludeLanguagues = excludeLanguagues.ToArray();
+        }
+
+        return [source];
+    }
 }

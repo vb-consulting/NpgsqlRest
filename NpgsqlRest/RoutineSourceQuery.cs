@@ -61,13 +61,14 @@ internal class RoutineSourceQuery
             p.data_type = 'USER-DEFINED' 
             and (p.udt_schema || '.' || p.udt_name)::regtype::text = t.name 
         where
-            not lower(r.external_language) = any(array['c', 'internal'])
-            and coalesce(r.type_udt_name, '') <> 'trigger'
+            coalesce(r.type_udt_name, '') <> 'trigger'
             and r.routine_type in ('FUNCTION', 'PROCEDURE')
             and ($5 is null or r.routine_name similar to $5)
             and ($6 is null or r.routine_name not similar to $6)
             and ($7 is null or r.routine_name = any($7))
             and ($8 is null or not r.routine_name = any($8))
+            and ($9 is null or lower(r.external_language) = any($9))
+            and ($10 is null or lower(r.external_language) = any($10) is false)
         order by 
             r.specific_schema, r.specific_name, p.ordinal_position, t.att_pos
 

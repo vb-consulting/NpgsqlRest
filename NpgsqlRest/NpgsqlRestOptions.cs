@@ -49,8 +49,7 @@ public class NpgsqlRestOptions(
     bool returnNpgsqlExceptionMessage = true,
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
     Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
-    Dictionary<string, StringValues>? customRequestHeaders = null,
-    string? customTypeParameterSeparator = "_")
+    Dictionary<string, StringValues>? customRequestHeaders = null)
 {
 
     /// <summary>
@@ -292,10 +291,7 @@ public class NpgsqlRestOptions(
     public Dictionary<string, StringValues> CustomRequestHeaders { get; set; } = customRequestHeaders ?? [];
 
     /// <summary>
-    /// Custom type parameter separator. Default is `.`.
+    /// Routine sources default list.
     /// </summary>
-    public string? CustomTypeParameterSeparator { get; set; } = customTypeParameterSeparator;
-
-
-    internal List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
+    public List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
 }
