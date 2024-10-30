@@ -63,7 +63,6 @@ public static partial class Database
         ) 
         returns text language sql as 'select _p1::text || _p3.value2';
 
-
         create function get_custom_param_query_9p(
             _p2 custom_type1,
             _p3 custom_type2,
@@ -80,6 +79,67 @@ public static partial class Database
         ) 
         returns text language sql as $$
         select _p.value1::text || ' ' || _p.value2 || ' ' || _p.value3::text;
+        $$;
+
+        create type my_request as (
+            id int,
+            text_value text,
+            flag boolean
+        );
+
+        create function my_service(
+            request my_request
+        )
+        returns void
+        language plpgsql as 
+        $$
+        begin
+            raise info 'id: %, text_value: %, flag: %', request.id, request.text_value, request.flag;
+        end;
+        $$;
+
+        create function get_my_service(
+            request my_request
+        )
+        returns my_request
+        language sql as 
+        $$
+        select request;
+        $$;
+
+        create function get_setof_my_requests(
+            request my_request
+        )
+        returns setof my_request
+        language sql as 
+        $$
+        select request union all select request;
+        $$;
+
+        create function get_table_of_my_requests(
+            request my_request
+        )
+        returns table (
+            req my_request
+        )
+        language sql as 
+        $$
+        select request union all select request;
+        $$;
+
+        create function get_mixed_table_of_my_requests(
+            request my_request
+        )
+        returns table (
+            a text,
+            req my_request,
+            b text
+        )
+        language sql as 
+        $$
+        select 'a1', request, 'b1'
+        union all 
+        select 'a2', request, 'b2'
         $$;
 ");
     }
@@ -311,5 +371,84 @@ public class CustomTypeParametersTests(TestFixture test)
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().Be("1 test true");
+    }
+
+    [Fact]
+    public async Task Test_my_service()
+    {
+        using var body = new StringContent("""
+        {  
+            "requestId": 1,
+            "requestTextValue": "test",
+            "requestFlag": true
+        }
+        """, Encoding.UTF8, "application/json");
+
+        using var response = await test.Client.PostAsync("/api/my-service", body);
+        response?.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Test_get_my_service()
+    {
+        var query = new QueryBuilder
+        {
+            { "requestId", "1" },
+            { "requestTextValue", "test" },
+            { "requestFlag", "true" },
+        };
+        using var response = await test.Client.GetAsync($"/api/get-my-service/{query}");
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("{\"id\":1,\"textValue\":\"test\",\"flag\":true}");
+    }
+
+    [Fact]
+    public async Task Test_get_setof_my_requests()
+    {
+        var query = new QueryBuilder
+        {
+            { "requestId", "1" },
+            { "requestTextValue", "test" },
+            { "requestFlag", "true" },
+        };
+        using var response = await test.Client.GetAsync($"/api/get-setof-my-requests/{query}");
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("[{\"id\":1,\"textValue\":\"test\",\"flag\":true},{\"id\":1,\"textValue\":\"test\",\"flag\":true}]");
+    }
+
+    [Fact]
+    public async Task Test_get_table_of_my_requests()
+    {
+        var query = new QueryBuilder
+        {
+            { "requestId", "1" },
+            { "requestTextValue", "test" },
+            { "requestFlag", "true" },
+        };
+        using var response = await test.Client.GetAsync($"/api/get-table-of-my-requests/{query}");
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("[{\"id\":1,\"textValue\":\"test\",\"flag\":true},{\"id\":1,\"textValue\":\"test\",\"flag\":true}]");
+    }
+
+    [Fact]
+    public async Task Test_get_mixed_table_of_my_requests()
+    {
+        var query = new QueryBuilder
+        {
+            { "requestId", "1" },
+            { "requestTextValue", "test" },
+            { "requestFlag", "true" },
+        };
+        using var response = await test.Client.GetAsync($"/api/get-mixed-table-of-my-requests/{query}");
+        var content = await response.Content.ReadAsStringAsync();
+
+        response?.StatusCode.Should().Be(HttpStatusCode.OK);
+        content.Should().Be("[{\"a\":\"a1\",\"id\":1,\"textValue\":\"test\",\"flag\":true,\"b\":\"b1\"},{\"a\":\"a2\",\"id\":1,\"textValue\":\"test\",\"flag\":true,\"b\":\"b2\"}]");
     }
 }

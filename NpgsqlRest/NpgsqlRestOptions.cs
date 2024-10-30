@@ -49,7 +49,8 @@ public class NpgsqlRestOptions(
     bool returnNpgsqlExceptionMessage = true,
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
     Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
-    Dictionary<string, StringValues>? customRequestHeaders = null)
+    Dictionary<string, StringValues>? customRequestHeaders = null,
+    List<IRoutineSource>? routineSources = null)
 {
 
     /// <summary>
@@ -293,5 +294,5 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Routine sources default list.
     /// </summary>
-    public List<IRoutineSource> RoutineSources { get; set; } = [new RoutineSource()];
+    public List<IRoutineSource> RoutineSources { get; set; } = routineSources ?? [new RoutineSource()];
 }

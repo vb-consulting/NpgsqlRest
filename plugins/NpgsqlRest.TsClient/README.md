@@ -440,7 +440,9 @@ public class TsClientOptions(
     string[]? skipFunctionNames = null,
     string[]? skipPaths = null,
     string defaultJsonType = "string",
-    bool useRoutineNameInsteadOfEndpoint = false)
+    bool useRoutineNameInsteadOfEndpoint = false,
+    bool exportUrls = false,
+    bool skipTypes = false)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -544,8 +546,17 @@ public class TsClientOptions(
     /// Use routine name instead of endpoint name when generating a function name.
     /// </summary>
     public bool UseRoutineNameInsteadOfEndpoint { get; set; } = useRoutineNameInsteadOfEndpoint;
-}
 
+    /// <summary>
+    /// Export URLs as constants.
+    /// </summary>
+    public bool ExportUrls { get; set; } = exportUrls;
+
+    /// <summary>
+    /// Skip generating types and produce pure JavaScript code. Setting this to true will also change .ts extension to .js where applicable.
+    /// </summary>
+    public bool SkipTypes { get; set; } = skipTypes;
+}
 ```
 
 ## Library Dependencies

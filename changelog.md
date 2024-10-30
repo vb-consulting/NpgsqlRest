@@ -4,12 +4,452 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.12.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.12.0) (2024-10-29)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.11.0...2.12.0)
+
+### Login Endpoint Custom Claims Maintain the Original Field Names
+
+This is a small but breaking change that makes the system a bit more consistent.
+
+For example, if you have a login endpoint that returns fields that are not mapped to any known [AD Federation Services Claim Types](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0#fields) like this:
+
+```sql
+create function auth.login(
+    _username text,
+    _password text
+) 
+returns table (
+    status int,             -- indicates login status 200, 404, etc
+    name_identifier text,   -- name_identifier when converted with default name converter becomes name_identifier and mapps to http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
+    name text,              -- http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name
+    role text[],            -- http://schemas.microsoft.com/ws/2008/06/identity/claims/role
+    company_id int             -- company_id can't be mapped to AD Federation Services Claim Types
+)
+
+--
+-- ... 
+--
+
+comment on function auth.login(text, text) is '
+HTTP POST
+Login
+';
+```
+
+So, in this example, `company_id` can't be mapped to any AD Federation Services Claim Types, and a claim with a custom claim name will be created. In the previous version, that name was parsed with name converter, and the default name converter is the camel case converter, and the newly created claim name, in this case, was `companyId`.
+
+This is now changed to use the original, unconverted column named, and the newly created claim name, in this case, is now `company_id`.
+
+This is important with the client configuration when mapping a custom claim to a parameter name, like this:
+
+```jsonc
+{
+    //...
+    "NpgsqlRest": {
+        //...
+        "AuthenticationOptions": {
+            //...
+            "CustomParameterNameToClaimMappings": {
+                "_company_id": "company_id"
+            }
+        }
+    }
+}
+```
+
+### Reader Optimizations and Provider-Specific Values
+
+From this version, all command readers are using `GetProviderSpecificValue(int ordinal)` method instead of `GetValue(int ordinal)`.
+
+This change ensures that data is retrieved in its native PostgreSQL format, preserving any provider-specific types. This change enhances accuracy and eliminates the overhead of automatic type conversion to standard .NET types.
+
+Also, when reading multiple rows, the reader will now take advantage of the `GetProviderSpecificValues(Object[])` method to initialize the current row into an array. Previously, the entire row was read with `GetValue(int ordinal)` one by one. This approach **improves performances when reading multiple rows by roughly 10%** and slightly increases memory consumption.
+
+### Updated Npgsql Reference
+
+Npgsql reference updated from 8.0.3 to 8.0.5:
+
+- 8.0.4 list of changes: https://github.com/npgsql/npgsql/milestone/115?closed=1
+- 8.0.5 list of changes: https://github.com/npgsql/npgsql/milestone/118?closed=1
+
+Any project using NpgsqlRest library will have to upgrade Npgsql minimal version to 8.0.5.
+
+### Custom Types Support
+
+From this version PostgreSQL custom types can be used as:
+
+1) Parameters (single paramtere or combined).
+2) Return types (single type or combined as a set).
+
+Example:
+
+```sql
+create type my_request as (
+    id int,
+    text_value text,
+    flag boolean
+);
+
+create function my_service(
+    request my_request
+)
+returns void
+language plpgsql as 
+$$
+begin
+    raise info 'id: %, text_value: %, flag: %', request.id, request.text_value, request.flag;
+end;
+$$;
+```
+
+Normally, to call this function calling a `row` constructor is required and then casting it back to `my_request`:
+```sql
+select my_service(row(1, 'test', true)::my_request);
+```
+
+NpgslRest will construnct a valid endpoint where parameters names are constructed by following rule:
+- Parameter name (in this example `request`) plus `CustomTypeParameterSeparator` value (default is underscore) plus custom type field name.
+
+This gives as these three parameters:
+
+1) `request_id`
+2) `request_text_value`
+3) `request_flag`
+
+And when translated by the default name translator (camle case), we will get these three parameters:
+
+1) `requestId`
+2) `requestTextValue`
+3) `requestFlag`
+
+So, now, we have valid REST endpoint:
+
+```cs
+using var body = new StringContent("""
+{  
+    "requestId": 1,
+    "requestTextValue": "test",
+    "requestFlag": true
+}
+""", Encoding.UTF8, "application/json");
+
+using var response = await test.Client.PostAsync("/api/my-service", body);
+response?.StatusCode.Should().Be(HttpStatusCode.NoContent); // void functions by default are returning 204 NoContent
+```
+
+Custom type parameters can be mixed with normal parameters:
+
+```sql
+create function my_service(
+    a text,
+    request my_request,
+    b text
+)
+returns void
+/*
+... rest of the function
+*/
+```
+
+In this example parameters `a` and `b` will behace as before, just three new parameters from the custom types will also be present.
+
+Custom types can now also be a return value:
+
+```sql
+create function get_my_service(
+    request my_request
+)
+returns my_request
+language sql as 
+$$
+select request;
+$$;
+```
+
+This will produce a valid json object, where properties are custom type fields, as we see in the client code test:
+
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-my-service/{query}");
+var content = await response.Content.ReadAsStringAsync();
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("{\"id\":1,\"textValue\":\"test\",\"flag\":true}");
+```
+
+If return a set of, instead of single array, we will get an aray as expected:
+
+```sql
+create function get_setof_my_requests(
+    request my_request
+)
+returns setof my_request
+language sql as 
+$$
+select request union all select request;
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-setof-my-requests/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("[{\"id\":1,\"textValue\":\"test\",\"flag\":true},{\"id\":1,\"textValue\":\"test\",\"flag\":true}]");
+```
+
+The same, completely identical result - we will get if we return a table with a single custom type:
+
+```sql
+create function get_table_of_my_requests(
+    request my_request
+)
+returns table (
+    req my_request
+)
+language sql as 
+$$
+select request union all select request;
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-table-of-my-requests/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("[{\"id\":1,\"textValue\":\"test\",\"flag\":true},{\"id\":1,\"textValue\":\"test\",\"flag\":true}]");
+```
+
+In this case, the actual table field name `req` is ignored, and a single field is replace with trhee fields from the custom type.
+
+When returning a table type, we can mix custom types with normal fields, for example:
+
+```sql
+create function get_mixed_table_of_my_requests(
+    request my_request
+)
+returns table (
+    a text,
+    req my_request,
+    b text
+)
+language sql as 
+$$
+select 'a1', request, 'b1'
+union all 
+select 'a2', request, 'b2'
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-mixed-table-of-my-requests/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("[{\"a\":\"a1\",\"id\":1,\"textValue\":\"test\",\"flag\":true,\"b\":\"b1\"},{\"a\":\"a2\",\"id\":1,\"textValue\":\"test\",\"flag\":true,\"b\":\"b2\"}]");
+```
+
+### Table Types Support
+
+Table types were supported before, bot now, everything that is true for custom types is also true for table types. They can be used as:
+
+1) Parameters (single paramtere or combined).
+2) Return types (single type or combined as a set).
+
+Examples:
+
+```sql
+create table my_table (
+    id int,
+    text_value text,
+    flag boolean
+);
+
+create function my_table_service(
+    request my_table
+)
+returns void
+language plpgsql as 
+$$
+begin
+    raise info 'id: %, text_value: %, flag: %', request.id, request.text_value, request.flag;
+end;
+$$;
+```
+```cs
+using var body = new StringContent("""
+{  
+    "requestId": 1,
+    "requestTextValue": "test",
+    "requestFlag": true
+}
+""", Encoding.UTF8, "application/json");
+
+using var response = await test.Client.PostAsync("/api/my-table-service", body);
+response?.StatusCode.Should().Be(HttpStatusCode.NoContent);
+```
+
+```sql
+create function get_my_table_service(
+    request my_table
+)
+returns my_table
+language sql as 
+$$
+select request;
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-my-table-service/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("{\"id\":1,\"textValue\":\"test\",\"flag\":true}");
+```
+
+```sql
+create function get_setof_my_tables(
+    request my_table
+)
+returns setof my_table
+language sql as 
+$$
+select request union all select request;
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-setof-my-tables/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("[{\"id\":1,\"textValue\":\"test\",\"flag\":true},{\"id\":1,\"textValue\":\"test\",\"flag\":true}]");
+```
+
+```sql
+create function get_table_of_my_tables(
+    request my_table
+)
+returns table (
+    req my_table
+)
+language sql as 
+$$
+select request union all select request;
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-table-of-my-tables/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("[{\"id\":1,\"textValue\":\"test\",\"flag\":true},{\"id\":1,\"textValue\":\"test\",\"flag\":true}]");
+```
+
+```sql
+create function get_mixed_table_of_my_tables(
+    request my_table
+)
+returns table (
+    a text,
+    req my_table,
+    b text
+)
+language sql as 
+$$
+select 'a1', request, 'b1'
+union all 
+select 'a2', request, 'b2'
+$$;
+```
+```cs
+var query = new QueryBuilder
+{
+    { "requestId", "1" },
+    { "requestTextValue", "test" },
+    { "requestFlag", "true" },
+};
+using var response = await test.Client.GetAsync($"/api/get-mixed-table-of-my-tables/{query}");
+var content = await response.Content.ReadAsStringAsync();
+
+response?.StatusCode.Should().Be(HttpStatusCode.OK);
+content.Should().Be("[{\"a\":\"a1\",\"id\":1,\"textValue\":\"test\",\"flag\":true,\"b\":\"b1\"},{\"a\":\"a2\",\"id\":1,\"textValue\":\"test\",\"flag\":true,\"b\":\"b2\"}]");
+```
+
+### RoutineSources Options Property
+
+The `RoutineSources` options property access was changed from internal to public. This property defines routine sources (functions and procedures and/or CRUD table source) that will be used to create REST API endpoints. Default is functions and procedures.
+
+This change was made to facilitate easier client configuration.
+
+### Routine Source Options
+
+`RoutineSource` class, which is used to build REST endpoints from PostgreSQL functions and procedures have some new options. These were added to serve client applications better. These new options are:
+
+- `CustomTypeParameterSeparator`
+
+This values is used as a separator between parameter name and a custom type (or table type) field name. See changes in parameter creation above. Default is underscore `_`. 
+
+- `IncludeLanguagues`
+
+Include functions and procedures with these languagues (case insensitive). Default is null (all are included). 
+
+- `ExcludeLanguagues`
+
+Exclude functions and procedures with these languagues (case insensitive). Default is C and internal (array `['c', 'internal']`).
+
+### Reference Update
+
+Npgsql reference from 8.0.3 to 8.0.5.
+
+---
+
 ## Version [2.11.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.11.0) (2024-09-03)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.10.0...2.11.0)
 
 1) Default value for the `CommentsMode` is changed. For now on, default value for this option is more restrictive `OnlyWithHttpTag` instead of previously `ParseAll`.
 2) New routine endpoint option `bool RawColumnNames` (default false) with the following annotation `columnnames` or `column_names` or `column-names`. If this option is set to true (in code or with comment annotation) - and if the endpoint is int the "raw" mode - the endpoint will contain a header names. If separators are applied, they will be used also.
+
+---
 
 ## Version [2.10.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.10.0) (2024-08-06)
 
@@ -75,6 +515,8 @@ Request on this enpoint with parameters:
 
 Will produce a download response to a 'test.csv' file with content type 'test.csv'. Raw values separator will be `,` character and row values separator will be new line.
 
+---
+
 ## Version [2.9.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.9.0) (2024-08-02)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.5...2.9.0)
@@ -119,17 +561,23 @@ Transfer-Encoding: chunked
 
 ```
 
+---
+
 ## Version [2.8.5](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.5) (2024-06-25)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.4...2.8.5)
 
 Fix default parameter validation callback.
 
+---
+
 ## Version [2.8.4](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.4) (2024-06-22)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.8.3...2.8.4)
 
 Slight improvements in logging and enabling it to work with the client application.
+
+---
 
 ## Version [2.8.3](https://github.com/vb-consulting/NpgsqlRest/tree/2.8.3) (2024-06-11)
 

@@ -91,6 +91,61 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.2.0
+
+Versions:
+.NET                 8.0.10
+Client Build         2.2.0.0
+Serilog.AspNetCore   8.0.3.0
+Npgsql               8.0.5.0
+NpgsqlRest           2.12.0.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.13.0.0
+
+Client changes:
+
+- New Configuration Section:
+
+```jsonc
+/*
+  2.2.0.0
+*/
+{
+   //
+  // https://vb-consulting.github.io/npgsqlrest/
+  //
+  "NpgsqlRest": {
+    //
+    // ...
+    //
+
+    //
+    // Options for handling PostgreSQL routines (functions and procedures)
+    //
+    "RoutineOptions": {
+      //
+      // Name separator for parameter names when using custom type parameters. 
+      // Parameter names will be in the format: {ParameterName}{CustomTypeParameterSeparator}{CustomTypeFieldName}. When NULL, default underscore is used.
+      //
+      "CustomTypeParameterSeparator": null,
+      //
+      // List of PostgreSQL routine language names to include. If NULL, all languages are included. Names are case-insensitive.
+      //
+      "IncludeLanguagues": null,
+      //
+      // List of PostgreSQL routine language names to exclude. If NULL, "C" and "INTERNAL" are excluded by default. Names are case-insensitive.
+      //
+      "ExcludeLanguagues": null
+    },
+  }
+}
+```
+
+- `TsClient` configuration section is renamed to `ClientCodeGen`.
+
+Reason is the new configuration key in this section `"SkipTypes": false` that allows for generation of the pure JavaSCript modules by ommiting type declarations. And now this section can generate either TypeScript or JavaScript which is client code.
+
+
 ## 2.1.0
 
 - NpgsqlRest version    2.11.0.0
