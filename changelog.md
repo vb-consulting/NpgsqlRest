@@ -125,7 +125,7 @@ And when translated by the default name translator (camle case), we will get the
 
 So, now, we have valid REST endpoint:
 
-```cs
+```csharp
 using var body = new StringContent("""
 {  
     "requestId": 1,
@@ -169,7 +169,7 @@ $$;
 
 This will produce a valid json object, where properties are custom type fields, as we see in the client code test:
 
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -194,7 +194,7 @@ $$
 select request union all select request;
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -222,7 +222,7 @@ $$
 select request union all select request;
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -256,7 +256,7 @@ union all
 select 'a2', request, 'b2'
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -297,7 +297,7 @@ begin
 end;
 $$;
 ```
-```cs
+```csharp
 using var body = new StringContent("""
 {  
     "requestId": 1,
@@ -320,7 +320,7 @@ $$
 select request;
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -344,7 +344,7 @@ $$
 select request union all select request;
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -370,7 +370,7 @@ $$
 select request union all select request;
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -400,7 +400,7 @@ union all
 select 'a2', request, 'b2'
 $$;
 ```
-```cs
+```csharp
 var query = new QueryBuilder
 {
     { "requestId", "1" },
@@ -675,7 +675,7 @@ New callback option: `Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpCon
 
 This is used to set the application name parameter (for example) without having to use the service provider. It executes before the new connection is open for the request. For example:
 
-```cs
+```csharp
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
@@ -742,7 +742,7 @@ Setting this parameter to 1 is useful in the HTTP streaming scenarios.
 
 - New TsClient plugin options and fixes
 
-```cs
+```csharp
 /// <summary>
 /// Module name to import "baseUrl" constant, instead of defining it in a module.
 /// </summary>
@@ -827,7 +827,7 @@ public string? ImportParseQueryFrom { get; set; } = importParseQueryFrom;
 
 To enable authentication, the authentication service first needs to be enabled in the application:
 
-```cs
+```csharp
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthentication().AddCookie();
 ```
