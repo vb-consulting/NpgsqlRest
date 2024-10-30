@@ -31,3 +31,34 @@ jobs:
       run: dotnet test --no-restore --verbosity m
     - name: Publish
       run: dotnet nuget push **\*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{secrets.NUGET_API_KEY}} --skip-duplicate
+
+  create-release:
+    needs: build-test-publish
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: v2.12.0-client-v2.2.0
+        release_name: "AOT Client v2.2.0 NpgsqlRest v2.12.0"
+        draft: false
+        prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-release:
+    needs: build-test-publish
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Upload appsettings.json to release
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./NpgsqlRestClient/appsettings.json
+        asset_name: appsettings.json
+        asset_content_type: application/json
