@@ -74,7 +74,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Build Windows AOT
-      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r win-x64 -c Release /p:PublishSingleFile=true /p:PublishTrimmed=true /p:EnableCompressionInSingleFile=true
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r win-x64 -c Release
     - name: Upload Windows executable
       uses: actions/upload-release-asset@v1
       env:
@@ -95,7 +95,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Build Linux AOT
-      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r linux-x64 -c Release /p:PublishSingleFile=true /p:PublishTrimmed=true /p:EnableCompressionInSingleFile=true
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r linux-x64 -c Release
     - name: Upload Linux executable
       uses: actions/upload-release-asset@v1
       env:
@@ -116,7 +116,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Build macOS AOT
-      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r osx-x64 -c Release /p:PublishSingleFile=true /p:PublishTrimmed=true /p:EnableCompressionInSingleFile=true
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r osx-x64 -c Release
     - name: Upload macOS executable
       uses: actions/upload-release-asset@v1
       env:
