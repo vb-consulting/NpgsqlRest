@@ -37,6 +37,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
       
+    - name: Setup .NET8
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 8.0.x
+      
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -57,3 +62,45 @@ jobs:
         asset_path: ./NpgsqlRestClient/appsettings.json
         asset_name: appsettings.json
         asset_content_type: application/json
+
+    # Windows build and upload
+    - name: Build Windows AOT
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r win-x64 -c Release
+
+    - name: Upload Windows executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./NpgsqlRestClient/bin/Release/net8.0/win-x64/publish/NpgsqlRestClient.exe
+        asset_name: npgsqlrest-win64.exe
+        asset_content_type: application/octet-stream
+
+    # Linux build and upload
+    - name: Build Linux AOT
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r linux-x64 -c Release
+
+    - name: Upload Linux executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./NpgsqlRestClient/bin/Release/net8.0/linux-x64/publish/NpgsqlRestClient
+        asset_name: npgsqlrest-linux64
+        asset_content_type: application/octet-stream
+
+    # macOS build and upload
+    - name: Build macOS AOT
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r osx-x64 -c Release /p:PublishSingleFile=true /p:PublishTrimmed=true /p:EnableCompressionInSingleFile=true
+
+    - name: Upload macOS executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./NpgsqlRestClient/bin/Release/net8.0/osx-x64/publish/NpgsqlRestClient
+        asset_name: npgsqlrest-osx64
+        asset_content_type: application/octet-stream
