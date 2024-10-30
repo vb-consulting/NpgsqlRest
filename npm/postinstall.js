@@ -42,6 +42,9 @@ if (osType === "Windows_NT") {
 } else if (osType === "Linux") {
     downloadFileUrl = `${downloadFrom}npgsqlrest-linux64`;
     downloadTo = `${downloadDir}npgsqlrest`;
+} else if (osType === "Darwin") {
+    downloadFileUrl = `${downloadFrom}npgsqlrest-osx64`;
+    downloadTo = `${downloadDir}npgsqlrest`;
 } else {
     console.error("Unsupported OS detected:", osType);
     process.exit(1);
