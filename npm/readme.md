@@ -117,6 +117,7 @@ See the detailed change log:
 
 ## 2.2.0
 
+```console
 Versions:
 .NET                 8.0.10
 Client Build         2.2.0.0
@@ -125,6 +126,7 @@ Npgsql               8.0.5.0
 NpgsqlRest           2.12.0.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.13.0.0
+```
 
 Client changes:
 

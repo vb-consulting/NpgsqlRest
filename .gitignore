@@ -401,3 +401,5 @@ build/
 _wwwroot/
 src/
 appsettings.Development.json
+
+*.ignore
