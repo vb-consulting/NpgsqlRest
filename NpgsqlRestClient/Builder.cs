@@ -80,24 +80,34 @@ public static class Builder
         if (LogToConsole is true || LogToFile is true)
         {
             var loggerConfig = new LoggerConfiguration().MinimumLevel.Verbose();
-            var levels = logCfg?.GetSection("MinimalLevels")?.GetChildren()?.ToList();
-            if (levels is null)
+            bool systemAdded = false;
+            bool microsoftAdded = false;
+            foreach (var level in logCfg?.GetSection("MinimalLevels")?.GetChildren() ?? [])
             {
-                loggerConfig.MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
-                loggerConfig.MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning);
-            }
-            else
-            {
-                foreach (var level in logCfg?.GetSection("MinimalLevels")?.GetChildren() ?? [])
+                var key = level.Key;
+                var value = GetEnum<Serilog.Events.LogEventLevel?>(level.Value);
+                if (value is not null && key is not null)
                 {
-                    var key = level.Key;
-                    var value = GetEnum<Serilog.Events.LogEventLevel?>(level.Value);
-                    if (value is not null && key is not null)
+                    loggerConfig.MinimumLevel.Override(key, value.Value);
+                    if (string.Equals(key, "System", StringComparison.OrdinalIgnoreCase))
                     {
-                        loggerConfig.MinimumLevel.Override(key, value.Value);
+                        systemAdded = true;
+                    }
+                    if (string.Equals(key, "Microsoft", StringComparison.OrdinalIgnoreCase))
+                    {
+                        microsoftAdded = true;
                     }
                 }
             }
+            if (systemAdded is false)
+            {
+                loggerConfig.MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning);
+            }
+            if (microsoftAdded is false)
+            {
+                loggerConfig.MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning);
+            }
+
             string outputTemplate = GetConfigStr("OutputTemplate", logCfg) ?? 
                 "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj} [{SourceContext}]{NewLine}{Exception}";
             if (LogToConsole is true)

@@ -4,6 +4,14 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.12.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.12.1 (2024-11-06)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.12.0...2.12.1)
+
+Reverted changes in reader logic (Reader Optimizations and Provider-Specific Values). Detailed perfomance load tests and examining the Npgsql sozrce does not justify these changes.
+
+---
+
 ## Version [2.12.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.12.0) (2024-10-29)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.11.0...2.12.0)

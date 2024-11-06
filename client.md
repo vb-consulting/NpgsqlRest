@@ -91,8 +91,30 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.2.1
+
+```console
+Versions:
+.NET                 8.0.10
+Client Build         2.2.1.0
+Serilog.AspNetCore   8.0.3.0
+Npgsql               8.0.5.0
+NpgsqlRest           2.12.1.0
+NpgsqlRest.HttpFiles 1.0.2.0
+NpgsqlRest.TsClient  1.13.0.0
+```
+
+Client changes:
+
+Fixed issue in overrding Log config section MinimalLevels. Log MinimalLevels are now:
+- System: Warning
+- Microsoft: Warning
+
+In previous versions this default wasn't initialized properly that could lead to over-logging.
+
 ## 2.2.0
 
+```console
 Versions:
 .NET                 8.0.10
 Client Build         2.2.0.0
@@ -101,6 +123,7 @@ Npgsql               8.0.5.0
 NpgsqlRest           2.12.0.0
 NpgsqlRest.HttpFiles 1.0.2.0
 NpgsqlRest.TsClient  1.13.0.0
+```
 
 Client changes:
 

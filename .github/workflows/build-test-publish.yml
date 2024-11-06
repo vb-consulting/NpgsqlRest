@@ -42,8 +42,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v2.12.0-client-v2.2.0
-        release_name: "AOT Client v2.2.0 NpgsqlRest v2.12.0"
+        tag_name: v2.12.1-client-v2.2.1
+        release_name: "AOT Client v2.2.1 NpgsqlRest v2.12.1"
         draft: true
         prerelease: true
 

@@ -403,3 +403,4 @@ src/
 appsettings.Development.json
 
 *.ignore
+*/k6/*.csv
