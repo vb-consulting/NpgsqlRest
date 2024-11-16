@@ -39,7 +39,7 @@ public class RoutineSource(
         using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
         Query ??= RoutineSourceQuery.Query;
-        if (Query.Contains(' ') is false)
+        if (Query.Contains(Consts.Space) is false)
         {
             command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)");
         }
@@ -153,7 +153,7 @@ public class RoutineSource(
                         {
                             string defaultValue = paramDef[(defaultIndex + 9)..].Trim();
 
-                            if (defaultValue.EndsWith(','))
+                            if (defaultValue.EndsWith(Consts.Comma))
                             {
                                 defaultValue = defaultValue[..^1].Trim();
                             }
@@ -191,7 +191,7 @@ public class RoutineSource(
                     sb.Append(expNames[i] ?? returnRecordNames[i]);
                     if (i < returnRecordCount - 1)
                     {
-                        sb.Append(',');
+                        sb.Append(Consts.Comma);
                     }
                 }
                 from = string.Concat(callIdent, sb.ToString(), " from ");

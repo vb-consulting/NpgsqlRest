@@ -19,6 +19,6 @@ public static class DefaultNameConverter
             .Select((s, i) => 
                 string.Concat(i == 0 ? char.ToLowerInvariant(s[0]) : char.ToUpperInvariant(s[0]), s[1..]))
             .Aggregate(string.Empty, string.Concat)
-            .Trim('"');
+            .Trim(Consts.DoubleQuote);
     }
 }

@@ -6,8 +6,7 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using BenchmarkTests;
 using Perfolizer.Horology;
 
-
-BenchmarkRunner.Run<GetProviderSpecificValuesBenchmarks>();
+BenchmarkRunner.Run<QuoteTextTests>();
 
 //BenchmarkRunner
 //    .Run<HttpClientTests>(

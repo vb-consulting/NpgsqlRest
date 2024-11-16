@@ -26,6 +26,6 @@ public static class DefaultUrlBuilder
                 .Trim('/'),
             "/");
 
-        return string.Concat(prefix, schema, name).TrimEnd('/').Trim('"');
+        return string.Concat(prefix, schema, name).TrimEnd('/').Trim(Consts.DoubleQuote);
     }
 }

@@ -321,7 +321,7 @@ public static class ExternalAuth
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = ExternalAuthConfig.LoginCommand;
-        var paramCount = command.CommandText[command.CommandText.IndexOf('(')..].Split(',').Length;
+        var paramCount = command.CommandText[command.CommandText.IndexOf(Consts.OpenParenthesis)..].Split(Consts.Comma).Length;
 
         if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
         {

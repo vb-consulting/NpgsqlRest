@@ -79,7 +79,7 @@ internal static class ParameterParser
         {
             if (queryStringNullHandling == QueryStringNullHandling.NullLiteral)
             {
-                if (string.Equals(value, "null", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(value, Consts.Null, StringComparison.OrdinalIgnoreCase))
                 {
                     resultValue = DBNull.Value;
                     return true;
@@ -419,7 +419,7 @@ internal static class ParameterParser
     {
         if (value == DBNull.Value)
         {
-            return "null";
+            return Consts.Null;
         }
         if (descriptor.IsArray && value is IList<object> list)
         {

@@ -50,7 +50,7 @@ public class RoutineSourceCustomTypesParameterFormatter : IRoutineSourceParamete
             var suffix = parameter.TypeDescriptor.IsCastToText() ? $"::{parameter.TypeDescriptor.OriginalType}" : "";
             if (i > 0)
             {
-                sb.Append(',');
+                sb.Append(Consts.Comma);
             }
             if (parameter.TypeDescriptor.CustomType is null)
             {
@@ -72,7 +72,7 @@ public class RoutineSourceCustomTypesParameterFormatter : IRoutineSourceParamete
                 }
             }
         }
-        sb.Append(')');
+        sb.Append(Consts.CloseParenthesis);
         return sb.ToString();
     }
 }

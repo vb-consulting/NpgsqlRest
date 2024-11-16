@@ -38,7 +38,7 @@ public readonly struct TypeDescriptor
         IsPk = isPk;
         IsIdentity = isIdentity;
         IsArray = type.EndsWith("[]");
-        Type = (IsArray ? type[..^2] : type).Trim('"');
+        Type = (IsArray ? type[..^2] : type).Trim(Consts.DoubleQuote);
         DbType = GetDbType();
         BaseDbType = DbType;
 

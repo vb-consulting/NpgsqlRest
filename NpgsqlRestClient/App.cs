@@ -99,9 +99,9 @@ public static class App
     public static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
         string.Concat(
             string.IsNullOrEmpty(options.UrlPathPrefix) ? "/" : string.Concat("/", options.UrlPathPrefix.Trim('/')),
-            routine.Schema == "public" ? "" : routine.Schema.Trim('"').Trim('/'),
+            routine.Schema == "public" ? "" : routine.Schema.Trim(Consts.DoubleQuote).Trim('/'),
             "/",
-            routine.Name.Trim('"').Trim('/'),
+            routine.Name.Trim(Consts.DoubleQuote).Trim('/'),
             "/");
 
     public static Func<Routine, RoutineEndpoint, RoutineEndpoint?>? CreateEndpointCreatedHandler()

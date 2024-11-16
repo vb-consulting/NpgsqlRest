@@ -3,7 +3,7 @@ import http from "k6/http";
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
 const now = new Date();
-const stamp = '2_12__xxxx__' + now.getFullYear() +
+const stamp = '2_13__6__' + now.getFullYear() +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0') +
     String(now.getHours()).padStart(2, '0') +

@@ -10,21 +10,27 @@ internal partial class NpgsqlRestSerializerContext : JsonSerializerContext;
 
 internal static class PgConverters
 {
-    private static readonly JsonSerializerOptions plainTextSerializerOptions = new()
+    private static readonly JsonSerializerOptions PlainTextSerializerOptions = new()
     {
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         TypeInfoResolver = new NpgsqlRestSerializerContext()
     };
-
+    
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    public static string SerializeString(ref string value) => JsonSerializer.Serialize(value, plainTextSerializerOptions);
-
-    public static string PgUnknownToJsonArray(ref string value)
+    public static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+    
+    [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
+        Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
+    [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
+        Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
+    public static string SerializeString(ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
+    
+    public static ReadOnlySpan<char> PgUnknownToJsonArray(ReadOnlySpan<char> value)
     {
-        if (value[0] != '(' || value[^1] != ')')
+        if (value[0] != Consts.OpenParenthesis || value[^1] != Consts.CloseParenthesis)
         {
             // should never happen
             return value;
@@ -32,7 +38,7 @@ internal static class PgConverters
 
         var len = value.Length;
         var result = new StringBuilder(len * 2);
-        result.Append('[');
+        result.Append(Consts.OpenBracket);
         var current = new StringBuilder();
         bool insideQuotes = false;
         bool first = true;
@@ -41,11 +47,11 @@ internal static class PgConverters
         {
             char currentChar = value[i];
 
-            if ((currentChar == ',' || (currentChar == ')' && i == len - 1)) && !insideQuotes)
+            if ((currentChar == Consts.Comma || (currentChar == Consts.CloseParenthesis && i == len - 1)) && !insideQuotes)
             {
                 if (!first)
                 {
-                    result.Append(',');
+                    result.Append(Consts.Comma);
                 }
                 else
                 {
@@ -53,30 +59,30 @@ internal static class PgConverters
                 }
                 if (current.Length == 0)
                 {
-                    result.Append("null");
+                    result.Append(Consts.Null);
                 }
                 else
                 {
                     var segment = current.ToString();
-                    result.Append(SerializeString(ref segment));
+                    result.Append(SerializeString(segment));
                     current.Clear();
                 }
             }
             else
             {
-                if (currentChar == '"' && i < len - 2 && value[i + 1] == '"')
+                if (currentChar == Consts.DoubleQuote && i < len - 2 && value[i + 1] == Consts.DoubleQuote)
                 {
                     current.Append(currentChar);
                     i++;
                     continue;
                 }
-                if (currentChar == '"')
+                if (currentChar == Consts.DoubleQuote)
                 {
                     insideQuotes = !insideQuotes;
                 }
                 else
                 {
-                    if (currentChar == '\\' && i < len - 2 && value[i + 1] == '\\')
+                    if (currentChar == Consts.Backslash && i < len - 2 && value[i + 1] == Consts.Backslash)
                     {
                         i++;
                         current.Append(currentChar);
@@ -89,20 +95,20 @@ internal static class PgConverters
             }
         }
 
-        result.Append(']');
+        result.Append(Consts.CloseBracket);
         return result.ToString();
     }
 
-    public static string PgArrayToJsonArray(ref string value, ref TypeDescriptor descriptor)
+    public static ReadOnlySpan<char> PgArrayToJsonArray(ReadOnlySpan<char> value, TypeDescriptor descriptor)
     {
         var len = value.Length;
-        if (string.IsNullOrWhiteSpace(value) || len < 3 || value[0] != '{' || value[^1] != '}')
+        if (value.IsEmpty || len < 3 || value[0] != Consts.OpenBrace || value[^1] != Consts.CloseBrace)
         {
             return value;
         }
 
         var result = new StringBuilder(len * 2);
-        result.Append('[');
+        result.Append(Consts.OpenBracket);
         var current = new StringBuilder();
         var quoted = !(descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson);
         bool insideQuotes = false;
@@ -125,22 +131,22 @@ internal static class PgConverters
         {
             char currentChar = value[i];
 
-            if (currentChar == '"' && value[i - 1] != '\\')
+            if (currentChar == Consts.DoubleQuote && value[i - 1] != Consts.Backslash)
             {
                 insideQuotes = !insideQuotes;
                 hasQuotes = true;
             }
-            else if ((currentChar == ',' && !insideQuotes) || currentChar == '}')
+            else if ((currentChar == Consts.Comma && !insideQuotes) || currentChar == Consts.CloseBrace)
             {
                 var currentIsNull = IsNull() && !hasQuotes;
                 if (quoted && !currentIsNull)
                 {
-                    result.Append('"');
+                    result.Append(Consts.DoubleQuote);
                 }
 
                 if (currentIsNull)
                 {
-                    result.Append("null");
+                    result.Append(Consts.Null);
                 }
                 else
                 {
@@ -149,11 +155,11 @@ internal static class PgConverters
 
                 if (quoted && !currentIsNull)
                 {
-                    result.Append('"');
+                    result.Append(Consts.DoubleQuote);
                 }
-                if (currentChar != '}')
+                if (currentChar != Consts.CloseBrace)
                 {
-                    result.Append(',');
+                    result.Append(Consts.Comma);
                 }
                 current.Clear();
                 hasQuotes = false;
@@ -164,11 +170,11 @@ internal static class PgConverters
                 {
                     if (currentChar == 't')
                     {
-                        current.Append("true");
+                        current.Append(Consts.True);
                     }
                     else if (currentChar == 'f')
                     {
-                        current.Append("false");
+                        current.Append(Consts.False);
                     }
                     else
                     {
@@ -178,7 +184,7 @@ internal static class PgConverters
                 else if (descriptor.IsDateTime)
                 {
                     //json time requires T between date and time
-                    current.Append(currentChar == ' ' ? 'T' : currentChar);
+                    current.Append(currentChar == Consts.Space ? 'T' : currentChar);
                 }
                 else 
                 {
@@ -203,10 +209,10 @@ internal static class PgConverters
             }
         }
 
-        result.Append(']');
-        return result.ToString();
+        result.Append(Consts.CloseBracket);
+        return result.ToString().AsSpan();
     }
-
+    
     public static string ParseParameters(ref List<NpgsqlRestParameter> paramsList, string value)
     {
         var letPos = value.IndexOf("{", StringComparison.OrdinalIgnoreCase);
@@ -229,5 +235,69 @@ internal static class PgConverters
             }
         }
         return value;
+    }
+
+    public static string QuoteText(ReadOnlySpan<char> value)
+    {
+        int newLength = value.Length + 2;
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (value[i] == Consts.DoubleQuote)
+            {
+                newLength++;
+            }
+        }
+        Span<char> result = stackalloc char[newLength];
+        result[0] = Consts.DoubleQuote;
+        int currentPos = 1;
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (value[i] == Consts.DoubleQuote)
+            {
+                result[currentPos++] = Consts.DoubleQuote;
+                result[currentPos++] = Consts.DoubleQuote;
+            }
+            else
+            {
+                result[currentPos++] = value[i];
+            }
+        }
+        result[currentPos] = Consts.DoubleQuote;
+        return new string(result);
+    }
+    
+    public static string QuoteDateTime(ReadOnlySpan<char> value)
+    {
+        int newLength = value.Length + 2;
+        Span<char> result = stackalloc char[newLength];
+        result[0] = Consts.DoubleQuote;
+        int currentPos = 1;
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (value[i] == Consts.Space)
+            {
+                result[currentPos++] = 'T';
+            }
+            else
+            {
+                result[currentPos++] = value[i];
+            }
+        }
+        result[currentPos] = Consts.DoubleQuote;
+        return new string(result);
+    }
+    
+    public static string Quote(ReadOnlySpan<char> value)
+    {
+        int newLength = value.Length + 2;
+        Span<char> result = stackalloc char[newLength];
+        result[0] = Consts.DoubleQuote;
+        int currentPos = 1;
+        for (int i = 0; i < value.Length; i++)
+        {
+            result[currentPos++] = value[i];
+        }
+        result[currentPos] = Consts.DoubleQuote;
+        return new string(result);
     }
 }

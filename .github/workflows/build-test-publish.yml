@@ -14,14 +14,14 @@ jobs:
     - name: Install PosgtreSQL
       uses: vb-consulting/postgresql-action@v1
       with:
-        postgresql version: '16'
+        postgresql version: '17'
         postgresql user: 'postgres'
         postgresql password: 'postgres'
     - uses: actions/checkout@v2
-    - name: Setup .NET8
+    - name: Setup .NET9
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -43,8 +43,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v2.12.1-client-v2.2.1
-        release_name: "AOT Client v2.2.1 NpgsqlRest v2.12.1"
+        tag_name: v2.13.0-client-v2.3.0
+        release_name: "AOT Client v2.3.0 NpgsqlRest v2.13.0"
         draft: true
         prerelease: true
 

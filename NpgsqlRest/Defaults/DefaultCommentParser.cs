@@ -6,8 +6,8 @@ namespace NpgsqlRest.Defaults;
 internal static class DefaultCommentParser
 {
     private static readonly char[] newlineSeparator = ['\r', '\n'];
-    private static readonly char[] wordSeparators = [' ', ','];
-    private static readonly char[] headerSeparator = [':'];
+    private static readonly char[] wordSeparators = [Consts.Space, Consts.Comma];
+    private static readonly char[] headerSeparator = [Consts.Colon];
 
     private const string HttpKey = "http";
     private static readonly string[] paramTypeKey = [
@@ -575,14 +575,14 @@ internal static class DefaultCommentParser
 
                 // key: value
                 // Content-Type: application/json
-                else if (haveTag is true && line.Contains(':'))
+                else if (haveTag is true && line.Contains(Consts.Colon))
                 {
                     var parts = line.Split(headerSeparator, 2);
                     if (parts.Length == 2)
                     {
                         var headerName = parts[0].Trim();
                         var headerValue = parts[1].Trim();
-                        if (headerValue.Contains('{') && headerValue.Contains('}'))
+                        if (headerValue.Contains(Consts.OpenBrace) && headerValue.Contains(Consts.CloseBrace))
                         {
                             routineEndpoint.NeedsParsing = true;
                         }

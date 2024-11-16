@@ -56,14 +56,14 @@ public static class Builder
             if (GetConfigBool("Enabled", ssqlCfg) is true)
             {
                 Instance.WebHost.UseKestrelHttpsConfiguration();
-                UseHttpsRedirection = GetConfigBool("UseHttpsRedirection", ssqlCfg);
-                UseHsts = GetConfigBool("UseHsts", ssqlCfg);
+                UseHttpsRedirection = GetConfigBool("UseHttpsRedirection", ssqlCfg, true);
+                UseHsts = GetConfigBool("UseHsts", ssqlCfg, true);
             }
         }
         else
         {
-            UseHttpsRedirection = true;
-            UseHsts = true;
+            UseHttpsRedirection = false;
+            UseHsts = false;
         }
     }
 

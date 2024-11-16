@@ -1,5 +1,4 @@
-﻿using System.Collections.Frozen;
-using System.Data;
+﻿using System.Data;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -28,6 +27,7 @@ public static class NpgsqlRestMiddlewareExtensions
 {
     private static ILogger? logger = null;
     public static ILogger? GetLogger() => logger;
+    
     public static IApplicationBuilder UseNpgsqlRest(this IApplicationBuilder builder, NpgsqlRestOptions options)
     {
         if (options.ConnectionString is null && options.ConnectionFromServiceProvider is false)
@@ -42,14 +42,7 @@ public static class NpgsqlRestMiddlewareExtensions
         else if (builder is WebApplication app)
         {
             var factory = app.Services.GetRequiredService<ILoggerFactory>();
-            if (factory is not null)
-            {
-                logger = factory.CreateLogger(options.LoggerName ?? typeof(NpgsqlRestMiddlewareExtensions).Namespace ?? "NpgsqlRest");
-            }
-            else
-            {
-                logger = app.Logger;
-            }
+            logger = factory is not null ? factory.CreateLogger(options.LoggerName ?? typeof(NpgsqlRestMiddlewareExtensions).Namespace ?? "NpgsqlRest") : app.Logger;
         }
 
         var dict = BuildDictionary(builder, options, logger);
@@ -60,34 +53,42 @@ public static class NpgsqlRestMiddlewareExtensions
             return builder;
         }
 
+        var lookup = dict.GetAlternateLookup<ReadOnlySpan<char>>();
         builder.Use(async (context, next) =>
         {
-            var path = context.Request.Path.ToString();
-            if (!dict.TryGetValue(string.Concat(context.Request.Method, path), out Tuple[]? tupleArray))
+            var pathKey = string.Concat(
+                context.Request.Method, 
+                context.Request.Path.ToString(), '/')
+                .AsSpan();
+            
+            if (!lookup.TryGetValue(pathKey, out var tupleArray))
             {
-                if (path.EndsWith('/'))
+                if (pathKey[^1] == '/' && pathKey[^2] == '/')
                 {
-                    if (!dict.TryGetValue(string.Concat(context.Request.Method, path[..^1]), out tupleArray))
+                    if (!lookup.TryGetValue(pathKey[..^2], out tupleArray))
                     {
                         await next(context);
                         return;
                     }
                 }
-                else
+                else if (pathKey[^1] == '/')
                 {
-                    if (!dict.TryGetValue(string.Concat(context.Request.Method, path, '/'), out tupleArray))
+                    if (!lookup.TryGetValue(pathKey[..^1], out tupleArray))
                     {
                         await next(context);
                         return;
                     }
                 }
             }
-
+            
             JsonObject? jsonObj = null;
             Dictionary<string, JsonNode?> bodyDict = default!;
             string? body = null;
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             var len = tupleArray.Length;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            
             bool overloaded = len > 1;
 
             for (var index = len - 1; index >= 0; index--)
@@ -126,7 +127,6 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
 
                 List<NpgsqlRestParameter> paramsList = new(routine.ParamCount + 5);
-                //NpgsqlRestParameter[] paramsList = new NpgsqlRestParameter[routine.ParamCount];
 
                 bool hasNulls = false;
                 NpgsqlRestParameter? headerParam = null;
@@ -482,9 +482,9 @@ public static class NpgsqlRestMiddlewareExtensions
                         var value = header.Value.ToString();
                         headers = string.Concat(
                             headers,
-                            PgConverters.SerializeString(ref key),
+                            PgConverters.SerializeString(key),
                             ":",
-                            PgConverters.SerializeString(ref value));
+                            PgConverters.SerializeString(value));
                     }
                     headers = string.Concat(headers, "}");
                     if (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter && headerParam is not null)
@@ -698,6 +698,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             if (await reader.ReadAsync())
                             {
                                 string? value = reader.GetValue(0) as string;
+                                //var value = (reader.GetValue(0) as string).AsSpan();
 
                                 TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
                                 if (endpoint.ResponseContentType is not null)
@@ -734,7 +735,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     if (descriptor.IsArray && value is not null)
                                     {
-                                        value = PgConverters.PgArrayToJsonArray(ref value, ref descriptor);
+                                        value = PgConverters.PgArrayToJsonArray(value.AsSpan(), descriptor).ToString();
                                     }
                                     if (value is not null)
                                     {
@@ -744,7 +745,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
                                         {
-                                            await context.Response.WriteAsync("null");
+                                            await context.Response.WriteAsync(Consts.Null);
                                         }
                                         else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
                                         {
@@ -805,9 +806,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     {
                                         columns.Append(endpoint.RawValueSeparator);
                                     }
-                                    columns.Append('\"');
-                                    columns.Append(reader.GetName(i).Replace("\"", "\"\""));
-                                    columns.Append('\"');
+                                    columns.Append(PgConverters.QuoteText(reader.GetName(i).AsSpan()));
                                 }
                                 if (endpoint.RawNewLineSeparator is not null)
                                 {
@@ -817,6 +816,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
 
                             var bufferRows = endpoint.BufferRows ?? options.BufferRows;
+                            var writer = System.IO.Pipelines.PipeWriter.Create(context.Response.Body);
                             while (await reader.ReadAsync())
                             {
                                 rowCount++;
@@ -825,7 +825,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                     // if raw
                                     if (endpoint.Raw is false)
                                     {
-                                        row.Append(',');
+                                        row.Append(Consts.Comma);
                                     }
                                     else if (endpoint.RawNewLineSeparator is not null)
                                     {
@@ -840,9 +840,9 @@ public static class NpgsqlRestMiddlewareExtensions
                                 for (var i = 0; i < routineReturnRecordCount; i++)
                                 {
                                     object value = reader.GetValue(i);
-
                                     // AllResultTypesAreUnknown = true always returns string, except for null
-                                    string raw = value == DBNull.Value ? "" : (string)value;
+                                    //string raw = value == DBNull.Value ? "" : (string)value;
+                                    var raw = (value == DBNull.Value ? "" : (string)value).AsSpan();
 
                                     // if raw
                                     if (endpoint.Raw)
@@ -852,9 +852,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                             var descriptor = routine.ColumnsTypeDescriptor[i];
                                             if (descriptor.IsText || descriptor.IsDate || descriptor.IsDateTime)
                                             {
-                                                row.Append('\"');
-                                                row.Append(raw.Replace("\"", "\"\""));
-                                                row.Append('\"');
+                                                row.Append(PgConverters.QuoteText(raw));
                                             }
                                             else
                                             {
@@ -876,34 +874,33 @@ public static class NpgsqlRestMiddlewareExtensions
                                         {
                                             if (i == 0)
                                             {
-                                                row.Append('{');
+                                                row.Append(Consts.OpenBrace);
                                             }
-                                            row.Append('\"');
+                                            row.Append(Consts.DoubleQuote);
                                             row.Append(endpoint.ColumnNames[i]);
-                                            row.Append("\":");
+                                            row.Append(Consts.DoubleQuoteColon);
                                         }
 
                                         var descriptor = routine.ColumnsTypeDescriptor[i];
                                         if (value == DBNull.Value)
                                         {
-                                            row.Append("null");
+                                            row.Append(Consts.Null);
                                         }
                                         else if (descriptor.IsArray && value is not null)
                                         {
-                                            raw = PgConverters.PgArrayToJsonArray(ref raw, ref descriptor);
-                                            row.Append(raw);
+                                            row.Append(PgConverters.PgArrayToJsonArray(raw, descriptor));
                                         }
                                         else if ((descriptor.IsNumeric || descriptor.IsBoolean || descriptor.IsJson) && value is not null)
                                         {
                                             if (descriptor.IsBoolean)
                                             {
-                                                if (string.Equals(raw, "t", StringComparison.Ordinal))
+                                                if (raw.Length == 1 && raw[0] == 't')
                                                 {
-                                                    row.Append("true");
+                                                    row.Append(Consts.True);
                                                 }
-                                                else if (string.Equals(raw, "f", StringComparison.Ordinal))
+                                                else if (raw.Length == 1 && raw[0] == 'f')
                                                 {
-                                                    row.Append("false");
+                                                    row.Append(Consts.False);
                                                 }
                                                 else
                                                 {
@@ -920,50 +917,57 @@ public static class NpgsqlRestMiddlewareExtensions
                                         {
                                             if (descriptor.ActualDbType == NpgsqlDbType.Unknown)
                                             {
-                                                row.Append(PgConverters.PgUnknownToJsonArray(ref raw));
+                                                row.Append(PgConverters.PgUnknownToJsonArray(raw));
                                             }
                                             else if (descriptor.NeedsEscape)
                                             {
-                                                row.Append(PgConverters.SerializeString(ref raw));
+                                                row.Append(PgConverters.SerializeString(raw));
                                             }
                                             else
                                             {
                                                 if (descriptor.IsDateTime)
                                                 {
-                                                    row.Append('\"');
-                                                    row.Append(raw.Replace(' ', 'T'));
-                                                    row.Append('\"');
+                                                    row.Append(PgConverters.QuoteDateTime(raw));
                                                 }
                                                 else
                                                 {
-                                                    row.Append('\"');
-                                                    row.Append(raw);
-                                                    row.Append('\"');
+                                                    row.Append(PgConverters.Quote(raw));
                                                 }
                                             }
                                         }
                                         if (routine.ReturnsUnnamedSet == false && i == routine.ColumnCount - 1)
                                         {
-                                            row.Append('}');
+                                            row.Append(Consts.CloseBrace);
                                         }
                                         if (i < routine.ColumnCount - 1)
                                         {
-                                            row.Append(',');
+                                            row.Append(Consts.Comma);
                                         }
                                     }
                                 } // end for
 
                                 if (bufferRows != 1 && rowCount % bufferRows == 0)
                                 {
-                                    await context.Response.WriteAsync(row.ToString());
+                                    //await context.Response.WriteAsync(row.ToString());
+                                    string rowStr = row.ToString();
+                                    var buffer = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(rowStr.Length));
+                                    int bytesWritten = Encoding.UTF8.GetBytes(rowStr.AsSpan(), buffer);
+                                    writer.Advance(bytesWritten);
+                                    await writer.FlushAsync();
+                                    
                                     row.Clear();
                                 }
                             } // end while
 
                             if (row.Length > 0)
                             {
-                                await context.Response.WriteAsync(row.ToString());
+                                // await context.Response.WriteAsync(row.ToString());
+                                string rowStr = row.ToString();
+                                var buffer = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(rowStr.Length));
+                                int bytesWritten = Encoding.UTF8.GetBytes(rowStr.AsSpan(), buffer);
+                                writer.Advance(bytesWritten);
                             }
+                            await writer.CompleteAsync();
 
                             if (routine.ReturnsSet && endpoint.Raw is false)
                             {
@@ -1049,7 +1053,7 @@ public static class NpgsqlRestMiddlewareExtensions
         return builder;
     }
 
-    private static FrozenDictionary<string, Tuple[]> BuildDictionary(
+    private static Dictionary<string, Tuple[]> BuildDictionary(
         IApplicationBuilder builder,
         NpgsqlRestOptions options,
         ILogger? logger)
@@ -1155,7 +1159,6 @@ public static class NpgsqlRestMiddlewareExtensions
         return dict
             .ToDictionary(
                 x => x.Key,
-                x => x.Value.ToArray())
-            .ToFrozenDictionary();
+                x => x.Value.ToArray());
     }
 }
