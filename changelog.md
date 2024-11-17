@@ -4,6 +4,20 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.12.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.13.0 (2024-11-17)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.12.1...2.13.0)
+
+- Upgrade all projects and libraries to .NET 9
+- Improve the performance of the middlweware by using:
+  - GetAlternateLookup extensions method to get the value from the dictionary.
+  - System.IO.Pipelines.PipeWriter instead of writing directly to the response stream.
+  - Spans where possible.
+  
+Performance benchmarks show up to 50% improvement in the middleware performance. 
+
+The [benchmark projects](https://github.com/vb-consulting/pg_function_load_tests) is being built and will be available soon. 
+
 ## Version [2.12.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.12.1 (2024-11-06)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.12.0...2.12.1)

@@ -6,7 +6,7 @@ const os = require("os");
 const https = require("https");
 
 const downloadDir = "../.bin/";
-const downloadFrom = "https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.12.1-client-v2.2.1/";
+const downloadFrom = "https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.13.0-client-v2.3.0/";
 
 function download(url, to, done) {
     https.get(url, (response) => {

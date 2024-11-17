@@ -115,6 +115,21 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+## 2.3.0
+
+```console
+Versions:
+.NET                 9.0.0
+Client Build         2.3.0.0
+Serilog.AspNetCore   8.0.3.0
+Npgsql               8.0.5.0
+NpgsqlRest           2.13.0.0
+NpgsqlRest.HttpFiles 1.1.0.0
+NpgsqlRest.TsClient  1.14.0.0
+```
+
+- Fixed SSL unnecessary redirection warnings when SSL is not used.
+
 ## 2.2.0
 
 ```console
