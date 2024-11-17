@@ -70,10 +70,10 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET8
+    - name: Setup .NET9
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Build Windows AOT
       run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r win-x64 -c Release
     - name: Upload Windows executable
@@ -91,10 +91,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET8
+    - name: Setup .NET9
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Build Linux AOT
       run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r linux-x64 -c Release
     - name: Upload Linux executable
@@ -112,10 +112,10 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET8
+    - name: Setup .NET9
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Build macOS AOT
       run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r osx-x64 -c Release
     - name: Upload macOS executable
