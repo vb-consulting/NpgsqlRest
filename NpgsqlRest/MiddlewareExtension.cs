@@ -510,6 +510,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                 NpgsqlConnection? connection = null;
                 string? commandText = null;
+                var writer = System.IO.Pipelines.PipeWriter.Create(context.Response.Body);
                 try
                 {
                     using IServiceScope? scope = options.ConnectionFromServiceProvider ? serviceProvider.CreateScope() : null;
@@ -670,7 +671,6 @@ public static class NpgsqlRestMiddlewareExtensions
                         await AuthHandler.HandleLoginAsync(command, context, endpoint, routine, options, logger);
                         if (context.Response.HasStarted is true || options.AuthenticationOptions.SerializeAuthEndpointsResponse is false)
                         {
-                            await context.Response.CompleteAsync();
                             return;
                         }
                     }
@@ -685,7 +685,6 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         await command.ExecuteNonQueryAsync();
                         context.Response.StatusCode = (int)HttpStatusCode.NoContent;
-                        await context.Response.CompleteAsync();
                         return;
                     }
                     else // end if (routine.IsVoid)
@@ -698,8 +697,6 @@ public static class NpgsqlRestMiddlewareExtensions
                             if (await reader.ReadAsync())
                             {
                                 string? value = reader.GetValue(0) as string;
-                                //var value = (reader.GetValue(0) as string).AsSpan();
-
                                 TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
                                 if (endpoint.ResponseContentType is not null)
                                 {
@@ -729,7 +726,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 // if raw
                                 if (endpoint.Raw)
                                 {
-                                    await context.Response.WriteAsync(value ?? "");
+                                    writer.Advance(Encoding.UTF8.GetBytes((value ?? "").AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount((value ?? "").Length))));
                                 }
                                 else
                                 {
@@ -739,13 +736,13 @@ public static class NpgsqlRestMiddlewareExtensions
                                     }
                                     if (value is not null)
                                     {
-                                        await context.Response.WriteAsync(value);
+                                        writer.Advance(Encoding.UTF8.GetBytes(value.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(value.Length))));
                                     }
                                     else
                                     {
                                         if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
                                         {
-                                            await context.Response.WriteAsync(Consts.Null);
+                                            writer.Advance(Encoding.UTF8.GetBytes(Consts.Null.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(Consts.Null.Length))));
                                         }
                                         else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
                                         {
@@ -754,14 +751,12 @@ public static class NpgsqlRestMiddlewareExtensions
                                         // else OK empty string
                                     }
                                 }
-                                await context.Response.CompleteAsync();
                                 return;
                             }
                             else
                             {
                                 logger?.CouldNotReadCommand(command.CommandText, context.Request.Method, context.Request.Path);
                                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                                await context.Response.CompleteAsync();
                                 return;
                             }
                         }
@@ -789,7 +784,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                             if (routine.ReturnsSet && endpoint.Raw is false)
                             {
-                                await context.Response.WriteAsync("[");
+                                writer.Advance(Encoding.UTF8.GetBytes(Consts.OpenBracket.ToString().AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(1))));
                             }
                             bool first = true;
                             var routineReturnRecordCount = routine.ColumnCount;
@@ -816,7 +811,6 @@ public static class NpgsqlRestMiddlewareExtensions
                             }
 
                             var bufferRows = endpoint.BufferRows ?? options.BufferRows;
-                            var writer = System.IO.Pipelines.PipeWriter.Create(context.Response.Body);
                             while (await reader.ReadAsync())
                             {
                                 rowCount++;
@@ -841,7 +835,6 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     object value = reader.GetValue(i);
                                     // AllResultTypesAreUnknown = true always returns string, except for null
-                                    //string raw = value == DBNull.Value ? "" : (string)value;
                                     var raw = (value == DBNull.Value ? "" : (string)value).AsSpan();
 
                                     // if raw
@@ -948,33 +941,31 @@ public static class NpgsqlRestMiddlewareExtensions
 
                                 if (bufferRows != 1 && rowCount % bufferRows == 0)
                                 {
-                                    //await context.Response.WriteAsync(row.ToString());
-                                    string rowStr = row.ToString();
-                                    var buffer = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(rowStr.Length));
-                                    int bytesWritten = Encoding.UTF8.GetBytes(rowStr.AsSpan(), buffer);
-                                    writer.Advance(bytesWritten);
+                                    foreach (ReadOnlyMemory<char> chunk in row.GetChunks())
+                                    {
+                                        var buffer = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(chunk.Length));
+                                        int bytesWritten = Encoding.UTF8.GetBytes(chunk.Span, buffer);
+                                        writer.Advance(bytesWritten);
+                                    }
                                     await writer.FlushAsync();
-                                    
                                     row.Clear();
                                 }
                             } // end while
 
                             if (row.Length > 0)
                             {
-                                // await context.Response.WriteAsync(row.ToString());
-                                string rowStr = row.ToString();
-                                var buffer = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(rowStr.Length));
-                                int bytesWritten = Encoding.UTF8.GetBytes(rowStr.AsSpan(), buffer);
-                                writer.Advance(bytesWritten);
+                                foreach (ReadOnlyMemory<char> chunk in row.GetChunks())
+                                {
+                                    var buffer = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(chunk.Length));
+                                    int bytesWritten = Encoding.UTF8.GetBytes(chunk.Span, buffer);
+                                    writer.Advance(bytesWritten);
+                                }
+                                await writer.FlushAsync();
                             }
-                            await writer.CompleteAsync();
-
                             if (routine.ReturnsSet && endpoint.Raw is false)
                             {
-                                await context.Response.WriteAsync("]");
+                                writer.Advance(Encoding.UTF8.GetBytes(Consts.CloseBracket.ToString().AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(1))));
                             }
-
-                            await context.Response.CompleteAsync();
                             return;
                         } // end if (routine.ReturnsRecord == true)
                     } // end if (routine.IsVoid is false)
@@ -993,18 +984,19 @@ public static class NpgsqlRestMiddlewareExtensions
                         }
                         if (context.Response.StatusCode != 205) // 205 forbids writing
                         {
-                            await context.Response.WriteAsync(exception.Message);
+                            writer.Advance(Encoding.UTF8.GetBytes(exception.Message.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(exception.Message.Length))));
                         }
                     }
                     if (context.Response.StatusCode != 200 || context.Response.HasStarted)
                     {
                         logger?.LogError(exception, "Error executing command: {commandText} mapped to endpoint: {Url}", commandText, endpoint.Url);
-                        await context.Response.CompleteAsync();
                         return;
                     }
                 }
                 finally
                 {
+                    await writer.CompleteAsync();
+                    await context.Response.CompleteAsync();
                     if (connection is not null && options.ConnectionFromServiceProvider is false)
                     {
                         await connection.DisposeAsync();

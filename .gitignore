@@ -404,4 +404,5 @@ appsettings.Development.json
 
 *.ignore
 */k6/*.csv
+*/k6/*.text
 /*.DotSettings
