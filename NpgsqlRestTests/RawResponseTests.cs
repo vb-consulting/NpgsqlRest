@@ -91,7 +91,7 @@ public class RawResponseTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         response.Should().Be("1232024-01-01 00:00:00tsome text4562024-12-31 00:00:00fanother text");
     }
 
@@ -102,7 +102,7 @@ public class RawResponseTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("text/csv");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/csv");
         response.Should().Be(string.Concat(
             "123,\"2024-01-01 00:00:00\",t,\"some text\"", 
             "\n",
@@ -117,7 +117,7 @@ public class RawResponseTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("text/csv");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/csv");
         response.Should().Be(string.Concat(
             "123,\"2024-01-01 00:00:00\",t,\"some text\"",
             "\n",
@@ -131,7 +131,7 @@ public class RawResponseTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("text/csv");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/csv");
         response.Should().Be(string.Concat(
             "\"n\",\"d\",\"b\",\"t\"",
             "\n",

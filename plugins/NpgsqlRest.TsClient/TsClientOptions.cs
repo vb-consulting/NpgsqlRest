@@ -20,7 +20,8 @@ public class TsClientOptions(
     string defaultJsonType = "string",
     bool useRoutineNameInsteadOfEndpoint = false,
     bool exportUrls = false,
-    bool skipTypes = false)
+    bool skipTypes = false,
+    bool uniqueModels = false)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -134,4 +135,9 @@ public class TsClientOptions(
     /// Skip generating types and produce pure JavaScript code. Setting this to true will also change .ts extension to .js where applicable.
     /// </summary>
     public bool SkipTypes { get; set; } = skipTypes;
+
+    /// <summary>
+    /// Keep TypeScript models unique, meaning, models will same fields and types will be merged into one model with name of the last model. Significantly reduces number of generated models. 
+    /// </summary>
+    public bool UniqueModels { get; set; } = uniqueModels;
 }

@@ -145,6 +145,10 @@ public static class Config
     public static IEnumerable<string>? GetConfigEnumerable(string key, IConfiguration? subsection = null)
     {
         var section = subsection is not null ? subsection?.GetSection(key) : Cfg.GetSection(key);
+        if (section.Exists() is false)
+        {
+            return null;
+        }
         var children = section?.GetChildren().ToArray();
         if (children is null || (children.Length == 0 && section?.Value == ""))
         {

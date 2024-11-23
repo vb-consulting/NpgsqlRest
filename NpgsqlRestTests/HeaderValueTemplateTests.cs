@@ -50,8 +50,8 @@ public class HeaderValueTemplateTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("text/csv");
-        result.Content.Headers.ContentDisposition.FileName.Should().Be("test.csv");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/csv");
+        result?.Content?.Headers?.ContentDisposition?.FileName.Should().Be("test.csv");
         response.Should().Be(string.Concat(
             "123,\"2024-01-01 00:00:00\",t,\"some text\"",
             "\n",

@@ -330,7 +330,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 {
                     if (options.SkipTypes is false)
                     {
-                        modelsDict.Add(req.ToString(), requestName);
+                        if (options.UniqueModels is true)
+                        {
+                            modelsDict.Add(req.ToString(), requestName);
+                        }
                         req.Insert(0, $"interface {requestName} {{{Environment.NewLine}");
                         req.AppendLine("}");
                         req.AppendLine();
@@ -433,7 +436,10 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         {
                             if (options.SkipTypes is false)
                             {
-                                modelsDict.Add(resp.ToString(), responseName);
+                                if (options.UniqueModels is true)
+                                {
+                                    modelsDict.Add(resp.ToString(), responseName);
+                                }
                                 resp.Insert(0, $"interface {responseName} {{{Environment.NewLine}");
                                 resp.AppendLine("}");
                                 resp.AppendLine();

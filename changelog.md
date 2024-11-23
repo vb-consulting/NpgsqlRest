@@ -4,6 +4,12 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.13.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.13.1 (2024-11-23)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.13.0...2.13.1)
+
+Upgrade Npgsql to 9.0.1
+
 ## Version [2.12.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.13.0 (2024-11-17)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.12.1...2.13.0)

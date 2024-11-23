@@ -27,6 +27,7 @@ if (connectionString is null)
 }
 BuildAuthentication();
 BuildCors();
+var compressionEnabled = ConfigureResponseCompression();
 
 WebApplication app = Build();
 
@@ -37,6 +38,10 @@ Configure(app, () =>
     Logger?.Information("Listening on {0}", app.Urls);
 });
 
+if (compressionEnabled)
+{
+    app.UseResponseCompression();
+}
 ConfigureStaticFiles(app);
 
 NpgsqlRestOptions options = new()

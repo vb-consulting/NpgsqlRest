@@ -34,7 +34,7 @@ public class ReturnSetOfJsonTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         response.Should().Be("[{\"A\" : 1},{\"B\" : \"XY\"},{\"C\" : true},{\"D\" : null}]");
     }
 }

@@ -33,7 +33,7 @@ public class CommentResponseHeadersTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("text/html");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("text/html");
         response.Should().Be("<div>Hello World</div>");
     }
 
@@ -46,7 +46,7 @@ public class CommentResponseHeadersTests(TestFixture test)
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().Be("comment_response_headers");
 
-        response.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
 
         // Note: test client does not support custom headers check out headers in the http client, following headers should be present:
         // Cache-Control            no-store

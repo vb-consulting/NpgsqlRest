@@ -1,6 +1,8 @@
 ﻿using System.Data.Common;
+using System.IO.Compression;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Npgsql;
@@ -263,6 +265,69 @@ public static class Builder
 
             policy.AllowCredentials();
         }));
+    }
+
+    public static bool ConfigureResponseCompression()
+    {
+        var responseCompressionCfg = Cfg.GetSection("ResponseCompression");
+        if (responseCompressionCfg.Exists() is false || GetConfigBool("Enabled", responseCompressionCfg) is false)
+        {
+            return false;
+        }
+
+        var useBrotli = GetConfigBool("UseBrotli", responseCompressionCfg, true);
+        var useGzipFallback = GetConfigBool("UseGzipFallback", responseCompressionCfg, true);
+
+        if (useBrotli is false && useGzipFallback is false)
+        {
+            return false;
+        }
+
+        Instance.Services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = GetConfigBool("EnableForHttps", responseCompressionCfg, false); 
+            if (useBrotli is true)
+            {
+                options.Providers.Add<BrotliCompressionProvider>();
+            }
+            if (useGzipFallback is true)
+            {
+                options.Providers.Add<GzipCompressionProvider>();
+            }
+            options.MimeTypes = GetConfigEnumerable("IncludeMimeTypes", responseCompressionCfg)?.ToArray() ?? [
+                "text/plain",
+                "text/css",
+                "application/javascript",
+                "text/html",
+                "application/xml",
+                "text/xml",
+                "application/json",
+                "text/json",
+                "image/svg+xml",
+                "font/woff",
+                "font/woff2",
+                "application/font-woff",
+                "application/font-woff2"];
+            options.ExcludedMimeTypes = GetConfigEnumerable("ExcludeMimeTypes", responseCompressionCfg)?.ToArray() ?? [];
+        });
+
+        var level = GetConfigEnum<CompressionLevel>("CompressionLevel", responseCompressionCfg);
+        if (useBrotli is true)
+        {
+            Instance.Services.Configure<BrotliCompressionProviderOptions>(options =>
+            {
+                options.Level = level;
+            });
+        }
+        if (useGzipFallback is true)
+        {
+            Instance.Services.Configure<GzipCompressionProviderOptions>(options =>
+            {
+                options.Level = level;
+            });
+        }
+
+        return true;
     }
 
     public static string? BuildConnectionString()

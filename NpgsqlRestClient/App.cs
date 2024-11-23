@@ -9,6 +9,7 @@ using Serilog;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using Microsoft.Extensions.Primitives;
+using Microsoft.AspNetCore.ResponseCompression;
 
 namespace NpgsqlRestClient;
 
@@ -272,6 +273,7 @@ public static class App
                 DefaultJsonType = GetConfigStr("DefaultJsonType", tsClientCfg) ?? "string",
                 ExportUrls =  GetConfigBool("ExportUrls", tsClientCfg),
                 SkipTypes = GetConfigBool("SkipTypes", tsClientCfg),
+                UniqueModels = GetConfigBool("UniqueModels", tsClientCfg),
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);

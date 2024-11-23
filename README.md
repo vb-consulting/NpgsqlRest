@@ -130,13 +130,13 @@ Transfer-Encoding: chunked
 Install the package from NuGet by using any of the available methods:
 
 ```console
-dotnet add package NpgsqlRest --version 2.13.0
+dotnet add package NpgsqlRest --version 2.13.1
 ```
 ```console
-NuGet\Install-Package NpgsqlRest -version 2.13.0
+NuGet\Install-Package NpgsqlRest -version 2.13.1
 ```
 ```xml
-<PackageReference Include="NpgsqlRest" Version="2.13.0" />
+<PackageReference Include="NpgsqlRest" Version="2.13.1" />
 ```
 
 #### Library First Use

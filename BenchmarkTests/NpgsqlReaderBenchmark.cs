@@ -9,7 +9,7 @@ namespace BenchmarkTests;
 [MemoryDiagnoser]
 public class NpgsqlReaderBenchmark
 {
-    private NpgsqlConnection _connection;
+    private NpgsqlConnection _connection = null!;
     private const string ConnectionString = "Host=localhost;Port=5436;Username=postgres;Password=postgres;Database=example";
     private const string Query = @"
             SELECT 
@@ -42,15 +42,15 @@ public class NpgsqlReaderBenchmark
     [Benchmark]
     public void GetValue()
     {
-        using (var cmd = new NpgsqlCommand(Query, _connection))
-        using (var reader = cmd.ExecuteReader())
+        using var cmd = new NpgsqlCommand(Query, _connection);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
         {
-            while (reader.Read())
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    var value = reader.GetValue(i);
-                }
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                object value = reader.GetValue(i);
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
             }
         }
     }
@@ -58,15 +58,15 @@ public class NpgsqlReaderBenchmark
     [Benchmark]
     public void GetProviderSpecificValue()
     {
-        using (var cmd = new NpgsqlCommand(Query, _connection))
-        using (var reader = cmd.ExecuteReader())
+        using var cmd = new NpgsqlCommand(Query, _connection);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
         {
-            while (reader.Read())
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    var value = reader.GetProviderSpecificValue(i);
-                }
+#pragma warning disable IDE0059 // Unnecessary assignment of a value
+                var value = reader.GetProviderSpecificValue(i);
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
             }
         }
     }

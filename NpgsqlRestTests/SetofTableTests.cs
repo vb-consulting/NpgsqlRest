@@ -33,7 +33,7 @@ public class SetofTableTests(TestFixture test)
         var content = await response.Content.ReadAsStringAsync();
 
         response?.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        response?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         content.Should().Be("[{\"id\":1,\"name\":\"one\"},{\"id\":2,\"name\":\"two\"},{\"id\":3,\"name\":\"three\"}]");
     }
 }

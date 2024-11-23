@@ -115,6 +115,77 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+## 2.4.0
+
+```console
+Versions:
+.NET                 9.0.0
+Client Build         2.4.0.0
+Serilog.AspNetCore   8.0.3.0
+Npgsql               9.0.1.0
+NpgsqlRest           2.13.1.0
+NpgsqlRest.HttpFiles 1.1.0.0
+NpgsqlRest.TsClient  1.15.0.0
+```
+
+- New version Npgsql 9.0.1
+- New "ClientCodeGen" "UniqueModels" option:
+
+```jsonc
+{
+  //...
+
+  "NpgsqlRest": {
+    //
+    // Enable or disable the generation of TypeScript/Javascript client source code files for NpgsqlRest endpoints.
+    //
+    "ClientCodeGen": {
+      //...
+
+      //
+      // Keep TypeScript models unique, meaning, models will same fields and types will be merged into one model with name of the last model. Significantly reduces number of generated models. 
+      //
+      "UniqueModels": false
+    }
+}
+```
+
+- New ResponseCompression options:
+
+```jsonc
+{
+  //...
+
+  //
+  // Response compression settings
+  //
+  "ResponseCompression": {
+    "Enabled": false,
+    "EnableForHttps": false,
+    "UseBrotli": true,
+    "UseGzipFallback": true,
+    "CompressionLevel": "Optimal", // Optimal, Fastest, NoCompression, SmallestSize
+    "IncludeMimeTypes": [
+      "text/plain",
+      "text/css",
+      "application/javascript",
+      "text/html",
+      "application/xml",
+      "text/xml",
+      "application/json",
+      "text/json",
+      "image/svg+xml",
+      "font/woff",
+      "font/woff2",
+      "application/font-woff",
+      "application/font-woff2"
+    ],
+    "ExcludeMimeTypes": []
+  },
+
+  //...
+```
+
 ## 2.3.0
 
 ```console

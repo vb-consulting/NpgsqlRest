@@ -40,7 +40,7 @@ public class QuotedJsonTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         response.Should().Be("[\"aaa\",\"a'a\",\"a\\\"a\",\"a\\\"\\\"a\"]");
     }
 
@@ -51,7 +51,7 @@ public class QuotedJsonTests(TestFixture test)
         var response = await result.Content.ReadAsStringAsync();
 
         result?.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        result?.Content?.Headers?.ContentType?.MediaType.Should().Be("application/json");
         response.Should().Be("[{\"t\":\"aaa\"},{\"t\":\"a'a\"},{\"t\":\"a\\\"a\"},{\"t\":\"a\\\"\\\"a\"}]");
     }
 }
