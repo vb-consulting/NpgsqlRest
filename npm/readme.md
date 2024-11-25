@@ -115,6 +115,27 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+## 2.5.0
+
+```console
+Versions:
+.NET                 9.0.0
+Client Build         2.5.0.0
+Serilog.AspNetCore   8.0.3.0
+Npgsql               9.0.1.0
+NpgsqlRest           2.14.0.0
+NpgsqlRest.HttpFiles 1.1.0.0
+NpgsqlRest.TsClient  1.15.0.0
+```
+
+Add version on startup.
+
+Changes in configuration, section `ConnectionSettings`:
+
+- `UseEnvironmentConnection` renamed to `UseEnvVars`.
+- `UseEnvironmentConnectionWhenMissing` replaced with `EnvVarsOverride`
+- `EnvVarsOverride` - When this option is disabled (false), connection parameters will be set from the environment variables only if the connection string parameter is not set.
+
 ## 2.4.0
 
 ```console

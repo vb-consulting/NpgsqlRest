@@ -121,9 +121,14 @@ Notes:
 - Type: `string?`
 - Default: `null`
 
-The connection string to the database. This is the optional value if the `ConnectionFromServiceProvider` option is set to true. 
+The connection string to the database. This is the optional value if the `DataSource` is set. 
 
-Note: the connection string must run as a super user or have select permissions on `information_schema` and `pg_catalog` system tables. If the `ConnectionFromServiceProvider` option is set to false and `ConnectionString` is null, the middleware will raise an `ArgumentException` error.
+## DataSource
+
+- Type: `NpgsqlDataSource?`
+- Default: `null`
+
+Default `NpgsqlDataSource` defines a data source from which to create connection objects. If set, `ConnectionString` option is ignored.
 
 ## CustomRequestHeaders
 
@@ -133,6 +138,17 @@ Note: the connection string must run as a super user or have select permissions 
 Custom request headers dictionary that will be added to NpgsqlRest requests. 
 
 Note: these values are added to the request headers dictionary before they are sent as a context or parameter to the PostgreSQL routine and as such not visible to the browser debugger.
+
+## ServiceProviderMode
+
+- Type: `ServiceProviderObject`
+- Default: `None`
+
+Configure how the comment annotations will behave: 
+
+- `None` - Connection is not provided in service provider. Connection is supplied either by ConnectionString or by DataSource option.
+- `NpgsqlDataSource` - NpgsqlRest attempts to get `NpgsqlDataSource` from service provider (assuming one is provided).
+- `NpgsqlConnection` - NpgsqlRest attempts to get `NpgsqlConnection` from service provider (assuming one is provided).
 
 ## SchemaSimilarTo
 
@@ -219,17 +235,6 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
     UrlPathBuilder = (routine, options) => routine.Name
 });
 ```
-
-## ConnectionFromServiceProvider
-
-- Type: `bool`
-- Default: `false`
-
-Use the `NpgsqlConnection` database connection from the service provider. 
-
-If this option is true, middleware will attempt to require `NpgsqlConnection` from the services collection, which means it needs to be configured. This option provides an opportunity to implement custom database connection creation. If it is false, a new `NpgsqlConnection` will be created using the `ConnectionString` property. 
-
-If this option is false and `ConnectionString` is `null`, the middleware will raise an `ArgumentException` error.
 
 ## EndpointCreated
 

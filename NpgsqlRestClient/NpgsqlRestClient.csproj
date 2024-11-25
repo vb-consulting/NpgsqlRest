@@ -8,12 +8,8 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
     <PublishAot>true</PublishAot>
-    <Version>2.4.0</Version>
+    <Version>2.5.0</Version>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Remove="appsettings.json" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
@@ -24,23 +20,6 @@
     <ProjectReference Include="..\NpgsqlRest\NpgsqlRest.csproj" />
     <ProjectReference Include="..\plugins\NpgsqlRest.HttpFiles\NpgsqlRest.HttpFiles.csproj" />
     <ProjectReference Include="..\plugins\NpgsqlRest.TsClient\NpgsqlRest.TsClient.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="src\app\" />
-    <Folder Include="wwwroot\" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <None Include="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Content Update="appsettings.Development.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
 </Project>

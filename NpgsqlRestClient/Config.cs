@@ -14,7 +14,6 @@ public static class Config
 
     public static void Build(string[] args)
     {
-        IConfigurationBuilder configBuilder;
         var tempBuilder = new ConfigurationBuilder();
         IConfigurationRoot tempCfg;
 
@@ -36,14 +35,17 @@ public static class Config
                 .Build();
         }
         var cfgCfg = tempCfg.GetSection("Config");
-        if (cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg))
-        {
-            configBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
-        }
-        else
-        {
-            configBuilder = new ConfigurationBuilder();
-        }
+        IConfigurationBuilder configBuilder = new ConfigurationBuilder();
+        var useEnv = cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg);
+
+        //if (cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg))
+        //{
+        //    configBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
+        //}
+        //else
+        //{
+        //    configBuilder = new ConfigurationBuilder();
+        //}
 
         if (configFiles.Count > 0)
         {
@@ -51,16 +53,32 @@ public static class Config
             {
                 configBuilder.AddJsonFile(Path.GetFullPath(fileName, CurrentDir), optional: optional);
             }
+            if (useEnv)
+            {
+                configBuilder.AddEnvironmentVariables();
+            }
             configBuilder.AddCommandLine(commandLineArgs);
             Cfg = configBuilder.Build();
         }
         else
         {
-            Cfg = configBuilder
-                .AddJsonFile(Path.GetFullPath("appsettings.json", CurrentDir), optional: true)
-                .AddJsonFile(Path.GetFullPath("appsettings.Development.json", CurrentDir), optional: true)
-                .AddCommandLine(commandLineArgs)
-                .Build();
+            if (useEnv)
+            {
+                Cfg = configBuilder
+                    .AddJsonFile(Path.GetFullPath("appsettings.json", CurrentDir), optional: true)
+                    .AddJsonFile(Path.GetFullPath("appsettings.Development.json", CurrentDir), optional: true)
+                    .AddEnvironmentVariables()
+                    .AddCommandLine(commandLineArgs)
+                    .Build();
+            }
+            else
+            {
+                Cfg = configBuilder
+                    .AddJsonFile(Path.GetFullPath("appsettings.json", CurrentDir), optional: true)
+                    .AddJsonFile(Path.GetFullPath("appsettings.Development.json", CurrentDir), optional: true)
+                    .AddCommandLine(commandLineArgs)
+                    .Build();
+            }
         }
 
         NpgsqlRestCfg = Cfg.GetSection("NpgsqlRest");

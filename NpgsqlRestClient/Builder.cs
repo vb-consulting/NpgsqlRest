@@ -350,22 +350,31 @@ public static class Builder
             connectionStringBuilder.ApplicationName = Instance.Environment.ApplicationName;
         }
 
-        if (GetConfigBool("UseEnvironmentConnection", ConnectionSettingsCfg) is true)
+        if (GetConfigBool("UseEnvVars", ConnectionSettingsCfg) is true)
         {
-            var whenMissing = GetConfigBool("UseEnvironmentConnectionWhenMissing", ConnectionSettingsCfg);
+            var envOverride = GetConfigBool("EnvVarsOverride", ConnectionSettingsCfg, false);
 
             var hostEnvVar = GetConfigStr("HostEnvVar", ConnectionSettingsCfg) ?? "PGHOST";
             if (string.IsNullOrEmpty(hostEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(hostEnvVar)) is false)
             {
-                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Host))
+                if (envOverride is true)
+                {
+                    connectionStringBuilder.Host = Environment.GetEnvironmentVariable(hostEnvVar);
+                }
+                else if (envOverride is false && string.IsNullOrEmpty(connectionStringBuilder.Host))
                 {
                     connectionStringBuilder.Host = Environment.GetEnvironmentVariable(hostEnvVar);
                 }
             }
+
             var portEnvVar = GetConfigStr("PortEnvVar", ConnectionSettingsCfg) ?? "PGPORT";
             if (string.IsNullOrEmpty(portEnvVar) is false && int.TryParse(Environment.GetEnvironmentVariable(portEnvVar), out int port) is true)
             {
-                if (whenMissing is true || connectionStringBuilder.Port != port)
+                if (envOverride is true)
+                {
+                    connectionStringBuilder.Port = port;
+                }
+                else if (envOverride is false && connectionStringBuilder.Port != port)
                 {
                     connectionStringBuilder.Port = port;
                 }
@@ -373,7 +382,11 @@ public static class Builder
             var dbEnvVar = GetConfigStr("DatabaseEnvVar", ConnectionSettingsCfg) ?? "PGDATABASE";
             if (string.IsNullOrEmpty(dbEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(dbEnvVar)) is false)
             {
-                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Database))
+                if (envOverride is true)
+                {
+                    connectionStringBuilder.Database = Environment.GetEnvironmentVariable(dbEnvVar);
+                }
+                else if (envOverride is false && string.IsNullOrEmpty(connectionStringBuilder.Database))
                 {
                     connectionStringBuilder.Database = Environment.GetEnvironmentVariable(dbEnvVar);
                 }
@@ -381,7 +394,11 @@ public static class Builder
             var userEnvVar = GetConfigStr("UserEnvVar", ConnectionSettingsCfg) ?? "PGUSER";
             if (string.IsNullOrEmpty(userEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(userEnvVar)) is false)
             {
-                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Username))
+                if (envOverride is true)
+                {
+                    connectionStringBuilder.Username = Environment.GetEnvironmentVariable(userEnvVar);
+                }
+                else if (envOverride is false && string.IsNullOrEmpty(connectionStringBuilder.Username))
                 {
                     connectionStringBuilder.Username = Environment.GetEnvironmentVariable(userEnvVar);
                 }
@@ -389,7 +406,11 @@ public static class Builder
             var passEnvVar = GetConfigStr("PasswordEnvVar", ConnectionSettingsCfg) ?? "PGPASSWORD";
             if (string.IsNullOrEmpty(passEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(passEnvVar)) is false)
             {
-                if (whenMissing is true || string.IsNullOrEmpty(connectionStringBuilder.Password))
+                if (envOverride is true)
+                {
+                    connectionStringBuilder.Password = Environment.GetEnvironmentVariable(passEnvVar);
+                }
+                else if (envOverride is false && string.IsNullOrEmpty(connectionStringBuilder.Password))
                 {
                     connectionStringBuilder.Password = Environment.GetEnvironmentVariable(passEnvVar);
                 }

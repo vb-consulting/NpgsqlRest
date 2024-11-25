@@ -30,9 +30,14 @@ public static class NpgsqlRestMiddlewareExtensions
     
     public static IApplicationBuilder UseNpgsqlRest(this IApplicationBuilder builder, NpgsqlRestOptions options)
     {
-        if (options.ConnectionString is null && options.ConnectionFromServiceProvider is false)
+        if (options.ConnectionString is null && options.DataSource is null && options.ServiceProviderMode == ServiceProviderObject.None)
         {
-            throw new ArgumentException("Connection string is null and ConnectionFromServiceProvider is false. Set the connection string or use ConnectionFromServiceProvider");
+            throw new ArgumentException("ConnectionString and DataSource are null and ServiceProviderMode is set to None. You must specify connection with connection string, DataSource object or with ServiceProvider");
+        }
+
+        if (options.ConnectionString is not null && options.DataSource is not null && options.ServiceProviderMode == ServiceProviderObject.None)
+        {
+            throw new ArgumentException("Both ConnectionString and DataSource are provided. Please specify only one.");
         }
 
         if (options.Logger is not null)
@@ -510,18 +515,32 @@ public static class NpgsqlRestMiddlewareExtensions
 
                 NpgsqlConnection? connection = null;
                 string? commandText = null;
+                bool shouldDispose = true;
                 var writer = System.IO.Pipelines.PipeWriter.Create(context.Response.Body);
                 try
                 {
-                    using IServiceScope? scope = options.ConnectionFromServiceProvider ? serviceProvider.CreateScope() : null;
-
-                    if (options.ConnectionFromServiceProvider)
+                    if (options.ServiceProviderMode != ServiceProviderObject.None)
                     {
-                        connection = scope?.ServiceProvider.GetRequiredService<NpgsqlConnection>();
+                        if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlDataSource)
+                        {
+                            connection = await builder.ApplicationServices.GetRequiredService<NpgsqlDataSource>().OpenConnectionAsync();
+                        }
+                        else if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlConnection)
+                        {
+                            shouldDispose = false;
+                            connection = builder.ApplicationServices.GetRequiredService<NpgsqlConnection>();
+                        }
                     }
                     else
                     {
-                        connection = new(options.ConnectionString);
+                        if (options.DataSource is not null)
+                        {
+                            connection = options.DataSource.CreateConnection();
+                        }
+                        else
+                        {
+                            connection = new(options.ConnectionString);
+                        }
                     }
 
                     if (connection is null)
@@ -997,7 +1016,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 {
                     await writer.CompleteAsync();
                     await context.Response.CompleteAsync();
-                    if (connection is not null && options.ConnectionFromServiceProvider is false)
+                    if (connection is not null && shouldDispose is true)
                     {
                         await connection.DisposeAsync();
                     }

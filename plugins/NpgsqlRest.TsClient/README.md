@@ -561,7 +561,7 @@ public class TsClientOptions(
 
 ## Library Dependencies
 
-- NpgsqlRest 2.4.0
+- NpgsqlRest 2.5.0
 
 ## Contributing
 

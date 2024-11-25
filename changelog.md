@@ -4,6 +4,43 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.14.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.14.0 (2024-11-25)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.13.1...2.14.0)
+
+Improved connection handling:
+
+- Added new option: `public NpgsqlDataSource? DataSource { get; set; }`
+
+When `DataSource` is set, `ConnectectionString` is ignored. `DataSource` is then used to create new connections for each request by calling `CreateConnection()`. This should be much faster then creating a new connection with `new NpgsqlConnection(connectionString)`.
+
+- Added new option: `public ServiceProviderObject ServiceProviderMode { get; set; } `
+
+`ServiceProviderObject` is enum that defines how handle service provider objects when fetching connection from service provdiders:
+
+```csharp
+public enum ServiceProviderObject
+{
+    /// <summary>
+    /// Connection is not provided in service provider. Connection is supplied either by ConnectionString or by DataSource option.
+    /// </summary>
+    None,
+    /// <summary>
+    /// NpgsqlRest attempts to get NpgsqlDataSource from service provider (assuming one is provided).
+    /// </summary>
+    NpgsqlDataSource,
+    /// <summary>
+    /// NpgsqlRest attempts to get NpgsqlConnection from service provider (assuming one is provided).
+    /// </summary>
+    NpgsqlConnection
+}
+```
+
+Default is `ServiceProviderObject.None`.
+
+- Removed `public bool ConnectionFromServiceProvider { get; set; }`. Replaced by `ServiceProviderMode`.
+
+
 ## Version [2.13.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.13.1 (2024-11-23)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.13.0...2.13.1)

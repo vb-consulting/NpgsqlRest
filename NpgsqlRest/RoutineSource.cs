@@ -36,7 +36,14 @@ public class RoutineSource(
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
     {
-        using var connection = new NpgsqlConnection(options.ConnectionString);
+        using NpgsqlConnection? connection = 
+            string.IsNullOrEmpty(options.ConnectionString) ? 
+            options.DataSource?.CreateConnection() : 
+            new NpgsqlConnection(options.ConnectionString);
+        if (connection is null)
+        {
+            yield break;
+        }
         using var command = connection.CreateCommand();
         Query ??= RoutineSourceQuery.Query;
         if (Query.Contains(Consts.Space) is false)

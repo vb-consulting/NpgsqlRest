@@ -8,6 +8,7 @@ using NpgsqlRestClient;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRestClient.App;
+using Npgsql;
 
 if (Arguments.Parse(args) is false)
 {
@@ -36,6 +37,7 @@ Configure(app, () =>
     sw.Stop();
     Logger?.Information("Started in {0}", sw);
     Logger?.Information("Listening on {0}", app.Urls);
+    Logger?.Information("NpgsqlRestClient Version {0}", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-");
 });
 
 if (compressionEnabled)
@@ -44,11 +46,11 @@ if (compressionEnabled)
 }
 ConfigureStaticFiles(app);
 
+await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 NpgsqlRestOptions options = new()
 {
-    ConnectionString = connectionString,
-    ConnectionFromServiceProvider = false,
-
+    DataSource = dataSource,
+    ServiceProviderMode = ServiceProviderObject.None,
     SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", NpgsqlRestCfg),
     SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", NpgsqlRestCfg),
     IncludeSchemas = GetConfigEnumerable("IncludeSchemas", NpgsqlRestCfg)?.ToArray(),

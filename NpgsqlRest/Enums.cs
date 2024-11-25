@@ -8,6 +8,22 @@ public enum CommentHeader { None, Simple, Full }
 public enum TextResponseNullHandling { EmptyString, NullLiteral, NoContent }
 public enum QueryStringNullHandling { EmptyString, NullLiteral, Ignore }
 
+public enum ServiceProviderObject
+{
+    /// <summary>
+    /// Connection is not provided in service provider. Connection is supplied either by ConnectionString or by DataSource option.
+    /// </summary>
+    None,
+    /// <summary>
+    /// NpgsqlRest attempts to get NpgsqlDataSource from service provider (assuming one is provided).
+    /// </summary>
+    NpgsqlDataSource,
+    /// <summary>
+    /// NpgsqlRest attempts to get NpgsqlConnection from service provider (assuming one is provided).
+    /// </summary>
+    NpgsqlConnection
+}
+
 public enum CommentsMode 
 { 
     /// <summary>

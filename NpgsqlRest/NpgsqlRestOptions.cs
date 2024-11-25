@@ -9,6 +9,7 @@ namespace NpgsqlRest;
 /// </summary>
 public class NpgsqlRestOptions(
     string? connectionString,
+    NpgsqlDataSource? dataSource,
     string? schemaSimilarTo = null,
     string? schemaNotSimilarTo = null,
     string[]? includeSchemas = null,
@@ -19,7 +20,7 @@ public class NpgsqlRestOptions(
     string[]? excludeNames = null,
     string? urlPathPrefix = "/api",
     Func<Routine, NpgsqlRestOptions, string>? urlPathBuilder = null,
-    bool connectionFromServiceProvider = false,
+    ServiceProviderObject serviceProviderMode = ServiceProviderObject.None,
     Func<Routine, RoutineEndpoint, RoutineEndpoint?>? endpointCreated = null,
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
@@ -63,17 +64,22 @@ public class NpgsqlRestOptions(
 
     /// <summary>
     /// Options for the NpgsqlRest middleware.
-    /// Connection string is set to null: 
-    /// It either has to be set trough ConnectionString property or ConnectionFromServiceProvider has to be set to true.
+    /// Connection string is set to null
     /// </summary>
     public NpgsqlRestOptions() : this(null)
     {
     }
 
     /// <summary>
-    /// The connection string to the database. This is the optional value if the `ConnectionFromServiceProvider` option is set to true. Note: the connection string must run as a super user or have select permissions on `information_schema` and `pg_catalog` system tables. If the `ConnectionFromServiceProvider` option is false and `ConnectionString` is `null`, the middleware will raise an `ArgumentException` error.
+    /// The connection string to the database. This is the optional value if the `DataSource` option is set. 
     /// </summary>
     public string? ConnectionString { get; set; } = connectionString;
+
+    /// <summary>
+    /// The data source object that will be used to create a connection to the database. 
+    /// If this option is set, the connection string will be ignored. 
+    /// </summary>
+    public NpgsqlDataSource? DataSource { get; set; } = dataSource;
 
     /// <summary>
     /// Filter schema names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.
@@ -126,9 +132,9 @@ public class NpgsqlRestOptions(
     public Func<Routine, NpgsqlRestOptions, string> UrlPathBuilder { get; set; } = urlPathBuilder ?? DefaultUrlBuilder.CreateUrl;
 
     /// <summary>
-    /// Use the `NpgsqlConnection` database connection from the service provider. If this option is true, middleware will attempt to require `NpgsqlConnection` from the services collection, which means it needs to be configured. This option provides an opportunity to implement custom database connection creation. If it is false, a new `NpgsqlConnection` will be created using the `ConnectionString` property. If this option is false and `ConnectionString` is `null`, the middleware will raise an `ArgumentException` error.
+    /// Set to NpgsqlDataSource or NpgsqlConnection to use the connection objects from the service provider. Default is None.
     /// </summary>
-    public bool ConnectionFromServiceProvider { get; set; } = connectionFromServiceProvider;
+    public ServiceProviderObject ServiceProviderMode { get; set; } = serviceProviderMode;
 
     /// <summary>
     /// Callback function that is executed just after the new endpoint is created. Receives routine into and new endpoint info as parameters and it is expected to return the same endpoint or `null`. It offers an opportunity to modify the endpoint based on custom logic or disable endpoints by returning `null` based on some custom logic. Default is `null`, which means this callback is not defined.
