@@ -9,7 +9,6 @@ using Serilog;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using Microsoft.Extensions.Primitives;
-using Microsoft.AspNetCore.ResponseCompression;
 
 namespace NpgsqlRestClient;
 
@@ -117,11 +116,13 @@ public static class App
         {
             if (loginPath is not null && string.Equals(endpoint.Url, loginPath, StringComparison.OrdinalIgnoreCase))
             {
-                return endpoint with { Login = true };
+                endpoint.Login = true;
+                return endpoint;
             }
             if (logoutPath is not null && string.Equals(routine.Name, logoutPath, StringComparison.OrdinalIgnoreCase))
             {
-                return endpoint with { Logout = true };
+                endpoint.Login = true;
+                return endpoint;
             }
             return endpoint;
         };

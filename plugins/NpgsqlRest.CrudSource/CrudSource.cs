@@ -1,6 +1,9 @@
 ﻿using Npgsql;
 using NpgsqlTypes;
 using NpgsqlRest.Extensions;
+using System.Linq.Expressions;
+using System.ComponentModel;
+using System.Collections.Frozen;
 
 namespace NpgsqlRest.CrudSource;
 
@@ -245,6 +248,13 @@ public class CrudSource(
 
             var columnCount = reader.Get<int>(4);//"column_count");
             var columnNames = reader.Get<string[]>(5);//"column_names");
+
+            string[] convertedColumnNames = new string[columnNames.Length];
+            for (int i = 0; i < columnNames.Length; i++)
+            {
+                convertedColumnNames[i] = options.NameConverter(columnNames[i]) ?? columnNames[i];
+            }
+
             var columnTypes = reader.Get<string[]>(6);//"column_types");
 
             var primaryKeys = new HashSet<string>(reader.Get<string[]>(10));//"primary_keys"));
@@ -283,28 +293,82 @@ public class CrudSource(
                 bool isVoid,
                 string? formatUrlPattern = null,
                 TypeDescriptor[]? typeDescriptors = null,
-                string[]? tags = null) => new(
-                    type: type,
-                    schema: schema,
-                    name: name,
-                    comment: comment,
-                    isStrict: false,
-                    crudType: crudType,
-                    returnsRecordType: false,
-                    returnsSet: true,
-                    columnCount: columnCount,
-                    columnNames: columnNames,
-                    returnsUnnamedSet: false,
-                    columnsTypeDescriptor: typeDescriptors ?? descriptors,
-                    isVoid: isVoid,
-                    paramCount: columnCount,
-                    paramNames: columnNames,
-                    paramTypeDescriptor: typeDescriptors ?? descriptors,
-                    expression: expression,
-                    fullDefinition: fullDefinition,
-                    simpleDefinition: simpleDefinition,
-                    formatUrlPattern: formatUrlPattern,
-                    tags: tags);
+                string[]? tags = null)
+            {
+                TypeDescriptor[] ts = typeDescriptors ?? descriptors;
+                NpgsqlRestParameter[] parameters = new NpgsqlRestParameter[columnCount];
+                if (columnCount > 0)
+                {
+                    for (var i = 0; i < columnCount; i++)
+                    {
+                        var descriptor = ts[i];
+                        parameters[i] = new NpgsqlRestParameter
+                        {
+                            Ordinal = i,
+                            NpgsqlDbType = descriptor.ActualDbType,
+                            ConvertedName = convertedColumnNames[i],
+                            ActualName = columnNames[i],
+                            TypeDescriptor = descriptor
+                        };
+                    }
+                }
+
+                return new Routine
+                {
+                    Type = type,
+                    Schema = schema,
+                    Name = name,
+                    Comment = comment,
+                    IsStrict = false,
+                    CrudType = crudType,
+                    ReturnsRecordType = false,
+                    ReturnsSet = true,
+                    ColumnCount = columnCount,
+                    OriginalColumnNames = columnNames,
+                    ColumnNames = convertedColumnNames,
+                    ReturnsUnnamedSet = false,
+                    ColumnsTypeDescriptor = ts,
+                    IsVoid = isVoid,
+
+                    ParamCount = columnCount,
+                    Parameters = parameters,
+                    ParamsHash = parameters.Select(p => p.ConvertedName).ToFrozenSet(),
+
+                    Expression = expression,
+                    FullDefinition = fullDefinition,
+                    SimpleDefinition = simpleDefinition,
+
+                    Tags = tags,
+
+                    FormatUrlPattern = formatUrlPattern,
+                    EndpointHandler = null,
+                    Metadata = null
+                };
+            };
+            /*
+            new(
+                type: type,
+                schema: schema,
+                name: name,
+                comment: comment,
+                isStrict: false,
+                crudType: crudType,
+                returnsRecordType: false,
+                returnsSet: true,
+                columnCount: columnCount,
+                columnNames: columnNames,
+                returnsUnnamedSet: false,
+                columnsTypeDescriptor: typeDescriptors ?? descriptors,
+                isVoid: isVoid,
+                paramCount: columnCount,
+                originalParamNames: columnNames,
+                paramTypeDescriptor: typeDescriptors ?? descriptors,
+                expression: expression,
+                fullDefinition: fullDefinition,
+                simpleDefinition: simpleDefinition,
+                formatUrlPattern: formatUrlPattern,
+                tags: tags);
+            */
 
             if (Select)
             {

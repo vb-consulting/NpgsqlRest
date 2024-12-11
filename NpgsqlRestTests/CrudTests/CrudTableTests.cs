@@ -37,7 +37,7 @@ public class CrudTableTests(TestFixture test)
 
         using var delete = await test.Client.DeleteAsync("/api/crud-table1/?id=1");
         delete.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        
+
         using var deleteReturning = await test.Client.DeleteAsync("/api/crud-table1/returning/?id=1");
         deleteReturning.StatusCode.Should().Be(HttpStatusCode.OK);
 

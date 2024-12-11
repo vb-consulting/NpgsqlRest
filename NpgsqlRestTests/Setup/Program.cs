@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace NpgsqlRestTests;
 
 public class EmptyLogger : ILogger
@@ -24,7 +25,7 @@ public class Program
         if (p.Routine.Name == "case_jsonpath_param" && p.Parameter.Value?.ToString() == "XXX")
         {
             p.Context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            await p.Context.Response.WriteAsync($"Paramater {p.ParamName} is not valid.");
+            await p.Context.Response.WriteAsync($"Paramater {p.Parameter.ActualName} is not valid.");
         }
 
         if (string.Equals(p.Parameter.ParameterName, "_user_id", StringComparison.Ordinal))
@@ -80,7 +81,7 @@ public class Program
 
         app.UseNpgsqlRest(new(connectionString)
         {
-            //NameSimilarTo = "get_test_return_types_table",
+            //NameSimilarTo = "case_overload",
             //SchemaSimilarTo = "custom_param_schema",
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,

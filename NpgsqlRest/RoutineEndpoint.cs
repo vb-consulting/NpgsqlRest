@@ -2,13 +2,11 @@
 
 namespace NpgsqlRest;
 
-public struct RoutineEndpoint(
+public class RoutineEndpoint(
     string url,
     Method method,
     RequestParamType requestParamType,
     bool requiresAuthorization,
-    string[] columnNames,
-    string[] paramNames,
     int? commandTimeout,
     string? responseContentType,
     Dictionary<string, StringValues> responseHeaders,
@@ -26,27 +24,35 @@ public struct RoutineEndpoint(
     string? rawNewLineSeparator = null,
     bool rawColumnNames = false)
 {
-    internal HashSet<string> ParamsNameHash { get; } = new(paramNames);
+    private string? _bodyParameterName = bodyParameterName;
+    internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
+
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
     internal bool NeedsParsing { get; set; } = false;
     public string Url { get; set; } = url;
     public Method Method { get; set; } = method;
     public RequestParamType RequestParamType { get; set; } = requestParamType;
     public bool RequiresAuthorization { get; set; } = requiresAuthorization;
-    public string[] ColumnNames { get; set; } = columnNames;
-    public string[] ParamNames { get; set; } = paramNames;
     public int? CommandTimeout { get; set; } = commandTimeout;
     public string? ResponseContentType { get; set; } = responseContentType;
     public Dictionary<string, StringValues> ResponseHeaders { get; set; } = responseHeaders;
     public RequestHeadersMode RequestHeadersMode { get; set; } = requestHeadersMode;
     public string RequestHeadersParameterName { get; set; } = requestHeadersParameterName;
-    public string? BodyParameterName { get; set; } = bodyParameterName;
+    public string? BodyParameterName
+    {
+        get => _bodyParameterName;
+        set
+        {
+            HasBodyParameter = !string.IsNullOrWhiteSpace(value);
+            _bodyParameterName = value;
+        }
+    }
     public TextResponseNullHandling TextResponseNullHandling { get; set; } = textResponseNullHandling;
     public QueryStringNullHandling QueryStringNullHandling { get; set; } = queryStringNullHandling;
     public HashSet<string>? AuthorizeRoles { get; set; } = authorizeRoles;
     public bool Login { get; set; } = login;
     public bool Logout { get; set; } = logout;
-    public readonly bool IsAuth => Login || Logout;
+    public bool IsAuth => Login || Logout;
     public ulong? BufferRows { get; set; } = bufferRows;
     public bool Raw { get; set; } = raw;
     public string? RawValueSeparator { get; set; } = rawValueSeparator;

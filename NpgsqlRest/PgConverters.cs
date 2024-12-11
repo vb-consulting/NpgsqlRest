@@ -20,15 +20,15 @@ internal static class PgConverters
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    public static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+    public static string SerializeString(ref string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
     
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    public static string SerializeString(ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
+    public static string SerializeString(ref ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
     
-    public static ReadOnlySpan<char> PgUnknownToJsonArray(ReadOnlySpan<char> value)
+    public static ReadOnlySpan<char> PgUnknownToJsonArray(ref ReadOnlySpan<char> value)
     {
         if (value[0] != Consts.OpenParenthesis || value[^1] != Consts.CloseParenthesis)
         {
@@ -64,7 +64,7 @@ internal static class PgConverters
                 else
                 {
                     var segment = current.ToString();
-                    result.Append(SerializeString(segment));
+                    result.Append(SerializeString(ref segment));
                     current.Clear();
                 }
             }
@@ -231,7 +231,7 @@ internal static class PgConverters
             if (string.Equals(paramsList[i].ActualName, name, StringComparison.Ordinal))
             {
                 var val = paramsList[i].Value == DBNull.Value ? "" : paramsList[i].Value?.ToString() ?? "";
-                return string.Concat(value.Substring(0, letPos), val, value.Substring(rightPos + 1));
+                return string.Concat(value[..letPos], val, value[(rightPos + 1)..]);
             }
         }
         return value;
@@ -266,7 +266,7 @@ internal static class PgConverters
         return new string(result);
     }
     
-    public static string QuoteDateTime(ReadOnlySpan<char> value)
+    public static string QuoteDateTime(ref ReadOnlySpan<char> value)
     {
         int newLength = value.Length + 2;
         Span<char> result = stackalloc char[newLength];
@@ -287,7 +287,7 @@ internal static class PgConverters
         return new string(result);
     }
     
-    public static string Quote(ReadOnlySpan<char> value)
+    public static string Quote(ref ReadOnlySpan<char> value)
     {
         int newLength = value.Length + 2;
         Span<char> result = stackalloc char[newLength];

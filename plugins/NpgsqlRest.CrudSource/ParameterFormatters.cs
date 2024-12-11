@@ -4,7 +4,7 @@ public class SelectParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = false;
 
-    public string AppendCommandParameter(ref NpgsqlRestParameter parameter, ref int index, ref int count)
+    public string AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count)
     {
         if (index == 0)
         {
@@ -21,7 +21,7 @@ public class UpdateParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
     {
         int setCount = 0;
         int whereCount = 0;
@@ -71,7 +71,7 @@ public class InsertParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
     {
         if (parameters.Count == 0)
         {
@@ -109,7 +109,7 @@ public class DeleteParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
     {
         if (parameters.Count == 0)
         {

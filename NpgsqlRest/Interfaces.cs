@@ -49,7 +49,7 @@ public interface IRoutineSourceParameterFormatter
     /// <param name="index">index of the current parameter</param>
     /// <param name="count">total parameter count</param>
     /// <returns>string to append to expression or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? AppendCommandParameter(ref NpgsqlRestParameter parameter, ref int index, ref int count) => null;
+    string? AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count) => null;
 
     /// <summary>
     /// Formats the command expression string.
@@ -57,7 +57,7 @@ public interface IRoutineSourceParameterFormatter
     /// <param name="routine">Current routine data</param>
     /// <param name="parameters">Extended parameters list.</param>
     /// <returns>expression string or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters) => null;
+    string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters) => null;
 
     /// <summary>
     /// Called when there are no parameters to append.
@@ -73,7 +73,7 @@ public interface IRoutineSourceParameterFormatter
     /// <param name="count">total parameter count</param>
     /// <param name="context">HTTP context reference</param>
     /// <returns>string to append to expression or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? AppendCommandParameter(ref NpgsqlRestParameter parameter, ref int index, ref int count, ref HttpContext context) => null;
+    string? AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count, HttpContext context) => null;
 
     /// <summary>
     /// Formats the command expression string.
@@ -82,14 +82,14 @@ public interface IRoutineSourceParameterFormatter
     /// <param name="parameters">Extended parameters list.</param>
     /// <param name="context">HTTP context reference</param>
     /// <returns>expression string or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? FormatCommand(ref Routine routine, ref List<NpgsqlRestParameter> parameters, ref HttpContext context) => null;
+    string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters, HttpContext context) => null;
 
     /// <summary>
     /// Called when there are no parameters to append.
     /// </summary>
     /// <param name="context">HTTP context reference</param>
     /// <returns>string to append to expression or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? AppendEmpty(ref HttpContext context) => null;
+    string? AppendEmpty(HttpContext context) => null;
 }
 
 public interface IRoutineSource

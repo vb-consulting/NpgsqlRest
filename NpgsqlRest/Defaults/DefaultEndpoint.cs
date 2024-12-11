@@ -25,30 +25,11 @@ internal static class DefaultEndpoint
             RequestParamType.QueryString :
             RequestParamType.BodyJson;
 
-        string[] returnRecordNames = new string[routine.ColumnNames.Length];
-        for (int i = 0; i < routine.ColumnNames.Length; i++)
-        {
-            returnRecordNames[i] = options.NameConverter(routine.ColumnNames[i]) ?? "";
-        }
-
-        string[] paramNames = new string[routine.ParamNames.Length];
-        for (int i = 0; i < routine.ParamNames.Length; i++)
-        {
-            var result = options.NameConverter(routine.ParamNames[i]) ?? "";
-            if (string.IsNullOrEmpty(result))
-            {
-                result = $"${i + 1}";
-            }
-            paramNames[i] = result;
-        }
-
         RoutineEndpoint routineEndpoint = new(
                 url: url,
                 method: method,
                 requestParamType: requestParamType,
                 requiresAuthorization: options.RequiresAuthorization,
-                columnNames: returnRecordNames,
-                paramNames: paramNames,
                 commandTimeout: options.CommandTimeout,
                 responseContentType: null,
                 responseHeaders: [],
@@ -74,17 +55,18 @@ internal static class DefaultEndpoint
         {
             var parsed = DefaultCommentParser.Parse(
                 ref routine,
-                ref options,
-                ref logger,
-                ref routineEndpoint);
+                ref routineEndpoint,
+                options,
+                logger);
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             return routine.EndpointHandler(parsed);
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         }
+
         return DefaultCommentParser.Parse(
-            ref routine, 
-            ref options, 
-            ref logger,
-            ref routineEndpoint);
+            ref routine,
+            ref routineEndpoint,
+            options, 
+            logger);
     }
 }

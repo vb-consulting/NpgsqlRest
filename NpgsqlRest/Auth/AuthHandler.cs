@@ -12,7 +12,6 @@ internal static class AuthHandler
     public static async Task HandleLoginAsync(
         NpgsqlCommand command,
         HttpContext context,
-        RoutineEndpoint endpoint,
         Routine routine,
         NpgsqlRestOptions options,
         ILogger? logger)
@@ -38,8 +37,8 @@ internal static class AuthHandler
 
         for (int i = 0; i < routine.ColumnCount; i++)
         {
-            var name1 = routine.ColumnNames[i];
-            var name2 = endpoint.ColumnNames[i];
+            var name1 = routine.OriginalColumnNames[i];
+            var name2 = routine.ColumnNames[i];
             var descriptor = routine.ColumnsTypeDescriptor[i];
 
             if (options.AuthenticationOptions.StatusColumnName is not null)

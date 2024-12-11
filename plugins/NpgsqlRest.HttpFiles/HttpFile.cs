@@ -92,22 +92,22 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     }
             }
         }
-        if (endpoint.ParamNames.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)
+        if (routine.Parameters.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)
         {
             sb.AppendLine(string.Concat(endpoint.Method, " {{host}}", endpoint.Url));
         }
 
-        if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
+        if (routine.Parameters.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
         {
             var line = string.Concat(endpoint.Method, " {{host}}", endpoint.Url, "?",
-                string.Join("&", endpoint
-                    .ParamNames
+                string.Join("&", routine
+                    .Parameters
                     .Where((p, i) =>
                     {
                         if (endpoint.BodyParameterName is not null)
                         {
-                            if (string.Equals(p, endpoint.BodyParameterName, StringComparison.Ordinal) ||
-                                string.Equals(routine.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal))
+                            if (string.Equals(p.ConvertedName, endpoint.BodyParameterName, StringComparison.Ordinal) ||
+                                string.Equals(p.ActualName, endpoint.BodyParameterName, StringComparison.Ordinal))
                             {
                                 return false;
                             }
@@ -117,7 +117,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     })
                     .Select((p, i) =>
                     {
-                        var descriptor = routine.ParamTypeDescriptor[i];
+                        var descriptor = p.TypeDescriptor;
                         var value = SampleValueUnquoted(i, descriptor);
                         if (descriptor.IsArray)
                         {
@@ -130,31 +130,31 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
             
             if (endpoint.BodyParameterName is not null)
             {
-                for(int i = 0; i < routine.ParamCount; i++)
+                for(int i = 0; i < routine.Parameters.Length; i++)
                 {
-                    if (string.Equals(endpoint.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal) ||
-                        string.Equals(routine.ParamNames[i], endpoint.BodyParameterName, StringComparison.Ordinal))
+                    if (string.Equals(routine.Parameters[i].ConvertedName, endpoint.BodyParameterName, StringComparison.Ordinal) ||
+                        string.Equals(routine.Parameters[i].ActualName, endpoint.BodyParameterName, StringComparison.Ordinal))
                     {
                         sb.AppendLine();
-                        sb.AppendLine(SampleValueUnquoted(i, routine.ParamTypeDescriptor[i]));
+                        sb.AppendLine(SampleValueUnquoted(i, routine.Parameters[i].TypeDescriptor));
                         break;
                     }
                 }
             }
         }
 
-        if (endpoint.ParamNames.Length > 0 && endpoint.RequestParamType == RequestParamType.BodyJson)
+        if (routine.Parameters.Length > 0 && endpoint.RequestParamType == RequestParamType.BodyJson)
         {
             sb.AppendLine("content-type: application/json");
             sb.AppendLine();
             sb.AppendLine("{");
-            foreach(var (p, i)  in endpoint.ParamNames.Select((p, i) => (p, i)))
+            for (int i = 0; i < routine.Parameters.Length; i++)
             {
                 sb.AppendLine(string.Concat(
-                    "    \"", p, 
+                    "    \"", routine.Parameters[i].ConvertedName,
                     "\": ",
-                    SampleValue(i, routine.ParamTypeDescriptor[i]),
-                    i == endpoint.ParamNames.Length - 1 ? "" : ","));
+                    SampleValue(i, routine.Parameters[i].TypeDescriptor),
+                    i == routine.Parameters.Length - 1 ? "" : ","));
             }
             sb.AppendLine("}");
         }
@@ -199,8 +199,8 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     context.Response.ContentType = "text/plain";
                     await context.Response.WriteAsync(content.ToString());
                 });
-
-                _logger?.LogInformation("Exposed HTTP file content on URL: {0}{1}", GetHost(), path);
+                var host = GetHost();
+                _logger?.LogInformation("Exposed HTTP file content on URL: {host}{path}", host, path);
             }
         }
 
@@ -219,7 +219,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     Directory.CreateDirectory(dir);
                 }
                 File.WriteAllText(fullFileName, content.ToString());
-                _logger?.LogInformation("Created HTTP file: {0}", fullFileName);
+                _logger?.LogInformation("Created HTTP file: {fullFileName}", fullFileName);
             }
         }
     }

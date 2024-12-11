@@ -125,7 +125,7 @@ internal static class DefaultCommentParser
         "column-names"
     ];
 
-    public static RoutineEndpoint? Parse(ref Routine routine, ref NpgsqlRestOptions options, ref ILogger? logger, ref RoutineEndpoint routineEndpoint)
+    public static RoutineEndpoint? Parse(ref Routine routine, ref RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
         {
@@ -556,7 +556,7 @@ internal static class DefaultCommentParser
                 // newline [ value ]
                 else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(NewLineKey, " ")))
                 {
-                    var nl = line.Substring(words[0].Length + 1);
+                    var nl = line[(words[0].Length + 1)..];
                     logger?.CommentSetRawNewLineSeparator(routine.Type, routine.Schema, routine.Name, nl);
                     routineEndpoint.RawNewLineSeparator = Regex.Unescape(nl);
                 }

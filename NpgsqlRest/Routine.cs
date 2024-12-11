@@ -1,142 +1,126 @@
-﻿namespace NpgsqlRest;
+﻿using System.Collections.Frozen;
 
-public readonly struct Routine(
-    string name,
-    string expression,
-    RoutineType type = RoutineType.Other,
-    string schema = "",
-    string? comment = null,
-    bool isStrict = false,
-    CrudType crudType = CrudType.Select,
-    bool returnsRecordType = false,
-    bool returnsSet = false,
-    int columnCount = 1,
-    string[]? columnNames = null,
-    TypeDescriptor[]? columnsTypeDescriptor = null,
-    bool returnsUnnamedSet = true,
-    bool isVoid = true,
-    int paramCount = 0,
-    string[]? paramNames = null,
-    TypeDescriptor[]? paramTypeDescriptor = null,
-    string? fullDefinition = null,
-    string? simpleDefinition = null,
-    string? formatUrlPattern = null,
-    string[]? tags = null,
-    Func<RoutineEndpoint?, RoutineEndpoint?>? endpointHandler = null,
-    object? metadata = null)
+namespace NpgsqlRest;
+
+public class Routine
 {
     /// <summary>
     /// Routine type: Function, Procedure, Table, View, or other.
     /// </summary>
-    public RoutineType Type { get; init; } = type;
+    public required RoutineType Type { get; init; }
 
     /// <summary>
     /// Schema name (parsed by quote_ident).
     /// </summary>
-    public string Schema { get; init; } = schema;
+    public required string Schema { get; init; }
 
     /// <summary>
     /// PostgreSQL object name (parsed by quote_ident).
     /// </summary>
-    public string Name { get; init; } = name;
+    public required string Name { get; init; }
 
     /// <summary>
     /// PostgreSQL object comment.
     /// </summary>
-    public string? Comment { get; init; } = comment;
+    public required string? Comment { get; init; }
 
     /// <summary>
     /// Strict or non-strict function. Strict functions will return NULL if any parameter is NULL.
     /// </summary>
-    public bool IsStrict { get; init; } = isStrict;
+    public required bool IsStrict { get; init; }
 
     /// <summary>
     /// The type of CRUD operation associated with the routine (Select, Insert, Update or Delete).
     /// </summary>
-    public CrudType CrudType { get; init; } = crudType;
+    public required CrudType CrudType { get; init; }
 
     /// <summary>
     /// Indicates whether the routine returns a PostgreSQL record type.
     /// </summary>
-    public bool ReturnsRecordType { get; init; } = returnsRecordType;
+    public required bool ReturnsRecordType { get; init; }
 
     /// <summary>
     /// Indicates whether the routine returns a set of records or single record.
     /// </summary>
-    public bool ReturnsSet { get; init; } = returnsSet;
+    public required bool ReturnsSet { get; init; }
 
     /// <summary>
     /// The number of columns returned.
     /// </summary>
-    public int ColumnCount { get; init; } = columnCount;
+    public required int ColumnCount { get; init; }
 
     /// <summary>
     /// The names of the returned columns.
     /// </summary>
-    public string[] ColumnNames { get; init; } = columnNames ?? [];
+    public required string[] OriginalColumnNames { get; init; }
+
+    /// <summary>
+    /// The converted names of the returned columns.
+    /// </summary>
+    public required string[] ColumnNames { get; init; }
 
     /// <summary>
     /// The type descriptors for the returned columns.
     /// </summary>
-    public TypeDescriptor[] ColumnsTypeDescriptor { get; init; } = columnsTypeDescriptor ?? [];
+    public required TypeDescriptor[] ColumnsTypeDescriptor { get; init; }
 
     /// <summary>
     /// Indicates whether the routine returns an unnamed set. 
     /// </summary>
-    public bool ReturnsUnnamedSet { get; init; } = returnsUnnamedSet;
+    public required bool ReturnsUnnamedSet { get; init; }
 
     /// <summary>
     /// Indicates whether the routine returns void.
     /// </summary>
-    public bool IsVoid { get; init; } = isVoid;
+    public required bool IsVoid { get; init; }
 
     /// <summary>
     /// The number of parameters.
     /// </summary>
-    public int ParamCount { get; init; } = paramCount;
+    public required int ParamCount { get; init; }
 
     /// <summary>
-    /// The names of the parameters.
+    /// Parameters associated with the routine in the order they appear in the routine.
     /// </summary>
-    public string[] ParamNames { get; init; } = paramNames ?? [];
+    public required NpgsqlRestParameter[] Parameters { get; init; }
 
     /// <summary>
-    /// The type descriptors of the parameter types.
+    /// The hash of the parameters associated with the routine.
     /// </summary>
-    public TypeDescriptor[] ParamTypeDescriptor { get; init; } = paramTypeDescriptor ?? [];
+    public required FrozenSet<string> ParamsHash { get; init; }
 
     /// <summary>
     /// The expression associated with the routine.
     /// </summary>
-    public string Expression { get; init; } = expression;
+    public required string Expression { get; init; }
 
     /// <summary>
     /// The full definition of the routine. (Used for code-gen comments)
     /// </summary>
-    public string FullDefinition { get; init; } = fullDefinition ?? expression;
+    public required string FullDefinition { get; init; }
 
     /// <summary>
     /// The simple definition of the routine. (Used for code-gen comments)
     /// </summary>
-    public string SimpleDefinition { get; init; } = simpleDefinition ?? expression;
+    public required string SimpleDefinition { get; init; }
 
     /// <summary>
     /// The format URL pattern for the routine. If used (not null), placeholder {0} is used to replace the default URL.
     /// </summary>
-    public string? FormatUrlPattern { get; init; } = formatUrlPattern;
+    public required string? FormatUrlPattern { get; init; }
 
     /// <summary>
     /// The tags associated with the routine.
     /// </summary>
-    public string[]? Tags { get; init; } = tags;
+    public required string[]? Tags { get; init; }
 
     /// <summary>
     /// The endpoint handler for the routine.
     /// </summary>
-    public Func<RoutineEndpoint?, RoutineEndpoint?>? EndpointHandler { get; init; } = endpointHandler;
+    public required Func<RoutineEndpoint?, RoutineEndpoint?>? EndpointHandler { get; init; }
 
     /// <summary>
     /// The meta data associated with the routine.
     /// </summary>
-    public object? Metadata { get; init; } = metadata;
+    public required object? Metadata { get; init; }
 }

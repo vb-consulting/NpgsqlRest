@@ -249,7 +249,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         (string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..]);
             var routineType = routine.Type;
             var paramCount = routine.ParamCount;
-            var paramTypeDescriptors = routine.ParamTypeDescriptor;
+            //var paramTypeDescriptors = routine.ParamTypeDescriptor;
             var isVoid = routine.IsVoid;
             var returnsSet = routine.ReturnsSet;
             var columnCount = routine.ColumnCount;
@@ -301,11 +301,12 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             string? bodyParameterName = null;
             for (var i = 0; i < paramCount; i++)
             {
-                var descriptor = paramTypeDescriptors[i];
+                var parameter = routine.Parameters[i];
+                var descriptor = parameter.TypeDescriptor;//paramTypeDescriptors[i];
                 var nameSuffix = descriptor.HasDefault ? "?" : "";
-                paramNames[i] = QuoteJavaScriptVariableName($"{endpoint.ParamNames[i]}{nameSuffix}");
-                if (string.Equals(endpoint.BodyParameterName, endpoint.ParamNames[i], StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(endpoint.BodyParameterName, descriptor.OriginalParameterName, StringComparison.OrdinalIgnoreCase))
+                paramNames[i] = QuoteJavaScriptVariableName($"{parameter.ConvertedName}{nameSuffix}");
+                if (string.Equals(endpoint.BodyParameterName, parameter.ConvertedName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(endpoint.BodyParameterName, parameter.ActualName, StringComparison.OrdinalIgnoreCase))
                 {
                     bodyParameterName = paramNames[i];
                 }
@@ -317,7 +318,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
                 for (var i = 0; i < paramCount; i++)
                 {
-                    var descriptor = paramTypeDescriptors[i];
+                    var descriptor = routine.Parameters[i].TypeDescriptor;
                     var type = GetTsType(descriptor, false);
                     req.AppendLine($"    {paramNames[i]}: {type} | null;");
                 }
@@ -425,7 +426,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                             var descriptor = columnsTypeDescriptor[i];
                             var type = GetTsType(descriptor, false);
 
-                            resp.AppendLine($"    {endpoint.ColumnNames[i]}: {type} | null;");
+                            resp.AppendLine($"    {routine.ColumnNames[i]}: {type} | null;");
                         }
 
                         if (modelsDict.TryGetValue(resp.ToString(), out var newName))

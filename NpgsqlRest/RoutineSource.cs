@@ -2,6 +2,7 @@
 using Npgsql;
 using NpgsqlTypes;
 using NpgsqlRest.Extensions;
+using System.Collections.Frozen;
 
 namespace NpgsqlRest;
 
@@ -83,12 +84,19 @@ public class RoutineSource(
                 name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
             var crudType = hasGet ? CrudType.Select : (volatility == 'v' ? CrudType.Update : CrudType.Select);
 
-            var paramNames = reader.Get<string[]>(13);//"param_names");
+            var originalParamNames = reader.Get<string[]>(13);//"param_names");
             var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
             var schema = reader.Get<string>(1);//"schema");
             var returnsSet = reader.Get<bool>(6);//"returns_set");
 
             var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
+
+            string[] convertedRecordNames = new string[returnRecordNames.Length];
+            for (int i = 0; i < returnRecordNames.Length; i++)
+            {
+                convertedRecordNames[i] = options.NameConverter(returnRecordNames[i]) ?? returnRecordNames[i];
+            }
+
             var returnRecordTypes = reader.Get<string[]>(10);//"return_record_types");
 
             string[] expNames = new string[returnRecordNames.Length];
@@ -96,13 +104,13 @@ public class RoutineSource(
             if (customRecTypeNames is not null && customRecTypeNames.Length > 0)
             {
                 var customRecTypeTypes = reader.Get<string?[]>(22); //custom_rec_type_types
-                for (var i = 0; i < returnRecordNames.Length; i++)
+                for (var i = 0; i < convertedRecordNames.Length; i++)
                 {
                     var customName = customRecTypeNames[i];
                     if (customName is not null)
                     {
                         expNames[i] = string.Concat("(", returnRecordNames[i], "::", returnRecordTypes[i], ").", customName);
-                        returnRecordNames[i] = customName;
+                        convertedRecordNames[i] = options.NameConverter(customName) ?? customName;
                         returnRecordTypes[i] = customRecTypeTypes[i] ?? returnRecordTypes[i];
                     }
                     else
@@ -131,7 +139,7 @@ public class RoutineSource(
 
             string?[] paramDefaults = new string?[paramCount];
             bool[] hasParamDefaults = new bool[paramCount];
-
+            
             if (string.IsNullOrEmpty(argumentDef))
             {
                 for (int i = 0; i < paramCount; i++)
@@ -145,8 +153,8 @@ public class RoutineSource(
                 const string defaultArgExp = " DEFAULT ";
                 for (int i = 0; i < paramCount; i++)
                 {
-                    string paramName = paramNames[i] ?? "";
-                    string? nextParamName = i < paramCount - 1 ? paramNames[i + 1] : null;
+                    string paramName = originalParamNames[i] ?? "";
+                    string? nextParamName = i < paramCount - 1 ? originalParamNames[i + 1] : null;
 
                     int startIndex = argumentDef.IndexOf(paramName);
                     int endIndex = nextParamName != null ? argumentDef.IndexOf(string.Concat(", " + nextParamName, " ")) : argumentDef.Length;
@@ -223,14 +231,13 @@ public class RoutineSource(
             var customTypeTypes = reader.Get<string?[]>(19);
             var customTypePositions = reader.Get<short?[]>(20);
 
-            TypeDescriptor[] descriptors;
+            NpgsqlRestParameter[] parameters = new NpgsqlRestParameter[paramCount];
             bool hasCustomType = false;
             if (paramCount > 0)
             {
-                descriptors = new TypeDescriptor[paramCount];
                 for (var i = 0; i < paramCount; i++)
                 {
-                    var paramName = paramNames[i];
+                    var paramName = originalParamNames[i];
                     var originalParameterName = paramName;
                     var customTypeName = customTypeNames[i];
                     string? customType;
@@ -239,7 +246,7 @@ public class RoutineSource(
                         customType = paramTypes[i];
                         paramTypes[i] = customTypeTypes[i] ?? customType;
                         paramName = string.Concat(paramName, CustomTypeParameterSeparator, customTypeName);
-                        paramNames[i] = paramName;
+                        originalParamNames[i] = paramName;
                         if (hasCustomType is false)
                         {
                             hasCustomType = true;
@@ -254,20 +261,32 @@ public class RoutineSource(
                     var fullParamType = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
                     simpleDefinition
                         .AppendLine(string.Concat("    ", paramName, " ", fullParamType, i == paramCount - 1 ? "" : ","));
-                    descriptors[i] = new TypeDescriptor(
-                        paramType, 
-                        hasDefault: hasParamDefaults[i], 
+
+                    var convertedName = options.NameConverter(paramName);
+                    if (string.IsNullOrEmpty(convertedName))
+                    {
+                        convertedName = $"${i + 1}";
+                    }
+
+                    var descriptor = new TypeDescriptor(
+                        paramType,
+                        hasDefault: hasParamDefaults[i],
                         customType: customType,
                         customTypePosition: customTypePositions[i],
                         originalParameterName: originalParameterName);
+
+                    parameters[i] = new NpgsqlRestParameter
+                    {
+                        Ordinal = i,
+                        NpgsqlDbType = descriptor.ActualDbType,
+                        ConvertedName = convertedName,
+                        ActualName = originalParameterName,
+                        TypeDescriptor = descriptor
+                    };
                 }
                 simpleDefinition.AppendLine(")");
             }
-            else
-            {
-                descriptors = [];
-            }
-
+     
             if (!returnsSet)
             {
                 simpleDefinition.AppendLine(string.Concat("returns ", returnType));
@@ -304,37 +323,44 @@ public class RoutineSource(
             }
 
             yield return (
-                new Routine(
-                    type: routineType,
-                    schema: schema,
-                    name: name,
-                    comment: reader.Get<string>(3),//"comment"),
-                    isStrict: reader.Get<bool>(4),//"is_strict"),
-                    crudType: crudType,
+                new Routine
+                {
+                    Type = routineType,
+                    Schema = schema,
+                    Name = name,
+                    Comment = reader.Get<string>(3),//"comment"),
+                    IsStrict = reader.Get<bool>(4),//"is_strict"),
+                    CrudType = crudType,
 
-                    returnsRecordType: string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
-                    returnsSet: returnsSet,
-                    columnCount: returnRecordCount,
-                    columnNames: returnRecordNames,
-                    returnsUnnamedSet: isUnnamedRecord,
-                    columnsTypeDescriptor: returnTypeDescriptor,
-                    isVoid: isVoid,
+                    ReturnsRecordType = string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
+                    ReturnsSet = returnsSet,
+                    ColumnCount = returnRecordCount,
+                    OriginalColumnNames = returnRecordNames,
+                    ColumnNames = convertedRecordNames,
+                    ReturnsUnnamedSet = isUnnamedRecord,
+                    ColumnsTypeDescriptor = returnTypeDescriptor,
+                    IsVoid = isVoid,
 
-                    paramCount: paramCount,
-                    paramNames: paramNames,
-                    paramTypeDescriptor: descriptors,
+                    ParamCount = paramCount,
+                    Parameters = parameters,
+                    ParamsHash = parameters.Select(p => p.ConvertedName).ToFrozenSet(),
 
-                    expression: expression,
-                    fullDefinition: reader.Get<string>(17),//"definition"),
-                    simpleDefinition: simpleDefinition.ToString(),
-                    
-                    tags: [routineType.ToString().ToLowerInvariant(), volatility switch
+                    Expression = expression,
+                    FullDefinition = reader.Get<string>(17),//"definition"),
+                    SimpleDefinition = simpleDefinition.ToString(),
+
+                    Tags = [routineType.ToString().ToLowerInvariant(), volatility switch
                     {
                         'v' => "volatile",
                         's' => "stable",
                         'i' => "immutable",
                         _ => "other"
-                    }]), 
+                    }],
+
+                    FormatUrlPattern = null,
+                    EndpointHandler = null,
+                    Metadata = null
+                }, 
                 formatter);
         }
 

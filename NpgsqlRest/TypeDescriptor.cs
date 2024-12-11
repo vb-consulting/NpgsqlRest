@@ -2,7 +2,7 @@
 
 namespace NpgsqlRest;
 
-public readonly struct TypeDescriptor
+public class TypeDescriptor
 {
     public string OriginalType { get; }
     public string Type { get; }
@@ -16,7 +16,7 @@ public readonly struct TypeDescriptor
     public NpgsqlDbType DbType { get; }
     public NpgsqlDbType BaseDbType { get; }
     public NpgsqlDbType ActualDbType { get; }
-    public bool HasDefault { get; }
+    public bool HasDefault { get; internal set; }
     public bool NeedsEscape { get; }
     public bool IsPk { get; }
     public bool IsIdentity { get; }
@@ -103,6 +103,11 @@ public readonly struct TypeDescriptor
         CustomType = customType;
         CustomTypePosition = customTypePosition;
         OriginalParameterName = originalParameterName;
+    }
+
+    internal void SetHasDefault()
+    {
+        HasDefault = true;
     }
 
     public bool IsCastToText() => CastToText(BaseDbType);
