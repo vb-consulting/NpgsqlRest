@@ -13,4 +13,11 @@ public class NpgsqlRestParameter : NpgsqlParameter
     public StringValues? QueryStringValues { get; set; } = null;
     public JsonNode? JsonBodyNode { get; set; } = null;
     public TypeDescriptor TypeDescriptor { get; init; } = default!;
+
+    public NpgsqlRestParameter NpgsqlResMemberwiseClone()
+    {
+#pragma warning disable CS8603 // Possible null reference return.
+        return MemberwiseClone() as NpgsqlRestParameter;
+#pragma warning restore CS8603 // Possible null reference return.
+    }
 }

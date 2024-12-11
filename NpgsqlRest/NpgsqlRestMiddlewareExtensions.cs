@@ -285,19 +285,22 @@ public static class NpgsqlRestMiddlewareExtensions
                         )
                     )
                     {
+                        var bodyParameter = parameter.NpgsqlResMemberwiseClone();
                         if (body is null)
                         {
-                            parameter.ParamType = ParamType.BodyParam;
-                            parameter.Value = DBNull.Value;
+                            bodyParameter.ParamType = ParamType.BodyParam;
+                            bodyParameter.Value = DBNull.Value;
                             hasNulls = true;
-                            paramsList.Add(parameter);
+                            paramsList.Add(bodyParameter);
                         }
                         else
                         {
                             StringValues bodyStringValues = body;
-                            if (TryParseParameter(parameter, ref bodyStringValues, endpoint.QueryStringNullHandling))
+                            if (TryParseParameter(bodyParameter, ref bodyStringValues, endpoint.QueryStringNullHandling))
                             {
-                                paramsList.Add(parameter);
+                                bodyParameter.ParamType = ParamType.BodyParam;
+                                hasNulls = false;
+                                paramsList.Add(bodyParameter);
                             }
                         }
                         continue;
@@ -319,9 +322,10 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 SearializeHeader();
                             }
-                            parameter.ParamType = ParamType.HeaderParam;
-                            parameter.Value = headers;
-                            paramsList.Add(parameter);
+                            var headerParameter = parameter.NpgsqlResMemberwiseClone();
+                            headerParameter.ParamType = ParamType.HeaderParam;
+                            headerParameter.Value = headers;
+                            paramsList.Add(headerParameter);
                             continue;
                         }
                     }
@@ -335,19 +339,23 @@ public static class NpgsqlRestMiddlewareExtensions
                         }
                         continue;
                     }
-                    if (TryParseParameter(parameter, ref qsValue, endpoint.QueryStringNullHandling) is false)
+
+                    var queryParemeter = parameter.NpgsqlResMemberwiseClone();
+                    if (TryParseParameter(queryParemeter, ref qsValue, endpoint.QueryStringNullHandling) is false)
                     {
-                        if (parameter.TypeDescriptor.HasDefault is false)
+                        if (queryParemeter.TypeDescriptor.HasDefault is false)
                         {
                             await next(context);
                             return;
                         }
                         continue;
                     }
-                    parameter.ParamType = ParamType.QueryString;
-                    parameter.QueryStringValues = qsValue;
-                    paramsList.Add(parameter);
-                    if (hasNulls is false && parameter.Value == DBNull.Value)
+
+                    queryParemeter.ParamType = ParamType.QueryString;
+                    queryParemeter.QueryStringValues = qsValue;
+                    paramsList.Add(queryParemeter);
+
+                    if (hasNulls is false && queryParemeter.Value == DBNull.Value)
                     {
                         hasNulls = true;
                     }
@@ -401,9 +409,10 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 SearializeHeader();
                             }
-                            parameter.ParamType = ParamType.HeaderParam;
-                            parameter.Value = headers;
-                            paramsList.Add(parameter);
+                            var headerParameter = parameter.NpgsqlResMemberwiseClone();
+                            headerParameter.ParamType = ParamType.HeaderParam;
+                            headerParameter.Value = headers;
+                            paramsList.Add(headerParameter);
                             continue;
                         }
                     }
@@ -417,19 +426,20 @@ public static class NpgsqlRestMiddlewareExtensions
                         }
                         continue;
                     }
-                    if (TryParseParameter(parameter, ref value) is false)
+                    var bodyParameter = parameter.NpgsqlResMemberwiseClone();
+                    if (TryParseParameter(bodyParameter, ref value) is false)
                     {
-                        if (parameter.TypeDescriptor.HasDefault is false)
+                        if (bodyParameter.TypeDescriptor.HasDefault is false)
                         {
                             await next(context);
                             return;
                         }
                         continue;
                     }
-                    parameter.ParamType = ParamType.BodyJson;
-                    parameter.JsonBodyNode = value;
-                    paramsList.Add(parameter);
-                    if (hasNulls is false && parameter.Value == DBNull.Value)
+                    bodyParameter.ParamType = ParamType.BodyJson;
+                    bodyParameter.JsonBodyNode = value;
+                    paramsList.Add(bodyParameter);
+                    if (hasNulls is false && bodyParameter.Value == DBNull.Value)
                     {
                         hasNulls = true;
                     }

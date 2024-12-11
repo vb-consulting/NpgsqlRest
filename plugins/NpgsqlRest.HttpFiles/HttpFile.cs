@@ -121,9 +121,9 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                         var value = SampleValueUnquoted(i, descriptor);
                         if (descriptor.IsArray)
                         {
-                            return string.Join("&", value.Split(',').Select(v => $"{p}={Uri.EscapeDataString(v)}"));
+                            return string.Join("&", value.Split(',').Select(v => $"{p.ConvertedName}={Uri.EscapeDataString(v)}"));
                         }
-                        return $"{p}={Uri.EscapeDataString(value)}";
+                        return $"{p.ConvertedName}={Uri.EscapeDataString(value)}";
                     })));
 
             sb.AppendLine(line.EndsWith('?') ? line[..^1] : line);
