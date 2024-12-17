@@ -40,7 +40,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         _npgsqlRestoptions = options;
     }
 
-    public void Cleanup(ref (Routine routine, RoutineEndpoint endpoint)[] endpoints)
+    public void Cleanup((Routine routine, RoutineEndpoint endpoint)[] endpoints)
     {
         if (options.FilePath is null)
         {

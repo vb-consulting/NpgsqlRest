@@ -15,13 +15,13 @@ internal static class PgConverters
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         TypeInfoResolver = new NpgsqlRestSerializerContext()
     };
-    
+
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    public static string SerializeString(ref string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
-    
+    public static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
@@ -64,7 +64,7 @@ internal static class PgConverters
                 else
                 {
                     var segment = current.ToString();
-                    result.Append(SerializeString(ref segment));
+                    result.Append(SerializeString(segment));
                     current.Clear();
                 }
             }
@@ -213,7 +213,7 @@ internal static class PgConverters
         return result.ToString().AsSpan();
     }
     
-    public static string ParseParameters(ref List<NpgsqlRestParameter> paramsList, string value)
+    public static string ParseParameters(List<NpgsqlRestParameter> paramsList, string value)
     {
         var letPos = value.IndexOf("{", StringComparison.OrdinalIgnoreCase);
         if (letPos == -1)

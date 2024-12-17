@@ -151,7 +151,7 @@ public static class NpgsqlRestMiddlewareExtensions
             foreach (var handler in options.EndpointCreateHandlers)
             {
                 array ??= dict.Values.Select(x => (x.routine, x.endpoint)).ToArray();
-                handler.Cleanup(ref array);
+                handler.Cleanup(array);
                 handler.Cleanup();
             }
         }
@@ -210,6 +210,7 @@ public static class NpgsqlRestMiddlewareExtensions
             string? headers = null;
             Dictionary<string, StringValues>? queryDict = null;
 
+            // paramsList
             List<NpgsqlRestParameter> paramsList = new(
                 routine.ParamCount + 
                 (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter ? 1 : 0) +
@@ -427,7 +428,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         continue;
                     }
                     var bodyParameter = parameter.NpgsqlResMemberwiseClone();
-                    if (TryParseParameter(bodyParameter, ref value) is false)
+                    if (TryParseParameter(bodyParameter, value) is false)
                     {
                         if (bodyParameter.TypeDescriptor.HasDefault is false)
                         {
@@ -457,6 +458,44 @@ public static class NpgsqlRestMiddlewareExtensions
                     }
                 }
             }
+
+            if (hasNulls && routine.IsStrict)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.NoContent;
+                await context.Response.CompleteAsync();
+                return;
+            }
+
+            if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
+            {
+                for (var i = 0; i < paramsList.Count; i++)
+                {
+                    var parameter = paramsList[i];
+                    if (options.ValidateParameters is not null)
+                    {
+                        options.ValidateParameters(new ParameterValidationValues(
+                            context,
+                            routine,
+                            parameter));
+                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                        {
+                            return;
+                        }
+                    }
+                    if (options.ValidateParametersAsync is not null)
+                    {
+                        await options.ValidateParametersAsync(new ParameterValidationValues(
+                            context,
+                            routine,
+                            parameter));
+                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+            // paramsList is ready
 
             if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
             {
@@ -494,43 +533,6 @@ public static class NpgsqlRestMiddlewareExtensions
                         context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
                         await context.Response.CompleteAsync();
                         return;
-                    }
-                }
-            }
-
-            if (hasNulls && routine.IsStrict)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.NoContent;
-                await context.Response.CompleteAsync();
-                return;
-            }
-
-            if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
-            {
-                for(var i = 0; i < paramsList.Count; i++)
-                {
-                    var parameter = paramsList[i];
-                    if (options.ValidateParameters is not null)
-                    {
-                        options.ValidateParameters(new ParameterValidationValues(
-                            context,
-                            routine,
-                            parameter));
-                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
-                        {
-                            return;
-                        }
-                    }
-                    if (options.ValidateParametersAsync is not null)
-                    {
-                        await options.ValidateParametersAsync(new ParameterValidationValues(
-                            context,
-                            routine,
-                            parameter));
-                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
-                        {
-                            return;
-                        }
                     }
                 }
             }
@@ -575,7 +577,7 @@ public static class NpgsqlRestMiddlewareExtensions
                 {
                     connection.Notice += (sender, args) =>
                     {
-                        NpgsqlRestLogger.LogConnectionNotice(ref logger, ref args);
+                        NpgsqlRestLogger.LogConnectionNotice(logger, args);
                     };
                 }
 
@@ -595,6 +597,9 @@ public static class NpgsqlRestMiddlewareExtensions
                     command.CommandText = string.Concat("select set_config('request.headers','", headers, "',false)");
                     command.ExecuteNonQuery();
                 }
+
+                // paramsList
+                // paramsList is ready
 
                 var shouldLog = options.LogCommands && logger != null;
                 StringBuilder? cmdLog = shouldLog ?
@@ -670,7 +675,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             object value = parameter.NpgsqlValue!;
                             var p = options.AuthenticationOptions.ObfuscateAuthParameterLogValues && endpoint.IsAuth ?
                                 "***" :
-                                FormatParam(ref value, parameter.TypeDescriptor);
+                                FormatParam(value, parameter.TypeDescriptor);
                             cmdLog!.AppendLine(string.Concat(
                                 "-- $",
                                 (i + 1).ToString(),
@@ -690,7 +695,7 @@ public static class NpgsqlRestMiddlewareExtensions
 
                 if (shouldLog)
                 {
-                    NpgsqlRestLogger.LogEndpoint(ref logger, ref endpoint, cmdLog?.ToString() ?? "", command.CommandText);
+                    NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                 }
 
                 if (endpoint.CommandTimeout.HasValue)
@@ -743,7 +748,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             if (endpoint.ResponseContentType is not null)
                             {
                                 context.Response.ContentType = endpoint.NeedsParsing ?
-                                    PgConverters.ParseParameters(ref paramsList, endpoint.ResponseContentType) :
+                                    PgConverters.ParseParameters(paramsList, endpoint.ResponseContentType) :
                                     endpoint.ResponseContentType;
 
                             }
@@ -761,7 +766,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     context.Response.Headers.Append(headerKey,
                                         endpoint.NeedsParsing ?
-                                        PgConverters.ParseParameters(ref paramsList, headerValue.ToString()) : headerValue);
+                                        PgConverters.ParseParameters(paramsList, headerValue.ToString()) : headerValue);
                                 }
                             }
 
@@ -807,7 +812,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         if (endpoint.ResponseContentType is not null)
                         {
                             context.Response.ContentType = endpoint.NeedsParsing ?
-                                PgConverters.ParseParameters(ref paramsList, endpoint.ResponseContentType) :
+                                PgConverters.ParseParameters(paramsList, endpoint.ResponseContentType) :
                                 endpoint.ResponseContentType;
                         }
                         else
@@ -820,7 +825,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 context.Response.Headers.Append(headerKey,
                                     endpoint.NeedsParsing ?
-                                    PgConverters.ParseParameters(ref paramsList, headerValue.ToString()) : headerValue);
+                                    PgConverters.ParseParameters(paramsList, headerValue.ToString()) : headerValue);
                             }
                         }
 
@@ -1079,13 +1084,11 @@ public static class NpgsqlRestMiddlewareExtensions
                     {
                         headers = string.Concat(headers, ",");
                     }
-                    var key = header.Key;
-                    var value = header.Value.ToString();
                     headers = string.Concat(
                         headers,
-                        PgConverters.SerializeString(ref key),
+                        PgConverters.SerializeString(header.Key),
                         ":",
-                        PgConverters.SerializeString(ref value));
+                        PgConverters.SerializeString(header.Value.ToString()));
                 }
                 headers = string.Concat(headers, "}");
             }

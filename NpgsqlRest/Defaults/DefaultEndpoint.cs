@@ -54,18 +54,17 @@ internal static class DefaultEndpoint
         if (routine.EndpointHandler is not null)
         {
             var parsed = DefaultCommentParser.Parse(
-                ref routine,
-                ref routineEndpoint,
+                routine,
+                routineEndpoint,
                 options,
                 logger);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
             return routine.EndpointHandler(parsed);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
         }
 
         return DefaultCommentParser.Parse(
-            ref routine,
-            ref routineEndpoint,
+            routine,
+            routineEndpoint,
             options, 
             logger);
     }

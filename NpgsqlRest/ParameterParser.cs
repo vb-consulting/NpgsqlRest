@@ -25,7 +25,7 @@ internal static class ParameterParser
             if (values.Count == 1)
             {
                 var value = values[0];
-                if (TryGetValue(ref value, out var resultValue))
+                if (TryGetValue(value, out var resultValue))
                 {
                     parameter.Value = resultValue;
                     return true;
@@ -40,7 +40,7 @@ internal static class ParameterParser
                     sb.Append(values[i]);
                 }
                 var value = sb.ToString();
-                if (TryGetValue(ref value, out var resultValue))
+                if (TryGetValue(value, out var resultValue))
                 {
                     parameter.Value = resultValue;
                     return true;
@@ -59,7 +59,7 @@ internal static class ParameterParser
         for (var i = 0; i < values.Count; i++)
         {
             var value = values[i];
-            if (TryGetValue(ref value, out var resultValue))
+            if (TryGetValue(value, out var resultValue))
             {
                 list.Add(resultValue);
             }
@@ -72,7 +72,7 @@ internal static class ParameterParser
         return true;
 
         bool TryGetValue(
-            ref string? value, 
+            string? value, 
             out object? resultValue)
         {
             if (queryStringNullHandling == QueryStringNullHandling.NullLiteral)
@@ -230,7 +230,7 @@ internal static class ParameterParser
 
     internal static bool TryParseParameter(
         NpgsqlRestParameter parameter,
-        ref JsonNode? value)
+        JsonNode? value)
     {
         if (value is null)
         {
@@ -245,7 +245,7 @@ internal static class ParameterParser
             return true;
         }
 
-        if (TryGetNonStringValue(ref value, ref kind, out var nonStringValue))
+        if (TryGetNonStringValue(value, ref kind, out var nonStringValue))
         {
             parameter.Value = nonStringValue;
             return true;
@@ -269,14 +269,14 @@ internal static class ParameterParser
                     list.Add(null);
                     continue;
                 }
-                if (TryGetNonStringValue(ref arrayItem, ref arrayItemKind, out object arrayValue))
+                if (TryGetNonStringValue(arrayItem, ref arrayItemKind, out object arrayValue))
                 {
                     list.Add(arrayValue);
                     continue;
                 }
 
                 var arrayItemContent = arrayItem.ToString();
-                if (TryGetNonStringValueFromString(ref arrayItemContent, out arrayValue))
+                if (TryGetNonStringValueFromString(arrayItemContent, out arrayValue))
                 {
                     list.Add(arrayValue);
                     continue;
@@ -288,7 +288,7 @@ internal static class ParameterParser
         }
 
         var content = value.ToString();
-        if (TryGetNonStringValueFromString(ref content, out nonStringValue))
+        if (TryGetNonStringValueFromString(content, out nonStringValue))
         {
             parameter.Value = nonStringValue;
             return true;
@@ -298,7 +298,7 @@ internal static class ParameterParser
         return true;
 
         bool TryGetNonStringValue(
-            ref JsonNode value, 
+            JsonNode value, 
             ref JsonValueKind valueKind, 
             out object result)
         {
@@ -356,7 +356,7 @@ internal static class ParameterParser
         }
 
         bool TryGetNonStringValueFromString(
-            ref string nonStrContent, 
+            string nonStrContent, 
             out object result)
         {
             if (parameter.TypeDescriptor.BaseDbType is NpgsqlDbType.Timestamp or NpgsqlDbType.TimestampTz)
@@ -410,7 +410,7 @@ internal static class ParameterParser
         }
     }
 
-    internal static string FormatParam(ref object value, TypeDescriptor descriptor)
+    internal static string FormatParam(object value, TypeDescriptor descriptor)
     {
         if (value == DBNull.Value)
         {
@@ -421,18 +421,18 @@ internal static class ParameterParser
             var d = descriptor;
             if (descriptor is { IsNumeric: false, IsBoolean: false })
             {
-                return string.Concat("{", string.Join(",", list.Select(x => string.Concat("'", Format(ref x, ref d), "'"))), "}");
+                return string.Concat("{", string.Join(",", list.Select(x => string.Concat("'", Format(x, d), "'"))), "}");
             }
-            return string.Concat("{", string.Join(",", list.Select(x => Format(ref x, ref d))), "}");
+            return string.Concat("{", string.Join(",", list.Select(x => Format(x, d))), "}");
         }
         if (descriptor is { IsNumeric: false, IsBoolean: false })
         {
-            return string.Concat("'", Format(ref value, ref descriptor), "'");
+            return string.Concat("'", Format(value, descriptor), "'");
         }
 
-        return Format(ref value, ref descriptor);
+        return Format(value, descriptor);
 
-        static string Format(ref object v, ref TypeDescriptor descriptor)
+        static string Format(object v, TypeDescriptor descriptor)
         {
             if (v is DateTime dt)
             {

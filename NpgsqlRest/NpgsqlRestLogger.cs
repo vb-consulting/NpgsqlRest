@@ -138,7 +138,7 @@ public static class NpgsqlRestLogger
     private static readonly Action<ILogger, string?, string, Exception?> __LogTraceCallback =
         LoggerMessage.Define<string?, string>(LogLevel.Trace, 4, LogPattern, LogDefineOptions);
 
-    private static void LogInformation(ref ILogger? logger, string? where, string message)
+    private static void LogInformation(ILogger? logger, string? where, string message)
     {
         if (logger?.IsEnabled(LogLevel.Information) is true)
         {
@@ -146,7 +146,7 @@ public static class NpgsqlRestLogger
         }
     }
 
-    private static void LogWarning(ref ILogger? logger, string? where, string message)
+    private static void LogWarning(ILogger? logger, string? where, string message)
     {
         if (logger?.IsEnabled(LogLevel.Warning) is true)
         {
@@ -154,7 +154,7 @@ public static class NpgsqlRestLogger
         }
     }
 
-    private static void LogDebug(ref ILogger? logger, string? where, string message)
+    private static void LogDebug(ILogger? logger, string? where, string message)
     {
         if (logger?.IsEnabled(LogLevel.Debug) is true)
         {
@@ -162,7 +162,7 @@ public static class NpgsqlRestLogger
         }
     }
 
-    private static void LogError(ref ILogger? logger, string? where, string message)
+    private static void LogError(ILogger? logger, string? where, string message)
     {
         if (logger?.IsEnabled(LogLevel.Error) is true)
         {
@@ -170,7 +170,7 @@ public static class NpgsqlRestLogger
         }
     }
 
-    private static void LogTrace(ref ILogger? logger, string? where, string message)
+    private static void LogTrace(ILogger? logger, string? where, string message)
     {
         if (logger?.IsEnabled(LogLevel.Trace) is true)
         {
@@ -178,7 +178,7 @@ public static class NpgsqlRestLogger
         }
     }
 
-    public static void LogEndpoint(ref ILogger? logger, ref RoutineEndpoint endpoint, string parameters, string command)
+    public static void LogEndpoint(ILogger? logger, RoutineEndpoint endpoint, string parameters, string command)
     {
         if (logger?.IsEnabled(LogLevel.Information) is true && endpoint.LogCallback is not null)
         {
@@ -186,7 +186,7 @@ public static class NpgsqlRestLogger
         }
     }
 
-    public static void LogConnectionNotice(ref ILogger? logger, ref NpgsqlNoticeEventArgs args)
+    public static void LogConnectionNotice(ILogger? logger, NpgsqlNoticeEventArgs args)
     {
         if (logger is null)
         {
@@ -198,24 +198,24 @@ public static class NpgsqlRestLogger
             string.Equals(Log, severity, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Notice, severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogInformation(ref logger, where, args.Notice.MessageText);
+            LogInformation(logger, where, args.Notice.MessageText);
         }
         else if (string.Equals(Warning, severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogWarning(ref logger, where, args.Notice.MessageText);
+            LogWarning(logger, where, args.Notice.MessageText);
         }
         else if (string.Equals(Debug, severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogDebug(ref logger, where, args.Notice.MessageText);
+            LogDebug(logger, where, args.Notice.MessageText);
         }
         else if (string.Equals(Error, severity, StringComparison.OrdinalIgnoreCase) || 
             string.Equals(Panic, severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogError(ref logger, where, args.Notice.MessageText);
+            LogError(logger, where, args.Notice.MessageText);
         }
         else
         {
-            LogTrace(ref logger, where, args.Notice.MessageText);
+            LogTrace(logger, where, args.Notice.MessageText);
         }
     }
 }

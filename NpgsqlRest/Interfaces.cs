@@ -20,7 +20,7 @@ public interface IEndpointCreateHandler
     /// <summary>
     /// After all endpoints are created.
     /// </summary>
-    void Cleanup(ref (Routine routine, RoutineEndpoint endpoint)[] endpoints) {  }
+    void Cleanup((Routine routine, RoutineEndpoint endpoint)[] endpoints) {  }
 
     /// <summary>
     /// After all endpoints are created.

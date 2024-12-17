@@ -125,7 +125,7 @@ internal static class DefaultCommentParser
         "column-names"
     ];
 
-    public static RoutineEndpoint? Parse(ref Routine routine, ref RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
+    public static RoutineEndpoint? Parse(Routine routine, RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
         {
@@ -153,7 +153,7 @@ internal static class DefaultCommentParser
             for (var i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
-                string[] words = Split(ref line);
+                string[] words = Split(line);
                 var len = words.Length;
                 if (len == 0)
                 {
@@ -163,14 +163,14 @@ internal static class DefaultCommentParser
                 // for tag1, tag2, tag3 [, ...]
                 // tag tag1, tag2, tag3 [, ...]
                 // tags tag1, tag2, tag3 [, ...]
-                if (routine.Tags is not null && routine.Tags.Length > 0 && StrEqualsToArray(ref words[0], tagsKey))
+                if (routine.Tags is not null && routine.Tags.Length > 0 && StrEqualsToArray(words[0], tagsKey))
                 {
                     string[] arr = words[1..];
                     bool found = false;
                     for (var j = 0; j < routine.Tags.Length; j++)
                     {
                         var tag = routine.Tags[j];
-                        if (StrEqualsToArray(ref tag, arr))
+                        if (StrEqualsToArray(tag, arr))
                         {
                             found = true;
                             break;
@@ -181,7 +181,7 @@ internal static class DefaultCommentParser
 
                 // disabled
                 // disabled tag1, tag2, tag3 [, ...]
-                else if (haveTag is true && StrEquals(ref words[0], DisabledKey))
+                else if (haveTag is true && StrEquals(words[0], DisabledKey))
                 {
                     if (len == 1)
                     {
@@ -193,7 +193,7 @@ internal static class DefaultCommentParser
                         for (var j = 0; j < routine.Tags.Length; j++)
                         {
                             var tag = routine.Tags[j];
-                            if (StrEqualsToArray(ref tag, arr))
+                            if (StrEqualsToArray(tag, arr))
                             {
                                 disabled = true;
                                 break;
@@ -204,7 +204,7 @@ internal static class DefaultCommentParser
 
                 // enabled
                 // enabled [ tag1, tag2, tag3 [, ...] ]
-                else if (haveTag is true && StrEquals(ref words[0], EnabledKey))
+                else if (haveTag is true && StrEquals(words[0], EnabledKey))
                 {
                     if (len == 1)
                     {
@@ -216,7 +216,7 @@ internal static class DefaultCommentParser
                         for (var j = 0; j < routine.Tags.Length; j++)
                         {
                             var tag = routine.Tags[j];
-                            if (StrEqualsToArray(ref tag, arr))
+                            if (StrEqualsToArray(tag, arr))
                             {
                                 disabled = false;
                                 break;
@@ -228,7 +228,7 @@ internal static class DefaultCommentParser
                 // HTTP 
                 // HTTP [ GET | POST | PUT | DELETE ]
                 // HTTP [ GET | POST | PUT | DELETE ] path
-                else if (haveTag is true && StrEquals(ref words[0], HttpKey))
+                else if (haveTag is true && StrEquals(words[0], HttpKey))
                 {
                     hasHttpTag = true;
                     if (len == 2 || len == 3)
@@ -274,13 +274,13 @@ internal static class DefaultCommentParser
                 // param_type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
                 // request-param-type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
                 // param-type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(ref words[0], paramTypeKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], paramTypeKey))
                 {
-                    if (StrEqualsToArray(ref words[1], queryKey))
+                    if (StrEqualsToArray(words[1], queryKey))
                     {
                         routineEndpoint.RequestParamType = RequestParamType.QueryString;
                     }
-                    else if (StrEqualsToArray(ref words[1], jsonKey))
+                    else if (StrEqualsToArray(words[1], jsonKey))
                     {
                         routineEndpoint.RequestParamType = RequestParamType.BodyJson;
                     }
@@ -302,7 +302,7 @@ internal static class DefaultCommentParser
                 // authorize
                 // requires_authorization
                 // requires-authorization
-                else if (haveTag is true && StrEqualsToArray(ref words[0], authorizeKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], authorizeKey))
                 {
                     routineEndpoint.RequiresAuthorization = true;
                     if (words.Length > 1)
@@ -326,7 +326,7 @@ internal static class DefaultCommentParser
                 // allow-anonymous
                 // anonymous
                 // anon
-                else if (haveTag is true && StrEqualsToArray(ref words[0], allowAnonymousKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], allowAnonymousKey))
                 {
                     routineEndpoint.RequiresAuthorization = false;
                     if (options.LogAnnotationSetInfo)
@@ -339,7 +339,7 @@ internal static class DefaultCommentParser
                 // command_timeout seconds
                 // command-timeout seconds
                 // timeout seconds
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(ref words[0], timeoutKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], timeoutKey))
                 {
                     if (int.TryParse(words[1], out var parsedTimeout))
                     {
@@ -364,17 +364,17 @@ internal static class DefaultCommentParser
                 // requestheaders [ ignore | context | parameter ]
                 // request_headers [ ignore | context | parameter ]
                 // request-headers [ ignore | context | parameter ]
-                else if (haveTag is true && StrEqualsToArray(ref words[0], requestHeadersModeKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersModeKey))
                 {
-                    if (StrEquals(ref words[1], IgnoreKey))
+                    if (StrEquals(words[1], IgnoreKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Ignore;
                     }
-                    else if (StrEquals(ref words[1], ContextKey))
+                    else if (StrEquals(words[1], ContextKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Context;
                     }
-                    else if (StrEquals(ref words[1], ParameterKey))
+                    else if (StrEquals(words[1], ParameterKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Parameter;
                     }
@@ -397,7 +397,7 @@ internal static class DefaultCommentParser
                 // request_headers_param_name name
                 // request-headers-parameter-name name
                 // request-headers-param-name name
-                else if (haveTag is true && StrEqualsToArray(ref words[0], requestHeadersParameterNameKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersParameterNameKey))
                 {
                     if (len == 2)
                     {
@@ -418,7 +418,7 @@ internal static class DefaultCommentParser
                 // bodyparamname name
                 // body-param-name name
                 // body_param_name name
-                else if (haveTag is true && StrEqualsToArray(ref words[0], bodyParameterNameKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], bodyParameterNameKey))
                 {
                     if (len == 2)
                     {
@@ -436,17 +436,17 @@ internal static class DefaultCommentParser
                 // responsenullhandling [ emptystring | nullliteral | nocontent ]
                 // response_null_handling [ emptystring | nullliteral | nocontent ]
                 // response-null-handling [ emptystring | nullliteral | nocontent ]
-                else if (haveTag is true && StrEqualsToArray(ref words[0], textResponseNullHandlingKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], textResponseNullHandlingKey))
                 {
-                    if (StrEquals(ref words[1], EmptyStringKey))
+                    if (StrEquals(words[1], EmptyStringKey))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.EmptyString;
                     }
-                    else if (StrEquals(ref words[1], NullLiteral))
+                    else if (StrEquals(words[1], NullLiteral))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NullLiteral;
                     }
-                    else if (StrEquals(ref words[1], NoContentKey))
+                    else if (StrEquals(words[1], NoContentKey))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NoContent;
                     }
@@ -466,17 +466,17 @@ internal static class DefaultCommentParser
                 // querystringnullhandling [ emptystring | nullliteral | ignore ]
                 // query_string_null_handling [ emptystring | nullliteral | ignore ]
                 // query-string-null-handling [ emptystring | nullliteral | ignore ]
-                else if (haveTag is true && StrEqualsToArray(ref words[0], queryStringNullHandlingKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], queryStringNullHandlingKey))
                 {
-                    if (StrEquals(ref words[1], EmptyStringKey))
+                    if (StrEquals(words[1], EmptyStringKey))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.EmptyString;
                     }
-                    else if (StrEquals(ref words[1], NullLiteral))
+                    else if (StrEquals(words[1], NullLiteral))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.NullLiteral;
                     }
-                    else if (StrEquals(ref words[1], IgnoreKey))
+                    else if (StrEquals(words[1], IgnoreKey))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.Ignore;
                     }
@@ -495,7 +495,7 @@ internal static class DefaultCommentParser
 
                 // login
                 // signin
-                else if (haveTag is true && StrEqualsToArray(ref words[0], LoginKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], LoginKey))
                 {
                     routineEndpoint.Login = true;
                     if (options.LogAnnotationSetInfo)
@@ -506,7 +506,7 @@ internal static class DefaultCommentParser
 
                 // logout
                 // signout
-                else if (haveTag is true && StrEqualsToArray(ref words[0], LogoutKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], LogoutKey))
                 {
                     routineEndpoint.Logout = true;
                     if (options.LogAnnotationSetInfo)
@@ -519,7 +519,7 @@ internal static class DefaultCommentParser
                 // buffer_rows number
                 // buffer-rows number
                 // buffer number
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(ref words[0], bufferRowsKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], bufferRowsKey))
                 {
                     if (ulong.TryParse(words[1], out var parsedBuffer))
                     {
@@ -539,7 +539,7 @@ internal static class DefaultCommentParser
                 }
 
                 // raw
-                else if (haveTag is true && StrEquals(ref words[0], RawKey))
+                else if (haveTag is true && StrEquals(words[0], RawKey))
                 {
                     logger?.CommentSetRawMode(routine.Type, routine.Schema, routine.Name);
                     routineEndpoint.Raw = true;
@@ -564,7 +564,7 @@ internal static class DefaultCommentParser
                 // columnnames
                 // column_names
                 // column-names
-                else if (haveTag is true && StrEqualsToArray(ref words[0], columnNamesKey))
+                else if (haveTag is true && StrEqualsToArray(words[0], columnNamesKey))
                 {
                     routineEndpoint.RawColumnNames = true;
                     if (options.LogAnnotationSetInfo)
@@ -586,7 +586,7 @@ internal static class DefaultCommentParser
                         {
                             routineEndpoint.NeedsParsing = true;
                         }
-                        if (StrEquals(ref headerName, ContentTypeKey))
+                        if (StrEquals(headerName, ContentTypeKey))
                         {
                             if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
                             {
@@ -641,9 +641,9 @@ internal static class DefaultCommentParser
         return routineEndpoint;
     }
 
-    private static bool StrEquals(ref string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
+    private static bool StrEquals(string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
 
-    private static bool StrEqualsToArray(ref string str, string[] arr)
+    private static bool StrEqualsToArray(string str, string[] arr)
     {
         for (var i = 0; i < arr.Length; i++)
         {
@@ -655,7 +655,7 @@ internal static class DefaultCommentParser
         return false;
     }
 
-    private static string[] Split(ref string str)
+    private static string[] Split(string str)
     {
         return str
             .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
