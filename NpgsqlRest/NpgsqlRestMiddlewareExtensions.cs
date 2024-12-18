@@ -203,298 +203,9 @@ public static class NpgsqlRestMiddlewareExtensions
             }
 
             var (routine, endpoint, formatter) = tuple;
-
-            JsonObject? jsonObj = null;
-            Dictionary<string, JsonNode?>? bodyDict = null;
-            string? body = null;
             string? headers = null;
-            Dictionary<string, StringValues>? queryDict = null;
 
             // paramsList
-            List<NpgsqlRestParameter> paramsList = new(
-                routine.ParamCount + 
-                (endpoint.RequestHeadersMode == RequestHeadersMode.Parameter ? 1 : 0) +
-                (endpoint.HasBodyParameter ? 1 : 0));
-            bool hasNulls = false;
-
-            if (endpoint.RequestParamType == RequestParamType.QueryString)
-            {
-                queryDict = context.Request.Query.ToDictionary();
-            }
-            if (endpoint.HasBodyParameter || endpoint.RequestParamType == RequestParamType.BodyJson)
-            {
-                context.Request.EnableBuffering();
-                context.Request.Body.Position = 0;
-
-                using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
-                {
-                    body = await reader.ReadToEndAsync();
-                }
-                if (endpoint.RequestParamType == RequestParamType.BodyJson)
-                {
-                    JsonNode? node = null;
-                    try
-                    {
-                        node = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
-                    }
-                    catch (JsonException e)
-                    {
-                        logger?.CouldNotParseJson(body, context.Request.Path, e.Message);
-                        node = null;
-                    }
-                    if (node is not null)
-                    {
-                        try
-                        {
-                            jsonObj = node?.AsObject();
-                            bodyDict = jsonObj?.ToDictionary();
-                        }
-                        catch (Exception e)
-                        {
-                            logger?.CouldNotParseJson(body, context.Request.Path, e.Message);
-                            bodyDict = null;
-                        }
-                    }
-                }
-            }
-
-            if (endpoint.RequestParamType == RequestParamType.QueryString)
-            {
-                if (queryDict is null)
-                {
-                    await next(context);
-                    return;
-                }
-
-                if (queryDict.Count != routine.ParamCount && overloads.Count > 0)
-                {
-                    if (overloads.TryGetValue(string.Concat(key, queryDict.Count), out var overload))
-                    {
-                        (routine, endpoint, formatter) = overload;
-                    }
-                }
-
-                for (int i = 0; i < routine.Parameters.Length; i++)
-                {
-                    var parameter = routine.Parameters[i];
-
-                    // body parameter
-                    if (endpoint.HasBodyParameter &&
-                        (
-                        string.Equals(endpoint.BodyParameterName, parameter.ConvertedName, StringComparison.Ordinal) ||
-                        string.Equals(endpoint.BodyParameterName, parameter.ActualName, StringComparison.Ordinal)
-                        )
-                    )
-                    {
-                        var bodyParameter = parameter.NpgsqlResMemberwiseClone();
-                        if (body is null)
-                        {
-                            bodyParameter.ParamType = ParamType.BodyParam;
-                            bodyParameter.Value = DBNull.Value;
-                            hasNulls = true;
-                            paramsList.Add(bodyParameter);
-                        }
-                        else
-                        {
-                            StringValues bodyStringValues = body;
-                            if (TryParseParameter(bodyParameter, ref bodyStringValues, endpoint.QueryStringNullHandling))
-                            {
-                                bodyParameter.ParamType = ParamType.BodyParam;
-                                hasNulls = false;
-                                paramsList.Add(bodyParameter);
-                            }
-                        }
-                        continue;
-                    }
-
-                    // header parameter
-                    if (
-                        endpoint.RequestHeadersMode == RequestHeadersMode.Parameter && 
-                        parameter.TypeDescriptor.HasDefault is true &&
-                        (
-                        string.Equals(endpoint.RequestHeadersParameterName, parameter.ConvertedName, StringComparison.Ordinal) ||
-                        string.Equals(endpoint.RequestHeadersParameterName, parameter.ActualName, StringComparison.Ordinal)
-                        )
-                    )
-                    {
-                        if (queryDict.ContainsKey(parameter.ConvertedName) is false)
-                        {
-                            if (headers is null)
-                            {
-                                SearializeHeader();
-                            }
-                            var headerParameter = parameter.NpgsqlResMemberwiseClone();
-                            headerParameter.ParamType = ParamType.HeaderParam;
-                            headerParameter.Value = headers;
-                            paramsList.Add(headerParameter);
-                            continue;
-                        }
-                    }
-
-                    if (queryDict.TryGetValue(parameter.ConvertedName, out var qsValue) is false)
-                    {
-                        if (parameter.TypeDescriptor.HasDefault is false)
-                        {
-                            await next(context);
-                            return;
-                        }
-                        continue;
-                    }
-
-                    var queryParemeter = parameter.NpgsqlResMemberwiseClone();
-                    if (TryParseParameter(queryParemeter, ref qsValue, endpoint.QueryStringNullHandling) is false)
-                    {
-                        if (queryParemeter.TypeDescriptor.HasDefault is false)
-                        {
-                            await next(context);
-                            return;
-                        }
-                        continue;
-                    }
-
-                    queryParemeter.ParamType = ParamType.QueryString;
-                    queryParemeter.QueryStringValues = qsValue;
-                    paramsList.Add(queryParemeter);
-
-                    if (hasNulls is false && queryParemeter.Value == DBNull.Value)
-                    {
-                        hasNulls = true;
-                    }
-                }
-
-                if (paramsList.Count < queryDict.Count)
-                {
-                    foreach (var queryKey in queryDict.Keys)
-                    {
-                        if (routine.ParamsHash.Contains(queryKey) is false)
-                        {
-                            await next(context);
-                            return;
-                        }
-                    }
-                }
-            }
-            else if (endpoint.RequestParamType == RequestParamType.BodyJson) 
-            {
-                if (bodyDict is null)
-                {
-                    await next(context);
-                    return;
-                }
-
-                if (bodyDict.Count != routine.ParamCount && overloads.Count > 0)
-                {
-                    if (overloads.TryGetValue(string.Concat(key, bodyDict.Count), out var overload))
-                    {
-                        (routine, endpoint, formatter) = overload;
-                    }
-                }
-
-                for (int i = 0; i < routine.Parameters.Length; i++)
-                {
-                    var parameter = routine.Parameters[i];
-
-                    // header parameter
-                    if (
-                        endpoint.RequestHeadersMode == RequestHeadersMode.Parameter &&
-                        parameter.TypeDescriptor.HasDefault is true &&
-                    (
-                        string.Equals(endpoint.RequestHeadersParameterName, parameter.ConvertedName, StringComparison.Ordinal) ||
-                        string.Equals(endpoint.RequestHeadersParameterName, parameter.ActualName, StringComparison.Ordinal)
-                        )
-                    )
-                    {
-                        if (bodyDict.ContainsKey(parameter.ConvertedName) is false)
-                        {
-                            if (headers is null)
-                            {
-                                SearializeHeader();
-                            }
-                            var headerParameter = parameter.NpgsqlResMemberwiseClone();
-                            headerParameter.ParamType = ParamType.HeaderParam;
-                            headerParameter.Value = headers;
-                            paramsList.Add(headerParameter);
-                            continue;
-                        }
-                    }
-
-                    if (bodyDict.TryGetValue(parameter.ConvertedName, out var value) is false)
-                    {
-                        if (parameter.TypeDescriptor.HasDefault is false)
-                        {
-                            await next(context);
-                            return;
-                        }
-                        continue;
-                    }
-                    var bodyParameter = parameter.NpgsqlResMemberwiseClone();
-                    if (TryParseParameter(bodyParameter, value) is false)
-                    {
-                        if (bodyParameter.TypeDescriptor.HasDefault is false)
-                        {
-                            await next(context);
-                            return;
-                        }
-                        continue;
-                    }
-                    bodyParameter.ParamType = ParamType.BodyJson;
-                    bodyParameter.JsonBodyNode = value;
-                    paramsList.Add(bodyParameter);
-                    if (hasNulls is false && bodyParameter.Value == DBNull.Value)
-                    {
-                        hasNulls = true;
-                    }
-                }
-
-                if (paramsList.Count < bodyDict.Count)
-                {
-                    foreach (var bodyKey in bodyDict.Keys)
-                    {
-                        if (routine.ParamsHash.Contains(bodyKey) is false)
-                        {
-                            await next(context);
-                            return;
-                        }
-                    }
-                }
-            }
-
-            if (hasNulls && routine.IsStrict)
-            {
-                context.Response.StatusCode = (int)HttpStatusCode.NoContent;
-                await context.Response.CompleteAsync();
-                return;
-            }
-
-            if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
-            {
-                for (var i = 0; i < paramsList.Count; i++)
-                {
-                    var parameter = paramsList[i];
-                    if (options.ValidateParameters is not null)
-                    {
-                        options.ValidateParameters(new ParameterValidationValues(
-                            context,
-                            routine,
-                            parameter));
-                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
-                        {
-                            return;
-                        }
-                    }
-                    if (options.ValidateParametersAsync is not null)
-                    {
-                        await options.ValidateParametersAsync(new ParameterValidationValues(
-                            context,
-                            routine,
-                            parameter));
-                        if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
-                        {
-                            return;
-                        }
-                    }
-                }
-            }
             // paramsList is ready
 
             if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
@@ -599,6 +310,297 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
 
                 // paramsList
+                bool hasNulls = false;
+                JsonObject? jsonObj = null;
+                Dictionary<string, JsonNode?>? bodyDict = null;
+                string? body = null;
+                Dictionary<string, StringValues>? queryDict = null;
+
+                if (endpoint.RequestParamType == RequestParamType.QueryString)
+                {
+                    queryDict = context.Request.Query.ToDictionary();
+                }
+                if (endpoint.HasBodyParameter || endpoint.RequestParamType == RequestParamType.BodyJson)
+                {
+                    context.Request.EnableBuffering();
+                    context.Request.Body.Position = 0;
+
+                    using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true))
+                    {
+                        body = await reader.ReadToEndAsync();
+                    }
+                    if (endpoint.RequestParamType == RequestParamType.BodyJson)
+                    {
+                        JsonNode? node = null;
+                        try
+                        {
+                            node = JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
+                        }
+                        catch (JsonException e)
+                        {
+                            logger?.CouldNotParseJson(body, context.Request.Path, e.Message);
+                            node = null;
+                        }
+                        if (node is not null)
+                        {
+                            try
+                            {
+                                jsonObj = node?.AsObject();
+                                bodyDict = jsonObj?.ToDictionary();
+                            }
+                            catch (Exception e)
+                            {
+                                logger?.CouldNotParseJson(body, context.Request.Path, e.Message);
+                                bodyDict = null;
+                            }
+                        }
+                    }
+                }
+
+                if (endpoint.RequestParamType == RequestParamType.QueryString)
+                {
+                    if (queryDict is null)
+                    {
+                        await next(context);
+                        return;
+                    }
+
+                    if (queryDict.Count != routine.ParamCount && overloads.Count > 0)
+                    {
+                        if (overloads.TryGetValue(string.Concat(key, queryDict.Count), out var overload))
+                        {
+                            (routine, endpoint, formatter) = overload;
+                        }
+                    }
+
+                    for (int i = 0; i < routine.Parameters.Length; i++)
+                    {
+                        var parameter = routine.Parameters[i];
+
+                        // body parameter
+                        if (endpoint.HasBodyParameter &&
+                            (
+                            string.Equals(endpoint.BodyParameterName, parameter.ConvertedName, StringComparison.Ordinal) ||
+                            string.Equals(endpoint.BodyParameterName, parameter.ActualName, StringComparison.Ordinal)
+                            )
+                        )
+                        {
+                            var bodyParameter = parameter.NpgsqlResMemberwiseClone();
+                            if (body is null)
+                            {
+                                bodyParameter.ParamType = ParamType.BodyParam;
+                                bodyParameter.Value = DBNull.Value;
+                                hasNulls = true;
+                                //paramsList.Add(bodyParameter);
+                                command.Parameters.Add(bodyParameter);
+                            }
+                            else
+                            {
+                                StringValues bodyStringValues = body;
+                                if (TryParseParameter(bodyParameter, ref bodyStringValues, endpoint.QueryStringNullHandling))
+                                {
+                                    bodyParameter.ParamType = ParamType.BodyParam;
+                                    hasNulls = false;
+                                    //paramsList.Add(bodyParameter);
+                                    command.Parameters.Add(bodyParameter);
+                                }
+                            }
+                            continue;
+                        }
+
+                        // header parameter
+                        if (
+                            endpoint.RequestHeadersMode == RequestHeadersMode.Parameter &&
+                            parameter.TypeDescriptor.HasDefault is true &&
+                            (
+                            string.Equals(endpoint.RequestHeadersParameterName, parameter.ConvertedName, StringComparison.Ordinal) ||
+                            string.Equals(endpoint.RequestHeadersParameterName, parameter.ActualName, StringComparison.Ordinal)
+                            )
+                        )
+                        {
+                            if (queryDict.ContainsKey(parameter.ConvertedName) is false)
+                            {
+                                if (headers is null)
+                                {
+                                    SearializeHeader();
+                                }
+                                var headerParameter = parameter.NpgsqlResMemberwiseClone();
+                                headerParameter.ParamType = ParamType.HeaderParam;
+                                headerParameter.Value = headers;
+                                //paramsList.Add(headerParameter);
+                                command.Parameters.Add(headerParameter);
+                                continue;
+                            }
+                        }
+
+                        if (queryDict.TryGetValue(parameter.ConvertedName, out var qsValue) is false)
+                        {
+                            if (parameter.TypeDescriptor.HasDefault is false)
+                            {
+                                await next(context);
+                                return;
+                            }
+                            continue;
+                        }
+
+                        var queryParemeter = parameter.NpgsqlResMemberwiseClone();
+                        if (TryParseParameter(queryParemeter, ref qsValue, endpoint.QueryStringNullHandling) is false)
+                        {
+                            if (queryParemeter.TypeDescriptor.HasDefault is false)
+                            {
+                                await next(context);
+                                return;
+                            }
+                            continue;
+                        }
+
+                        queryParemeter.ParamType = ParamType.QueryString;
+                        queryParemeter.QueryStringValues = qsValue;
+                        //paramsList.Add(queryParemeter);
+                        command.Parameters.Add(queryParemeter);
+
+                        if (hasNulls is false && queryParemeter.Value == DBNull.Value)
+                        {
+                            hasNulls = true;
+                        }
+                    }
+
+                    if (command.Parameters.Count < queryDict.Count)
+                    {
+                        foreach (var queryKey in queryDict.Keys)
+                        {
+                            if (routine.ParamsHash.Contains(queryKey) is false)
+                            {
+                                await next(context);
+                                return;
+                            }
+                        }
+                    }
+                }
+                else if (endpoint.RequestParamType == RequestParamType.BodyJson)
+                {
+                    if (bodyDict is null)
+                    {
+                        await next(context);
+                        return;
+                    }
+
+                    if (bodyDict.Count != routine.ParamCount && overloads.Count > 0)
+                    {
+                        if (overloads.TryGetValue(string.Concat(key, bodyDict.Count), out var overload))
+                        {
+                            (routine, endpoint, formatter) = overload;
+                        }
+                    }
+
+                    for (int i = 0; i < routine.Parameters.Length; i++)
+                    {
+                        var parameter = routine.Parameters[i];
+
+                        // header parameter
+                        if (
+                            endpoint.RequestHeadersMode == RequestHeadersMode.Parameter &&
+                            parameter.TypeDescriptor.HasDefault is true &&
+                        (
+                            string.Equals(endpoint.RequestHeadersParameterName, parameter.ConvertedName, StringComparison.Ordinal) ||
+                            string.Equals(endpoint.RequestHeadersParameterName, parameter.ActualName, StringComparison.Ordinal)
+                            )
+                        )
+                        {
+                            if (bodyDict.ContainsKey(parameter.ConvertedName) is false)
+                            {
+                                if (headers is null)
+                                {
+                                    SearializeHeader();
+                                }
+                                var headerParameter = parameter.NpgsqlResMemberwiseClone();
+                                headerParameter.ParamType = ParamType.HeaderParam;
+                                headerParameter.Value = headers;
+                                //paramsList.Add(headerParameter);
+                                command.Parameters.Add(headerParameter);
+                                continue;
+                            }
+                        }
+
+                        if (bodyDict.TryGetValue(parameter.ConvertedName, out var value) is false)
+                        {
+                            if (parameter.TypeDescriptor.HasDefault is false)
+                            {
+                                await next(context);
+                                return;
+                            }
+                            continue;
+                        }
+                        var bodyParameter = parameter.NpgsqlResMemberwiseClone();
+                        if (TryParseParameter(bodyParameter, value) is false)
+                        {
+                            if (bodyParameter.TypeDescriptor.HasDefault is false)
+                            {
+                                await next(context);
+                                return;
+                            }
+                            continue;
+                        }
+                        bodyParameter.ParamType = ParamType.BodyJson;
+                        bodyParameter.JsonBodyNode = value;
+                        //paramsList.Add(bodyParameter);
+                        command.Parameters.Add(bodyParameter);
+                        if (hasNulls is false && bodyParameter.Value == DBNull.Value)
+                        {
+                            hasNulls = true;
+                        }
+                    }
+
+                    if (command.Parameters.Count < bodyDict.Count)
+                    {
+                        foreach (var bodyKey in bodyDict.Keys)
+                        {
+                            if (routine.ParamsHash.Contains(bodyKey) is false)
+                            {
+                                await next(context);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                if (hasNulls && routine.IsStrict)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NoContent;
+                    await context.Response.CompleteAsync();
+                    return;
+                }
+
+
+                if (options.ValidateParameters is not null || options.ValidateParametersAsync is not null)
+                {
+                    for (var i = 0; i < command.Parameters.Count; i++)
+                    {
+                        NpgsqlRestParameter parameter = (NpgsqlRestParameter)command.Parameters[i];
+                        if (options.ValidateParameters is not null)
+                        {
+                            options.ValidateParameters(new ParameterValidationValues(
+                                context,
+                                routine,
+                                parameter));
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
+                        }
+                        if (options.ValidateParametersAsync is not null)
+                        {
+                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                context,
+                                routine,
+                                parameter));
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
+                        }
+                    }
+                }
                 // paramsList is ready
 
                 var shouldLog = options.LogCommands && logger != null;
@@ -606,11 +608,10 @@ public static class NpgsqlRestMiddlewareExtensions
                     new(string.Concat("-- ", context.Request.Method, " ", context.Request.GetDisplayUrl(), Environment.NewLine)) :
                     null;
 
-                int paramCount = paramsList.Count;
                 if (formatter.RefContext)
                 {
                     commandText = formatter.IsFormattable ?
-                        formatter.FormatCommand(routine, paramsList, context) :
+                        formatter.FormatCommand(routine, command.Parameters, context) :
                         routine.Expression;
                     if (formatter.IsFormattable)
                     {
@@ -623,11 +624,11 @@ public static class NpgsqlRestMiddlewareExtensions
                 else
                 {
                     commandText = formatter.IsFormattable ?
-                        formatter.FormatCommand(routine, paramsList) :
+                        formatter.FormatCommand(routine, command.Parameters) :
                         routine.Expression;
                 }
 
-                if (paramCount == 0 && formatter.IsFormattable is false)
+                if (command.Parameters.Count == 0 && formatter.IsFormattable is false)
                 {
                     if (formatter.RefContext)
                     {
@@ -647,17 +648,18 @@ public static class NpgsqlRestMiddlewareExtensions
                 }
                 else
                 {
-                    for (var i = 0; i < paramCount; i++)
+                    for (var i = 0; i < command.Parameters.Count; i++)
                     {
-                        var parameter = paramsList[i];
-                        command.Parameters.Add(parameter);
+                        //var parameter = paramsList[i];
+                        //command.Parameters.Add(parameter);
+                        NpgsqlRestParameter parameter = (NpgsqlRestParameter)command.Parameters[i];
 
                         if (formatter.IsFormattable is false)
                         {
                             if (formatter.RefContext)
                             {
                                 commandText = string.Concat(commandText,
-                                    formatter.AppendCommandParameter(parameter, i, paramCount, context));
+                                    formatter.AppendCommandParameter(parameter, i, command.Parameters.Count, context));
                                 if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
                                 {
                                     return;
@@ -666,7 +668,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             else
                             {
                                 commandText = string.Concat(commandText,
-                                    formatter.AppendCommandParameter(parameter, i, paramCount));
+                                    formatter.AppendCommandParameter(parameter, i, command.Parameters.Count));
                             }
                         }
 
@@ -748,7 +750,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             if (endpoint.ResponseContentType is not null)
                             {
                                 context.Response.ContentType = endpoint.NeedsParsing ?
-                                    PgConverters.ParseParameters(paramsList, endpoint.ResponseContentType) :
+                                    PgConverters.ParseParameters(command.Parameters, endpoint.ResponseContentType) :
                                     endpoint.ResponseContentType;
 
                             }
@@ -766,7 +768,7 @@ public static class NpgsqlRestMiddlewareExtensions
                                 {
                                     context.Response.Headers.Append(headerKey,
                                         endpoint.NeedsParsing ?
-                                        PgConverters.ParseParameters(paramsList, headerValue.ToString()) : headerValue);
+                                        PgConverters.ParseParameters(command.Parameters, headerValue.ToString()) : headerValue);
                                 }
                             }
 
@@ -812,7 +814,7 @@ public static class NpgsqlRestMiddlewareExtensions
                         if (endpoint.ResponseContentType is not null)
                         {
                             context.Response.ContentType = endpoint.NeedsParsing ?
-                                PgConverters.ParseParameters(paramsList, endpoint.ResponseContentType) :
+                                PgConverters.ParseParameters(command.Parameters, endpoint.ResponseContentType) :
                                 endpoint.ResponseContentType;
                         }
                         else
@@ -825,7 +827,7 @@ public static class NpgsqlRestMiddlewareExtensions
                             {
                                 context.Response.Headers.Append(headerKey,
                                     endpoint.NeedsParsing ?
-                                    PgConverters.ParseParameters(paramsList, headerValue.ToString()) : headerValue);
+                                    PgConverters.ParseParameters(command.Parameters, headerValue.ToString()) : headerValue);
                             }
                         }
 

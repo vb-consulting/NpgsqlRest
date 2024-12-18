@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text;
 using System.Text.Json.Serialization;
+using Npgsql;
 
 namespace NpgsqlRest;
 
@@ -213,7 +214,7 @@ internal static class PgConverters
         return result.ToString().AsSpan();
     }
     
-    public static string ParseParameters(List<NpgsqlRestParameter> paramsList, string value)
+    public static string ParseParameters(NpgsqlParameterCollection paramsList, string value)
     {
         var letPos = value.IndexOf("{", StringComparison.OrdinalIgnoreCase);
         if (letPos == -1)
@@ -228,7 +229,7 @@ internal static class PgConverters
         var name = value.Substring(letPos + 1, rightPos - letPos - 1);
         for(var i = 0; i < paramsList.Count; i++)
         {
-            if (string.Equals(paramsList[i].ActualName, name, StringComparison.Ordinal))
+            if (string.Equals(((NpgsqlRestParameter)paramsList[i]).ActualName, name, StringComparison.Ordinal))
             {
                 var val = paramsList[i].Value == DBNull.Value ? "" : paramsList[i].Value?.ToString() ?? "";
                 return string.Concat(value[..letPos], val, value[(rightPos + 1)..]);

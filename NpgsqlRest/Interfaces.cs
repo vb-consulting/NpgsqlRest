@@ -1,4 +1,5 @@
-﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using Npgsql;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace NpgsqlRest;
 
@@ -57,7 +58,7 @@ public interface IRoutineSourceParameterFormatter
     /// <param name="routine">Current routine data</param>
     /// <param name="parameters">Extended parameters list.</param>
     /// <returns>expression string or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters) => null;
+    string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters) => null;
 
     /// <summary>
     /// Called when there are no parameters to append.
@@ -82,7 +83,7 @@ public interface IRoutineSourceParameterFormatter
     /// <param name="parameters">Extended parameters list.</param>
     /// <param name="context">HTTP context reference</param>
     /// <returns>expression string or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters, HttpContext context) => null;
+    string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters, HttpContext context) => null;
 
     /// <summary>
     /// Called when there are no parameters to append.

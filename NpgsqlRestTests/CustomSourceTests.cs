@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
+using Npgsql;
 
 namespace NpgsqlRestTests;
 
@@ -8,7 +9,7 @@ public class BadRequestFormatter : IRoutineSourceParameterFormatter
     public bool IsFormattable { get; } = true;
     public bool RefContext { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters, HttpContext context)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters, HttpContext context)
     {
         context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
         return null;
@@ -20,7 +21,7 @@ public class SelectPathFormatter : IRoutineSourceParameterFormatter
     public bool IsFormattable { get; } = true;
     public bool RefContext { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters, HttpContext context)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters, HttpContext context)
     {
         return string.Format(routine.Expression, context.Request.Path);
     }
@@ -35,7 +36,7 @@ public class MetadataFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters)
     {
         return string.Format(routine.Expression, routine.Metadata);
     }
@@ -46,7 +47,7 @@ public class QueryStringFormatter : IRoutineSourceParameterFormatter
     public bool IsFormattable { get; } = true;
     public bool RefContext { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters, HttpContext context)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters, HttpContext context)
     {
         return string.Format(routine.Expression, context.Request.QueryString);
     }

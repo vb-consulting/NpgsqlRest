@@ -1,4 +1,6 @@
-﻿namespace NpgsqlRest.CrudSource;
+﻿using Npgsql;
+
+namespace NpgsqlRest.CrudSource;
 
 public class SelectParameterFormatter : IRoutineSourceParameterFormatter
 {
@@ -21,7 +23,7 @@ public class UpdateParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters)
     {
         int setCount = 0;
         int whereCount = 0;
@@ -30,8 +32,9 @@ public class UpdateParameterFormatter : IRoutineSourceParameterFormatter
         string where = "where";
 
         for (int i = 0; i < parameters.Count; i++)
-        {
-            var param = parameters[i];
+        {;
+            NpgsqlRestParameter param = (NpgsqlRestParameter)parameters[i];
+
             if (param.TypeDescriptor.IsPk)
             {
                 if (whereCount == 0)
@@ -71,7 +74,7 @@ public class InsertParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters)
     {
         if (parameters.Count == 0)
         {
@@ -84,7 +87,7 @@ public class InsertParameterFormatter : IRoutineSourceParameterFormatter
 
         for (int i = 0; i < parameters.Count; i++)
         {
-            var param = parameters[i];
+            NpgsqlRestParameter param = (NpgsqlRestParameter)parameters[i];
             if (i == 0)
             {
                 f1 = string.Concat(f1, param.ActualName);
@@ -109,7 +112,7 @@ public class DeleteParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = true;
 
-    public string? FormatCommand(Routine routine, List<NpgsqlRestParameter> parameters)
+    public string? FormatCommand(Routine routine, NpgsqlParameterCollection parameters)
     {
         if (parameters.Count == 0)
         {
@@ -120,7 +123,7 @@ public class DeleteParameterFormatter : IRoutineSourceParameterFormatter
 
         for (int i = 0; i < parameters.Count; i++)
         {
-            var param = parameters[i];
+            NpgsqlRestParameter param = (NpgsqlRestParameter)parameters[i];
             if (i == 0)
             {
                 f1 = string.Concat(f1, Environment.NewLine, "    ", param.ActualName, " = $1");
