@@ -196,15 +196,56 @@ public class CrudSource(
     private bool Delete { get => (CrudTypes & CrudCommandType.Delete) == CrudCommandType.Delete; }
     private bool DeleteReturning { get => (CrudTypes & CrudCommandType.DeleteReturning) == CrudCommandType.DeleteReturning; }
 
-    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
+    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider)
     {
-        foreach(var (routine, formatter, type) in ReadInternal(options))
+        NpgsqlConnection? connection = null;
+        bool shouldDispose = true;
+        try
         {
-            if (Created is not null && !Created(routine, type))
+            if (serviceProvider is not null && options.ServiceProviderMode != ServiceProviderObject.None)
             {
-                continue;
+                if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlDataSource)
+                {
+                    connection = serviceProvider.GetRequiredService<NpgsqlDataSource>().OpenConnection();
+                }
+                else if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlConnection)
+                {
+                    shouldDispose = false;
+                    connection = serviceProvider.GetRequiredService<NpgsqlConnection>();
+                }
             }
-            yield return (routine, formatter);
+            else
+            {
+                if (options.DataSource is not null)
+                {
+                    connection = options.DataSource.CreateConnection();
+                }
+                else
+                {
+                    connection = new(options.ConnectionString);
+                }
+            }
+
+            if (connection is null)
+            {
+                yield break;
+            }
+
+            foreach (var (routine, formatter, type) in ReadInternal(options))
+            {
+                if (Created is not null && !Created(routine, type))
+                {
+                    continue;
+                }
+                yield return (routine, formatter);
+            }
+        }
+        finally
+        {
+            if (shouldDispose && connection is not null)
+            {
+                connection.Dispose();
+            }
         }
     }
 

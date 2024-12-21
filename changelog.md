@@ -4,6 +4,31 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.15.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.15.0 (2024-12-21)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.14.0...2.15.0)
+
+This version if full rewrite of the library bringing code simplification and many perfomance optimizations.
+
+If has one new feature that allows refreshing medata without program restart. To facilitate this functionality, there are three new options:
+
+### RefreshEndpointEnabled
+
+- Type: `bool`
+- Default: `false`
+
+Enables or disables refresh endpoint. When refresh endpoint is invoked, the entire metadata for NpgsqlRest endpoints is refreshed. When metadata is refreshed, endpoint returns status 200.
+
+### RefreshMethod
+
+- Type: `string`
+- Default: `"GET"`
+
+### RefreshPath
+
+- Type: `string`
+- Default: `"/api/npgsqlrest/refresh"`
+
 ## Version [2.14.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.14.0 (2024-11-25)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.13.1...2.14.0)

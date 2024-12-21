@@ -9,6 +9,7 @@ using Serilog;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using Microsoft.Extensions.Primitives;
+using NpgsqlRest.CrudSource;
 
 namespace NpgsqlRestClient;
 
@@ -336,6 +337,27 @@ public static class App
         {
             source.ExcludeLanguagues = excludeLanguagues.ToArray();
         }
+
+        var sources = new List<IRoutineSource>() { source };
+
+        var crudSourceCfg = NpgsqlRestCfg.GetSection("CrudSource");
+        if (crudSourceCfg.Exists() is false || GetConfigBool("Enabled", crudSourceCfg) is false)
+        {
+            return sources;
+        }
+        sources.Add(new CrudSource()
+        {
+            SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", crudSourceCfg),
+            SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", crudSourceCfg),
+            IncludeSchemas = GetConfigEnumerable("IncludeSchemas", crudSourceCfg)?.ToArray(),
+            ExcludeSchemas = GetConfigEnumerable("ExcludeSchemas", crudSourceCfg)?.ToArray(),
+            NameSimilarTo = GetConfigStr("NameSimilarTo", crudSourceCfg),
+            NameNotSimilarTo = GetConfigStr("NameNotSimilarTo", crudSourceCfg),
+            IncludeNames = GetConfigEnumerable("IncludeNames", crudSourceCfg)?.ToArray(),
+            ExcludeNames = GetConfigEnumerable("ExcludeNames", crudSourceCfg)?.ToArray(),
+            CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", crudSourceCfg),
+            CrudTypes = GetConfigFlag<CrudCommandType>("CrudTypes", crudSourceCfg),
+        });
 
         return [source];
     }

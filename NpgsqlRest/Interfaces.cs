@@ -104,8 +104,9 @@ public interface IRoutineSource
     /// Yield all routines with the formatters from the current source.
     /// </summary>
     /// <param name="options">Current options</param>
+    /// <param name="serviceProvider">Service provider</param> 
     /// <returns></returns>
-    IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options);
+    IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider);
 
     /// <summary>
     /// SQL Query that returns data source.

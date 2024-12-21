@@ -46,6 +46,8 @@ if (compressionEnabled)
 }
 ConfigureStaticFiles(app);
 
+var refreshOptionsCfg = NpgsqlRestCfg.GetSection("RefreshOptions");
+
 await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 NpgsqlRestOptions options = new()
 {
@@ -91,7 +93,10 @@ NpgsqlRestOptions options = new()
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
     CustomRequestHeaders = GetCustomHeaders(),
 
-    RoutineSources = CreateRoutineSources()
+    RoutineSources = CreateRoutineSources(),
+    RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),
+    RefreshPath = GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
+    RefreshMethod = GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
 };
 
 app.UseNpgsqlRest(options);

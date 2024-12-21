@@ -308,7 +308,7 @@ public static class ExternalAuth
             throw new ArgumentException("email retrieved from the external provider is null");
         }
 
-        var logger = NpgsqlRestMiddlewareExtensions.GetLogger();
+        var logger = NpgsqlRestMiddleware.Logger;
         using var connection = new NpgsqlConnection(options.ConnectionString);
         if (options.LogConnectionNoticeEvents && logger != null)
         {

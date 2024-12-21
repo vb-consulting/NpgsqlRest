@@ -51,7 +51,10 @@ public class NpgsqlRestOptions(
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
     Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
     Dictionary<string, StringValues>? customRequestHeaders = null,
-    List<IRoutineSource>? routineSources = null)
+    List<IRoutineSource>? routineSources = null,
+    bool refreshEndpointEnabled = false,
+    string refreshMethod = "GET",
+    string refreshPath = "/api/npgsqlrest/refresh")
 {
 
     /// <summary>
@@ -301,4 +304,17 @@ public class NpgsqlRestOptions(
     /// Routine sources default list.
     /// </summary>
     public List<IRoutineSource> RoutineSources { get; set; } = routineSources ?? [new RoutineSource()];
+
+    /// <summary>
+    /// Enable refresh endpoint for Metadata.
+    /// </summary>
+    public bool RefreshEndpointEnabled { get; set; } = refreshEndpointEnabled;
+    /// <summary>
+    /// Refresh endpoint method.
+    /// </summary>
+    public string RefreshMethod { get; set; } = refreshMethod;
+    /// <summary>
+    /// Refresh endpoint path.
+    /// </summary>
+    public string RefreshPath { get; set; } = refreshPath;
 }

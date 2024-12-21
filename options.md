@@ -714,3 +714,20 @@ app.UseNpgsqlRest(new()
     }
 }
 ```
+
+## RefreshEndpointEnabled
+
+- Type: `bool`
+- Default: `false`
+
+Enables or disables refresh endpoint. When refresh endpoint is invoked, the entire metadata for NpgsqlRest endpoints is refreshed. When metadata is refreshed, endpoint returns status 200.
+
+## RefreshMethod
+
+- Type: `string`
+- Default: `"GET"`
+
+## RefreshPath
+
+- Type: `string`
+- Default: `"/api/npgsqlrest/refresh"`

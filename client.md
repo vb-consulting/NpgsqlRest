@@ -91,6 +91,118 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.6.0
+
+- NpgsqlRest 2.15 build.
+- Added new NpgsqlRest settings:
+
+```jsonc
+{
+  "NpgsqlRest": {
+    // ...
+
+    //
+    // Options for refresh metadata endpoint
+    //
+    "RefreshOptions": {
+      //
+      // Refresh metadata endpoint enabled
+      //
+      "Enabled": false,
+      //
+      // Refresh metadata endpoint path
+      //
+      "Path": "/api/npgsqlrest/refresh",
+      //
+      // Refresh metadata endpoint HTTP method
+      //
+      "Method": "GET"
+    },
+
+    // ...
+  }
+```
+
+- Added CrudSource in NpgsqlRest settings. CrudSource allows creating ednpoints from tables and views:
+```jsonc
+{
+  "NpgsqlRest": {
+    // ...
+
+    //
+    // CRUD endpoints for the PostgreSQL tables and views.
+    //
+    "CrudSource": {
+      //
+      // Enable or disable the creation of the endpoints for the PostgreSQL tables and views.
+      //
+      "Enabled": true,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#schemasimilarto
+      //
+      "SchemaSimilarTo": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#schemanotsimilarto
+      //
+      "SchemaNotSimilarTo": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#includeschemas
+      //
+      "IncludeSchemas": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#excludeschemas
+      //
+      "ExcludeSchemas": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#namesimilarto
+      //
+      "NameSimilarTo": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#namenotsimilarto
+      //
+      "NameNotSimilarTo": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#includenames
+      //
+      "IncludeNames": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#excludenames
+      //
+      "ExcludeNames": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#commentsmode
+      //
+      "CommentsMode": "OnlyWithHttpTag",
+      //
+      // Set of flags to enable or disable the creation of the CRUD endpoints for the specific types of the PostgreSQL tables and views. 
+      //
+      // Possible values are: 
+      // Select, Update, UpdateReturning, Insert, InsertReturning, InsertOnConflictDoNothing, InsertOnConflictDoUpdate, InsertOnConflictDoNothingReturning, 
+      // InsertOnConflictDoUpdateReturning, Delete, DeleteReturning, All
+      //
+      "CrudTypes": [
+        "All"
+      ]
+    }
+
+    // ...
+  }
+```
+
+- Versions:
+
+```console
+Versions:
+.NET                  9.0.0
+Client Build          2.6.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.15.0.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.16.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.5.0
 
 ```console

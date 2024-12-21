@@ -3,6 +3,7 @@ using Npgsql;
 using NpgsqlTypes;
 using NpgsqlRest.Extensions;
 using System.Collections.Frozen;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace NpgsqlRest;
 
@@ -35,146 +36,177 @@ public class RoutineSource(
     public string[]? IncludeLanguagues { get; set; } = includeLanguagues;
     public string[]? ExcludeLanguagues { get; set; } = excludeLanguagues;
 
-    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options)
+    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider)
     {
-        using NpgsqlConnection? connection = 
-            string.IsNullOrEmpty(options.ConnectionString) ? 
-            options.DataSource?.CreateConnection() : 
-            new NpgsqlConnection(options.ConnectionString);
-        if (connection is null)
+        NpgsqlConnection? connection = null;
+        bool shouldDispose = true;
+        try
         {
-            yield break;
-        }
-        using var command = connection.CreateCommand();
-        Query ??= RoutineSourceQuery.Query;
-        if (Query.Contains(Consts.Space) is false)
-        {
-            command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)");
-        }
-        else
-        {
-            command.CommandText = Query;
-        }
-        
-        AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
-        AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
-        AddParameter(IncludeSchemas ?? options.IncludeSchemas, true); // $3
-        AddParameter(ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
-        AddParameter(NameSimilarTo ?? options.NameSimilarTo); // $5
-        AddParameter(NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
-        AddParameter(IncludeNames ?? options.IncludeNames, true); // $7
-        AddParameter(ExcludeNames ?? options.ExcludeNames, true); // $8
-        AddParameter(IncludeLanguagues?.Select(l => l.ToLowerInvariant()), true); // $9
-        AddParameter(ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues.Select(l => l.ToLowerInvariant()), true); // $10
-
-        connection.Open();
-        using NpgsqlDataReader reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-            var type = reader.Get<string>(0);//"type");
-            var paramTypes = reader.Get<string[]>(14);// "param_types");
-            var returnType = reader.Get<string>(7);// "return_type");
-            var name = reader.Get<string>(2);// "name");
-
-            var volatility = reader.Get<char>(5);//"volatility_option");
-
-            var hasGet =
-                name.Contains("_get_", StringComparison.OrdinalIgnoreCase) ||
-                name.StartsWith("get_", StringComparison.OrdinalIgnoreCase) ||
-                name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
-            var crudType = hasGet ? CrudType.Select : (volatility == 'v' ? CrudType.Update : CrudType.Select);
-
-            var originalParamNames = reader.Get<string[]>(13);//"param_names");
-            var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
-            var schema = reader.Get<string>(1);//"schema");
-            var returnsSet = reader.Get<bool>(6);//"returns_set");
-
-            var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
-
-            string[] convertedRecordNames = new string[returnRecordNames.Length];
-            for (int i = 0; i < returnRecordNames.Length; i++)
+            if (serviceProvider is not null && options.ServiceProviderMode != ServiceProviderObject.None)
             {
-                convertedRecordNames[i] = options.NameConverter(returnRecordNames[i]) ?? returnRecordNames[i];
-            }
-
-            var returnRecordTypes = reader.Get<string[]>(10);//"return_record_types");
-
-            string[] expNames = new string[returnRecordNames.Length];
-            var customRecTypeNames = reader.Get<string?[]>(21); //custom_rec_type_names
-            if (customRecTypeNames is not null && customRecTypeNames.Length > 0)
-            {
-                var customRecTypeTypes = reader.Get<string?[]>(22); //custom_rec_type_types
-                for (var i = 0; i < convertedRecordNames.Length; i++)
+                if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlDataSource)
                 {
-                    var customName = customRecTypeNames[i];
-                    if (customName is not null)
-                    {
-                        expNames[i] = string.Concat("(", returnRecordNames[i], "::", returnRecordTypes[i], ").", customName);
-                        convertedRecordNames[i] = options.NameConverter(customName) ?? customName;
-                        returnRecordTypes[i] = customRecTypeTypes[i] ?? returnRecordTypes[i];
-                    }
-                    else
-                    {
-                        expNames[i] = returnRecordNames[i];
-                    }
+                    connection = serviceProvider.GetRequiredService<NpgsqlDataSource>().OpenConnection();
                 }
-            }
-            
-            TypeDescriptor[] returnTypeDescriptor;
-            if (isVoid)
-            {
-                returnTypeDescriptor = [];
-            }
-            else
-            {
-                returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
-            }
-            
-            
-            bool isUnnamedRecord = reader.Get<bool>(11);// "is_unnamed_record");
-            var routineType = type.GetEnum<RoutineType>();
-            var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
-            var paramCount = reader.Get<int>(12);// "param_count");
-            var argumentDef = reader.Get<string>(15);
-
-            string?[] paramDefaults = new string?[paramCount];
-            bool[] hasParamDefaults = new bool[paramCount];
-            
-            if (string.IsNullOrEmpty(argumentDef))
-            {
-                for (int i = 0; i < paramCount; i++)
+                else if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlConnection)
                 {
-                    paramDefaults[i] = null;
-                    hasParamDefaults[i] = false;
+                    shouldDispose = false;
+                    connection = serviceProvider.GetRequiredService<NpgsqlConnection>();
                 }
             }
             else
             {
-                const string defaultArgExp = " DEFAULT ";
-                for (int i = 0; i < paramCount; i++)
+                if (options.DataSource is not null)
                 {
-                    string paramName = originalParamNames[i] ?? "";
-                    string? nextParamName = i < paramCount - 1 ? originalParamNames[i + 1] : null;
+                    connection = options.DataSource.CreateConnection();
+                }
+                else
+                {
+                    connection = new(options.ConnectionString);
+                }
+            }
 
-                    int startIndex = argumentDef.IndexOf(paramName);
-                    int endIndex = nextParamName != null ? argumentDef.IndexOf(string.Concat(", " + nextParamName, " ")) : argumentDef.Length;
+            if (connection is null)
+            {
+                yield break;
+            }
 
-                    if (startIndex != -1 && endIndex != -1 && startIndex < endIndex)
+            using var command = connection.CreateCommand();
+            Query ??= RoutineSourceQuery.Query;
+            if (Query.Contains(Consts.Space) is false)
+            {
+                command.CommandText = string.Concat("select * from ", Query, "($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)");
+            }
+            else
+            {
+                command.CommandText = Query;
+            }
+
+            AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
+            AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
+            AddParameter(IncludeSchemas ?? options.IncludeSchemas, true); // $3
+            AddParameter(ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
+            AddParameter(NameSimilarTo ?? options.NameSimilarTo); // $5
+            AddParameter(NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
+            AddParameter(IncludeNames ?? options.IncludeNames, true); // $7
+            AddParameter(ExcludeNames ?? options.ExcludeNames, true); // $8
+            AddParameter(IncludeLanguagues?.Select(l => l.ToLowerInvariant()), true); // $9
+            AddParameter(ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues.Select(l => l.ToLowerInvariant()), true); // $10
+
+            connection.Open();
+            using NpgsqlDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var type = reader.Get<string>(0);//"type");
+                var paramTypes = reader.Get<string[]>(14);// "param_types");
+                var returnType = reader.Get<string>(7);// "return_type");
+                var name = reader.Get<string>(2);// "name");
+
+                var volatility = reader.Get<char>(5);//"volatility_option");
+
+                var hasGet =
+                    name.Contains("_get_", StringComparison.OrdinalIgnoreCase) ||
+                    name.StartsWith("get_", StringComparison.OrdinalIgnoreCase) ||
+                    name.EndsWith("_get", StringComparison.OrdinalIgnoreCase);
+                var crudType = hasGet ? CrudType.Select : (volatility == 'v' ? CrudType.Update : CrudType.Select);
+
+                var originalParamNames = reader.Get<string[]>(13);//"param_names");
+                var isVoid = string.Equals(returnType, "void", StringComparison.Ordinal);
+                var schema = reader.Get<string>(1);//"schema");
+                var returnsSet = reader.Get<bool>(6);//"returns_set");
+
+                var returnRecordNames = reader.Get<string[]>(9);//"return_record_names");
+
+                string[] convertedRecordNames = new string[returnRecordNames.Length];
+                for (int i = 0; i < returnRecordNames.Length; i++)
+                {
+                    convertedRecordNames[i] = options.NameConverter(returnRecordNames[i]) ?? returnRecordNames[i];
+                }
+
+                var returnRecordTypes = reader.Get<string[]>(10);//"return_record_types");
+
+                string[] expNames = new string[returnRecordNames.Length];
+                var customRecTypeNames = reader.Get<string?[]>(21); //custom_rec_type_names
+                if (customRecTypeNames is not null && customRecTypeNames.Length > 0)
+                {
+                    var customRecTypeTypes = reader.Get<string?[]>(22); //custom_rec_type_types
+                    for (var i = 0; i < convertedRecordNames.Length; i++)
                     {
-                        string paramDef = argumentDef[startIndex..endIndex];
-
-                        int defaultIndex = paramDef.IndexOf(defaultArgExp);
-                        if (defaultIndex != -1)
+                        var customName = customRecTypeNames[i];
+                        if (customName is not null)
                         {
-                            string defaultValue = paramDef[(defaultIndex + 9)..].Trim();
+                            expNames[i] = string.Concat("(", returnRecordNames[i], "::", returnRecordTypes[i], ").", customName);
+                            convertedRecordNames[i] = options.NameConverter(customName) ?? customName;
+                            returnRecordTypes[i] = customRecTypeTypes[i] ?? returnRecordTypes[i];
+                        }
+                        else
+                        {
+                            expNames[i] = returnRecordNames[i];
+                        }
+                    }
+                }
 
-                            if (defaultValue.EndsWith(Consts.Comma))
+                TypeDescriptor[] returnTypeDescriptor;
+                if (isVoid)
+                {
+                    returnTypeDescriptor = [];
+                }
+                else
+                {
+                    returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
+                }
+
+
+                bool isUnnamedRecord = reader.Get<bool>(11);// "is_unnamed_record");
+                var routineType = type.GetEnum<RoutineType>();
+                var callIdent = routineType == RoutineType.Procedure ? "call " : "select ";
+                var paramCount = reader.Get<int>(12);// "param_count");
+                var argumentDef = reader.Get<string>(15);
+
+                string?[] paramDefaults = new string?[paramCount];
+                bool[] hasParamDefaults = new bool[paramCount];
+
+                if (string.IsNullOrEmpty(argumentDef))
+                {
+                    for (int i = 0; i < paramCount; i++)
+                    {
+                        paramDefaults[i] = null;
+                        hasParamDefaults[i] = false;
+                    }
+                }
+                else
+                {
+                    const string defaultArgExp = " DEFAULT ";
+                    for (int i = 0; i < paramCount; i++)
+                    {
+                        string paramName = originalParamNames[i] ?? "";
+                        string? nextParamName = i < paramCount - 1 ? originalParamNames[i + 1] : null;
+
+                        int startIndex = argumentDef.IndexOf(paramName);
+                        int endIndex = nextParamName != null ? argumentDef.IndexOf(string.Concat(", " + nextParamName, " ")) : argumentDef.Length;
+
+                        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex)
+                        {
+                            string paramDef = argumentDef[startIndex..endIndex];
+
+                            int defaultIndex = paramDef.IndexOf(defaultArgExp);
+                            if (defaultIndex != -1)
                             {
-                                defaultValue = defaultValue[..^1].Trim();
-                            }
+                                string defaultValue = paramDef[(defaultIndex + 9)..].Trim();
 
-                            paramDefaults[i] = defaultValue;
-                            hasParamDefaults[i] = true;
+                                if (defaultValue.EndsWith(Consts.Comma))
+                                {
+                                    defaultValue = defaultValue[..^1].Trim();
+                                }
+
+                                paramDefaults[i] = defaultValue;
+                                hasParamDefaults[i] = true;
+                            }
+                            else
+                            {
+                                paramDefaults[i] = null;
+                                hasParamDefaults[i] = false;
+                            }
                         }
                         else
                         {
@@ -182,174 +214,168 @@ public class RoutineSource(
                             hasParamDefaults[i] = false;
                         }
                     }
-                    else
-                    {
-                        paramDefaults[i] = null;
-                        hasParamDefaults[i] = false;
-                    }
                 }
-            }
 
-            var returnRecordCount = reader.Get<int>(8);// "return_record_count");
-            var variadic = reader.Get<bool>(16);// "has_variadic");
-            string from;
-            if (isVoid || returnRecordCount == 1)
-            {
-                from = callIdent;
-            }
-            else
-            {
-                //from = string.Concat(callIdent, string.Join(",", returnRecordNames), " from ");
-                StringBuilder sb = new();
-                for (int i = 0; i < returnRecordCount; i++)
+                var returnRecordCount = reader.Get<int>(8);// "return_record_count");
+                var variadic = reader.Get<bool>(16);// "has_variadic");
+                string from;
+                if (isVoid || returnRecordCount == 1)
                 {
-                    sb.Append(expNames[i] ?? returnRecordNames[i]);
-                    if (i < returnRecordCount - 1)
-                    {
-                        sb.Append(Consts.Comma);
-                    }
-                }
-                from = string.Concat(callIdent, sb.ToString(), " from ");
-            }
-            var expression = string.Concat(
-                from,
-                schema,
-                ".",
-                name,
-                "(",
-                variadic && paramCount > 0 ? "variadic " : "");
-
-            var simpleDefinition = new StringBuilder();
-            simpleDefinition.AppendLine(string.Concat(
-                routineType.ToString().ToLower(), " ",
-                schema, ".",
-                name, "(",
-                paramCount == 0 ? ")" : ""));
-
-
-            var customTypeNames = reader.Get<string?[]>(18);
-            var customTypeTypes = reader.Get<string?[]>(19);
-            var customTypePositions = reader.Get<short?[]>(20);
-
-            NpgsqlRestParameter[] parameters = new NpgsqlRestParameter[paramCount];
-            bool hasCustomType = false;
-            if (paramCount > 0)
-            {
-                for (var i = 0; i < paramCount; i++)
-                {
-                    var paramName = originalParamNames[i];
-                    var originalParameterName = paramName;
-                    var customTypeName = customTypeNames[i];
-                    string? customType;
-                    if (customTypeName != null)
-                    {
-                        customType = paramTypes[i];
-                        paramTypes[i] = customTypeTypes[i] ?? customType;
-                        paramName = string.Concat(paramName, CustomTypeParameterSeparator, customTypeName);
-                        originalParamNames[i] = paramName;
-                        if (hasCustomType is false)
-                        {
-                            hasCustomType = true;
-                        }
-                    }
-                    else
-                    {
-                        customType = null;
-                    }
-                    var defaultValue = paramDefaults[i];
-                    var paramType = paramTypes[i];
-                    var fullParamType = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
-                    simpleDefinition
-                        .AppendLine(string.Concat("    ", paramName, " ", fullParamType, i == paramCount - 1 ? "" : ","));
-
-                    var convertedName = options.NameConverter(paramName);
-                    if (string.IsNullOrEmpty(convertedName))
-                    {
-                        convertedName = $"${i + 1}";
-                    }
-
-                    var descriptor = new TypeDescriptor(
-                        paramType,
-                        hasDefault: hasParamDefaults[i],
-                        customType: customType,
-                        customTypePosition: customTypePositions[i],
-                        originalParameterName: originalParameterName);
-
-                    parameters[i] = new NpgsqlRestParameter
-                    {
-                        Ordinal = i,
-                        NpgsqlDbType = descriptor.ActualDbType,
-                        ConvertedName = convertedName,
-                        ActualName = originalParameterName,
-                        TypeDescriptor = descriptor
-                    };
-                }
-                simpleDefinition.AppendLine(")");
-            }
-     
-            if (!returnsSet)
-            {
-                simpleDefinition.AppendLine(string.Concat("returns ", returnType));
-            }
-            else
-            {
-                if (isUnnamedRecord)
-                {
-                    simpleDefinition.AppendLine(string.Concat($"returns setof {returnType}"));
+                    from = callIdent;
                 }
                 else
                 {
-                    simpleDefinition.AppendLine("returns table(");
-
-                    for (var i = 0; i < returnRecordCount; i++)
+                    //from = string.Concat(callIdent, string.Join(",", returnRecordNames), " from ");
+                    StringBuilder sb = new();
+                    for (int i = 0; i < returnRecordCount; i++)
                     {
-                        var returnParamName = returnRecordNames[i];
-                        var returnParamType = returnRecordTypes[i];
+                        sb.Append(expNames[i] ?? returnRecordNames[i]);
+                        if (i < returnRecordCount - 1)
+                        {
+                            sb.Append(Consts.Comma);
+                        }
+                    }
+                    from = string.Concat(callIdent, sb.ToString(), " from ");
+                }
+                var expression = string.Concat(
+                    from,
+                    schema,
+                    ".",
+                    name,
+                    "(",
+                    variadic && paramCount > 0 ? "variadic " : "");
+
+                var simpleDefinition = new StringBuilder();
+                simpleDefinition.AppendLine(string.Concat(
+                    routineType.ToString().ToLower(), " ",
+                    schema, ".",
+                    name, "(",
+                    paramCount == 0 ? ")" : ""));
+
+
+                var customTypeNames = reader.Get<string?[]>(18);
+                var customTypeTypes = reader.Get<string?[]>(19);
+                var customTypePositions = reader.Get<short?[]>(20);
+
+                NpgsqlRestParameter[] parameters = new NpgsqlRestParameter[paramCount];
+                bool hasCustomType = false;
+                if (paramCount > 0)
+                {
+                    for (var i = 0; i < paramCount; i++)
+                    {
+                        var paramName = originalParamNames[i];
+                        var originalParameterName = paramName;
+                        var customTypeName = customTypeNames[i];
+                        string? customType;
+                        if (customTypeName != null)
+                        {
+                            customType = paramTypes[i];
+                            paramTypes[i] = customTypeTypes[i] ?? customType;
+                            paramName = string.Concat(paramName, CustomTypeParameterSeparator, customTypeName);
+                            originalParamNames[i] = paramName;
+                            if (hasCustomType is false)
+                            {
+                                hasCustomType = true;
+                            }
+                        }
+                        else
+                        {
+                            customType = null;
+                        }
+                        var defaultValue = paramDefaults[i];
+                        var paramType = paramTypes[i];
+                        var fullParamType = defaultValue == null ? paramType : $"{paramType} DEFAULT {defaultValue}";
                         simpleDefinition
-                            .AppendLine(string.Concat("    ", returnParamName, " ", returnParamType, i == returnRecordCount - 1 ? "" : ","));
+                            .AppendLine(string.Concat("    ", paramName, " ", fullParamType, i == paramCount - 1 ? "" : ","));
+
+                        var convertedName = options.NameConverter(paramName);
+                        if (string.IsNullOrEmpty(convertedName))
+                        {
+                            convertedName = $"${i + 1}";
+                        }
+
+                        var descriptor = new TypeDescriptor(
+                            paramType,
+                            hasDefault: hasParamDefaults[i],
+                            customType: customType,
+                            customTypePosition: customTypePositions[i],
+                            originalParameterName: originalParameterName);
+
+                        parameters[i] = new NpgsqlRestParameter
+                        {
+                            Ordinal = i,
+                            NpgsqlDbType = descriptor.ActualDbType,
+                            ConvertedName = convertedName,
+                            ActualName = originalParameterName,
+                            TypeDescriptor = descriptor
+                        };
                     }
                     simpleDefinition.AppendLine(")");
                 }
-            }
 
-            IRoutineSourceParameterFormatter formatter;
-            if (hasCustomType is false)
-            {
-                formatter = new RoutineSourceParameterFormatter();
-            }
-            else
-            {
-                formatter = new RoutineSourceCustomTypesParameterFormatter();
-            }
-
-            yield return (
-                new Routine
+                if (!returnsSet)
                 {
-                    Type = routineType,
-                    Schema = schema,
-                    Name = name,
-                    Comment = reader.Get<string>(3),//"comment"),
-                    IsStrict = reader.Get<bool>(4),//"is_strict"),
-                    CrudType = crudType,
+                    simpleDefinition.AppendLine(string.Concat("returns ", returnType));
+                }
+                else
+                {
+                    if (isUnnamedRecord)
+                    {
+                        simpleDefinition.AppendLine(string.Concat($"returns setof {returnType}"));
+                    }
+                    else
+                    {
+                        simpleDefinition.AppendLine("returns table(");
 
-                    ReturnsRecordType = string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
-                    ReturnsSet = returnsSet,
-                    ColumnCount = returnRecordCount,
-                    OriginalColumnNames = returnRecordNames,
-                    ColumnNames = convertedRecordNames,
-                    ReturnsUnnamedSet = isUnnamedRecord,
-                    ColumnsTypeDescriptor = returnTypeDescriptor,
-                    IsVoid = isVoid,
+                        for (var i = 0; i < returnRecordCount; i++)
+                        {
+                            var returnParamName = returnRecordNames[i];
+                            var returnParamType = returnRecordTypes[i];
+                            simpleDefinition
+                                .AppendLine(string.Concat("    ", returnParamName, " ", returnParamType, i == returnRecordCount - 1 ? "" : ","));
+                        }
+                        simpleDefinition.AppendLine(")");
+                    }
+                }
 
-                    ParamCount = paramCount,
-                    Parameters = parameters,
-                    ParamsHash = parameters.Select(p => p.ConvertedName).ToFrozenSet(),
+                IRoutineSourceParameterFormatter formatter;
+                if (hasCustomType is false)
+                {
+                    formatter = new RoutineSourceParameterFormatter();
+                }
+                else
+                {
+                    formatter = new RoutineSourceCustomTypesParameterFormatter();
+                }
 
-                    Expression = expression,
-                    FullDefinition = reader.Get<string>(17),//"definition"),
-                    SimpleDefinition = simpleDefinition.ToString(),
+                yield return (
+                    new Routine
+                    {
+                        Type = routineType,
+                        Schema = schema,
+                        Name = name,
+                        Comment = reader.Get<string>(3),//"comment"),
+                        IsStrict = reader.Get<bool>(4),//"is_strict"),
+                        CrudType = crudType,
 
-                    Tags = [routineType.ToString().ToLowerInvariant(), volatility switch
+                        ReturnsRecordType = string.Equals(returnType, "record", StringComparison.OrdinalIgnoreCase),
+                        ReturnsSet = returnsSet,
+                        ColumnCount = returnRecordCount,
+                        OriginalColumnNames = returnRecordNames,
+                        ColumnNames = convertedRecordNames,
+                        ReturnsUnnamedSet = isUnnamedRecord,
+                        ColumnsTypeDescriptor = returnTypeDescriptor,
+                        IsVoid = isVoid,
+
+                        ParamCount = paramCount,
+                        Parameters = parameters,
+                        ParamsHash = parameters.Select(p => p.ConvertedName).ToFrozenSet(),
+
+                        Expression = expression,
+                        FullDefinition = reader.Get<string>(17),//"definition"),
+                        SimpleDefinition = simpleDefinition.ToString(),
+
+                        Tags = [routineType.ToString().ToLowerInvariant(), volatility switch
                     {
                         'v' => "volatile",
                         's' => "stable",
@@ -357,40 +383,48 @@ public class RoutineSource(
                         _ => "other"
                     }],
 
-                    FormatUrlPattern = null,
-                    EndpointHandler = null,
-                    Metadata = null
-                }, 
-                formatter);
+                        FormatUrlPattern = null,
+                        EndpointHandler = null,
+                        Metadata = null
+                    },
+                    formatter);
+            }
+
+            yield break;
+
+            void AddParameter(object? value, bool isArray = false)
+            {
+                if (value is null)
+                {
+                    value = DBNull.Value;
+                }
+                else if (isArray && value is string[] array)
+                {
+                    if (array.Length == 0)
+                    {
+                        value = DBNull.Value;
+                    }
+                }
+                else if (!isArray && value is string str)
+                {
+                    if (string.IsNullOrWhiteSpace(str))
+                    {
+                        value = DBNull.Value;
+                    }
+                }
+                command.Parameters.Add(new NpgsqlParameter
+                {
+                    NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
+                    Value = value
+                });
+            }
         }
-
-        yield break;
-
-        void AddParameter(object? value, bool isArray = false)
+        finally
         {
-            if (value is null)
+            if (connection is not null && shouldDispose is true)
             {
-                value = DBNull.Value;
+                connection.Dispose();
             }
-            else if (isArray && value is string[] array)
-            {
-                if (array.Length == 0)
-                {
-                    value = DBNull.Value;
-                }
-            }
-            else if (!isArray && value is string str)
-            {
-                if (string.IsNullOrWhiteSpace(str))
-                {
-                    value = DBNull.Value;
-                }
-            }
-            command.Parameters.Add(new NpgsqlParameter
-            {
-                NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
-                Value = value
-            });
         }
     }
 }

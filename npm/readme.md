@@ -115,6 +115,20 @@ See the detailed change log:
 - [NpgsqlRest Changelog](https://vb-consulting.github.io/npgsqlrest/changelog/)
 - [NpgsqlRest Client Changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog)
 
+## 2.6.0
+
+```console
+Versions:
+.NET                  9.0.0
+Client Build          2.6.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.15.0.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.16.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.5.0
 
 ```console

@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Npgsql;
 using NpgsqlRest;
+using NpgsqlRest.CrudSource;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
 using static NpgsqlRestClient.Config;
@@ -53,6 +54,7 @@ public static class Arguments
                 ("NpgsqlRest", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString() ?? "-"),
                 ("NpgsqlRest.HttpFiles", System.Reflection.Assembly.GetAssembly(typeof(HttpFileOptions))?.GetName()?.Version?.ToString() ?? "-"),
                 ("NpgsqlRest.TsClient", System.Reflection.Assembly.GetAssembly(typeof(TsClientOptions))?.GetName()?.Version?.ToString() ?? "-"),
+                ("NpgsqlRest.CrudSource", System.Reflection.Assembly.GetAssembly(typeof(CrudSource))?.GetName()?.Version?.ToString() ?? "-"),
                 (" ", " "),
                 ("CurrentDirectory", CurrentDir)
                 ]);
