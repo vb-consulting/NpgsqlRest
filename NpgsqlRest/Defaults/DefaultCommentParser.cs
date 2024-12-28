@@ -149,11 +149,13 @@ internal static class DefaultCommentParser
         else
         {
             string[] lines = comment.Split(newlineSeparator, StringSplitOptions.RemoveEmptyEntries);
+            routineEndpoint.CommentWordLines = new string[lines.Length][];
             bool hasHttpTag = false;
             for (var i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
                 string[] words = Split(line);
+                routineEndpoint.CommentWordLines[i] = words;
                 var len = words.Length;
                 if (len == 0)
                 {

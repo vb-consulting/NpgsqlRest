@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using Npgsql;
 
 namespace NpgsqlRest;
@@ -7,33 +8,27 @@ public class RoutineSourceParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = false;
 
-    public string AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count)
+    public string AppendCommandParameter(NpgsqlRestParameter parameter, int index)
     {
-        var suffix = parameter.TypeDescriptor.IsCastToText() ? $"::{parameter.TypeDescriptor.OriginalType}" : "";
+        var suffix = parameter.TypeDescriptor.IsCastToText() ?
+            string.Concat(Consts.DoubleColon, parameter.TypeDescriptor.OriginalType) :
+            string.Empty;
+
         if (index == 0)
         {
-            if (count == 1)
-            {
-                return parameter.ActualName is null ? 
-                    string.Concat("$1", suffix, ")") : 
-                    string.Concat(parameter.ActualName, "=>$1", suffix, ")");
-            }
-            return parameter.ActualName is null ? 
-                string.Concat("$1", suffix) : 
-                string.Concat(parameter.ActualName, "=>$1", suffix);
+            return parameter.ActualName is null ?
+                string.Concat(Consts.FirstParam, suffix) :
+                string.Concat(parameter.ActualName, Consts.FirstNamedParam, suffix);
         }
-        if (index == count - 1)
-        {
-            return parameter.ActualName is null ? 
-                string.Concat(",", "$", (index + 1).ToString(), suffix, ")") : 
-                string.Concat(",", parameter.ActualName, "=>$", (index + 1).ToString(), suffix, ")");
-        }
+
+        var indexStr = (index + 1).ToString(CultureInfo.InvariantCulture);
+
         return parameter.ActualName is null ?
-            string.Concat(",", "$", (index + 1).ToString(), suffix) : 
-            string.Concat(",", parameter.ActualName, "=>$", (index + 1).ToString(), suffix);
+            string.Concat(Consts.Comma, Consts.Dollar, indexStr, suffix) :
+            string.Concat(Consts.Comma, parameter.ActualName, Consts.NamedParam, indexStr, suffix);
     }
 
-    public string? AppendEmpty() => ")";
+    public string? AppendEmpty() => Consts.CloseParenthesisStr;
 }
 
 public class RoutineSourceCustomTypesParameterFormatter : IRoutineSourceParameterFormatter
@@ -42,36 +37,64 @@ public class RoutineSourceCustomTypesParameterFormatter : IRoutineSourceParamete
 
     public string FormatCommand(Routine routine, NpgsqlParameterCollection parameters)
     {
-        var sb = new StringBuilder(routine.Expression);
+        var sb = new StringBuilder(routine.Expression, routine.Expression.Length + parameters.Count * 20);
         var count = parameters.Count;
+
+        var culture = CultureInfo.InvariantCulture;
+
         for (var i = 0; i < count; i++)
         {
-            NpgsqlRestParameter parameter = (NpgsqlRestParameter)parameters[i];
-            var suffix = parameter.TypeDescriptor.IsCastToText() ? $"::{parameter.TypeDescriptor.OriginalType}" : "";
+            var parameter = (NpgsqlRestParameter)parameters[i];
+            var typeDescriptor = parameter.TypeDescriptor;
+
+            var suffix = typeDescriptor.IsCastToText() ?
+                string.Concat(Consts.DoubleColon, typeDescriptor.OriginalType) :
+                string.Empty;
+
             if (i > 0)
             {
                 sb.Append(Consts.Comma);
             }
-            if (parameter.TypeDescriptor.CustomType is null)
+
+            var indexStr = (i + 1).ToString(culture);
+
+            if (typeDescriptor.CustomType is null)
             {
-                sb.Append(parameter.ActualName is null ?
-                    string.Concat("$", (i + 1).ToString(), suffix) :
-                    string.Concat(parameter.ActualName, "=>$", (i + 1).ToString()));
+                if (parameter.ActualName is null)
+                {
+                    sb.Append(Consts.Dollar)
+                      .Append(indexStr)
+                      .Append(suffix);
+                }
+                else
+                {
+                    sb.Append(parameter.ActualName)
+                      .Append(Consts.NamedParam)
+                      .Append(indexStr);
+                }
             }
             else
             {
-                if (parameter.TypeDescriptor.CustomTypePosition == 1)
+                if (typeDescriptor.CustomTypePosition == 1)
                 {
-                    sb.Append(parameter.TypeDescriptor.OriginalParameterName);
-                    sb.Append("=>row(");
+                    sb.Append(typeDescriptor.OriginalParameterName)
+                      .Append(Consts.OpenRow);
                 }
-                sb.Append(string.Concat("$", (i + 1).ToString(), suffix));
-                if (i == count - 1 || parameter.TypeDescriptor.CustomTypePosition != ((NpgsqlRestParameter)parameters[i + 1]).TypeDescriptor.CustomTypePosition - 1)
+
+                sb.Append(Consts.Dollar)
+                  .Append(indexStr)
+                  .Append(suffix);
+
+                if (i == count - 1 ||
+                    typeDescriptor.CustomTypePosition !=
+                    ((NpgsqlRestParameter)parameters[i + 1]).TypeDescriptor.CustomTypePosition - 1)
                 {
-                    sb.Append(string.Concat(")::", parameter.TypeDescriptor.CustomType));
+                    sb.Append(Consts.CloseRow)
+                      .Append(typeDescriptor.CustomType);
                 }
             }
         }
+
         sb.Append(Consts.CloseParenthesis);
         return sb.ToString();
     }

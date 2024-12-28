@@ -419,6 +419,7 @@ public static class Builder
 
         // Connection doesn't participate in ambient TransactionScope
         connectionStringBuilder.Enlist = false;
+        connectionStringBuilder.NoResetOnClose = true;
 
         connectionString = connectionStringBuilder.ConnectionString;
         connectionStringBuilder.Remove("password");

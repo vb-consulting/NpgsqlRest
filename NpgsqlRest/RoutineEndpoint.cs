@@ -58,4 +58,5 @@ public class RoutineEndpoint(
     public string? RawValueSeparator { get; set; } = rawValueSeparator;
     public string? RawNewLineSeparator { get; set; } = rawNewLineSeparator;
     public bool RawColumnNames { get; set; } = rawColumnNames;
+    public string[][]? CommentWordLines { get; internal set; }
 }

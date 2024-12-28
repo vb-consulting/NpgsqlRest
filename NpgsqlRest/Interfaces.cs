@@ -48,9 +48,8 @@ public interface IRoutineSourceParameterFormatter
     /// </summary>
     /// <param name="parameter">NpgsqlRestParameter extended parameter with actual name and type descriptor</param>
     /// <param name="index">index of the current parameter</param>
-    /// <param name="count">total parameter count</param>
     /// <returns>string to append to expression or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count) => null;
+    string? AppendCommandParameter(NpgsqlRestParameter parameter, int index) => null;
 
     /// <summary>
     /// Formats the command expression string.
@@ -71,10 +70,9 @@ public interface IRoutineSourceParameterFormatter
     /// </summary>
     /// <param name="parameter">NpgsqlRestParameter extended parameter with actual name and type descriptor</param>
     /// <param name="index">index of the current parameter</param>
-    /// <param name="count">total parameter count</param>
     /// <param name="context">HTTP context reference</param>
     /// <returns>string to append to expression or null to skip (404 if endpoint is not handled in the next handler)</returns>
-    string? AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count, HttpContext context) => null;
+    string? AppendCommandParameter(NpgsqlRestParameter parameter, int index, HttpContext context) => null;
 
     /// <summary>
     /// Formats the command expression string.

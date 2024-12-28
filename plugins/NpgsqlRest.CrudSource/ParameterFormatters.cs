@@ -6,7 +6,7 @@ public class SelectParameterFormatter : IRoutineSourceParameterFormatter
 {
     public bool IsFormattable { get; } = false;
 
-    public string AppendCommandParameter(NpgsqlRestParameter parameter, int index, int count)
+    public string AppendCommandParameter(NpgsqlRestParameter parameter, int index)
     {
         if (index == 0)
         {
