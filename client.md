@@ -91,6 +91,25 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.7.0
+
+- NpgsqlRest 2.16 build.
+- Added `NoResetOnClose = true` property ba default on all connections. This prevents automatically sending `DISCARD ALL` command when new conncetion is reused by the connection pool.
+- Versions:
+
+```console
+Versions:
+.NET                  9.0.0
+Client Build          2.7.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.16.0.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.16.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
+
 ## 2.6.0
 
 - NpgsqlRest 2.15 build.

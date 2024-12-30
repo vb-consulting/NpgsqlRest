@@ -4,6 +4,16 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.16.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.16.0 (2024-12-30)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.15.0...2.16.0)
+
+Internal optimizations:
+- Using sequential access by default for all reader operations.
+- Optimized parameter parser to use only single loop.
+
+Added `string[][]? CommentWordLines` get property to `RoutineEndpoint` data structure. This representes parsed words from a routine comment which will make easier to parse comments in plugins.
+
 ## Version [2.15.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.15.0 (2024-12-21)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.14.0...2.15.0)
