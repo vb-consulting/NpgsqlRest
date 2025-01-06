@@ -4,6 +4,12 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.16.1](https://github.com/vb-consulting/NpgsqlRest/tree/2.16.1 (2024-01-06)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.16.0...2.16.1)
+
+Fixed rare issue with path resolve logic.
+
 ## Version [2.16.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.16.0 (2024-12-30)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.15.0...2.16.0)

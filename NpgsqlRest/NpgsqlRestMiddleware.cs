@@ -63,29 +63,29 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         var path = context.Request.Path.ToString();
         path.CopyTo(pathKeybuffer[position..]);
         position += path.Length;
-        pathKeybuffer[position] = '/';
-        position += 1;
-
         var pathKey = pathKeybuffer[..position];
 
         if (!lookup.TryGetValue(pathKey, out var entry))
         {
-            var hasTrailingSlash = pathKey[^1] == '/';
-            var hasDoubleSlash = hasTrailingSlash && pathKey[^2] == '/';
-
-            if (hasDoubleSlash)
+            if (pathKey[^1] != '/')
             {
-                entry = lookup.TryGetValue(pathKey[..^2], out var e) ? e : null;
+                pathKeybuffer[position] = '/';
+                position += 1;
+                var pathKey2 = pathKeybuffer[..position];
+                if (!lookup.TryGetValue(pathKey2, out entry))
+                {
+                    await _next(context);
+                    return;
+                }
             }
-            else if (hasTrailingSlash)
+            else
             {
-                entry = lookup.TryGetValue(pathKey[..^1], out var e) ? e : null;
-            }
-
-            if (entry is null)
-            {
-                await _next(context);
-                return;
+                var pathKey2 = pathKeybuffer[..(position - 1)];
+                if (!lookup.TryGetValue(pathKey2, out entry))
+                {
+                    await _next(context);
+                    return;
+                }
             }
         }
 

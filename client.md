@@ -91,6 +91,49 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.8.0
+
+Improved bearer token authentaction mechanism:
+
+Current bearer token authentaction is not JWT token authentaction but rather Microsoft proprietary format (instead of JWT format). In future, standard JWT might be added as an option.
+
+Bearer token authentaction now can expose refresh token endpoint. For example:
+
+POST {{host}}/api/token/refresh
+Authorization: Bearer {{token}}
+{
+    "refresh": "{{refresh}}"
+}
+
+This means that we are sending refresh token as JSON body and the endpoint must be authorizaed with a token. That also means that refresh token expiration is meaningless and is removed, since expiration is same as the main token.
+
+Current bearer token configuration looks like this:
+
+```json
+//
+// Enable Microsoft Bearer Token Auth
+//
+"BearerTokenAuth": false,
+"BearerTokenAuthScheme": null,
+"BearerTokenExpireHours": 1,
+// POST { "refresh": "{{refreshToken}}" }
+"BearerTokenRefreshPath": "/api/token/refresh",
+```
+
+Versions:
+
+```console
+Versions:
+.NET                  9.0.0
+Client Build          2.8.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.16.1.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.16.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.7.0
 
 - NpgsqlRest 2.16 build.

@@ -1,5 +1,6 @@
 ﻿using System.Data.Common;
 using System.IO.Compression;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -21,6 +22,7 @@ public static class Builder
     public static Serilog.ILogger? Logger { get; private set; } = null;
     public static bool UseHttpsRedirection { get; private set; } = false;
     public static bool UseHsts { get; private set; } = false;
+    public static BearerTokenConfig? BearerTokenConfig { get; private set; } = null;
 
     public static void BuildInstance()
     {
@@ -182,13 +184,22 @@ public static class Builder
             if (bearerTokenAuth is true)
             {
                 var hours = GetConfigInt("BearerTokenExpireHours", authCfg) ?? 1;
-                var days = GetConfigInt("BearerRefreshTokenExpireDays", authCfg) ?? 14;
+                BearerTokenConfig = new()
+                {
+                    Scheme = tokenScheme,
+                    RefreshPath = GetConfigStr("BearerTokenRefreshPath", authCfg)
+                };
                 auth.AddBearerToken(tokenScheme, options =>
                 {
                     options.BearerTokenExpiration = TimeSpan.FromHours(hours);
-                    options.RefreshTokenExpiration = TimeSpan.FromDays(days);
+                    options.RefreshTokenExpiration = TimeSpan.FromHours(hours);
+                    options.Validate();
                 });
-                Logger?.Information("Using Bearer Token Authentication with scheme {0}. Token expires in {1} hours and refresh token expires in {2} days.", tokenScheme, hours, days);
+                Logger?.Information(
+                    "Using Bearer Token Authentication with scheme {0}. Token expires in {1} hours. Refresh path is {2}", 
+                    tokenScheme, 
+                    hours, 
+                    BearerTokenConfig.RefreshPath);
             }
             if (cookieAuth is true && bearerTokenAuth is true)
             {

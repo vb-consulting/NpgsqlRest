@@ -101,4 +101,5 @@ NpgsqlRestOptions options = new()
 
 app.UseNpgsqlRest(options);
 ExternalAuth.Configure(app, options);
+TokenRefreshAuth.Configure(app);
 app.Run();
