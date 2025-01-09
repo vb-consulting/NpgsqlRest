@@ -227,12 +227,12 @@ public static class Builder
         }
     }
 
-    public static void BuildCors()
+    public static bool BuildCors()
     {
         var corsCfg = Cfg.GetSection("Cors");
         if (corsCfg.Exists() is false || GetConfigBool("Enabled", corsCfg) is false)
         {
-            return;
+            return false;
         }
 
         var allowedOrigins = GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? ["*"];
@@ -241,41 +241,43 @@ public static class Builder
 
         Instance.Services.AddCors(options => options.AddDefaultPolicy(policy =>
         {
+            Microsoft.AspNetCore.Cors.Infrastructure.CorsPolicyBuilder builder = policy;
             if (allowedOrigins.Contains("*"))
             {
-                policy.AllowAnyOrigin();
+                builder = builder.AllowAnyOrigin();
                 Logger?.Information("Allowed any origins.");
             }
             else
             {
-                policy.WithOrigins(allowedOrigins);
+                builder = builder.WithOrigins(allowedOrigins);
                 Logger?.Information("Allowed origins: {0}", allowedOrigins);
             }
 
             if (allowedMethods.Contains("*"))
             {
-                policy.AllowAnyMethod();
+                builder = builder.AllowAnyMethod();
                 Logger?.Information("Allowed any methods.");
             }
             else
             {
-                policy.WithMethods(allowedMethods);
+                builder = builder.WithMethods(allowedMethods);
                 Logger?.Information("Allowed methods: {0}", allowedMethods);
             }
 
             if (allowedHeaders.Contains("*"))
             {
-                policy.AllowAnyHeader();
+                builder = builder.AllowAnyHeader();
                 Logger?.Information("Allowed any headers.");
             }
             else
             {
-                policy.WithHeaders(allowedHeaders);
+                builder = builder.WithHeaders(allowedHeaders);
                 Logger?.Information("Allowed headers: {0}", allowedHeaders);
             }
 
-            policy.AllowCredentials();
+            builder.AllowCredentials();
         }));
+        return true;
     }
 
     public static bool ConfigureResponseCompression()

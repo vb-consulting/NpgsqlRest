@@ -1,4 +1,9 @@
-﻿namespace NpgsqlRest;
+﻿using Microsoft.Extensions.Logging;
+using System.Linq;
+using System.Net;
+using static System.Net.Mime.MediaTypeNames;
+
+namespace NpgsqlRest;
 
 public static class NpgsqlRestMiddlewareExtensions
 {
@@ -31,6 +36,37 @@ public static class NpgsqlRestMiddlewareExtensions
         }
         NpgsqlRestMiddleware.SetOptions(options);
         NpgsqlRestMiddleware.SetServiceProvider(builder.ApplicationServices);
+
+        if (options.RefreshEndpointEnabled)
+        {
+            var refreshMethodUpper = options.RefreshMethod.ToUpperInvariant();
+            var refreshPathUpper = options.RefreshPath.ToUpperInvariant();
+
+            builder.Use(async (context, next) =>
+            {
+                if (context.Request.Method.Equals(refreshMethodUpper, StringComparison.OrdinalIgnoreCase) &&
+                context.Request.Path.Equals(refreshPathUpper, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        Volatile.Write(ref NpgsqlRestMiddleware.metadata, NpgsqlRestMetadataBuilder.Build(options, options.Logger, builder));
+                        NpgsqlRestMiddleware.lookup = NpgsqlRestMiddleware.metadata.Entries.GetAlternateLookup<ReadOnlySpan<char>>();
+                        context.Response.StatusCode = (int)HttpStatusCode.OK;
+                        await context.Response.CompleteAsync();
+                    }
+                    catch (Exception e)
+                    {
+                        options.Logger?.LogError(e, "Failed to refresh metadata");
+                        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        context.Response.ContentType = Text.Plain;
+                        await context.Response.WriteAsync($"Failed to refresh metadata: {e.Message}");
+                        await context.Response.CompleteAsync();
+                    }
+                    return;
+                }
+                await next(context);
+            });
+        }
 
         return builder.UseMiddleware<NpgsqlRestMiddleware>();
     }

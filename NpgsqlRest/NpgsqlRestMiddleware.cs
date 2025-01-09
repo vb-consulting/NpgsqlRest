@@ -21,20 +21,17 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
     private static ILogger? logger = default;
     private static NpgsqlRestOptions options = default!;
-    private static NpgsqlRestMetadata metadata = default!;
     private static IServiceProvider serviceProvider = default!;
-    private static Dictionary<string, NpgsqlRestMetadataEntry>.AlternateLookup<ReadOnlySpan<char>> lookup;
-    private static string RefreshMethodUpper = default!;
-    private static string RefreshPathUpper = default!;
+
+    internal static NpgsqlRestMetadata metadata = default!;
+    internal static Dictionary<string, NpgsqlRestMetadataEntry>.AlternateLookup<ReadOnlySpan<char>> lookup;
 
     public static ILogger? Logger => logger;
     internal static void SetLogger(ILogger? logger) => NpgsqlRestMiddleware.logger = logger;
-    
+
     internal static void SetOptions(NpgsqlRestOptions options)
     {
         NpgsqlRestMiddleware.options = options;
-        RefreshMethodUpper = options.RefreshMethod.ToUpperInvariant();
-        RefreshPathUpper = options.RefreshPath.ToUpperInvariant();
     }
 
     internal static void SetMetadata(NpgsqlRestMetadata metadata)
@@ -48,14 +45,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (options.RefreshEndpointEnabled)
-            if (context.Request.Method.Equals(RefreshMethodUpper, StringComparison.OrdinalIgnoreCase) &&
-                context.Request.Path.Equals(RefreshPathUpper, StringComparison.OrdinalIgnoreCase))
-        {
-            await HanleRefreshAsync(context);
-            return;
-        }
-
         Span<char> pathKeybuffer = stackalloc char[NpgsqlRestMetadataBuilder.MaxKeyLength];
         var position = 0;
         context.Request.Method.CopyTo(pathKeybuffer[position..]);
@@ -1225,20 +1214,20 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         return;
     }
 
-    public async Task HanleRefreshAsync(HttpContext context)
-    {
-        try
-        {
-            Volatile.Write(ref metadata, NpgsqlRestMetadataBuilder.Build(options, Logger, null));
-            lookup = metadata.Entries.GetAlternateLookup<ReadOnlySpan<char>>();
-            context.Response.StatusCode = (int)HttpStatusCode.OK;
-            await context.Response.CompleteAsync();
-        }
-        catch (Exception e)
-        {
-            await ReturnErrorAsync($"Failed to refresh metadata: {e.Message}", log: true, context);
-        }
-    }
+    //public async Task HanleRefreshAsync(HttpContext context)
+    //{
+    //    try
+    //    {
+    //        Volatile.Write(ref metadata, NpgsqlRestMetadataBuilder.Build(options, Logger, null));
+    //        lookup = metadata.Entries.GetAlternateLookup<ReadOnlySpan<char>>();
+    //        context.Response.StatusCode = (int)HttpStatusCode.OK;
+    //        await context.Response.CompleteAsync();
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        await ReturnErrorAsync($"Failed to refresh metadata: {e.Message}", log: true, context);
+    //    }
+    //}
 
     private static void SearializeHeader(NpgsqlRestOptions options, HttpContext context, ref string? headers)
     {

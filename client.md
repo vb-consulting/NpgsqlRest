@@ -91,6 +91,23 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.9.0
+
+Fix CORS configuration. Now it works as expected.
+
+Versions:
+
+```console
+.NET                  9.0.0
+Client Build          2.9.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.17.0.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.16.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.8.0
 
 Improved bearer token authentaction mechanism:

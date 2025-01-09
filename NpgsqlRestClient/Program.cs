@@ -27,7 +27,7 @@ if (connectionString is null)
     return;
 }
 BuildAuthentication();
-BuildCors();
+var usingCors = BuildCors();
 var compressionEnabled = ConfigureResponseCompression();
 
 WebApplication app = Build();
@@ -40,6 +40,10 @@ Configure(app, () =>
     Logger?.Information("NpgsqlRestClient Version {0}", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-");
 });
 
+if (usingCors)
+{
+    app.UseCors();
+}
 if (compressionEnabled)
 {
     app.UseResponseCompression();

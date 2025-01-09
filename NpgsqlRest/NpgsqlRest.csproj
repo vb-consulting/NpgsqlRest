@@ -13,7 +13,7 @@
     <Authors>VB-Consulting</Authors>
     <Company>VB-Consulting</Company>
     <Copyright>VB-Consulting</Copyright>
-    <Description>Automatic REST API for Any Postgres Database as NET8 Middleware</Description>
+    <Description>Automatic REST API for Any Postgres Database as .NET9 Middleware</Description>
     <PackageTags>api;api-rest;restful-api;http;postgres;dotnet;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
     <PackageProjectUrl>https://github.com/vb-consulting/NpgsqlRest</PackageProjectUrl>
     <RepositoryUrl>https://github.com/vb-consulting/NpgsqlRest</RepositoryUrl>
@@ -29,10 +29,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.MD</PackageReadmeFile>
     <DocumentationFile>bin\$(Configuration)\$(AssemblyName).xml</DocumentationFile>
-    <Version>2.16.1</Version>
-    <AssemblyVersion>2.16.1</AssemblyVersion>
-    <FileVersion>2.16.1</FileVersion>
-    <PackageVersion>2.16.1</PackageVersion>
+    <Version>2.17.0</Version>
+    <AssemblyVersion>2.17.0</AssemblyVersion>
+    <FileVersion>2.17.0</FileVersion>
+    <PackageVersion>2.17.0</PackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
