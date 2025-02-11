@@ -91,6 +91,26 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.10.0
+
+- Upgrade System.Text.Json 9.0.1.
+- Update configuration logging to report missing JSON files.
+- Add `CustomParameterMappings` configuration: Defines the custom parameter value mappings for the PostgreSQL routines. Use this to set default parameter values by parameter name.
+- Fix `NpgsqlRest.TsClient` bug with short URL segments.
+
+Versions:
+
+```
+.NET                  9.0.0
+Client Build          2.10.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.17.0.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.17.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.9.0
 
 Fix CORS configuration. Now it works as expected.

@@ -30,7 +30,7 @@ Outputs:
 ```
 Versions:
 .NET                  9.0.0
-Client Build          2.9.0.0
+Client Build          2.10.0.0
 Serilog.AspNetCore    9.0.0.0
 Npgsql                9.0.2.0
 NpgsqlRest            2.17.0.0
