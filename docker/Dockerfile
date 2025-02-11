@@ -1,11 +1,11 @@
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:25.04 AS builder
 WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget ca-certificates && \
     wget https://github.com/vb-consulting/NpgsqlRest/releases/download/v2.17.0-client-v2.9.0/npgsqlrest-linux64 -O npgsqlrest && \
     chmod +x npgsqlrest
 
-FROM ubuntu:22.04
+FROM ubuntu:25.04
 WORKDIR /app
 COPY --from=builder /app/npgsqlrest /usr/local/bin/npgsqlrest
 

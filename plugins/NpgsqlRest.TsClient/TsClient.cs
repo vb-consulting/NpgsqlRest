@@ -243,10 +243,33 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 return false;
             }
 
-            var name = options.UseRoutineNameInsteadOfEndpoint ?
-                        string.Concat(routine.Schema, "/", routine.Name)
-                        :
-                        (string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) ? endpoint.Url : endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..]);
+            string? name;
+            try
+            {
+                if (options.UseRoutineNameInsteadOfEndpoint)
+                {
+                    name = string.Concat(routine.Schema, "/", routine.Name);
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(_npgsqlRestoptions?.UrlPathPrefix) || _npgsqlRestoptions.UrlPathPrefix.Length > endpoint.Url.Length)
+                    {
+                        name = endpoint.Url;
+                    }
+                    else
+                    {
+                        name = endpoint.Url[_npgsqlRestoptions.UrlPathPrefix.Length..];
+                    }
+                }
+            }
+            catch
+            {
+                name = string.Concat(routine.Schema, "/", routine.Name);
+            }
+            if (name.Length < 3)
+            {
+                name = string.Concat(routine.Schema, "/", routine.Name);
+            }
             var routineType = routine.Type;
             var paramCount = routine.ParamCount;
             //var paramTypeDescriptors = routine.ParamTypeDescriptor;

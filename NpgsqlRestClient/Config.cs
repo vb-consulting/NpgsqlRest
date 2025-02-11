@@ -38,15 +38,6 @@ public static class Config
         IConfigurationBuilder configBuilder = new ConfigurationBuilder();
         var useEnv = cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg);
 
-        //if (cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg))
-        //{
-        //    configBuilder = new ConfigurationBuilder().AddEnvironmentVariables();
-        //}
-        //else
-        //{
-        //    configBuilder = new ConfigurationBuilder();
-        //}
-
         if (configFiles.Count > 0)
         {
             foreach (var (fileName, optional) in configFiles)

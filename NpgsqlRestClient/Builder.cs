@@ -134,7 +134,20 @@ public static class Builder
             var serilog = loggerConfig.CreateLogger();
             Logger = serilog.ForContext<Program>();
             Instance.Host.UseSerilog(serilog);
-            Logger?.Information("----> Starting with configuration(s): {0}", Cfg.Providers);
+
+            var providerString = Cfg.Providers.Select(p =>
+            {
+                var str = p.ToString();
+                if (p is Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider j)
+                {
+                    if(File.Exists(j.Source.Path) is false)
+                    {
+                        str = str?.Replace("(Optional)", "(Missing)");
+                    }
+                }
+                return str;
+            }).Aggregate((a, b) => string.Concat(a, ", ", b));
+            Logger?.Information("----> Starting with configuration(s): {0}", providerString);
         }
     }
 
