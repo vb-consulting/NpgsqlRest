@@ -91,6 +91,54 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.11.0
+
+- Upgrade System.Text.Json 9.0.2.
+- New Log Options:
+  - `"ConsoleMinimumLevel": "Verbose"` - minimum log level for console logging.
+  - `"FileMinimumLevel": "Verbose"` - minimum log level for file logging.
+  - `"ToPostgres": false` - log to PostgreSQL database, using default connection.
+  - `"PostgresCommand": "call log($1,$2,$3,$4,$5)"` - command to execute when logging to PostgreSQL database.
+  - `"PostgresMinimumLevel": "Verbose"` - minimum log level for file PostgreSQL database.
+
+These are numerical represntations of log levels:
+
+```csharp
+public enum LogEventLevel
+{
+    Verbose = 0,
+    Debug = 1,
+    Information = 2,
+    Warning = 3,
+    Error = 4,
+    Fatal = 5
+}
+```
+
+If we set minumal level to `Warning`, we will receive logs for `Warning`, `Error` and `Fatal` levels.
+
+Default PostgreSQL log command is `call log($1,$2,$3,$4,$5)`, set as see needed. Parameters are always numerical, minumal 1 and maximum 5, where:
+  - $1 - Log level in text format: `Verbose`, `Debug`, `Information`, `Warning`, `Error` or `Fatal`.
+  - $2 - Log message (text).
+  - $3 - Log timestamp UTC timezone.
+  - $4 - Exceptin in tex format if any or `NULL` if no excpetion exists.
+  - $5 - Source context.
+
+- New option for `NpgsqlRest.AuthenticationOptions` - `IpAddressParameterName` - includes IP information for apramatares with name from this option (default is `null`, not used). Set this to actual parameter name which will always contain client IP value.
+
+Versions:
+
+```
+.NET                  9.0.2
+Client Build          2.11.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.2.0
+NpgsqlRest            2.18.0.0
+NpgsqlRest.HttpFiles  1.2.0.0
+NpgsqlRest.TsClient   1.17.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.10.0
 
 - Upgrade System.Text.Json 9.0.1.

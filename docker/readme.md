@@ -29,13 +29,13 @@ Outputs:
 
 ```
 Versions:
-.NET                  9.0.0
-Client Build          2.10.0.0
+.NET                  9.0.2
+Client Build          2.11.0.0
 Serilog.AspNetCore    9.0.0.0
 Npgsql                9.0.2.0
-NpgsqlRest            2.17.0.0
+NpgsqlRest            2.18.0.0
 NpgsqlRest.HttpFiles  1.2.0.0
-NpgsqlRest.TsClient   1.16.0.0
+NpgsqlRest.TsClient   1.17.0.0
 NpgsqlRest.CrudSource 1.2.0.0
 
 CurrentDirectory     /app
