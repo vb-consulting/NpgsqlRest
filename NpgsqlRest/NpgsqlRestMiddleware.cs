@@ -507,15 +507,40 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
                     if (queryDict.TryGetValue(parameter.ConvertedName, out var qsValue) is false)
                     {
-                        if (parameter.TypeDescriptor.HasDefault is false)
+                        if (options.ValidateParameters is not null)
                         {
-                            await _next(context);
-                            return;
+                            options.ValidateParameters(new ParameterValidationValues(
+                                context,
+                                routine,
+                                parameter));
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
                         }
-                        continue;
+                        if (options.ValidateParametersAsync is not null)
+                        {
+                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                context,
+                                routine,
+                                parameter));
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
+                        }
+                        if (parameter.Value is null)
+                        {
+                            if (parameter.TypeDescriptor.HasDefault is false)
+                            {
+                                await _next(context);
+                                return;
+                            }
+                            continue;
+                        }
                     }
 
-                    if (TryParseParameter(parameter, ref qsValue, endpoint.QueryStringNullHandling) is false)
+                    if (parameter.Value is null && TryParseParameter(parameter, ref qsValue, endpoint.QueryStringNullHandling) is false)
                     {
                         if (parameter.TypeDescriptor.HasDefault is false)
                         {
@@ -709,15 +734,40 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
                     if (bodyDict.TryGetValue(parameter.ConvertedName, out var value) is false)
                     {
-                        if (parameter.TypeDescriptor.HasDefault is false)
+                        if (options.ValidateParameters is not null)
                         {
-                            await _next(context);
-                            return;
+                            options.ValidateParameters(new ParameterValidationValues(
+                                context,
+                                routine,
+                                parameter));
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
                         }
-                        continue;
+                        if (options.ValidateParametersAsync is not null)
+                        {
+                            await options.ValidateParametersAsync(new ParameterValidationValues(
+                                context,
+                                routine,
+                                parameter));
+                            if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
+                            {
+                                return;
+                            }
+                        }
+                        if (parameter.Value is null)
+                        {
+                            if (parameter.TypeDescriptor.HasDefault is false)
+                            {
+                                await _next(context);
+                                return;
+                            }
+                            continue;
+                        }
                     }
 
-                    if (TryParseParameter(parameter, value) is false)
+                    if (parameter.Value is null && TryParseParameter(parameter, value) is false)
                     {
                         if (parameter.TypeDescriptor.HasDefault is false)
                         {
@@ -1213,21 +1263,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         await _next(context);
         return;
     }
-
-    //public async Task HanleRefreshAsync(HttpContext context)
-    //{
-    //    try
-    //    {
-    //        Volatile.Write(ref metadata, NpgsqlRestMetadataBuilder.Build(options, Logger, null));
-    //        lookup = metadata.Entries.GetAlternateLookup<ReadOnlySpan<char>>();
-    //        context.Response.StatusCode = (int)HttpStatusCode.OK;
-    //        await context.Response.CompleteAsync();
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        await ReturnErrorAsync($"Failed to refresh metadata: {e.Message}", log: true, context);
-    //    }
-    //}
 
     private static void SearializeHeader(NpgsqlRestOptions options, HttpContext context, ref string? headers)
     {

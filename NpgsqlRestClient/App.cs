@@ -27,7 +27,7 @@ public static class App
             app.UseHsts();
         }
 
-        if (LogToConsole is true || LogToFile is true)
+        if (LogToConsole is true || LogToFile is true || LogToPostgres is true)
         {
             app.UseSerilogRequestLogging();
         }
@@ -134,6 +134,7 @@ public static class App
         var userIdParameterName = GetConfigStr("UserIdParameterName", AuthCfg);
         var userNameParameterName = GetConfigStr("UserNameParameterName", AuthCfg);
         var userRolesParameterName = GetConfigStr("UserRolesParameterName", AuthCfg);
+        var ipAddressParameterName = GetConfigStr("IpAddressParameterName", AuthCfg);
 
         Dictionary<string, StringValues>? customClaims = null;
         foreach (var section in AuthCfg.GetSection("CustomParameterNameToClaimMappings").GetChildren())
@@ -149,7 +150,12 @@ public static class App
             customParameters.Add(section.Key, section.Value);
         }
 
-        if (userIdParameterName is null && userNameParameterName is null && userRolesParameterName is null && customClaims is null && customParameters is null)
+        if (userIdParameterName is null 
+            && userNameParameterName is null 
+            && userRolesParameterName is null 
+            && ipAddressParameterName is null 
+            && customClaims is null 
+            && customParameters is null)
         {
             return null;
         }
@@ -171,7 +177,11 @@ public static class App
                 p.Parameter.Value = p.Context.User.Claims
                     .Where(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?
                     .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
-            } 
+            }
+            else if (ipAddressParameterName is not null && string.Equals(p.Parameter.ActualName, ipAddressParameterName, StringComparison.OrdinalIgnoreCase))
+            {
+                p.Parameter.Value = GetClientIpAddress(p.Context.Request) as object ?? DBNull.Value;
+            }
             else if (customClaims is not null && customClaims.TryGetValue(p.Parameter.ActualName, out var claimName))
             {
                 if (p.Parameter.TypeDescriptor.IsArray)
@@ -192,6 +202,23 @@ public static class App
                 p.Parameter.Value = paramValue is null ? DBNull.Value : paramValue;
             }
         };
+    }
+
+    private static string? GetClientIpAddress(HttpRequest request)
+    {
+        string? ip = request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(ip))
+        {
+            return ip.Split(',')[0].Trim();
+        }
+        ip = request.Headers["X-Real-IP"].FirstOrDefault()
+            ?? request.Headers["HTTP_X_FORWARDED_FOR"].FirstOrDefault()
+            ?? request.Headers["REMOTE_ADDR"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(ip))
+        {
+            return ip;
+        }
+        return request.HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
     public static Dictionary<string, int> CreatePostgreSqlErrorCodeToHttpStatusCodeMapping()

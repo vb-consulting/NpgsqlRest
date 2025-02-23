@@ -19,10 +19,12 @@ public static class Builder
 
     public static bool LogToConsole { get; private set; } = false;
     public static bool LogToFile { get; private set; } = false;
+    public static bool LogToPostgres { get; private set; } = false;
     public static Serilog.ILogger? Logger { get; private set; } = null;
     public static bool UseHttpsRedirection { get; private set; } = false;
     public static bool UseHsts { get; private set; } = false;
     public static BearerTokenConfig? BearerTokenConfig { get; private set; } = null;
+    public static string? ConnectionString { get; private set; } = null;
 
     public static void BuildInstance()
     {
@@ -80,8 +82,10 @@ public static class Builder
         LogToConsole = GetConfigBool("ToConsole", logCfg, true);
         LogToFile = GetConfigBool("ToFile", logCfg);
         var filePath = GetConfigStr("FilePath", logCfg) ?? "logs/log.txt";
+        LogToPostgres = GetConfigBool("ToPostgres", logCfg);
+        var postgresCommand = GetConfigStr("PostgresCommand", logCfg);
 
-        if (LogToConsole is true || LogToFile is true)
+        if (LogToConsole is true || (LogToFile is true)  || (LogToPostgres is true && postgresCommand is not null))
         {
             var loggerConfig = new LoggerConfiguration().MinimumLevel.Verbose();
             bool systemAdded = false;
@@ -117,19 +121,29 @@ public static class Builder
             if (LogToConsole is true)
             {
                 loggerConfig = loggerConfig.WriteTo.Console(
-                    restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Verbose,
+                    restrictedToMinimumLevel: 
+                        GetConfigEnum<Serilog.Events.LogEventLevel?>("ConsoleMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
                     outputTemplate: outputTemplate,
                     theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code);
             }
             if (LogToFile is true)
             {
                 loggerConfig = loggerConfig.WriteTo.File(
+                    restrictedToMinimumLevel:
+                        GetConfigEnum<Serilog.Events.LogEventLevel?>("FileMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
                     path: filePath ?? "logs/log.txt",
                     rollingInterval: RollingInterval.Day,
                     fileSizeLimitBytes: GetConfigInt("FileSizeLimitBytes", logCfg) ?? 30000000,
                     retainedFileCountLimit: GetConfigInt("RetainedFileCountLimit", logCfg) ?? 30,
                     rollOnFileSizeLimit: GetConfigBool("RollOnFileSizeLimit", logCfg, defaultVal: true),
                     outputTemplate: outputTemplate);
+            }
+            if (LogToPostgres is true && postgresCommand is not null)
+            {
+                loggerConfig = loggerConfig.WriteTo.Postgres(
+                    postgresCommand, 
+                    restrictedToMinimumLevel:
+                        GetConfigEnum<Serilog.Events.LogEventLevel?>("PostgresMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose);
             }
             var serilog = loggerConfig.CreateLogger();
             Logger = serilog.ForContext<Program>();
@@ -454,6 +468,7 @@ public static class Builder
         // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
 
+        ConnectionString = connectionString;
         return connectionString;
     }
 
