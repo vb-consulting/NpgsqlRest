@@ -4,6 +4,16 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.18.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.17.0 (2025-02-23)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.17.1...2.18.0)
+
+Improve `ValidateParameters` and `ValidateParametersAsync` callbacks:
+
+From this version they will be triggered even for paramaters that exits with default value but they are not supplied. 
+
+In this case, parameter value will be `null` and if we want default value, we can leave it as `null`. Otherwise it is possible to assign a new value.
+
 ## Version [2.17.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.17.0 (2024-01-09)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.16.1...2.17.0)
