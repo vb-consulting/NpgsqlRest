@@ -125,6 +125,8 @@ internal static class DefaultCommentParser
         "column-names"
     ];
 
+    private const string CacheKey = "cached";
+
     public static RoutineEndpoint? Parse(Routine routine, RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -572,6 +574,39 @@ internal static class DefaultCommentParser
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentRawSetColumnNames(routine.Type, routine.Schema, routine.Name);
+                    }
+                }
+
+                // cached
+                // cached [ param1, param2, param3 [, ...] ]
+                else if (haveTag is true && StrEquals(words[0], CacheKey))
+                {
+                    if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
+                    {
+                        logger?.CommentInvalidCache(routine.Type, routine.Schema, routine.Name);
+                    }
+                    routineEndpoint.Cached = true;
+                    if (len > 1)
+                    {
+                        var names = words[1..];
+                        HashSet<string> result = new(names.Length);
+                        for(int j = 0; j < names.Length; j++)
+                        {
+                            var name = names[j];
+                            if (!routine.OriginalParamsHash.Contains(name) && !routine.ParamsHash.Contains(name))
+                            {
+                                logger?.CommentInvalidCacheParam(routine.Type, routine.Schema, routine.Name, name);
+                            } else
+                            {
+                                result.Add(name);
+                            }
+                        }
+                        routineEndpoint.CachedParams = result;
+                    }
+
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentCached(routine.Type, routine.Schema, routine.Name, routineEndpoint.CachedParams ?? []);
                     }
                 }
 

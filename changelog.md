@@ -4,6 +4,33 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.19.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.19.0 (2025-02-24)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.19.0...2.18.0)
+
+New routine annotation and new enpoint options:
+
+```console
+                                                
+cached                                          
+cached [ param1, param2, param3 [, ...] ]       
+cached [ param1 param2 param3 [...] ]           
+                                                
+```
+
+If the routine returns a single value of any type, result will be cached in memory and retrieved from memory on next call. Use the optional list of parameter names (original or converted) to be used as additional cache keys.
+
+Same will can be set programmatically directly on the endpoint settings:
+
+```csharp
+    public bool Cached { get; set; } = false;
+    public HashSet<string>? CachedParams { get; set; } = null;
+```
+
+If the associated routine doesn't return a single value of any type, there will be a warning on startup and cache will be ignored.
+
+Results from cache will have `[from cache]` tag in execution log.
+
 ## Version [2.18.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.18.0 (2025-02-23)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.18.0...2.17.0)

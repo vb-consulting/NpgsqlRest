@@ -12,6 +12,7 @@ using static System.Net.Mime.MediaTypeNames;
 using static NpgsqlRest.ParameterParser;
 
 using NpgsqlRest.Auth;
+using System.Linq;
 
 namespace NpgsqlRest;
 
@@ -209,6 +210,12 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             Dictionary<string, JsonNode?>? bodyDict = null;
             string? body = null;
             Dictionary<string, StringValues>? queryDict = null;
+            StringBuilder? cacheKeys = null;
+            if (endpoint.Cached is true)
+            {
+                cacheKeys = new(endpoint.CachedParams?.Count ?? 0 + 1);
+                cacheKeys.Append(routine.Expression);
+            }
 
             if (endpoint.RequestParamType == RequestParamType.QueryString)
             {
@@ -309,6 +316,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                                     return;
                                 }
                             }
+                            if (endpoint.Cached is true && endpoint.CachedParams is not null)
+                            {
+                                if (endpoint.CachedParams.Contains(parameter.ConvertedName) || endpoint.CachedParams.Contains(parameter.ActualName))
+                                {
+                                    cacheKeys?.Append(parameter.Value?.ToString() ?? "");
+                                }
+                            }
                             command.Parameters.Add(parameter);
 
                             if (hasNulls is false && parameter.Value == DBNull.Value)
@@ -376,6 +390,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                                     if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
                                     {
                                         return;
+                                    }
+                                }
+                                if (endpoint.Cached is true && endpoint.CachedParams is not null)
+                                {
+                                    if (endpoint.CachedParams.Contains(parameter.ConvertedName) || endpoint.CachedParams.Contains(parameter.ActualName))
+                                    {
+                                        cacheKeys?.Append(parameter.Value?.ToString() ?? "");
                                     }
                                 }
                                 command.Parameters.Add(parameter);
@@ -460,6 +481,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                                 if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
                                 {
                                     return;
+                                }
+                            }
+                            if (endpoint.Cached is true && endpoint.CachedParams is not null)
+                            {
+                                if (endpoint.CachedParams.Contains(parameter.ConvertedName) || endpoint.CachedParams.Contains(parameter.ActualName))
+                                {
+                                    cacheKeys?.Append(parameter.Value?.ToString() ?? "");
                                 }
                             }
                             command.Parameters.Add(parameter);
@@ -572,6 +600,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         if (context.Response.HasStarted || context.Response.StatusCode != (int)HttpStatusCode.OK)
                         {
                             return;
+                        }
+                    }
+                    if (endpoint.Cached is true && endpoint.CachedParams is not null)
+                    {
+                        if (endpoint.CachedParams.Contains(parameter.ConvertedName) || endpoint.CachedParams.Contains(parameter.ActualName))
+                        {
+                            cacheKeys?.Append(parameter.Value?.ToString() ?? "");
                         }
                     }
                     command.Parameters.Add(parameter);
@@ -689,6 +724,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                                     return;
                                 }
                             }
+                            if (endpoint.Cached is true && endpoint.CachedParams is not null)
+                            {
+                                if (endpoint.CachedParams.Contains(parameter.ConvertedName) || endpoint.CachedParams.Contains(parameter.ActualName))
+                                {
+                                    cacheKeys?.Append(parameter.Value?.ToString() ?? "");
+                                }
+                            }
                             command.Parameters.Add(parameter);
 
                             if (hasNulls is false && parameter.Value == DBNull.Value)
@@ -800,6 +842,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                             return;
                         }
                     }
+                    if (endpoint.Cached is true && endpoint.CachedParams is not null)
+                    {
+                        if (endpoint.CachedParams.Contains(parameter.ConvertedName) || endpoint.CachedParams.Contains(parameter.ActualName))
+                        {
+                            cacheKeys?.Append(parameter.Value?.ToString() ?? "");
+                        }
+                    }
                     command.Parameters.Add(parameter);
 
                     if (hasNulls is false && parameter.Value == DBNull.Value)
@@ -902,12 +951,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             }
             command.CommandText = commandText;
 
-
-            if (shouldLog)
-            {
-                NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
-            }
-
             if (endpoint.CommandTimeout.HasValue)
             {
                 command.CommandTimeout = endpoint.CommandTimeout.Value;
@@ -948,77 +991,123 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             {
                 command.AllResultTypesAreUnknown = true;
 
-                await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
                 if (routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false)
                 {
-                    if (await reader.ReadAsync())
+                    string? valueResult;
+                    if (endpoint.Cached is true)
                     {
-                        string? value = reader.GetValue(0) as string;
-                        TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
-                        if (endpoint.ResponseContentType is not null)
+                        if (RoutineCache.Get(cacheKeys?.ToString()!, out valueResult) is false)
                         {
-                            context.Response.ContentType = endpoint.NeedsParsing ?
-                                PgConverters.ParseParameters(command.Parameters, endpoint.ResponseContentType) :
-                                endpoint.ResponseContentType;
-
-                        }
-                        else if (descriptor.IsJson || descriptor.IsArray)
-                        {
-                            context.Response.ContentType = Application.Json;
-                        }
-                        else
-                        {
-                            context.Response.ContentType = Text.Plain;
-                        }
-                        if (endpoint.ResponseHeaders.Count > 0)
-                        {
-                            foreach ((string headerKey, StringValues headerValue) in endpoint.ResponseHeaders)
+                            await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
+                            if (shouldLog)
                             {
-                                context.Response.Headers.Append(headerKey,
-                                    endpoint.NeedsParsing ?
-                                    PgConverters.ParseParameters(command.Parameters, headerValue.ToString()) : headerValue);
+                                NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                             }
-                        }
-
-                        // if raw
-                        if (endpoint.Raw)
-                        {
-                            writer.Advance(Encoding.UTF8.GetBytes((value ?? "").AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount((value ?? "").Length))));
-                        }
-                        else
-                        {
-                            if (descriptor.IsArray && value is not null)
+                            if (await reader.ReadAsync())
                             {
-                                value = PgConverters.PgArrayToJsonArray(value.AsSpan(), descriptor).ToString();
-                            }
-                            if (value is not null)
-                            {
-                                writer.Advance(Encoding.UTF8.GetBytes(value.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(value.Length))));
+                                valueResult = reader.GetValue(0) as string;
+                                RoutineCache.AddOrUpdate(cacheKeys?.ToString()!, valueResult);
                             }
                             else
                             {
-                                if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
-                                {
-                                    writer.Advance(Encoding.UTF8.GetBytes(Consts.Null.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(Consts.Null.Length))));
-                                }
-                                else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
-                                {
-                                    context.Response.StatusCode = (int)HttpStatusCode.NoContent;
-                                }
-                                // else OK empty string
+                                logger?.CouldNotReadCommand(command.CommandText, context.Request.Method, context.Request.Path);
+                                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                                return;
                             }
                         }
-                        return;
+                        else
+                        {
+                            if (shouldLog)
+                            {
+                                cmdLog?.Append(" [from cache] ");
+                                NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
+                            }
+                        }
                     }
                     else
                     {
-                        logger?.CouldNotReadCommand(command.CommandText, context.Request.Method, context.Request.Path);
-                        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                        return;
+                        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
+                        if (shouldLog)
+                        {
+                            NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
+                        }
+                        if (await reader.ReadAsync())
+                        {
+                            valueResult = reader.GetValue(0) as string;
+                        }
+                        else
+                        {
+                            logger?.CouldNotReadCommand(command.CommandText, context.Request.Method, context.Request.Path);
+                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                            return;
+                        }
                     }
+
+                    TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[0];
+                    if (endpoint.ResponseContentType is not null)
+                    {
+                        context.Response.ContentType = endpoint.NeedsParsing ?
+                            PgConverters.ParseParameters(command.Parameters, endpoint.ResponseContentType) :
+                            endpoint.ResponseContentType;
+
+                    }
+                    else if (descriptor.IsJson || descriptor.IsArray)
+                    {
+                        context.Response.ContentType = Application.Json;
+                    }
+                    else
+                    {
+                        context.Response.ContentType = Text.Plain;
+                    }
+                    if (endpoint.ResponseHeaders.Count > 0)
+                    {
+                        foreach ((string headerKey, StringValues headerValue) in endpoint.ResponseHeaders)
+                        {
+                            context.Response.Headers.Append(headerKey,
+                                endpoint.NeedsParsing ?
+                                PgConverters.ParseParameters(command.Parameters, headerValue.ToString()) : headerValue);
+                        }
+                    }
+
+                    // if raw
+                    if (endpoint.Raw)
+                    {
+                        var span = (valueResult ?? "").AsSpan();
+                        writer.Advance(Encoding.UTF8.GetBytes(span, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(span.Length))));
+                    }
+                    else
+                    {
+                        if (descriptor.IsArray && valueResult is not null)
+                        {
+                            valueResult = PgConverters.PgArrayToJsonArray(valueResult.AsSpan(), descriptor).ToString();
+                        }
+                        if (valueResult is not null)
+                        {
+                            writer.Advance(Encoding.UTF8.GetBytes(valueResult.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(valueResult.Length))));
+                        }
+                        else
+                        {
+                            if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NullLiteral)
+                            {
+                                writer.Advance(Encoding.UTF8.GetBytes(Consts.Null.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(Consts.Null.Length))));
+                            }
+                            else if (endpoint.TextResponseNullHandling == TextResponseNullHandling.NoContent)
+                            {
+                                context.Response.StatusCode = (int)HttpStatusCode.NoContent;
+                            }
+                            // else OK empty string
+                        }
+                    }
+                    return;
+
                 }
                 else // end if (routine.ReturnsRecord == false)
                 {
+                    await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
+                    if (shouldLog)
+                    {
+                        NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
+                    }
                     if (endpoint.ResponseContentType is not null)
                     {
                         context.Response.ContentType = endpoint.NeedsParsing ?

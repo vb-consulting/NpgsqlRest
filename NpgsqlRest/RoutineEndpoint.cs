@@ -22,7 +22,9 @@ public class RoutineEndpoint(
     bool raw = false,
     string? rawValueSeparator = null,
     string? rawNewLineSeparator = null,
-    bool rawColumnNames = false)
+    bool rawColumnNames = false,
+    bool cached = false,
+    string[]? cachedParams = null)
 {
     private string? _bodyParameterName = bodyParameterName;
     internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
@@ -59,4 +61,6 @@ public class RoutineEndpoint(
     public string? RawNewLineSeparator { get; set; } = rawNewLineSeparator;
     public bool RawColumnNames { get; set; } = rawColumnNames;
     public string[][]? CommentWordLines { get; internal set; }
+    public bool Cached { get; set; } = cached;
+    public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
 }

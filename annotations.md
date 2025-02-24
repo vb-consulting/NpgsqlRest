@@ -317,3 +317,15 @@ column-names
 ```
 
 If this option is set to true - and if the endpoint is int the "raw" mode - the endpoint will contain a header names. If separators are applied, they will be used also.
+
+## Cached
+
+```console
+                                                
+cached                                          
+cached [ param1, param2, param3 [, ...] ]       
+cached [ param1 param2 param3 [...] ]           
+                                                
+```
+
+If the routine returns a single value of any type, result will be cached in memory and retrieved from memory on next call. Use the optional list of parameter names (original or converted) to be used as additional cache keys.

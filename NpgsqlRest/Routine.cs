@@ -87,7 +87,12 @@ public class Routine
     /// <summary>
     /// The hash of the parameters associated with the routine.
     /// </summary>
-    public required FrozenSet<string> ParamsHash { get; init; }
+    public required HashSet<string> ParamsHash { get; init; }
+
+    /// <summary>
+    /// The hash of the parameters associated with the routine.
+    /// </summary>
+    public required HashSet<string> OriginalParamsHash { get; init; }
 
     /// <summary>
     /// The expression associated with the routine.
@@ -119,6 +124,10 @@ public class Routine
     /// </summary>
     public required Func<RoutineEndpoint?, RoutineEndpoint?>? EndpointHandler { get; init; }
 
+    /// <summary>
+    /// Routine is immutable. Will return same results for same inputs.
+    /// </summary>
+    public bool Immutable { get; init; } = false;
     /// <summary>
     /// The meta data associated with the routine.
     /// </summary>

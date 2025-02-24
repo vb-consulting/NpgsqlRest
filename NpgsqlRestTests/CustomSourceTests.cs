@@ -132,14 +132,16 @@ public class TestSource : IRoutineSource
             IsVoid = isVoid,
             ParamCount = paramNames?.Count ?? 0,
             Parameters = [],
-            ParamsHash = paramNames?.ToFrozenSet() ?? [],
+            ParamsHash = paramNames?.ToHashSet() ?? [],
+            OriginalParamsHash = paramNames?.ToHashSet() ?? [],
             Expression = expression,
             FullDefinition = default!,
             SimpleDefinition = default!,
             FormatUrlPattern = default,
             Tags = default!,
             EndpointHandler = default,
-            Metadata = metadata
+            Metadata = metadata,
+            Immutable = default
         };
     }
 }

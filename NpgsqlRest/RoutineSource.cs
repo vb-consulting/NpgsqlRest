@@ -82,16 +82,16 @@ public class RoutineSource(
                 command.CommandText = Query;
             }
 
-            AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
-            AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
-            AddParameter(IncludeSchemas ?? options.IncludeSchemas, true); // $3
-            AddParameter(ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
-            AddParameter(NameSimilarTo ?? options.NameSimilarTo); // $5
-            AddParameter(NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
-            AddParameter(IncludeNames ?? options.IncludeNames, true); // $7
-            AddParameter(ExcludeNames ?? options.ExcludeNames, true); // $8
-            AddParameter(IncludeLanguagues?.Select(l => l.ToLowerInvariant()), true); // $9
-            AddParameter(ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues.Select(l => l.ToLowerInvariant()), true); // $10
+            AddParameter(command, SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
+            AddParameter(command, SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
+            AddParameter(command, IncludeSchemas ?? options.IncludeSchemas, true); // $3
+            AddParameter(command, ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
+            AddParameter(command, NameSimilarTo ?? options.NameSimilarTo); // $5
+            AddParameter(command, NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
+            AddParameter(command, IncludeNames ?? options.IncludeNames, true); // $7
+            AddParameter(command, ExcludeNames ?? options.ExcludeNames, true); // $8
+            AddParameter(command, IncludeLanguagues?.Select(l => l.ToLowerInvariant()), true); // $9
+            AddParameter(command, ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues.Select(l => l.ToLowerInvariant()), true); // $10
 
             connection.Open();
             using NpgsqlDataReader reader = command.ExecuteReader();
@@ -369,54 +369,26 @@ public class RoutineSource(
 
                         ParamCount = paramCount,
                         Parameters = parameters,
-                        ParamsHash = parameters.Select(p => p.ConvertedName).ToFrozenSet(),
+                        ParamsHash = parameters.Select(p => p.ConvertedName).ToHashSet(),
+                        OriginalParamsHash = parameters.Select(p => p.ActualName).ToHashSet(),
 
                         Expression = expression,
                         FullDefinition = reader.Get<string>(17),//"definition"),
                         SimpleDefinition = simpleDefinition.ToString(),
-
+                        Immutable = volatility == 'i',
                         Tags = [routineType.ToString().ToLowerInvariant(), volatility switch
-                    {
-                        'v' => "volatile",
-                        's' => "stable",
-                        'i' => "immutable",
-                        _ => "other"
-                    }],
+                        {
+                            'v' => "volatile",
+                            's' => "stable",
+                            'i' => "immutable",
+                            _ => "other"
+                        }],
 
                         FormatUrlPattern = null,
                         EndpointHandler = null,
                         Metadata = null
                     },
                     formatter);
-            }
-
-            yield break;
-
-            void AddParameter(object? value, bool isArray = false)
-            {
-                if (value is null)
-                {
-                    value = DBNull.Value;
-                }
-                else if (isArray && value is string[] array)
-                {
-                    if (array.Length == 0)
-                    {
-                        value = DBNull.Value;
-                    }
-                }
-                else if (!isArray && value is string str)
-                {
-                    if (string.IsNullOrWhiteSpace(str))
-                    {
-                        value = DBNull.Value;
-                    }
-                }
-                command.Parameters.Add(new NpgsqlParameter
-                {
-                    NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
-                    Value = value
-                });
             }
         }
         finally
@@ -426,5 +398,32 @@ public class RoutineSource(
                 connection.Dispose();
             }
         }
+    }
+
+    private static void AddParameter(NpgsqlCommand command, object? value, bool isArray = false)
+    {
+        if (value is null)
+        {
+            value = DBNull.Value;
+        }
+        else if (isArray && value is string[] array)
+        {
+            if (array.Length == 0)
+            {
+                value = DBNull.Value;
+            }
+        }
+        else if (!isArray && value is string str)
+        {
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                value = DBNull.Value;
+            }
+        }
+        command.Parameters.Add(new NpgsqlParameter
+        {
+            NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
+            Value = value
+        });
     }
 }

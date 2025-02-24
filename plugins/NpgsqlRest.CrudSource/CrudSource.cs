@@ -373,7 +373,8 @@ public class CrudSource(
 
                     ParamCount = columnCount,
                     Parameters = parameters,
-                    ParamsHash = parameters.Select(p => p.ConvertedName).ToFrozenSet(),
+                    ParamsHash = parameters.Select(p => p.ConvertedName).ToHashSet(),
+                    OriginalParamsHash = parameters.Select(p => p.ActualName).ToHashSet(),
 
                     Expression = expression,
                     FullDefinition = fullDefinition,

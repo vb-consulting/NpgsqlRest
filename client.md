@@ -91,6 +91,10 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.12.0
+
+...
+
 ## 2.11.0
 
 - Upgrade System.Text.Json 9.0.2.

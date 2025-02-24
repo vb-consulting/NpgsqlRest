@@ -1,4 +1,6 @@
-﻿using Npgsql;
+﻿using Microsoft.AspNetCore.Routing;
+using System.Xml.Linq;
+using Npgsql;
 
 namespace NpgsqlRest;
 
@@ -108,6 +110,15 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set COLUMN NAMES by the comment annotation.")]
     public static partial void CommentRawSetColumnNames(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} has set CACHED by the comment annotation, routine doesn't return a single value. Routine will NOT be cached. Only single values can be cached.")]
+    public static partial void CommentInvalidCache(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} has set CACHED PARAMETER NAME to {param} by the comment annotation, but that parameter doesn't exists on this routine either converted or original. This cache parameter will be ignored.")]
+    public static partial void CommentInvalidCacheParam(this ILogger logger, RoutineType type, string schema, string name, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set CACHED with parameters {cachedParams} by the comment annotation.")]
+    public static partial void CommentCached(this ILogger logger, RoutineType type, string schema, string name, IEnumerable<string> cachedParams);
 }
 
 public static class NpgsqlRestLogger
