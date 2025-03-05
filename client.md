@@ -91,6 +91,101 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.13.0
+
+### New option `NpgsqlRest.LogConnectionNoticeEventsMode`
+
+```json
+{
+  "NpgsqlRest": {
+    "LogConnectionNoticeEventsMode": "FirstStackFrameAndMessage"
+  }
+}
+```
+
+The default is the `FirstStackFrameAndMessage` that logs only the first stack frame and the message. In chained calls, the stack frame can be longer and obfuscate the log message. This option will show only the first (starting) stack frame along with the message.
+
+Possible values:
+
+- `MessageOnly`: Log only connection messages.
+- `FirstStackFrameAndMessage`: Log last stack trace and message.
+- `FullStackAndMessage`: Log full stack trace and message.
+
+### New options in `NpgsqlRest.AuthenticationOptions` section
+
+#### `NpgsqlRest.AuthenticationOptions.BindParameters`
+
+```json
+{
+  "NpgsqlRest": {
+    "AuthenticationOptions": {
+      "BindParameters": true
+    }
+  }
+}
+```
+
+When this parameter is true, all routine parameters that match values from this section will be automatically assigned. Those are:
+
+- `UserIdParameterName`
+- `UserNameParameterName`
+- `UserRolesParameterName` 
+- `IpAddressParameterName`
+- `CustomParameterNameToClaimMappings` (dictionary)
+
+Default is true, which is consistent with the behavior from the previos version. Now it can be set to false if only `ParseResponse` is used.
+
+#### `NpgsqlRest.AuthenticationOptions.ParseResponse`
+
+```json
+{
+  "NpgsqlRest": {
+    "AuthenticationOptions": {
+      "ParseResponse": false
+    }
+  }
+}
+```
+
+When this parameter is true, content parser will parse every parsable response and replace a value in curly braces by using high perfomance parser. It applies to following values.
+
+- `UserIdParameterName`
+- `UserNameParameterName`
+- `UserRolesParameterName` 
+- `IpAddressParameterName`
+- `CustomParameterNameToClaimMappings` (dictionary)
+
+
+For example the following setup:
+
+```json
+{
+  "NpgsqlRest": {
+    "AuthenticationOptions": {
+      "UserIdParameterName": "user_id",
+      "ParseResponse": true
+    }
+  }
+}
+```
+
+In this configuration, every response that contains this `{user_id}` will be replaced by the `NameIdentifier` claim which represents the standard user id (string).
+
+Value will be parsed as JSON values, which means double quotes for string values and value for roles (`UserRolesParameterName`) is JSON array `["role1","role2"]`. And `null` when value is not present.
+
+- Versions:
+
+```
+.NET                  9.0.2
+Client Build          2.13.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.3.0
+NpgsqlRest            2.20.0.0
+NpgsqlRest.HttpFiles  1.3.0.0
+NpgsqlRest.TsClient   1.18.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.12.0
 
 ...

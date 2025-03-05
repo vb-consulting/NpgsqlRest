@@ -21,7 +21,7 @@ public class NpgsqlRestOptions(
     string? urlPathPrefix = "/api",
     Func<Routine, NpgsqlRestOptions, string>? urlPathBuilder = null,
     ServiceProviderObject serviceProviderMode = ServiceProviderObject.None,
-    Func<Routine, RoutineEndpoint, RoutineEndpoint?>? endpointCreated = null,
+    Func<RoutineEndpoint, RoutineEndpoint?>? endpointCreated = null,
     Func<string?, string?>? nameConverter = null,
     bool requiresAuthorization = false,
     ILogger? logger = null,
@@ -29,6 +29,7 @@ public class NpgsqlRestOptions(
     bool logEndpointCreatedInfo = true,
     bool logAnnotationSetInfo = true,
     bool logConnectionNoticeEvents = true,
+    PostgresConnectionNoticeLoggingMode logConnectionNoticeEventsMode = PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage,
     bool logCommands = false,
     bool logCommandParameters = false,
     int? commandTimeout = null,
@@ -39,8 +40,8 @@ public class NpgsqlRestOptions(
     CommentsMode commentsMode = CommentsMode.OnlyWithHttpTag,
     RequestHeadersMode requestHeadersMode = RequestHeadersMode.Ignore,
     string requestHeadersParameterName = "headers",
-    Action<(Routine routine, RoutineEndpoint endpoint)[]>? endpointsCreated = null,
-    Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? commandCallbackAsync = null,
+    Action<RoutineEndpoint[]>? endpointsCreated = null,
+    Func<RoutineEndpoint, NpgsqlCommand, HttpContext, Task>? commandCallbackAsync = null,
     IEnumerable<IEndpointCreateHandler>? endpointCreateHandlers = null,
     Action<List<IRoutineSource>>? sourcesCreated = null,
     TextResponseNullHandling textResponseNullHandling = TextResponseNullHandling.EmptyString,
@@ -49,12 +50,15 @@ public class NpgsqlRestOptions(
     NpgsqlRestAuthenticationOptions? authenticationOptions = null,
     bool returnNpgsqlExceptionMessage = true,
     Dictionary<string, int>? postgreSqlErrorCodeToHttpStatusCodeMapping = null,
-    Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
+    Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? beforeConnectionOpen = null,
     Dictionary<string, StringValues>? customRequestHeaders = null,
     List<IRoutineSource>? routineSources = null,
     bool refreshEndpointEnabled = false,
     string refreshMethod = "GET",
-    string refreshPath = "/api/npgsqlrest/refresh")
+    string refreshPath = "/api/npgsqlrest/refresh",
+    IRoutineCache? defaultRoutineCache = null,
+    int cachePruneIntervalMin = 1,
+    IResponseParser? defaultResponseParser = null)
 {
 
     /// <summary>
@@ -142,7 +146,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Callback function that is executed just after the new endpoint is created. Receives routine into and new endpoint info as parameters and it is expected to return the same endpoint or `null`. It offers an opportunity to modify the endpoint based on custom logic or disable endpoints by returning `null` based on some custom logic. Default is `null`, which means this callback is not defined.
     /// </summary>
-    public Func<Routine, RoutineEndpoint, RoutineEndpoint?>? EndpointCreated { get; set; } = endpointCreated;
+    public Func<RoutineEndpoint, RoutineEndpoint?>? EndpointCreated { get; set; } = endpointCreated;
 
     /// <summary>
     /// Custom function callback that receives names from PostgreSQL (parameter names, column names, etc), and is expected to return the same or new name. It offers an opportunity to convert names based on certain conventions. The default converter converts snake case names into camel case names.
@@ -178,6 +182,13 @@ public class NpgsqlRestOptions(
     /// When this value is true, all connection events are logged (depending on the level). This is usually triggered by the PostgreSQL [`RAISE` statements](https://www.postgresql.org/docs/current/plpgsql-errors-and-messages.html). Set to false to disable logging these events.
     /// </summary>
     public bool LogConnectionNoticeEvents { get; set; } = logConnectionNoticeEvents;
+
+    /// <summary>
+    /// MessageOnly - Log only connection messages.
+    /// FirstStackFrameAndMessage - Log first stack frame and the message.
+    /// FullStackAndMessage - Log full stack trace and message.
+    /// </summary>
+    public PostgresConnectionNoticeLoggingMode LogConnectionNoticeEventsMode { get; set; } = logConnectionNoticeEventsMode;
 
     /// <summary>
     /// Set this option to true to log information for every executed command and query (including parameters and parameter values).
@@ -232,12 +243,12 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Callback, if defined will be executed after all endpoints are created and receive an array of routine info and endpoint info tuples `(Routine routine, RoutineEndpoint endpoint)`. Used mostly for code generation.
     /// </summary>
-    public Action<(Routine routine, RoutineEndpoint endpoint)[]>? EndpointsCreated { get; set; } = endpointsCreated;
+    public Action<RoutineEndpoint[]>? EndpointsCreated { get; set; } = endpointsCreated;
 
     /// <summary>
     /// Asynchronous callback function that will be called after every database command is created and before it has been executed. It receives a tuple parameter with routine info, created command and current HTTP context. Command instance and HTTP context offer the opportunity to execute the command and return a completely different, custom response format.
     /// </summary>
-    public Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>? CommandCallbackAsync { get; set; } = commandCallbackAsync;
+    public Func<RoutineEndpoint, NpgsqlCommand, HttpContext, Task>? CommandCallbackAsync { get; set; } = commandCallbackAsync;
 
     /// <summary>
     /// List of `IEndpointCreateHandler` type handlers executed sequentially after endpoints are created. Used to add the different code generation plugins.
@@ -292,7 +303,7 @@ public class NpgsqlRestOptions(
     /// <summary>
     /// Callback executed immediately before connection is opened. Use this callback to adjust connection settings such as application name.
     /// </summary>
-    public Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen { get; set; } = beforeConnectionOpen;
+    public Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? BeforeConnectionOpen { get; set; } = beforeConnectionOpen;
 
     /// <summary>
     /// Custom request headers dictionary that will be added to NpgsqlRest requests. 
@@ -317,4 +328,19 @@ public class NpgsqlRestOptions(
     /// Refresh endpoint path.
     /// </summary>
     public string RefreshPath { get; set; } = refreshPath;
+
+    /// <summary>
+    /// Default routine cache object. Inject custom cache object to override default cache.
+    /// </summary>
+    public IRoutineCache DefaultRoutineCache { get; set; } = defaultRoutineCache ?? new RoutineCache();
+
+    /// <summary>
+    /// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entires). Default is 1 minute.
+    /// </summary>
+    public int CachePruneIntervalMin { get; set; } = cachePruneIntervalMin;
+
+    /// <summary>
+    /// Default response parser object. Inject custom response parser object to add default response parser.
+    /// </summary>
+    public IResponseParser? DefaultResponseParser { get; set; } = defaultResponseParser;
 }

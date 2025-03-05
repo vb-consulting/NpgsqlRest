@@ -26,6 +26,7 @@ internal static class DefaultEndpoint
             RequestParamType.BodyJson;
 
         RoutineEndpoint routineEndpoint = new(
+                routine,
                 url: url,
                 method: method,
                 requestParamType: requestParamType,

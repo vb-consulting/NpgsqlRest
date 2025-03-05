@@ -329,3 +329,41 @@ cached [ param1 param2 param3 [...] ]
 ```
 
 If the routine returns a single value of any type, result will be cached in memory and retrieved from memory on next call. Use the optional list of parameter names (original or converted) to be used as additional cache keys.
+
+
+## CacheExpiresIn
+
+```
+                                                
+cacheexpires [ time_span_value ]                
+cacheexpiresin [ time_span_value ]              
+cache-expires [ time_span_value ]               
+cache-expires-in [ time_span_value ]            
+cache_expires [ time_span_value ]               
+cache_expires_in [ time_span_value ]            
+                                                
+```
+
+Sets the cache expiration time window if the routine was cached. 
+
+Value is a simplified PostgreSQL interval value, for example `10s` or `10sec` for 10 seconds, `5d` is for 5 days an so on. For example `3h`, `3hours`, `3 h` and `3 hours` are the same. Valid abbreviations are:
+
+| abbr | meaning |
+| ---- | ------------------------------- |
+| `s`, `sec`, `second` or `seconds` | value is expressed in seconds |
+| `m`, `min`, `minute` or `minutes` | value is expressed in minutes |
+| `h`, `hour`, `hours` | value is expressed in hours |
+| `d`, `day`, `days` | value is expressed in days |
+
+## ParseResponse
+
+```
+                                                
+parse                                           
+parseresponse                                   
+parse_response                                  
+parse-response                                  
+                                                
+```
+
+Enable response parsing for this routine. Requires injectiong a default parser. See the `DefaultResponseParser` option.

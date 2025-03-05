@@ -6,7 +6,7 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using BenchmarkTests;
 using Perfolizer.Horology;
 
-BenchmarkRunner.Run<ConnectionParametersTests>();
+BenchmarkRunner.Run<FormatStringTests>();
 
 //BenchmarkRunner
 //    .Run<HttpClientTests>(

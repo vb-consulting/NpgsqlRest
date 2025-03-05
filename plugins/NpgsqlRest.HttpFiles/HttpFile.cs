@@ -37,7 +37,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
         _builder = builder;
     }
 
-    public void Handle(Routine routine, RoutineEndpoint endpoint)
+    public void Handle(RoutineEndpoint endpoint)
     {
         if (httpFileOptions.Option == HttpFileOption.Disabled)
         {
@@ -64,7 +64,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
             {
                 case CommentHeader.Simple:
                     {
-                        foreach (var line in routine.SimpleDefinition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                        foreach (var line in endpoint.Routine.SimpleDefinition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                         {
                             if (line == "\r")
                             {
@@ -73,12 +73,12 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                             sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
                         }
 
-                        WriteComment(sb, routine);
+                        WriteComment(sb, endpoint.Routine);
                         break;
                     }
                 case CommentHeader.Full:
                     {
-                        foreach (var line in routine.FullDefinition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                        foreach (var line in endpoint.Routine.FullDefinition.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                         {
                             if (line == "\r")
                             {
@@ -87,20 +87,20 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                             sb.AppendLine(string.Concat("// ", line.TrimEnd('\r')));
                         }
 
-                        WriteComment(sb, routine);
+                        WriteComment(sb, endpoint.Routine);
                         break;
                     }
             }
         }
-        if (routine.Parameters.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)
+        if (endpoint.Routine.Parameters.Length == 0 || endpoint.RequestParamType != RequestParamType.QueryString)
         {
             sb.AppendLine(string.Concat(endpoint.Method, " {{host}}", endpoint.Url));
         }
 
-        if (routine.Parameters.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
+        if (endpoint.Routine.Parameters.Length > 0 && endpoint.RequestParamType == RequestParamType.QueryString)
         {
             var line = string.Concat(endpoint.Method, " {{host}}", endpoint.Url, "?",
-                string.Join("&", routine
+                string.Join("&", endpoint.Routine
                     .Parameters
                     .Where((p, i) =>
                     {
@@ -130,31 +130,31 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
             
             if (endpoint.BodyParameterName is not null)
             {
-                for(int i = 0; i < routine.Parameters.Length; i++)
+                for(int i = 0; i < endpoint.Routine.Parameters.Length; i++)
                 {
-                    if (string.Equals(routine.Parameters[i].ConvertedName, endpoint.BodyParameterName, StringComparison.Ordinal) ||
-                        string.Equals(routine.Parameters[i].ActualName, endpoint.BodyParameterName, StringComparison.Ordinal))
+                    if (string.Equals(endpoint.Routine.Parameters[i].ConvertedName, endpoint.BodyParameterName, StringComparison.Ordinal) ||
+                        string.Equals(endpoint.Routine.Parameters[i].ActualName, endpoint.BodyParameterName, StringComparison.Ordinal))
                     {
                         sb.AppendLine();
-                        sb.AppendLine(SampleValueUnquoted(i, routine.Parameters[i].TypeDescriptor));
+                        sb.AppendLine(SampleValueUnquoted(i, endpoint.Routine.Parameters[i].TypeDescriptor));
                         break;
                     }
                 }
             }
         }
 
-        if (routine.Parameters.Length > 0 && endpoint.RequestParamType == RequestParamType.BodyJson)
+        if (endpoint.Routine.Parameters.Length > 0 && endpoint.RequestParamType == RequestParamType.BodyJson)
         {
             sb.AppendLine("content-type: application/json");
             sb.AppendLine();
             sb.AppendLine("{");
-            for (int i = 0; i < routine.Parameters.Length; i++)
+            for (int i = 0; i < endpoint.Routine.Parameters.Length; i++)
             {
                 sb.AppendLine(string.Concat(
-                    "    \"", routine.Parameters[i].ConvertedName,
+                    "    \"", endpoint.Routine.Parameters[i].ConvertedName,
                     "\": ",
-                    SampleValue(i, routine.Parameters[i].TypeDescriptor),
-                    i == routine.Parameters.Length - 1 ? "" : ","));
+                    SampleValue(i, endpoint.Routine.Parameters[i].TypeDescriptor),
+                    i == endpoint.Routine.Parameters.Length - 1 ? "" : ","));
             }
             sb.AppendLine("}");
         }
@@ -169,7 +169,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
         string FormatFileName()
         {
             var name = GetName();
-            var schema = httpFileOptions.FileMode != HttpFileMode.Schema ? "" : routine.Schema;
+            var schema = httpFileOptions.FileMode != HttpFileMode.Schema ? "" : endpoint.Routine.Schema;
             return string.Concat(string.Format(httpFileOptions.NamePattern, name, schema), ".http");
         }
     }

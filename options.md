@@ -238,7 +238,7 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 
 ## EndpointCreated
 
-- Type: `Func<NpgsqlRest.Routine, NpgsqlRest.RoutineEndpoint, NpgsqlRest.RoutineEndpoint?>?`
+- Type: `Func<NpgsqlRest.RoutineEndpoint, NpgsqlRest.RoutineEndpoint?>?`
 - Default: `null`
 
 A callback function that, if defined, is executed just after the new endpoint is created. Receives routine into and new endpoint info as parameters and it is expected to return the same endpoint or null. 
@@ -251,7 +251,7 @@ Examples:
 app.UseNpgsqlRest(new NpgsqlRestOptions
 {
     // always skip public routines
-    EndpointCreated = (routine, endpoint) => routine.Schema == "public" ? null : endpoint
+    EndpointCreated = endpoint => endpoint.Routine.Schema == "public" ? null : endpoint
 });
 ```
 
@@ -259,7 +259,7 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 app.UseNpgsqlRest(new NpgsqlRestOptions
 {
     // force all endpoints to have POST method
-    EndpointCreated = (routine, endpoint) =>
+    EndpointCreated = endpoint =>
     {
         endpoint.Method = Method.POST;
         return endpoint;
@@ -271,9 +271,9 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 app.UseNpgsqlRest(new NpgsqlRestOptions
 {
     // All public schema always require authorization
-    EndpointCreated = (routine, endpoint) =>
+    EndpointCreated = endpoint =>
     {
-        if (routine.Schema == "public")
+        if (endpoint.Routine.Schema == "public")
         {
             endpoint.RequiresAuthorization = true;
         }
@@ -352,6 +352,16 @@ When this value is true, all changes in the endpoint properties that are set fro
 info: NpgsqlRest[0]
       Function auth.get_user_details has set REQUIRED AUTHORIZATION by the comment annotation.
 ```
+
+## LogConnectionNoticeEventsMode
+
+- Type: `PostgresConnectionNoticeLoggingMode`
+- Default: `LastStackAndMessage`
+
+Describe how will PostgreSQL connection notice messages will be logged when `LogConnectionNoticeEvents` is set to true. Options are:
+- `MessageOnly`: Log only notice message.
+- `FirstStackFrameAndMessage` (default): the first stack frame and the message. In chained calls stack frame can be longer and obfuscate log message. This option will show only the first (starting) stack frame along with message.
+- `FullStackAndMessage`: Log the enire stack frame and the notice message.
 
 ## LogEndpointCreatedInfo
 
@@ -549,15 +559,15 @@ This option for individual endpoints can be changed with the `EndpointCreated` f
 
 ## EndpointsCreated
 
-- Type: `Action<(Routine routine, RoutineEndpoint endpoint)[]>?`
+- Type: `Action<RoutineEndpoint[]>?`
 - Default: `null`
 
-Callback, if defined, will be executed after all endpoints are created. It receives an array of routine info and endpoint info tuples `(Routine routine, RoutineEndpoint endpoint)`. Used mostly for code generation.
+Callback, if defined, will be executed after all endpoints are created. It receives an array of routine endpoints `RoutineEndpoint` objects. Used mostly for code generation.
 
 Example:
 
 ```csharp
-static void WriteFile(Routine routine, RoutineEndpoint endpoint)
+static void WriteFile(RoutineEndpoint endpoint)
 {
     // write file here
 }
@@ -566,9 +576,9 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 {
     EndpointsCreated = endpoints => 
     {
-        foreach(var (routine, endpoint) in endpoints)
+        foreach(var endpoint in endpoints)
         {
-            WriteFile(routine, endpoint);
+            WriteFile(endpoint);
         }
     }
 });
@@ -576,7 +586,7 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 
 ## CommandCallbackAsync
 
-- Type: `Func<(Routine routine, NpgsqlCommand command, HttpContext context), Task>?`
+- Type: `Func<RoutineEndpoint, NpgsqlCommand, HttpContext, Task>?`
 - Default: `null`
 
 Asynchronous callback function that, if defined, will be called after every database command is created and before it has been executed. 
@@ -588,12 +598,12 @@ If the current HTTP context is modified in any shape or form, it will be returne
 Example of returning a custom format in CSV rather than JSON:
 
 ```csharp
-static async Task CommandCallbackAsync((Routine routine, NpgsqlCommand command, HttpContext context) p)
+static async Task CommandCallbackAsync(RoutineEndpoint endpoint, NpgsqlCommand command, HttpContext context)
 {
-    if (p.routine.Name == "get_csv_data")
+    if (endpoint.Routine.Name == "get_csv_data")
     {
-        p.context.Response.ContentType = "text/csv";
-        await using var reader = await p.command.ExecuteReaderAsync();
+        context.Response.ContentType = "text/csv";
+        await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             await p
@@ -690,10 +700,10 @@ Default is `{ "57014", 205 }` which maps PostgreSQL `query_canceled` error to HT
 
 ## BeforeConnectionOpen
 
-- Type: `Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>?`
+- Type: `Action<NpgsqlConnection, RoutineEndpoint, HttpContext>?`
 - Default: `null`
 
-Callback option: `Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen`.
+Callback option: `Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? BeforeConnectionOpen`.
 
 This is used to set the application name parameter (for example) without having to use the service provider. It executes before the new connection is open for the request. For example:
 
@@ -701,7 +711,7 @@ This is used to set the application name parameter (for example) without having 
 app.UseNpgsqlRest(new()
 {
     ConnectionString = connectionString,
-    BeforeConnectionOpen = (NpgsqlConnection connection, Routine routine, RoutineEndpoint endpoint, HttpContext context) =>
+    BeforeConnectionOpen = (NpgsqlConnection connection, RoutineEndpoint endpoint, HttpContext context) =>
     {
         var username = context.User.Identity?.Name;
         connection.ConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
@@ -731,3 +741,26 @@ Enables or disables refresh endpoint. When refresh endpoint is invoked, the enti
 
 - Type: `string`
 - Default: `"/api/npgsqlrest/refresh"`
+
+## DefaultRoutineCache
+
+- Type: `IRoutineCache`
+- Default: `new RoutineCache()`
+
+Default caching mechanism. See [RoutineCache source code](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineCache.cs)
+
+## CachePruneIntervalMin
+
+- Type: `int`
+- Default: `1`
+
+Defines interval in minutes when they system ill attempt to remove expired cache items.
+
+
+## DefaultResponseParser
+
+- Type: `IResponseParser?`
+- Default: `null`
+
+Default response pareser. System doesn't define a default response parser. Use this property to inject one.
+ 

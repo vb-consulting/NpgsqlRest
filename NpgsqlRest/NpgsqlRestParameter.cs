@@ -14,6 +14,19 @@ public class NpgsqlRestParameter : NpgsqlParameter
     public JsonNode? JsonBodyNode { get; set; } = null;
     public TypeDescriptor TypeDescriptor { get; init; } = default!;
 
+    internal string GetCacheStringValue()
+    {
+        if (Value == DBNull.Value)
+        {
+            return string.Empty;
+        }
+        if (TypeDescriptor.IsArray)
+        {
+            return string.Join(",", Value as object[] ?? Array.Empty<object>());
+        }
+        return Value?.ToString() ?? string.Empty;
+    }
+
     public NpgsqlRestParameter NpgsqlResMemberwiseClone()
     {
 #pragma warning disable CS8603 // Possible null reference return.

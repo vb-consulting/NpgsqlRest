@@ -127,6 +127,22 @@ internal static class DefaultCommentParser
 
     private const string CacheKey = "cached";
 
+    private static readonly string[] parseResponseKey = [
+        "parse",
+        "parseresponse",
+        "parse_response",
+        "parse-response"
+    ];
+
+    private static readonly string[] cacheExpiresInKey = [
+        "cacheexpires",
+        "cacheexpiresin",
+        "cache-expires",
+        "cache-expires-in",
+        "cache_expires",
+        "cache_expires_in",
+    ];
+
     public static RoutineEndpoint? Parse(Routine routine, RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -577,6 +593,23 @@ internal static class DefaultCommentParser
                     }
                 }
 
+                // parse
+                // parseresponse
+                // parse_response
+                // parse-response
+                else if (haveTag is true && StrEqualsToArray(words[0], parseResponseKey))
+                {
+                    if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
+                    {
+                        logger?.CommentInvalidParseResponse(routine.Type, routine.Schema, routine.Name);
+                    }
+                    routineEndpoint.ParseResponse = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentParseResponse(routine.Type, routine.Schema, routine.Name);
+                    }
+                }
+
                 // cached
                 // cached [ param1, param2, param3 [, ...] ]
                 else if (haveTag is true && StrEquals(words[0], CacheKey))
@@ -607,6 +640,28 @@ internal static class DefaultCommentParser
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentCached(routine.Type, routine.Schema, routine.Name, routineEndpoint.CachedParams ?? []);
+                    }
+                }
+
+                // cacheexpires
+                // cacheexpiresin
+                // cache-expires
+                // cache-expires-in
+                // cache_expires
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], cacheExpiresInKey))
+                {
+                    var value = TimeSpanParser.ParsePostgresInterval(string.Join(Consts.Space, words[1..]));
+                    if (value is not null)
+                    {
+                        routineEndpoint.CacheExpiresIn = value.Value;
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentCacheExpiresIn(routine.Type, routine.Schema, routine.Name, value.Value);
+                        }
+                    }
+                    else
+                    {
+                        logger?.InvalidCacheExpiresIn(routine.Type, routine.Schema, routine.Name, string.Join(Consts.Space, words[1..]));
                     }
                 }
 

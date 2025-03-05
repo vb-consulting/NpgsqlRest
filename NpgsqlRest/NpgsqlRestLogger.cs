@@ -119,6 +119,18 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set CACHED with parameters {cachedParams} by the comment annotation.")]
     public static partial void CommentCached(this ILogger logger, RoutineType type, string schema, string name, IEnumerable<string> cachedParams);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set PARSE RESPONSE to true by the comment annotation.")]
+    public static partial void CommentParseResponse(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} has set PARSE RESPONSE to true by the comment annotation but routine doesn't return a single value. Routine will NOT be parsed. Only single values can be parsed.")]
+    public static partial void CommentInvalidParseResponse(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set CACHE EXPIRES IN to {value} by the comment annotation.")]
+    public static partial void CommentCacheExpiresIn(this ILogger logger, RoutineType type, string schema, string name, TimeSpan value);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} can't set CACHE EXPIRES IN value by the comment annotation. Invalid interval value: {value}")]
+    public static partial void InvalidCacheExpiresIn(this ILogger logger, RoutineType type, string schema, string name, string value);
 }
 
 public static class NpgsqlRestLogger
@@ -130,7 +142,7 @@ public static class NpgsqlRestLogger
     private const string Debug = "DEBUG";
     private const string Error = "ERROR";
     private const string Panic = "PANIC";
-    private const string LogPattern = "{where} {message}";
+    private const string LogPattern = "{where}:\n{message}";
 
     internal static readonly LogDefineOptions LogDefineOptions = new() { SkipEnabledCheck = true };
 
@@ -197,36 +209,89 @@ public static class NpgsqlRestLogger
         }
     }
 
-    public static void LogConnectionNotice(ILogger? logger, NpgsqlNoticeEventArgs args)
+    public static void LogConnectionNotice(ILogger? logger, NpgsqlNoticeEventArgs args, PostgresConnectionNoticeLoggingMode mode)
     {
         if (logger is null)
         {
             return;
         }
-        var severity = args.Notice.Severity;
-        var where = string.Concat(args.Notice.Where, " ", severity);
-        if (string.Equals(Info, severity, StringComparison.OrdinalIgnoreCase) || 
-            string.Equals(Log, severity, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(Notice, severity, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Info, args.Notice.Severity, StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(Log, args.Notice.Severity, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Notice, args.Notice.Severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogInformation(logger, where, args.Notice.MessageText);
+            if (mode == PostgresConnectionNoticeLoggingMode.MessageOnly)
+            {
+                logger.LogInformation(args.Notice.MessageText);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage)
+            {
+                LogInformation(logger, args.Notice?.Where?.Split('\n').LastOrDefault() ?? "", args.Notice?.MessageText!);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FullStackAndMessage)
+            {
+                LogInformation(logger, args.Notice?.Where, args.Notice?.MessageText!);
+            }
         }
-        else if (string.Equals(Warning, severity, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(Warning, args.Notice.Severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogWarning(logger, where, args.Notice.MessageText);
+            if (mode == PostgresConnectionNoticeLoggingMode.MessageOnly)
+            {
+                logger.LogWarning(args.Notice.MessageText);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage)
+            {
+                LogWarning(logger, args.Notice?.Where?.Split('\n').Last() ?? "", args.Notice?.MessageText!);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FullStackAndMessage)
+            {
+                LogWarning(logger, args.Notice?.Where, args.Notice?.MessageText!);
+            }
         }
-        else if (string.Equals(Debug, severity, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(Debug, args.Notice.Severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogDebug(logger, where, args.Notice.MessageText);
+            if (mode == PostgresConnectionNoticeLoggingMode.MessageOnly)
+            {
+                logger.LogDebug(args.Notice.MessageText);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage)
+            {
+                LogDebug(logger, args.Notice?.Where?.Split('\n').Last() ?? "", args.Notice?.MessageText!);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FullStackAndMessage)
+            {
+                LogDebug(logger, args.Notice?.Where, args.Notice?.MessageText!);
+            }
         }
-        else if (string.Equals(Error, severity, StringComparison.OrdinalIgnoreCase) || 
-            string.Equals(Panic, severity, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(Error, args.Notice.Severity, StringComparison.OrdinalIgnoreCase) || 
+            string.Equals(Panic, args.Notice.Severity, StringComparison.OrdinalIgnoreCase))
         {
-            LogError(logger, where, args.Notice.MessageText);
+            if (mode == PostgresConnectionNoticeLoggingMode.MessageOnly)
+            {
+                logger.LogError(args.Notice.MessageText);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage)
+            {
+                LogError(logger, args.Notice?.Where?.Split('\n').Last() ?? "", args.Notice?.MessageText!);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FullStackAndMessage)
+            {
+                LogError(logger, args.Notice?.Where, args.Notice?.MessageText!);
+            }
         }
         else
         {
-            LogTrace(logger, where, args.Notice.MessageText);
+            if (mode == PostgresConnectionNoticeLoggingMode.MessageOnly)
+            {
+                logger.LogTrace(args.Notice.MessageText);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage)
+            {
+                LogTrace(logger, args.Notice?.Where?.Split('\n').Last() ?? "", args.Notice?.MessageText!);
+            }
+            else if (mode == PostgresConnectionNoticeLoggingMode.FullStackAndMessage)
+            {
+                LogTrace(logger, args.Notice?.Where, args.Notice?.MessageText!);
+            }
         }
     }
 }

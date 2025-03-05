@@ -3,6 +3,7 @@
 namespace NpgsqlRest;
 
 public class RoutineEndpoint(
+    Routine routine,
     string url,
     Method method,
     RequestParamType requestParamType,
@@ -24,13 +25,16 @@ public class RoutineEndpoint(
     string? rawNewLineSeparator = null,
     bool rawColumnNames = false,
     bool cached = false,
-    string[]? cachedParams = null)
+    string[]? cachedParams = null,
+    TimeSpan? cacheExpiresIn = null,
+    bool parseResponse = false)
 {
     private string? _bodyParameterName = bodyParameterName;
     internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
 
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
     internal bool NeedsParsing { get; set; } = false;
+    public Routine Routine { get; } = routine;
     public string Url { get; set; } = url;
     public Method Method { get; set; } = method;
     public RequestParamType RequestParamType { get; set; } = requestParamType;
@@ -63,4 +67,6 @@ public class RoutineEndpoint(
     public string[][]? CommentWordLines { get; internal set; }
     public bool Cached { get; set; } = cached;
     public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
+    public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
+    public bool ParseResponse { get; set; } = parseResponse;
 }

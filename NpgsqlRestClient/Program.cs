@@ -53,6 +53,9 @@ ConfigureStaticFiles(app);
 var refreshOptionsCfg = NpgsqlRestCfg.GetSection("RefreshOptions");
 
 await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
+var logConnectionNoticeEventsMode = GetConfigEnum<PostgresConnectionNoticeLoggingMode?>("LogConnectionNoticeEventsMode", NpgsqlRestCfg) ?? PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
+
+var paramHandlers = CreateParametersHandlers();
 NpgsqlRestOptions options = new()
 {
     DataSource = dataSource,
@@ -75,6 +78,7 @@ NpgsqlRestOptions options = new()
     LogConnectionNoticeEvents = GetConfigBool("LogConnectionNoticeEvents", NpgsqlRestCfg, true),
     LogCommands = GetConfigBool("LogCommands", NpgsqlRestCfg),
     LogCommandParameters = GetConfigBool("LogCommandParameters", NpgsqlRestCfg),
+    LogConnectionNoticeEventsMode = logConnectionNoticeEventsMode,
 
     CommandTimeout = GetConfigInt("CommandTimeout", NpgsqlRestCfg),
     DefaultHttpMethod = GetConfigEnum<Method?>("DefaultHttpMethod", NpgsqlRestCfg),
@@ -84,7 +88,7 @@ NpgsqlRestOptions options = new()
     RequestHeadersParameterName = GetConfigStr("RequestHeadersParameterName", NpgsqlRestCfg) ?? "_headers",
 
     EndpointCreated = CreateEndpointCreatedHandler(),
-    ValidateParameters = CreateValidateParametersHandler(),
+    ValidateParameters = paramHandlers.paramHandler,
     ReturnNpgsqlExceptionMessage = GetConfigBool("ReturnNpgsqlExceptionMessage", NpgsqlRestCfg, true),
     PostgreSqlErrorCodeToHttpStatusCodeMapping = CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
     BeforeConnectionOpen = BeforeConnectionOpen(connectionString),
@@ -101,9 +105,10 @@ NpgsqlRestOptions options = new()
     RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),
     RefreshPath = GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
     RefreshMethod = GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
+    DefaultResponseParser = paramHandlers.defaultParser
 };
 
 app.UseNpgsqlRest(options);
-ExternalAuth.Configure(app, options);
+ExternalAuth.Configure(app, options, logConnectionNoticeEventsMode);
 TokenRefreshAuth.Configure(app);
 app.Run();

@@ -10,12 +10,16 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageReference Include="Npgsql" Version="9.0.2" />
+    <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="System.Text.Json" Version="9.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="BenchmarkDotNet.Artifacts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NpgsqlRestClient\NpgsqlRestClient.csproj" />
   </ItemGroup>
 
 </Project>

@@ -29,6 +29,7 @@ public static class NpgsqlRestMiddlewareExtensions
             NpgsqlRestMiddleware.SetLogger(factory is not null ? factory.CreateLogger(options.LoggerName ?? typeof(NpgsqlRestMiddlewareExtensions).Namespace ?? "NpgsqlRest") : app.Logger);
         }
 
+
         NpgsqlRestMiddleware.SetMetadata(NpgsqlRestMetadataBuilder.Build(options, NpgsqlRestMiddleware.Logger, builder));
         if (NpgsqlRestMiddleware.Metadata.Entries.Count == 0)
         {

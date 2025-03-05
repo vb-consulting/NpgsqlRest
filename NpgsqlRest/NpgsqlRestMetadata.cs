@@ -1,24 +1,16 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using Npgsql;
+﻿using Npgsql;
 using NpgsqlRest.Defaults;
 
 namespace NpgsqlRest;
 
 public class NpgsqlRestMetadataEntry
 {
-    internal NpgsqlRestMetadataEntry(
-        Routine routine,
-        RoutineEndpoint endpoint,
-        IRoutineSourceParameterFormatter formatter,
-        string key)
+    internal NpgsqlRestMetadataEntry(RoutineEndpoint endpoint, IRoutineSourceParameterFormatter formatter, string key)
     {
-        Routine = routine;
         Endpoint = endpoint;
         Formatter = formatter;
         Key = key;
     }
-
-    public Routine Routine { get; }
     public RoutineEndpoint Endpoint { get; }
     public IRoutineSourceParameterFormatter Formatter { get; }
     public string Key { get; }
@@ -57,7 +49,7 @@ public static class NpgsqlRestMetadataBuilder
         }
 
         options.SourcesCreated(options.RoutineSources);
-
+        var hasCachedRoutine = false;
         CommentsMode optionsCommentsMode = options.CommentsMode;
         foreach (var source in options.RoutineSources)
         {
@@ -80,7 +72,7 @@ public static class NpgsqlRestMetadataBuilder
 
                 if (options.EndpointCreated is not null)
                 {
-                    endpoint = options.EndpointCreated(routine, endpoint)!;
+                    endpoint = options.EndpointCreated(endpoint)!;
                 }
 
                 if (endpoint is null)
@@ -101,10 +93,10 @@ public static class NpgsqlRestMetadataBuilder
 
                 }
                 var key = string.Concat(method, endpoint?.Url);
-                var value = new NpgsqlRestMetadataEntry(routine, endpoint!, formatter, key);
+                var value = new NpgsqlRestMetadataEntry(endpoint!, formatter, key);
                 if (lookup.TryGetValue(key, out var existing))
                 {
-                    overloads[string.Concat(key, existing.Routine.ParamCount)] = existing;
+                    overloads[string.Concat(key, existing.Endpoint.Routine.ParamCount)] = existing;
                 }
                 lookup[key] = value;
 
@@ -112,7 +104,7 @@ public static class NpgsqlRestMetadataBuilder
                 {
                     foreach (var handler in options.EndpointCreateHandlers)
                     {
-                        handler.Handle(routine, endpoint!);
+                        handler.Handle(endpoint!);
                     }
                 }
 
@@ -132,6 +124,11 @@ public static class NpgsqlRestMetadataBuilder
                         throw new ArgumentException($"{routine.Type.ToString().ToLowerInvariant()} {routine.Schema}.{routine.Name} is marked as login and it can't be void or returning unnamed data sets.");
                     }
                 }
+
+                if (endpoint?.Cached is true && hasCachedRoutine is false)
+                {
+                    hasCachedRoutine = true;
+                }
             }
         }
 
@@ -145,17 +142,29 @@ public static class NpgsqlRestMetadataBuilder
             }
         }
 
+        if (hasCachedRoutine is true && options.DefaultRoutineCache is RoutineCache)
+        {
+            RoutineCache.Start(options);
+            if (builder is WebApplication app)
+            {
+                app.Lifetime.ApplicationStopping.Register(() =>
+                {
+                    RoutineCache.Shutdown();
+                });
+            }
+        }
+
         if (options.EndpointsCreated is not null)
         {
-            options.EndpointsCreated(lookup.Values.Select(x => (x.Routine, x.Endpoint)).ToArray());
+            options.EndpointsCreated(lookup.Values.Select(x => x.Endpoint).ToArray());
         }
 
         if (builder is not null)
         {
-            (Routine routine, RoutineEndpoint endpoint)[]? array = null;
+            RoutineEndpoint[]? array = null;
             foreach (var handler in options.EndpointCreateHandlers)
             {
-                array ??= lookup.Values.Select(x => (x.Routine, x.Endpoint)).ToArray();
+                array ??= lookup.Values.Select(x => x.Endpoint).ToArray();
                 handler.Cleanup(array);
                 handler.Cleanup();
             }

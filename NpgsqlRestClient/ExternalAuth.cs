@@ -123,13 +123,15 @@ public static class ExternalAuthConfig
 
 public static class ExternalAuth
 {
-    public static void Configure(WebApplication app, NpgsqlRestOptions options)
+    private static PostgresConnectionNoticeLoggingMode _loggingMode;
+
+    public static void Configure(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
     {
         if (ExternalAuthConfig.ClientConfigs.Where(c => c.Value.Enabled).Any())
         {
             return;
         }
-
+        _loggingMode = loggingMode;
         app.Use(async (context, next) =>
         {
             if (ExternalAuthConfig.ClientConfigs.TryGetValue(context.Request.Path, out var config) is false)
@@ -314,7 +316,7 @@ public static class ExternalAuth
         {
             connection.Notice += (sender, args) =>
             {
-                NpgsqlRestLogger.LogConnectionNotice(logger, args);
+                NpgsqlRestLogger.LogConnectionNotice(logger, args, _loggingMode);
             };
         }
 

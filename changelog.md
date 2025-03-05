@@ -4,6 +4,152 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.20.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.20.0 (2025-03-05)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.20.0...2.19.0)
+
+Many changes:
+
+### 1) Breaking changes in interfaces
+
+There are some small breaking changes in public interfaces. These are just simplifications: 
+
+From this version, `RoutineEndpoint` has a `Routine` read-only property. This allows simplification where we don't have to have these two parameters: `RoutineEndpoint` and `Routine`. 
+
+We can only have one `RoutineEndpoint`. Every interface and structure that had these two parameters, fields, or properties now only has one: `RoutineEndpoint.` 
+
+### 2) Logging improvements
+
+- New option:
+
+```cs
+/// <summary>
+/// MessageOnly - Log only connection messages.
+/// FirstStackFrameAndMessage - Log first stack frame and the message.
+/// FullStackAndMessage - Log full stack trace and message.
+/// </summary>
+public PostgresConnectionNoticeLoggingMode LogConnectionNoticeEventsMode { get; set; } = PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
+```
+
+The default is the `FirstStackFrameAndMessage` that logs only the first stack frame and the message. In chained calls, the stack frame can be longer and obfuscate the log message. This option will show only the first (starting) stack frame along with the message.
+
+- The log pattern was also slightly changed. The last two options now look like this: `" {where}:\n{message}" `.
+
+- Fix: Fixed parameter ordinal number when logging command parameters (`LogCommands` and `LogCommandParameters` options are true).
+
+### 3) Caching Improvements
+
+In the previous version, some basic response caching in sever memory was introduced (when the routine is marked as cached). This feature is now massively improved:
+
+- Injectible Cache Object
+
+Cache Object can be injected in options by using the new `DefaultRoutineCache`
+
+```cs
+/// <summary>
+/// Default routine cache object. Inject custom cache object to override default cache.
+/// </summary>
+public IRoutineCache DefaultRoutineCache { get; set; } = defaultRoutineCache ?? new RoutineCache();
+```
+
+Interface `IRoutineCache` can implement any caching strategy:
+
+```cs
+public interface IRoutineCache
+{
+    bool Get(RoutineEndpoint endpoint, string key, out string? result);
+    void AddOrUpdate(RoutineEndpoint endpoint, string key, string? value);
+}
+```
+
+There is a new default cache implementation that supports a cache expiration time span.
+
+- Cache Expiration
+
+Cache expiration can be defined on a `RoutineEndpoint` property, together with other caching properties
+
+```cs
+public bool Cached { get; set; } = cached;
+public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
+public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
+```
+
+It can be also set as routine comment annotation by using any of these annotation tags:
+
+```
+cacheexpires [ time_span_value ]
+cacheexpiresin [ time_span_value ]
+cache-expires [ time_span_value ]
+cache-expires-in [ time_span_value ]
+cache_expires [ time_span_value ]
+cache_expires_in [ time_span_value ]
+```
+
+Value is a simplified PostgreSQL interval value, for example, `10s` or `10sec` for 10 seconds, `5d` is for 5 days, and so on. Space between is also allowed. For example, `3h`, `3 hours`, `3 h`, and `3 hours` are the same.
+
+Valid abbreviations are:
+
+| abbr | meaning |
+| ---- | ------------------------------- |
+| `s`, `sec`, `second` or `seconds` | value is expressed in seconds |
+| `m', `min`, `minute` or `minutes` | value is expressed in minutes |
+| `h`, `hour`, `hours` | value is expressed in hours |
+| `d`, `day`, `days` | value is expressed in days |
+
+- Other Cache Improvements
+
+There are some other improvements, such as avoiding unnecessary allocations when returning from the cache, creating a connection, and so on.
+
+There is also a new option to set cache prune interval:
+
+```cs
+/// <summary>
+/// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entires). Default is 1 minute.
+/// </summary>
+public int CachePruneIntervalMin { get; set; } = 1;
+```
+
+This is the interval in minutes that, if the cache is used, will remove expired items in this interval.
+
+### 4) Responses Parser
+
+From this version, it is possible to inject a custom response parser mechanism by using a new option:
+
+```cs
+/// <summary>
+/// Default response parser object. Inject custom response parser object to add default response parser.
+/// </summary>
+public IResponseParser? DefaultResponseParser { get; set; } = null;
+```
+
+You can set a custom implementation to the `DefaultResponseParser` option that implements the `IResponseParser` interface:
+
+```cs
+public interface IResponseParser
+{
+    /// <summary>
+    /// Parse response from PostgreSQL.
+    /// </summary>
+    /// <returns>Response string</returns>
+    ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
+}
+```
+
+This is useful when response content needs to be enriched from the Http context, such as user claims, IP address, etc.
+
+In order to call this parser, `RoutineEndpoint` needs to have `ParseResponse` set to true (default is false).
+
+This also can be set by using new comment annotations:
+
+```
+parse
+parseresponse
+parse_response
+parse-response
+```
+
+When `ParseResponse` is set to true on the endpoint, and DefaultResponseParser has been set to nonnull instance, the response will be parsed and returned from the `Parse` method always, even when it is cached.
+
 ## Version [2.19.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.19.0 (2025-02-24)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.19.0...2.18.0)

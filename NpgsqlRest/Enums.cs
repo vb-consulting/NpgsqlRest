@@ -57,3 +57,19 @@ public enum RequestHeadersMode
     /// </summary>
     Parameter
 }
+
+public enum PostgresConnectionNoticeLoggingMode
+{
+    /// <summary>
+    /// Log only connection messages.
+    /// </summary>
+    MessageOnly,
+    /// <summary>
+    /// Log last stack trace and message.
+    /// </summary>
+    FirstStackFrameAndMessage,
+    /// <summary>
+    /// Log full stack trace and message.
+    /// </summary>
+    FullStackAndMessage
+}

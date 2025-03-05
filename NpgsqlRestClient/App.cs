@@ -105,7 +105,7 @@ public static class App
             routine.Name.Trim(Consts.DoubleQuote).Trim('/'),
             "/");
 
-    public static Func<Routine, RoutineEndpoint, RoutineEndpoint?>? CreateEndpointCreatedHandler()
+    public static Func<RoutineEndpoint, RoutineEndpoint?>? CreateEndpointCreatedHandler()
     {
         var loginPath = GetConfigStr("LoginPath", AuthCfg);
         var logoutPath = GetConfigStr("LogoutPath", AuthCfg);
@@ -113,14 +113,14 @@ public static class App
         {
             return null;
         }
-        return (Routine routine, RoutineEndpoint endpoint) =>
+        return (RoutineEndpoint endpoint) =>
         {
             if (loginPath is not null && string.Equals(endpoint.Url, loginPath, StringComparison.OrdinalIgnoreCase))
             {
                 endpoint.Login = true;
                 return endpoint;
             }
-            if (logoutPath is not null && string.Equals(routine.Name, logoutPath, StringComparison.OrdinalIgnoreCase))
+            if (logoutPath is not null && string.Equals(endpoint.Routine.Name, logoutPath, StringComparison.OrdinalIgnoreCase))
             {
                 endpoint.Login = true;
                 return endpoint;
@@ -129,7 +129,7 @@ public static class App
         };
     }
 
-    public static Action<ParameterValidationValues>? CreateValidateParametersHandler()
+    public static (Action<ParameterValidationValues>? paramHandler, IResponseParser? defaultParser) CreateParametersHandlers()
     {
         var userIdParameterName = GetConfigStr("UserIdParameterName", AuthCfg);
         var userNameParameterName = GetConfigStr("UserNameParameterName", AuthCfg);
@@ -157,54 +157,70 @@ public static class App
             && customClaims is null 
             && customParameters is null)
         {
-            return null;
+            return (null, null);
         }
 
-        return (ParameterValidationValues p) =>
+        var bindParameters = GetConfigBool("BindParameters", AuthCfg);
+        var parseResponse = GetConfigBool("ParseResponse", AuthCfg);
+
+        Action<ParameterValidationValues>? paramHandler = null;
+        if (bindParameters is true)
         {
-            if (userIdParameterName is not null && string.Equals(p.Parameter.ActualName, userIdParameterName, StringComparison.OrdinalIgnoreCase))
+            paramHandler = (ParameterValidationValues p) =>
             {
-                p.Parameter.Value = p.Context.User.Claims
-                    .FirstOrDefault(c => string.Equals(c.Type, ClaimTypes.NameIdentifier, StringComparison.Ordinal))?
-                    .Value as object ?? DBNull.Value;
-            }
-            else if (userNameParameterName is not null && string.Equals(p.Parameter.ActualName, userNameParameterName, StringComparison.OrdinalIgnoreCase))
-            {
-                p.Parameter.Value = p.Context.User.Identity?.Name as object ?? DBNull.Value;
-            }
-            else if (userRolesParameterName is not null && string.Equals(p.Parameter.ActualName, userRolesParameterName, StringComparison.OrdinalIgnoreCase))
-            {
-                p.Parameter.Value = p.Context.User.Claims
-                    .Where(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?
-                    .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
-            }
-            else if (ipAddressParameterName is not null && string.Equals(p.Parameter.ActualName, ipAddressParameterName, StringComparison.OrdinalIgnoreCase))
-            {
-                p.Parameter.Value = GetClientIpAddress(p.Context.Request) as object ?? DBNull.Value;
-            }
-            else if (customClaims is not null && customClaims.TryGetValue(p.Parameter.ActualName, out var claimName))
-            {
-                if (p.Parameter.TypeDescriptor.IsArray)
+                if (userIdParameterName is not null && string.Equals(p.Parameter.ActualName, userIdParameterName, StringComparison.OrdinalIgnoreCase))
                 {
-                    p.Parameter.Value = p.Context.User.Claims
-                        .Where(c => string.Equals(c.Type, claimName, StringComparison.Ordinal))?
+                    p.Parameter.Value = p.Context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value as object ?? DBNull.Value;
+                }
+                else if (userNameParameterName is not null && string.Equals(p.Parameter.ActualName, userNameParameterName, StringComparison.OrdinalIgnoreCase))
+                {
+                    p.Parameter.Value = p.Context.User.Identity?.Name as object ?? DBNull.Value;
+                }
+                else if (userRolesParameterName is not null && string.Equals(p.Parameter.ActualName, userRolesParameterName, StringComparison.OrdinalIgnoreCase))
+                {
+                    p.Parameter.Value = p.Context.User
+                        .FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?
                         .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
                 }
-                else
+                else if (ipAddressParameterName is not null && string.Equals(p.Parameter.ActualName, ipAddressParameterName, StringComparison.OrdinalIgnoreCase))
                 {
-                    p.Parameter.Value = p.Context.User.Claims
-                        .FirstOrDefault(c => string.Equals(c.Type, claimName, StringComparison.Ordinal))?
-                        .Value as object ?? DBNull.Value;
+                    p.Parameter.Value = GetClientIpAddress(p.Context.Request) as object ?? DBNull.Value;
                 }
-            }
-            else if (customParameters is not null && customParameters.TryGetValue(p.Parameter.ActualName, out var paramValue))
-            {
-                p.Parameter.Value = paramValue is null ? DBNull.Value : paramValue;
-            }
-        };
+                else if (customClaims is not null && customClaims.TryGetValue(p.Parameter.ActualName, out var claimName))
+                {
+                    if (p.Parameter.TypeDescriptor.IsArray)
+                    {
+                        p.Parameter.Value = p.Context.User
+                            .FindAll(c => string.Equals(c.Type, claimName, StringComparison.Ordinal))?
+                            .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
+                    }
+                    else
+                    {
+                        p.Parameter.Value = p.Context.User.FindFirst(claimName!)?.Value as object ?? DBNull.Value;
+                    }
+                }
+                else if (customParameters is not null && customParameters.TryGetValue(p.Parameter.ActualName, out var paramValue))
+                {
+                    p.Parameter.Value = paramValue is null ? DBNull.Value : paramValue;
+                }
+            };
+        }
+
+        IResponseParser? defaultParser = null;
+        if (parseResponse is true)
+        {
+            defaultParser = new DefaultResponseParser(userIdParameterName,
+                userNameParameterName,
+                userRolesParameterName,
+                ipAddressParameterName,
+                customClaims,
+                customParameters);
+        }
+
+        return (paramHandler, defaultParser);
     }
 
-    private static string? GetClientIpAddress(HttpRequest request)
+    public static string? GetClientIpAddress(HttpRequest request)
     {
         string? ip = request.Headers["X-Forwarded-For"].FirstOrDefault();
         if (!string.IsNullOrEmpty(ip))
@@ -249,14 +265,14 @@ public static class App
         return result;
     }
 
-    public static Action<NpgsqlConnection, Routine, RoutineEndpoint, HttpContext>? BeforeConnectionOpen(string connectionString)
+    public static Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? BeforeConnectionOpen(string connectionString)
     {
         if (Config.UseConnectionApplicationNameWithUsername is false)
         {
             return null;
         }
 
-        return (NpgsqlConnection connection, Routine routine, RoutineEndpoint endpoint, HttpContext context) =>
+        return (NpgsqlConnection connection, RoutineEndpoint endpoint, HttpContext context) =>
         {
             var uid = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var executionId = context.Request.Headers["X-Execution-Id"].FirstOrDefault();

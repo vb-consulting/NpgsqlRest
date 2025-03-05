@@ -5,6 +5,7 @@ using NpgsqlRest.CrudSource;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Npgsql;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -86,16 +87,16 @@ public class Program
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,
             Logger = new EmptyLogger(),
-            CommandCallbackAsync = async p =>
+            CommandCallbackAsync = async (RoutineEndpoint endpoint, NpgsqlCommand command, HttpContext context) =>
             {
-                if (string.Equals(p.routine.Name , "get_csv_data"))
+                if (string.Equals(endpoint.Routine.Name , "get_csv_data"))
                 {
-                    p.context.Response.ContentType = "text/csv";
-                    await using var reader = await p.command.ExecuteReaderAsync();
+                    context.Response.ContentType = "text/csv";
+                    await using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
                         var line = $"{reader[0]},{reader[1]},{reader.GetDateTime(2):s},{reader.GetBoolean(3).ToString().ToLowerInvariant()}\n";
-                        await p.context.Response.WriteAsync(line);
+                        await context.Response.WriteAsync(line);
                     }
                 }
             },

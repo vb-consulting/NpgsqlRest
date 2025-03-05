@@ -1,5 +1,4 @@
 ﻿using Npgsql;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace NpgsqlRest;
 
@@ -16,12 +15,12 @@ public interface IEndpointCreateHandler
     /// <summary>
     /// After successful endpoint creation.
     /// </summary>
-    void Handle(Routine routine, RoutineEndpoint endpoint) { }
+    void Handle(RoutineEndpoint endpoint) { }
 
     /// <summary>
     /// After all endpoints are created.
     /// </summary>
-    void Cleanup((Routine routine, RoutineEndpoint endpoint)[] endpoints) {  }
+    void Cleanup(RoutineEndpoint[] endpoints) {  }
 
     /// <summary>
     /// After all endpoints are created.
@@ -152,4 +151,13 @@ public interface IRoutineSource
     /// Query parameter
     /// </summary>
     string[]? ExcludeNames { get; set; }
+}
+
+public interface IResponseParser
+{
+    /// <summary>
+    /// Parse response from PostgreSQL.
+    /// </summary>
+    /// <returns>Response string</returns>
+    ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
 }

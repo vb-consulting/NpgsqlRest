@@ -40,7 +40,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         _npgsqlRestoptions = options;
     }
 
-    public void Cleanup((Routine routine, RoutineEndpoint endpoint)[] endpoints)
+    public void Cleanup(RoutineEndpoint[] endpoints)
     {
         if (options.FilePath is null)
         {
@@ -59,7 +59,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 return;
             }
 
-            foreach (var group in endpoints.GroupBy(e => e.routine.Schema))
+            foreach (var group in endpoints.GroupBy(e => e.Routine.Schema))
             {
                 var filename = string.Format(options.FilePath, ConvertToCamelCase(group.Key));
                 if (options.SkipTypes && filename.EndsWith(".ts"))
@@ -71,7 +71,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         }
     }
 
-    private void Run((Routine routine, RoutineEndpoint endpoint)[] endpoints, string fileName)
+    private void Run(RoutineEndpoint[] endpoints, string fileName)
     {
         if (fileName is null)
         {
@@ -83,7 +83,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         StringBuilder content = new();
         StringBuilder interfaces = new();
 
-        if (endpoints.Where(e => e.endpoint.RequestParamType == RequestParamType.QueryString).Any())
+        if (endpoints.Where(e => e.RequestParamType == RequestParamType.QueryString).Any())
         {
             contentHeader.AppendLine(
                 options.ImportBaseUrlFrom is not null ? 
@@ -138,24 +138,24 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         }
 
         bool handled = false;
-        foreach (var (routine, endpoint) in endpoints
-            .Where(e => e.routine.Type == RoutineType.Table || e.routine.Type == RoutineType.View)
-            .OrderBy(e => e.routine.Schema)
-            .ThenBy(e => e.routine.Type)
-            .ThenBy(e => e.routine.Name))
+        foreach (var endpoint in endpoints
+            .Where(e => e.Routine.Type == RoutineType.Table || e.Routine.Type == RoutineType.View)
+            .OrderBy(e => e.Routine.Schema)
+            .ThenBy(e => e.Routine.Type)
+            .ThenBy(e => e.Routine.Name))
         {
-            if (Handle(routine, endpoint) && handled is false)
+            if (Handle(endpoint) && handled is false)
             {
                 handled = true;
             }
         }
 
-        foreach (var (routine, endpoint) in endpoints
-            .Where(e => (e.routine.Type == RoutineType.Table || e.routine.Type == RoutineType.View) is false)
-            .OrderBy(e => e.routine.Schema)
-            .ThenBy(e => e.routine.Name))
+        foreach (var endpoint in endpoints
+            .Where(e => (e.Routine.Type == RoutineType.Table || e.Routine.Type == RoutineType.View) is false)
+            .OrderBy(e => e.Routine.Schema)
+            .ThenBy(e => e.Routine.Name))
         {
-            if (Handle(routine, endpoint) && handled is false)
+            if (Handle(endpoint) && handled is false)
             {
                 handled = true;
             }
@@ -228,8 +228,9 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             sb.Insert(0, string.Join(Environment.NewLine, options.HeaderLines.Select(l => string.Format(l, now))));
         }
 
-        bool Handle(Routine routine, RoutineEndpoint endpoint)
+        bool Handle(RoutineEndpoint endpoint)
         {
+            Routine routine = endpoint.Routine;
             if (options.SkipRoutineNames.Contains(routine.Name))
             {
                 return false;
