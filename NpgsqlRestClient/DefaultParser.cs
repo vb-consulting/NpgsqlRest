@@ -1,4 +1,7 @@
-﻿using System.Security.Claims;
+﻿using System;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest;
 
@@ -22,7 +25,7 @@ public class DefaultResponseParser(
     public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context)
     {
         Dictionary<string, string> replacements = [];
-        context.User.FindFirst("claimType");
+
         if (userIdParameterName is not null)
         {
             var value = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -68,148 +71,106 @@ public class DefaultResponseParser(
             return input;
         }
 
-        int resultLength = 0;
-        int currentPos = 0;
         int inputLength = input.Length;
 
-        while (currentPos < inputLength)
+        if (inputLength == 0)
         {
-            int placeholderInfo = FindNextPlaceholder(input, currentPos, out int placeholderStart, out int placeholderEnd);
+            return input;
+        }
 
-            if (placeholderInfo == 0)
+        var lookup = replacements.GetAlternateLookup<ReadOnlySpan<char>>();
+
+        int resultLength = 0;
+        bool inside = false;
+        int startIndex = 0;
+        for (int i = 0; i < inputLength; i++)
+        {
+            var ch = input[i];
+            if (ch == '{')
             {
-                resultLength += inputLength - currentPos;
-                break;
-            }
-            else if (placeholderInfo == -1)
-            {
-                resultLength += inputLength - currentPos;
-                break;
-            }
-
-            resultLength += placeholderStart - currentPos;
-
-            ReadOnlySpan<char> keySpan = input[(placeholderStart + 1)..placeholderEnd];
-
-            bool keyFound = false;
-            string? value = null;
-
-            foreach (var pair in replacements)
-            {
-                if (keySpan.SequenceEqual(pair.Key.AsSpan()))
+                if (inside is true)
                 {
-                    keyFound = true;
-                    value = pair.Value;
-                    break;
+                    resultLength += input[startIndex..i].Length;
                 }
+                inside = true;
+                startIndex = i;
+                continue;
             }
 
-            if (keyFound && value != null)
+            if (ch == '}' && inside is true)
             {
-                resultLength += value.Length;
-            }
-            else
-            {
-                resultLength += placeholderEnd - placeholderStart + 1;
+                inside = false;
+                if (lookup.TryGetValue(input[(startIndex + 1)..i], out var value))
+                {
+                    resultLength += value.Length;
+                }
+                else
+                {
+                    resultLength += input[startIndex..i].Length + 1;
+                }
+                continue;
             }
 
-            currentPos = placeholderEnd + 1;
+            if (inside is false)
+            {
+                resultLength += 1;
+            }
+        }
+        if (inside is true)
+        {
+            resultLength += input[startIndex..].Length;
         }
 
         char[] resultArray = new char[resultLength];
         Span<char> result = resultArray;
-
-        currentPos = 0;
         int resultPos = 0;
 
-        while (currentPos < inputLength)
+        inside = false;
+        startIndex = 0;
+        for(int i = 0; i < inputLength; i++)
         {
-            int placeholderInfo = FindNextPlaceholder(input, currentPos, out int placeholderStart, out int placeholderEnd);
-
-            if (placeholderInfo == 0)
+            var ch = input[i];
+            if (ch == '{')
             {
-                var remainingChars = input[currentPos..];
-                remainingChars.CopyTo(result[resultPos..]);
-                resultPos += remainingChars.Length;
-                break;
-            }
-            else if (placeholderInfo == -1)
-            {
-                var remainingChars = input[currentPos..];
-                remainingChars.CopyTo(result[resultPos..]);
-                resultPos += remainingChars.Length;
-                break;
-            }
-
-            if (placeholderStart > currentPos)
-            {
-                var charsToCopy = input[currentPos..placeholderStart];
-                charsToCopy.CopyTo(result[resultPos..]);
-                resultPos += charsToCopy.Length;
-            }
-
-            ReadOnlySpan<char> keySpan = input[(placeholderStart + 1)..placeholderEnd];
-
-            bool keyFound = false;
-            string? value = null;
-
-            foreach (var pair in replacements)
-            {
-                if (keySpan.SequenceEqual(pair.Key.AsSpan()))
+                if (inside is true)
                 {
-                    keyFound = true;
-                    value = pair.Value;
-                    break;
+                    input[startIndex..i].CopyTo(result[resultPos..]);
+                    resultPos += input[startIndex..i].Length;
                 }
+                inside = true;
+                startIndex = i;
+                continue;
             }
 
-            if (keyFound && value != null)
+            if (ch == '}' && inside is true)
             {
-                value.AsSpan().CopyTo(result[resultPos..]);
-                resultPos += value.Length;
-            }
-            else
-            {
-                var placeholderChars = input[placeholderStart..(placeholderEnd + 1)];
-                placeholderChars.CopyTo(result[resultPos..]);
-                resultPos += placeholderChars.Length;
+                inside = false;
+                if (lookup.TryGetValue(input[(startIndex + 1)..i], out var value))
+                {
+                    value.AsSpan().CopyTo(result[resultPos..]);
+                    resultPos += value.Length;
+                }
+                else
+                {
+                    input[startIndex..i].CopyTo(result[resultPos..]);
+                    resultPos += input[startIndex..i].Length;
+                    result[resultPos] = ch;
+                    resultPos++;
+                }
+                continue;
             }
 
-            currentPos = placeholderEnd + 1;
+            if (inside is false)
+            {
+                result[resultPos] = ch;
+                resultPos++;
+            }
+        }
+        if (inside is true)
+        {
+            input[startIndex..].CopyTo(result[resultPos..]);
         }
 
         return resultArray;
-    }
-
-    private static int FindNextPlaceholder(ReadOnlySpan<char> input, int startPos, out int placeholderStart, out int placeholderEnd)
-    {
-        placeholderStart = -1;
-        placeholderEnd = -1;
-
-        int remainingLength = input.Length - startPos;
-        if (remainingLength <= 0) 
-        { 
-            return 0;
-        }
-
-        ReadOnlySpan<char> remaining = input[startPos..];
-        int openBracePos = remaining.IndexOf('{');
-
-        if (openBracePos == -1)
-        {
-            return 0;
-        }
-        placeholderStart = startPos + openBracePos;
-
-        ReadOnlySpan<char> afterOpenBrace = input[(placeholderStart + 1)..];
-        int closeBracePos = afterOpenBrace.IndexOf('}');
-
-        if (closeBracePos == -1) 
-        {
-            return -1;
-        }
-
-        placeholderEnd = placeholderStart + 1 + closeBracePos;
-        return 1;
     }
 }

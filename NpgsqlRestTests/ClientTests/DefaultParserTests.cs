@@ -30,6 +30,14 @@ public class DefaultParserTests
     }
 
     [Fact]
+    public void Parse_two()
+    {
+        var str1 = "Hello, {name1} and {name2}!";
+        DefaultResponseParser.FormatString(str1.AsSpan(), new Dictionary<string, string> { 
+            { "name1", "world1" }, { "name2", "world2" } }).ToString().Should().Be("Hello, world1 and world2!");
+    }
+
+    [Fact]
     public void Parse_multiple_placeholders()
     {
         var str = "Hello, {name}! Today is {day}.";
@@ -168,6 +176,28 @@ public class DefaultParserTests
             { "name", "" }
         };
         DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("name}");
+    }
+
+    [Fact]
+    public void Parse_edge_case4()
+    {
+        var str = "{name}, {name}, {name}";
+        var replacements = new Dictionary<string, string>
+        {
+            { "name", "value" }
+        };
+        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("value, value, value");
+    }
+
+    [Fact]
+    public void Parse_edge_case5()
+    {
+        var str = "{ {name}, {name}, {name} }";
+        var replacements = new Dictionary<string, string>
+        {
+            { "name", "value" }
+        };
+        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("{ value, value, value }");
     }
 
     private static string GenerateRandomString(int length)

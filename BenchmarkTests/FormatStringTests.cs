@@ -22,6 +22,13 @@ public class FormatStringTests
         return DefaultResponseParser.FormatString(input, replacements);
     }
 
+    //[Benchmark]
+    //public ReadOnlySpan<char> FormatString_OLD_Method()
+    //{
+    //    ReadOnlySpan<char> input = "Hello, {name}! Welcome to {place}.";
+    //    return DefaultResponseParser.FormatString_OLD(input, replacements);
+    //}
+
     [Benchmark]
     public string RegexMethod()
     {

@@ -91,6 +91,23 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.14.0
+
+This fix contains a fix for edge cases of parse method when using multiple curly braces.
+
+- Versions:
+
+```
+.NET                  9.0.2
+Client Build          2.14.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.3.0
+NpgsqlRest            2.20.0.0
+NpgsqlRest.HttpFiles  1.3.0.0
+NpgsqlRest.TsClient   1.18.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.13.0
 
 ### New option `NpgsqlRest.LogConnectionNoticeEventsMode`
