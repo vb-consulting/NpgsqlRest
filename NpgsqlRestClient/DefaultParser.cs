@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest;
 
@@ -22,6 +20,14 @@ public class DefaultResponseParser(
     private readonly Dictionary<string, StringValues>? customClaims = customClaims;
     private readonly Dictionary<string, string?>? customParameters = customParameters;
 
+    private const string @null = "null";
+    private const char @open = '{';
+    private const char @close = '}';
+    private const char @quote = '"';
+    private const char @arrOpen = '[';
+    private const char @arrClose = ']';
+    private const char @comma = ',';
+
     public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context)
     {
         Dictionary<string, string> replacements = [];
@@ -29,36 +35,36 @@ public class DefaultResponseParser(
         if (userIdParameterName is not null)
         {
             var value = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            replacements.Add(userIdParameterName, value is null ? "NULL" : string.Concat('"', value, '"')); 
+            replacements.Add(userIdParameterName, value is null ? @null : string.Concat(@quote, value, @quote)); 
         }
         if (userNameParameterName is not null)
         {
             var value = context.User.Identity?.Name;
-            replacements.Add(userNameParameterName, value is null ? "NULL" : string.Concat('"', value, '"'));
+            replacements.Add(userNameParameterName, value is null ? @null : string.Concat(@quote, value, @quote));
         }
         if (userRolesParameterName is not null)
         {
-            var value = context.User.FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?.Select(r => string.Concat('"', r.Value, '"'));
-            replacements.Add(userRolesParameterName, value is null ? "NULL" : string.Concat('[', string.Join(',', value), ']'));
+            var value = context.User.FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?.Select(r => string.Concat(@quote, r.Value, @quote));
+            replacements.Add(userRolesParameterName, value is null ? @null : string.Concat(@arrOpen, string.Join(@comma, value), @arrClose));
         }
         if (ipAddressParameterName is not null)
         {
             var value = App.GetClientIpAddress(context.Request);
-            replacements.Add(ipAddressParameterName, value is null ? "NULL" : string.Concat('"', value, '"'));
+            replacements.Add(ipAddressParameterName, value is null ? @null : string.Concat(@quote, value, @quote));
         }
         if (customClaims is not null)
         {
             foreach (var (key, value) in customClaims)
             {
                 var claim = context.User.FindFirst(key);
-                replacements.Add(key, claim is null ? "NULL" : string.Concat('"', claim.Value, '"'));
+                replacements.Add(key, claim is null ? @null : string.Concat(@quote, claim.Value, @quote));
             }
         }
         if (customParameters is not null)
         {
             foreach (var (key, value) in customParameters)
             {
-                replacements.Add(key, value is null ? "NULL" : string.Concat('"', value, '"'));
+                replacements.Add(key, value is null ? @null : string.Concat(@quote, value, @quote));
             }
         }
         return FormatString(input, replacements);
@@ -86,7 +92,7 @@ public class DefaultResponseParser(
         for (int i = 0; i < inputLength; i++)
         {
             var ch = input[i];
-            if (ch == '{')
+            if (ch == @open)
             {
                 if (inside is true)
                 {
@@ -97,7 +103,7 @@ public class DefaultResponseParser(
                 continue;
             }
 
-            if (ch == '}' && inside is true)
+            if (ch == @close && inside is true)
             {
                 inside = false;
                 if (lookup.TryGetValue(input[(startIndex + 1)..i], out var value))
@@ -130,7 +136,7 @@ public class DefaultResponseParser(
         for(int i = 0; i < inputLength; i++)
         {
             var ch = input[i];
-            if (ch == '{')
+            if (ch == @open)
             {
                 if (inside is true)
                 {
@@ -142,7 +148,7 @@ public class DefaultResponseParser(
                 continue;
             }
 
-            if (ch == '}' && inside is true)
+            if (ch == @close && inside is true)
             {
                 inside = false;
                 if (lookup.TryGetValue(input[(startIndex + 1)..i], out var value))
