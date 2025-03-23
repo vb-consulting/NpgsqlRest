@@ -5,7 +5,7 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-**Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8 Middleware**
+**Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8/.NET9 Middleware**
 
 >
 > If you have a PostgreSQL database - NpgsqlRest can create **blazing fast REST API automatically** and **write client code** for your project.
