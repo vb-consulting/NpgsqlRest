@@ -137,7 +137,19 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         var writer = System.IO.Pipelines.PipeWriter.Create(context.Response.Body);
         try
         {
-            if (options.ServiceProviderMode != ServiceProviderObject.None)
+            if (endpoint.ConnectionName is not null)
+            {
+                if (options.ConnectionStrings?.TryGetValue(endpoint.ConnectionName, out var connectionString) is true)
+                {
+                    connection = new(connectionString);
+                }
+                else
+                {
+                    await ReturnErrorAsync($"Connection name {endpoint.ConnectionName} could not be found in options ConnectionStrings dictionary.", true, context);
+                    return;
+                }
+            }
+            else if (options.ServiceProviderMode != ServiceProviderObject.None)
             {
                 if (options.ServiceProviderMode == ServiceProviderObject.NpgsqlDataSource)
                 {

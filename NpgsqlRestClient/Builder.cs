@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿using System.Collections.Frozen;
+using System.Data.Common;
 using System.IO.Compression;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.BearerToken;
@@ -25,6 +26,7 @@ public static class Builder
     public static bool UseHsts { get; private set; } = false;
     public static BearerTokenConfig? BearerTokenConfig { get; private set; } = null;
     public static string? ConnectionString { get; private set; } = null;
+    public static string? ConnectionName { get; private set; } = null;
 
     public static void BuildInstance()
     {
@@ -370,20 +372,10 @@ public static class Builder
         return true;
     }
 
-    public static string? BuildConnectionString()
-    {
-        string? connectionString;
-        string? connectionName = GetConfigStr("ConnectionName", NpgsqlRestCfg);
-        if (connectionName is not null)
-        {
-            connectionString = Cfg.GetConnectionString(connectionName);
-        }
-        else
-        {
-            var section = Cfg.GetSection("ConnectionStrings");
-            connectionString = section.GetChildren().FirstOrDefault()?.Value;
-        }
+    private static readonly string[] ConnectionNames = ["Host", "Port", "Database", "Username", "Password", "Passfile", "SSL Mode", "Trust Server Certificate", "SSL Certificate", "SSL Key", "SSL Password", "Root Certificate", "Check Certificate Revocation", "SSL Negotiation", "Channel Binding", "Persist Security Info", "Kerberos Service Name", "Include Realm", "Include Error Detail", "Log Parameters", "Pooling", "Minimum Pool Size", "Maximum Pool Size", "Connection Idle Lifetime", "Connection Pruning Interval", "Connection Lifetime", "Timeout", "Command Timeout", "Cancellation Timeout", "Keepalive", "Tcp Keepalive", "Tcp Keepalive Time", "Tcp Keepalive Interval", "Max Auto Prepare", "Auto Prepare Min Usages", "Read Buffer Size", "Write Buffer Size", "Socket Receive Buffer Size", "Socket Send Buffer Size", "No Reset On Close", "Target Session Attributes", "Load Balance Hosts", "Host Recheck Seconds", "Options", "Application Name", "Enlist", "Search Path", "Client Encoding", "Encoding", "Timezone", "Array Nullability Mode"];
 
+    private static string? BuildConnection(string? connectionName, string connectionString, bool isMain)
+    {
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
         if (GetConfigBool("SetApplicationNameInConnection", ConnectionSettingsCfg, true) is true)
         {
@@ -455,21 +447,123 @@ public static class Builder
                     connectionStringBuilder.Password = Environment.GetEnvironmentVariable(passEnvVar);
                 }
             }
+
+            var matchNpgsqlConnectionParameterNamesWithEnvVarNames = GetConfigStr("MatchNpgsqlConnectionParameterNamesWithEnvVarNames", ConnectionSettingsCfg);
+            if (matchNpgsqlConnectionParameterNamesWithEnvVarNames is not null && matchNpgsqlConnectionParameterNamesWithEnvVarNames.Contains("{0}"))
+            {
+                bool hasTwoFormatters = matchNpgsqlConnectionParameterNamesWithEnvVarNames?.Contains("{0}") is true && matchNpgsqlConnectionParameterNamesWithEnvVarNames?.Contains("{1}") is true;
+
+                foreach (var key in ConnectionNames)
+                {
+                    string envVar;
+                    if (hasTwoFormatters is true)
+                    {
+                        envVar = string.Format(matchNpgsqlConnectionParameterNamesWithEnvVarNames!,
+                            connectionName?.ToUpperInvariant().Replace(' ', '_')!, 
+                            key.ToUpperInvariant().Replace(' ', '_'));
+                    }
+                    else
+                    {
+                        envVar = string.Format(matchNpgsqlConnectionParameterNamesWithEnvVarNames!, 
+                            key.ToUpperInvariant().Replace(' ', '_'));
+                    }
+                    if (string.IsNullOrEmpty(envVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(envVar)) is false)
+                    {
+                        if (envOverride is true)
+                        {
+                            connectionStringBuilder[key] = Environment.GetEnvironmentVariable(envVar);
+                        }
+                        else if (envOverride is false && string.IsNullOrEmpty(connectionStringBuilder[key] as string))
+                        {
+                            connectionStringBuilder[key] = Environment.GetEnvironmentVariable(envVar);
+                        }
+                    }
+                }
+            }
         }
 
         // Connection doesn't participate in ambient TransactionScope
         connectionStringBuilder.Enlist = false;
+        // Connection doesn't have to have reset on close
         connectionStringBuilder.NoResetOnClose = true;
 
         connectionString = connectionStringBuilder.ConnectionString;
-        connectionStringBuilder.Remove("password");
-        Logger?.Information(messageTemplate: "Using connection: {0}", connectionStringBuilder.ConnectionString);
+
+        var keys = connectionStringBuilder.Keys;
+        foreach (var key in keys)
+        {
+            // if key contains password or key or certificate then remove from connectionStringBuilder
+            if (key.Contains("password", StringComparison.OrdinalIgnoreCase) || key.Contains("key", StringComparison.OrdinalIgnoreCase) || key.Contains("certificate", StringComparison.OrdinalIgnoreCase))
+            {
+                connectionStringBuilder.Remove(key);
+                connectionStringBuilder.Add(key, "******");
+            }
+        }
+        if (isMain)
+        {
+            Logger?.Information(messageTemplate: "Using {0} as main connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+        }
+        else
+        {
+            if (string.Equals(ConnectionName, connectionName, StringComparison.Ordinal))
+            {
+                return null;
+            }
+            Logger?.Information(messageTemplate: "Using {0} as additional connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+        }
+
+        if (GetConfigBool("TestConnectionStrings", ConnectionSettingsCfg) is true)
+        {
+            using (var conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                conn.Close();
+            }
+        }
+
+        return connectionString;
+    }
+
+    public static string? BuildConnectionString()
+    {
+        string? connectionString;
+        string? connectionName = GetConfigStr("ConnectionName", NpgsqlRestCfg);
+        if (connectionName is not null)
+        {
+            connectionString = Cfg.GetConnectionString(connectionName);
+        }
+        else
+        {
+            var section = Cfg.GetSection("ConnectionStrings");
+            connectionString = section.GetChildren().FirstOrDefault()?.Value;
+        }
+
+        var result = BuildConnection(connectionName, connectionString!, true);
 
         // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
 
-        ConnectionString = connectionString;
-        return connectionString;
+        ConnectionString = result;
+        ConnectionName = connectionName;
+        return result;
+    }
+
+    public static IDictionary<string, string> BuildConnectionStringDict()
+    {
+        var result = new Dictionary<string, string>();
+        foreach (var section in Cfg.GetSection("ConnectionStrings").GetChildren())
+        {
+            if (section?.Key is null)
+            {
+                continue;
+            }
+            var conn = BuildConnection(section.Key, section?.Value!, false);
+            if (conn is not null)
+            {
+                result.Add(section?.Key!, conn!);
+            }
+        }
+        return result.ToFrozenDictionary();
     }
 
     private static string? _instanceId = null;

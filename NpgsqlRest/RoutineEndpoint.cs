@@ -27,7 +27,8 @@ public class RoutineEndpoint(
     bool cached = false,
     string[]? cachedParams = null,
     TimeSpan? cacheExpiresIn = null,
-    bool parseResponse = false)
+    bool parseResponse = false,
+    string? connectionName = null)
 {
     private string? _bodyParameterName = bodyParameterName;
     internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
@@ -69,4 +70,5 @@ public class RoutineEndpoint(
     public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
     public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
     public bool ParseResponse { get; set; } = parseResponse;
+    public string? ConnectionName { get; set; } = connectionName;
 }

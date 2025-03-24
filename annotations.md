@@ -333,7 +333,7 @@ If the routine returns a single value of any type, result will be cached in memo
 
 ## CacheExpiresIn
 
-```
+```console
                                                 
 cacheexpires [ time_span_value ]                
 cacheexpiresin [ time_span_value ]              
@@ -357,7 +357,7 @@ Value is a simplified PostgreSQL interval value, for example `10s` or `10sec` fo
 
 ## ParseResponse
 
-```
+```console
                                                 
 parse                                           
 parseresponse                                   
@@ -367,3 +367,16 @@ parse-response
 ```
 
 Enable response parsing for this routine. Requires injectiong a default parser. See the `DefaultResponseParser` option.
+
+## ConnectionName
+
+```console
+                                                
+connection [ name ]                             
+connectionname [ name ]                         
+connection_name [ name ]                        
+connection-name [ name ]                        
+                                                
+```
+
+Defines an alternative connection name. The name must be an existing key in a `ConnectionStrings` dictionary option. This is useful when some routines have to read from read-only replicas. However, the same routine also has to exist on the primary connection to be able to build the necessary metadata.

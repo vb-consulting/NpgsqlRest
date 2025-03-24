@@ -131,6 +131,15 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} can't set CACHE EXPIRES IN value by the comment annotation. Invalid interval value: {value}")]
     public static partial void InvalidCacheExpiresIn(this ILogger logger, RoutineType type, string schema, string name, string value);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} tried to set CONNECTION NAME to {conn} but that connection could not be found in the ConnectionStrings dictionary.")]
+    public static partial void CommentInvalidConnectionName(this ILogger logger, RoutineType type, string schema, string name, string conn);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{type} {schema}.{name} tried to set CONNECTION NAME but the connection name was not initialized. Did you forget to set the connection name?")]
+    public static partial void CommentEmptyConnectionName(this ILogger logger, RoutineType type, string schema, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{type} {schema}.{name} has set CONNECTION NAME to {conn} by the comment annotation.")]
+    public static partial void CommentConnectionName(this ILogger logger, RoutineType type, string schema, string name, string conn);
 }
 
 public static class NpgsqlRestLogger

@@ -86,6 +86,11 @@ public class Program
             //SchemaSimilarTo = "custom_param_schema",
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,
+            ConnectionStrings = new Dictionary<string, string>()
+            {
+                { "conn1", Database.CreateAdditional("conn1") },
+                { "conn2", Database.CreateAdditional("conn2") }
+            },
             Logger = new EmptyLogger(),
             CommandCallbackAsync = async (RoutineEndpoint endpoint, NpgsqlCommand command, HttpContext context) =>
             {

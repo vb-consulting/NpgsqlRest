@@ -37,6 +37,17 @@ public static partial class Database
         return builder.ConnectionString;
     }
 
+    public static string CreateAdditional(string appName)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(InitialConnectionString)
+        {
+            Database = Dbname,
+            ApplicationName = appName
+        };
+
+        return builder.ConnectionString;
+    }
+
     public static void DropIfExists()
     {
         using NpgsqlConnection connection = new(InitialConnectionString);

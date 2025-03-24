@@ -26,6 +26,7 @@ if (connectionString is null)
 {
     return;
 }
+var connectionStrings = GetConfigBool("UseMultipleConnections", NpgsqlRestCfg, true) ? BuildConnectionStringDict() : null;
 BuildAuthentication();
 var usingCors = BuildCors();
 var compressionEnabled = ConfigureResponseCompression();
@@ -60,6 +61,7 @@ NpgsqlRestOptions options = new()
 {
     DataSource = dataSource,
     ServiceProviderMode = ServiceProviderObject.None,
+    ConnectionStrings = connectionStrings,
     SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", NpgsqlRestCfg),
     SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", NpgsqlRestCfg),
     IncludeSchemas = GetConfigEnumerable("IncludeSchemas", NpgsqlRestCfg)?.ToArray(),

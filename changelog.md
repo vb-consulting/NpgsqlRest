@@ -4,6 +4,39 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.21.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.21.0 (2025-03-24)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.21.0...2.20.0)
+
+### Support For Multiple Connections
+
+In this version, it is possible to set multiple connections by using the `ConnectionStrings` dictionary option and setting the correct `ConnectionName` on the routine endpoint.
+
+- New option:
+
+```csharp
+/// <summary>
+/// Dictionary of connection strings. The key is the connection name and the value is the connection string.
+/// This option is used when the RoutineEndpoint has a connection name defined.
+/// This allows the middleware to use different connection strings for different routines.
+/// For example, some routines might use the primary database connection string, while others might use a read-only connection string from the replica servers.
+/// </summary>
+public IDictionary<string, string>? ConnectionStrings { get; set; } = connectionStrings;
+```
+
+- New property on the routine endpoint:
+
+```csharp
+public string? ConnectionName { get; set; } = connectionName;
+```
+
+The default value for all these properties is null.
+
+Set the ConnectionStrings dictionary to alternate connection and then set ConnectionName for a specific connection key name. If the key doesn't exist, the endpoint will return 500 (Interval Server Error).
+
+This feature was added to add support for configuring certain routines to be executed on read-only replicas.
+
+
 ## Version [2.20.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.20.0 (2025-03-05)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.20.0...2.19.0)

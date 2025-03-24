@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using System.Collections.Frozen;
+using Microsoft.Extensions.Primitives;
 using Npgsql;
 using NpgsqlRest.Defaults;
 
@@ -10,6 +11,7 @@ namespace NpgsqlRest;
 public class NpgsqlRestOptions(
     string? connectionString,
     NpgsqlDataSource? dataSource,
+    IDictionary<string, string>? connectionStrings = null,
     string? schemaSimilarTo = null,
     string? schemaNotSimilarTo = null,
     string[]? includeSchemas = null,
@@ -87,6 +89,14 @@ public class NpgsqlRestOptions(
     /// If this option is set, the connection string will be ignored. 
     /// </summary>
     public NpgsqlDataSource? DataSource { get; set; } = dataSource;
+
+    /// <summary>
+    /// Dictionary of connection strings. The key is the connection name and the value is the connection string.
+    /// This option is used when the RoutineEndpoint has a connection name defined.
+    /// This allows the middleware to use different connection strings for different routines.
+    /// For example, some routines might use the primary database connection string, while others might use a read-only connection string from the replica servers.
+    /// </summary>
+    public IDictionary<string, string>? ConnectionStrings { get; set; } = connectionStrings;
 
     /// <summary>
     /// Filter schema names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.

@@ -91,6 +91,72 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
+## 2.16.0
+
+
+### New option `ConnectionSettings.LogConnectionNoticeEventsMode`
+
+```json
+{
+  "ConnectionSettings": {
+    "MatchNpgsqlConnectionParameterNamesWithEnvVarNames": "NGPSQLREST_{0}_{1}"
+  }
+}
+```
+
+This option will search enviorment variable by provided pattern and add them to the connection string.
+
+If this value is null it will be ignored.
+
+If it has one string formatter `{0}` it will be replaced by the connection string parameter name (see all parameter names here https://www.npgsql.org/doc/connection-string-parameters.html) in upper case with blanks replaced by underlines.
+
+If it has one string formatters: `{0}` and `{1}`, first one will be replaced by the connection name and second by the connection string parameter name, all in upper case with blanks replaced by underlines.
+
+For example if have this value set to `NGPSQLREST_{0}_{1}`, when intializing the `Default` connection for the `SSL Password` parameter, this value will be `NGPSQLREST_DEFAULT_SSL_PASSWORD`.
+
+If we have  `NGPSQLREST_{0}` it will be `NGPSQLREST_SSL_PASSWORD`.
+
+Use this format string to set exact names for various services (Docker for example).
+
+### New option `ConnectionSettings.TestConnectionStrings`
+
+```json
+{
+  "ConnectionSettings": {
+    "TestConnectionStrings": true
+  }
+}
+```
+
+Set to true to test connections before initializing the application and using it. The connection string is tested by opening and closing the connection. Default is true.
+
+### New option `NpgsqlRest.UseMultipleConnections`
+
+```json
+{
+  "NpgsqlRest": {
+    "UseMultipleConnections": false
+  }
+}
+```
+
+Set to true to use multiple connections from the ConnectionStrings section. This sets options dictionary to enable the use of alternate connections to some routines. Routines that have the `ConnectionName` string property set to the existing key in this dictionary will use this connection.
+
+Note: these connections are not used to build metadata. Therefore, the same routine must also exist on a primary connection to be able to build metadata for execution.
+
+- Versions:
+
+```
+.NET                  9.0.2
+Client Build          2.16.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.3.0
+NpgsqlRest            2.21.0.0
+NpgsqlRest.HttpFiles  1.3.0.0
+NpgsqlRest.TsClient   1.18.0.0
+NpgsqlRest.CrudSource 1.2.0.0
+```
+
 ## 2.15.0
 
 - Versions:

@@ -143,6 +143,13 @@ internal static class DefaultCommentParser
         "cache_expires_in",
     ];
 
+    private static readonly string[] connectionNameKey = [
+        "connection",
+        "connectionname",
+        "connection_name",
+        "connection-name"
+    ];
+
     public static RoutineEndpoint? Parse(Routine routine, RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -662,6 +669,31 @@ internal static class DefaultCommentParser
                     else
                     {
                         logger?.InvalidCacheExpiresIn(routine.Type, routine.Schema, routine.Name, string.Join(Consts.Space, words[1..]));
+                    }
+                }
+
+                // connection
+                // connectionname
+                // connection_name
+                // connection-name
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], connectionNameKey))
+                {
+                    var name = string.Join(Consts.Space, words[1..]);
+                    if (string.IsNullOrEmpty(name) is false)
+                    {
+                        if (options.ConnectionStrings is null || options.ConnectionStrings.ContainsKey(name) is false)
+                        {
+                            logger?.CommentInvalidConnectionName(routine.Type, routine.Schema, routine.Name, name);
+                        }
+                        routineEndpoint.ConnectionName = name;
+                        if (options.LogAnnotationSetInfo)
+                        {
+                            logger?.CommentConnectionName(routine.Type, routine.Schema, routine.Name, name);
+                        }
+                    }
+                    else
+                    {
+                        logger?.CommentEmptyConnectionName(routine.Type, routine.Schema, routine.Name);
                     }
                 }
 

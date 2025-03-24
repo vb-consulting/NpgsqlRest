@@ -123,6 +123,15 @@ Notes:
 
 The connection string to the database. This is the optional value if the `DataSource` is set. 
 
+## ConnectionStrings
+
+- Type: `IDictionary<string, string>?`
+- Default: `null`
+
+Set this dictionary to enable the use of alternate connections to some routines. Routines that have the `ConnectionName` string property set to the existing key in this dictionary will use this connection.
+
+Note: these connections are not used to build metadata. Therefore, the same routine must also exist on a primary connection to be able to build metadata for execution.
+
 ## DataSource
 
 - Type: `NpgsqlDataSource?`
@@ -763,4 +772,4 @@ Defines interval in minutes when they system ill attempt to remove expired cache
 - Default: `null`
 
 Default response pareser. System doesn't define a default response parser. Use this property to inject one.
- 
+
