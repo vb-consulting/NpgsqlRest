@@ -64,7 +64,7 @@ internal static class AuthHandler
                     }
                     else
                     {
-                        logger?.WrongStatusType(routine.Type, routine.Schema, routine.Name);
+                        logger?.WrongStatusType(string.Concat(routine.Type, " ", routine.Schema, ".", routine.Name));
                         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                         await context.Response.CompleteAsync();
                         return;

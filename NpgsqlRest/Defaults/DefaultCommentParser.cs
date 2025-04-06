@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 
 namespace NpgsqlRest.Defaults;
 
@@ -173,6 +174,11 @@ internal static class DefaultCommentParser
         }
         else
         {
+
+            var routineDescription = string.Concat(routine.Type, " ", routine.Schema, ".", routine.Name);
+            var urlDescription = string.Concat(routineEndpoint.Method.ToString(), " ", routineEndpoint.Url);
+            var description = string.Concat(routineDescription, " mapped to ", urlDescription);
+
             string[] lines = comment.Split(newlineSeparator, StringSplitOptions.RemoveEmptyEntries);
             routineEndpoint.CommentWordLines = new string[lines.Length][];
             bool hasHttpTag = false;
@@ -267,7 +273,7 @@ internal static class DefaultCommentParser
                         }
                         else
                         {
-                            logger?.InvalidHttpMethodComment(words[1], routine.Schema, routine.Name, routineEndpoint.Method);
+                            logger?.InvalidHttpMethodComment(words[1], description, routineEndpoint.Method);
                         }
                     }
                     if (len == 3)
@@ -275,7 +281,7 @@ internal static class DefaultCommentParser
                         string urlPathSegment = words[2];
                         if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                         {
-                            logger?.InvalidUrlPathSegmentComment(urlPathSegment, routine.Schema, routine.Name, routineEndpoint.Url);
+                            logger?.InvalidUrlPathSegmentComment(urlPathSegment, description, routineEndpoint.Url);
                         }
                         else
                         {
@@ -290,8 +296,10 @@ internal static class DefaultCommentParser
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetHttp(routine.Type, routine.Schema, routine.Name, routineEndpoint.Method, routineEndpoint.Url);
+                            logger?.CommentSetHttp(description, routineEndpoint.Method, routineEndpoint.Url);
                         }
+                        urlDescription = string.Concat(routineEndpoint.Method.ToString(), " ", routineEndpoint.Url);
+                        description = string.Concat(routineDescription, " mapped to ", urlDescription);
                     }
                 }
 
@@ -313,14 +321,14 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.InvalidParameterTypeComment(words[1], routine.Schema, routine.Name, routineEndpoint.RequestParamType);
+                        logger?.InvalidParameterTypeComment(words[1], description, routineEndpoint.RequestParamType);
                     }
 
                     if (originalParamType != routineEndpoint.RequestParamType)
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetParameterType(routine.Type, routine.Schema, routine.Name, routineEndpoint.RequestParamType);
+                            logger?.CommentSetParameterType(description, routineEndpoint.RequestParamType);
                         }
                     }
                 }
@@ -337,13 +345,13 @@ internal static class DefaultCommentParser
                         routineEndpoint.AuthorizeRoles = new(words[1..]);
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetAuthRoles(routine.Type, routine.Schema, routine.Name, routineEndpoint.AuthorizeRoles);
+                            logger?.CommentSetAuthRoles(description, routineEndpoint.AuthorizeRoles);
                         }
                     } else
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetAuth(routine.Type, routine.Schema, routine.Name);
+                            logger?.CommentSetAuth(description);
                         }
                     }
                 }
@@ -358,7 +366,7 @@ internal static class DefaultCommentParser
                     routineEndpoint.RequiresAuthorization = false;
                     if (options.LogAnnotationSetInfo)
                     {
-                        logger?.CommentSetAnon(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentSetAnon(description);
                     }
                 }
 
@@ -374,14 +382,14 @@ internal static class DefaultCommentParser
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentSetTimeout(routine.Type, routine.Schema, routine.Name, words[1]);
+                                logger?.CommentSetTimeout(description, words[1]);
                             }
                         }
                         routineEndpoint.CommandTimeout = parsedTimeout;
                     }
                     else
                     {
-                        logger?.InvalidTimeoutComment(words[1], routine.Schema, routine.Name, routineEndpoint.CommandTimeout);
+                        logger?.InvalidTimeoutComment(words[1], description, routineEndpoint.CommandTimeout);
                     }
                 }
 
@@ -407,13 +415,13 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.InvalidRequestHeadersModeComment(words[1], routine.Schema, routine.Name, routineEndpoint.RequestHeadersMode);
+                        logger?.InvalidRequestHeadersModeComment(words[1], description, routineEndpoint.RequestHeadersMode);
                     }
                     if (routineEndpoint.RequestHeadersMode != options.RequestHeadersMode)
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetRequestHeadersMode(routine.Type, routine.Schema, routine.Name, words[1]);
+                            logger?.CommentSetRequestHeadersMode(description, words[1]);
                         }
                     }
                 }
@@ -432,7 +440,7 @@ internal static class DefaultCommentParser
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentSetRequestHeadersParamName(routine.Type, routine.Schema, routine.Name, words[1]);
+                                logger?.CommentSetRequestHeadersParamName(description, words[1]);
                             }
                         }
                         routineEndpoint.RequestHeadersParameterName = words[1];
@@ -453,7 +461,7 @@ internal static class DefaultCommentParser
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentSetBodyParamName(routine.Type, routine.Schema, routine.Name, words[1]);
+                                logger?.CommentSetBodyParamName(description, words[1]);
                             }
                         }
                         routineEndpoint.BodyParameterName = words[1];
@@ -479,13 +487,13 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.InvalidResponseNullHandlingModeComment(words[1], routine.Schema, routine.Name, routineEndpoint.TextResponseNullHandling);
+                        logger?.InvalidResponseNullHandlingModeComment(words[1], description, routineEndpoint.TextResponseNullHandling);
                     }
                     if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetTextResponseNullHandling(routine.Type, routine.Schema, routine.Name, words[1]);
+                            logger?.CommentSetTextResponseNullHandling(description, words[1]);
                         }
                     }
                 }
@@ -509,13 +517,13 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.InvalidQueryStringNullHandlingComment(words[1], routine.Schema, routine.Name, routineEndpoint.QueryStringNullHandling);
+                        logger?.InvalidQueryStringNullHandlingComment(words[1], description, routineEndpoint.QueryStringNullHandling);
                     }
                     if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetQueryStringNullHandling(routine.Type, routine.Schema, routine.Name, routineEndpoint.QueryStringNullHandling);
+                            logger?.CommentSetQueryStringNullHandling(description, routineEndpoint.QueryStringNullHandling);
                         }
                     }
                 }
@@ -527,7 +535,7 @@ internal static class DefaultCommentParser
                     routineEndpoint.Login = true;
                     if (options.LogAnnotationSetInfo)
                     {
-                        logger?.CommentSetLogin(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentSetLogin(description);
                     }
                 }
 
@@ -538,7 +546,7 @@ internal static class DefaultCommentParser
                     routineEndpoint.Logout = true;
                     if (options.LogAnnotationSetInfo)
                     {
-                        logger?.CommentSetLogout(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentSetLogout(description);
                     }
                 }
 
@@ -554,21 +562,21 @@ internal static class DefaultCommentParser
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentBufferRows(routine.Type, routine.Schema, routine.Name, words[1]);
+                                logger?.CommentBufferRows(description, words[1]);
                             }
                         }
                         routineEndpoint.BufferRows = parsedBuffer;
                     }
                     else
                     {
-                        logger?.InvalidBufferRows(words[1], routine.Schema, routine.Name, options.BufferRows);
+                        logger?.InvalidBufferRows(words[1], description, options.BufferRows);
                     }
                 }
 
                 // raw
                 else if (haveTag is true && StrEquals(words[0], RawKey))
                 {
-                    logger?.CommentSetRawMode(routine.Type, routine.Schema, routine.Name);
+                    logger?.CommentSetRawMode(description);
                     routineEndpoint.Raw = true;
                 }
 
@@ -576,7 +584,7 @@ internal static class DefaultCommentParser
                 else if (haveTag is true && line.StartsWith(string.Concat(SeparatorKey, " ")))
                 {
                     var sep = line[(words[0].Length + 1)..];
-                    logger?.CommentSetRawValueSeparator(routine.Type, routine.Schema, routine.Name, sep);
+                    logger?.CommentSetRawValueSeparator(description, sep);
                     routineEndpoint.RawValueSeparator = Regex.Unescape(sep);
                 }
 
@@ -584,7 +592,7 @@ internal static class DefaultCommentParser
                 else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(NewLineKey, " ")))
                 {
                     var nl = line[(words[0].Length + 1)..];
-                    logger?.CommentSetRawNewLineSeparator(routine.Type, routine.Schema, routine.Name, nl);
+                    logger?.CommentSetRawNewLineSeparator(description, nl);
                     routineEndpoint.RawNewLineSeparator = Regex.Unescape(nl);
                 }
 
@@ -596,7 +604,7 @@ internal static class DefaultCommentParser
                     routineEndpoint.RawColumnNames = true;
                     if (options.LogAnnotationSetInfo)
                     {
-                        logger?.CommentRawSetColumnNames(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentRawSetColumnNames(description);
                     }
                 }
 
@@ -608,12 +616,12 @@ internal static class DefaultCommentParser
                 {
                     if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
                     {
-                        logger?.CommentInvalidParseResponse(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentInvalidParseResponse(description);
                     }
                     routineEndpoint.ParseResponse = true;
                     if (options.LogAnnotationSetInfo)
                     {
-                        logger?.CommentParseResponse(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentParseResponse(description);
                     }
                 }
 
@@ -623,7 +631,7 @@ internal static class DefaultCommentParser
                 {
                     if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
                     {
-                        logger?.CommentInvalidCache(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentInvalidCache(description);
                     }
                     routineEndpoint.Cached = true;
                     if (len > 1)
@@ -635,7 +643,7 @@ internal static class DefaultCommentParser
                             var name = names[j];
                             if (!routine.OriginalParamsHash.Contains(name) && !routine.ParamsHash.Contains(name))
                             {
-                                logger?.CommentInvalidCacheParam(routine.Type, routine.Schema, routine.Name, name);
+                                logger?.CommentInvalidCacheParam(description, name);
                             } else
                             {
                                 result.Add(name);
@@ -646,7 +654,7 @@ internal static class DefaultCommentParser
 
                     if (options.LogAnnotationSetInfo)
                     {
-                        logger?.CommentCached(routine.Type, routine.Schema, routine.Name, routineEndpoint.CachedParams ?? []);
+                        logger?.CommentCached(description, routineEndpoint.CachedParams ?? []);
                     }
                 }
 
@@ -663,12 +671,12 @@ internal static class DefaultCommentParser
                         routineEndpoint.CacheExpiresIn = value.Value;
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentCacheExpiresIn(routine.Type, routine.Schema, routine.Name, value.Value);
+                            logger?.CommentCacheExpiresIn(description, value.Value);
                         }
                     }
                     else
                     {
-                        logger?.InvalidCacheExpiresIn(routine.Type, routine.Schema, routine.Name, string.Join(Consts.Space, words[1..]));
+                        logger?.InvalidCacheExpiresIn(description, string.Join(Consts.Space, words[1..]));
                     }
                 }
 
@@ -683,17 +691,17 @@ internal static class DefaultCommentParser
                     {
                         if (options.ConnectionStrings is null || options.ConnectionStrings.ContainsKey(name) is false)
                         {
-                            logger?.CommentInvalidConnectionName(routine.Type, routine.Schema, routine.Name, name);
+                            logger?.CommentInvalidConnectionName(description, name);
                         }
                         routineEndpoint.ConnectionName = name;
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentConnectionName(routine.Type, routine.Schema, routine.Name, name);
+                            logger?.CommentConnectionName(description, name);
                         }
                     }
                     else
                     {
-                        logger?.CommentEmptyConnectionName(routine.Type, routine.Schema, routine.Name);
+                        logger?.CommentEmptyConnectionName(description);
                     }
                 }
 
@@ -716,7 +724,7 @@ internal static class DefaultCommentParser
                             {
                                 if (options.LogAnnotationSetInfo)
                                 {
-                                    logger?.CommentSetContentType(routine.Type, routine.Schema, routine.Name, headerValue);
+                                    logger?.CommentSetContentType(description, headerValue);
                                 }
                             }
                             routineEndpoint.ResponseContentType = headerValue;
@@ -745,7 +753,7 @@ internal static class DefaultCommentParser
                             {
                                 if (options.LogAnnotationSetInfo)
                                 {
-                                    logger?.CommentSetHeader(routine.Type, routine.Schema, routine.Name, headerName, headerValue);
+                                    logger?.CommentSetHeader(description, headerName, headerValue);
                                 }
                             }
                         }
@@ -754,6 +762,10 @@ internal static class DefaultCommentParser
             }
             if (disabled)
             {
+                if (options.LogAnnotationSetInfo)
+                {
+                    logger?.CommentDisabled(description);
+                }
                 return null;
             }
             if (options.CommentsMode == CommentsMode.OnlyWithHttpTag && !hasHttpTag)
