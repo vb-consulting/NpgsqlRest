@@ -151,38 +151,58 @@ public class CrudSource(
         "insert_returning",
         "returning"];
     private readonly string[] _insertOnConflictDoNothingTags = [
-        "insert", "put", "create",
+        "insert", 
+        "put", 
+        "create",
         "insertonconflictdonothing",
         "insert-on-conflict-do-nothing",
         "insert_on_conflict_do_nothing",
         "onconflictdonothing",
         "on-conflict-do-nothing",
-        "on_conflict_do_nothing"];
+        "on_conflict_do_nothing",
+        "onconflict",
+        "on_conflict",
+        "on-conflict"];
     private readonly string[] _insertOnConflictDoNothingReturningTags = [
-        "insert", "put", "create",
+        "insert", 
+        "put", 
+        "create",
         "insertonconflictdonothingreturning",
         "insert-on-conflict-do-nothing-returning",
         "insert_on_conflict_do_nothing-returning",
         "onconflictdonothing",
         "on-conflict-do-nothing",
         "on_conflict_do_nothing",
+        "onconflict",
+        "on_conflict",
+        "on-conflict",
         "returning"];
     private readonly string[] _insertOnConflictDoUpdateTags = [
-        "insert", "put", "create",
+        "insert", 
+        "put", 
+        "create",
         "insertonconflictdoupdate",
         "insert-on-conflict-do-update",
         "insert_on_conflict_do_update",
         "onconflictdoupdate",
+        "onconflict",
+        "on_conflict",
+        "on-conflict",
         "on-conflict-do-update",
         "on_conflict_do_update"];
     private readonly string[] _insertOnConflictDoUpdateReturningTags = [
-        "insert", "put", "create",
+        "insert", 
+        "put", 
+        "create",
         "insertonconflictdoupdatereturning",
         "insert-on-conflict-do-update-returning",
         "insert_on_conflict_do_update_returning",
         "onconflictdoupdate",
         "on-conflict-do-update",
         "on_conflict_do_update",
+        "onconflict",
+        "on_conflict",
+        "on-conflict",
         "returning"];
     private bool Select { get => (CrudTypes & CrudCommandType.Select) == CrudCommandType.Select; }
     private bool Update { get => (CrudTypes & CrudCommandType.Update) == CrudCommandType.Update; }
@@ -231,7 +251,7 @@ public class CrudSource(
                 yield break;
             }
 
-            foreach (var (routine, formatter, type) in ReadInternal(options))
+            foreach (var (routine, formatter, type) in ReadInternal(options, connection))
             {
                 if (Created is not null && !Created(routine, type))
                 {
@@ -250,9 +270,9 @@ public class CrudSource(
     }
 
     private IEnumerable<(Routine routine, IRoutineSourceParameterFormatter formatter, CrudCommandType type)> ReadInternal(
-        NpgsqlRestOptions options)
+        NpgsqlRestOptions options,
+        NpgsqlConnection connection)
     {
-        using var connection = new NpgsqlConnection(options.ConnectionString);
         using var command = connection.CreateCommand();
         Query ??= CrudSourceQuery.Query;
         if (Query.Contains(' ') is false)
@@ -264,14 +284,14 @@ public class CrudSource(
             command.CommandText = Query;
         }
         command.CommandText = Query;
-        AddParameter(SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
-        AddParameter(SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
-        AddParameter(IncludeSchemas ?? options.IncludeSchemas, true); // $3
-        AddParameter(ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
-        AddParameter(NameSimilarTo ?? options.NameSimilarTo); // $5
-        AddParameter(NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
-        AddParameter(IncludeNames ?? options.IncludeNames, true); // $7
-        AddParameter(ExcludeNames ?? options.ExcludeNames, true); // $8
+        AddParameter(command, SchemaSimilarTo ?? options.SchemaSimilarTo); // $1
+        AddParameter(command, SchemaNotSimilarTo ?? options.SchemaNotSimilarTo); // $2
+        AddParameter(command, IncludeSchemas ?? options.IncludeSchemas, true); // $3
+        AddParameter(command, ExcludeSchemas ?? options.ExcludeSchemas, true); // $4
+        AddParameter(command, NameSimilarTo ?? options.NameSimilarTo); // $5
+        AddParameter(command, NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
+        AddParameter(command, IncludeNames ?? options.IncludeNames, true); // $7
+        AddParameter(command, ExcludeNames ?? options.ExcludeNames, true); // $8
 
         connection.Open();
         using NpgsqlDataReader reader = command.ExecuteReader();
@@ -387,30 +407,6 @@ public class CrudSource(
                     Metadata = null
                 };
             };
-            /*
-            new(
-                type: type,
-                schema: schema,
-                name: name,
-                comment: comment,
-                isStrict: false,
-                crudType: crudType,
-                returnsRecordType: false,
-                returnsSet: true,
-                columnCount: columnCount,
-                columnNames: columnNames,
-                returnsUnnamedSet: false,
-                columnsTypeDescriptor: typeDescriptors ?? descriptors,
-                isVoid: isVoid,
-                paramCount: columnCount,
-                originalParamNames: columnNames,
-                paramTypeDescriptor: typeDescriptors ?? descriptors,
-                expression: expression,
-                fullDefinition: fullDefinition,
-                simpleDefinition: simpleDefinition,
-                formatUrlPattern: formatUrlPattern,
-                tags: tags);
-            */
 
             if (Select)
             {
@@ -668,32 +664,32 @@ public class CrudSource(
         }
 
         yield break;
+    }
 
-        void AddParameter(object? value, bool isArray = false)
+    private static void AddParameter(NpgsqlCommand command, object? value, bool isArray = false)
+    {
+        if (value is null)
         {
-            if (value is null)
+            value = DBNull.Value;
+        }
+        else if (isArray && value is string[] array)
+        {
+            if (array.Length == 0)
             {
                 value = DBNull.Value;
             }
-            else if (isArray && value is string[] array)
-            {
-                if (array.Length == 0)
-                {
-                    value = DBNull.Value;
-                }
-            }
-            else if (!isArray && value is string str)
-            {
-                if (string.IsNullOrWhiteSpace(str))
-                {
-                    value = DBNull.Value;
-                }
-            }
-            command.Parameters.Add(new NpgsqlParameter
-            {
-                NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
-                Value = value
-            });
         }
+        else if (!isArray && value is string str)
+        {
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                value = DBNull.Value;
+            }
+        }
+        command.Parameters.Add(new NpgsqlParameter
+        {
+            NpgsqlDbType = isArray ? NpgsqlDbType.Text | NpgsqlDbType.Array : NpgsqlDbType.Text,
+            Value = value
+        });
     }
 }

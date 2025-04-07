@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest;
@@ -27,8 +29,16 @@ public class DefaultResponseParser(
     private const char @arrOpen = '[';
     private const char @arrClose = ']';
     private const char @comma = ',';
+    private const char @dot = '.';
+    private const char @multiply = '*';
+    private const char @question = '?';
 
     public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context)
+    {
+        return Parse(input, context);
+    }
+
+    public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, HttpContext context)
     {
         Dictionary<string, string> replacements = [];
 
@@ -68,6 +78,53 @@ public class DefaultResponseParser(
             }
         }
         return FormatString(input, replacements);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsPatternMatch(string name, string pattern)
+    {
+        if (name == null || pattern == null) return false;
+        int nl = name.Length, pl = pattern.Length;
+        if (nl == 0 || pl == 0) return false;
+
+        if (pl > 1 && pattern[0] == @multiply && pattern[1] == @dot)
+        {
+            ReadOnlySpan<char> ext = pattern.AsSpan(1);
+            return nl > ext.Length && name.AsSpan(nl - ext.Length).Equals(ext, StringComparison.OrdinalIgnoreCase);
+        }
+
+        int ni = 0, pi = 0;
+        int lastStar = -1, lastMatch = 0;
+
+        while (ni < nl)
+        {
+            if (pi < pl)
+            {
+                char pc = pattern[pi];
+                if (pc == @multiply)
+                {
+                    lastStar = pi++;
+                    lastMatch = ni;
+                    continue;
+                }
+                if (pc == @question ? ni < nl : char.ToLowerInvariant(pc) == char.ToLowerInvariant(name[ni]))
+                {
+                    ni++;
+                    pi++;
+                    continue;
+                }
+            }
+            if (lastStar >= 0)
+            {
+                pi = lastStar + 1;
+                ni = ++lastMatch;
+                continue;
+            }
+            return false;
+        }
+
+        while (pi < pl && pattern[pi] == @multiply) pi++;
+        return pi == pl;
     }
 
     public static ReadOnlySpan<char> FormatString(ReadOnlySpan<char> input, Dictionary<string, string> replacements)

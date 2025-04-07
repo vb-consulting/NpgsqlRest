@@ -61,40 +61,41 @@ public static class App
             return;
         }
 
-        var redirect = GetConfigStr("LoginRedirectPath", staticFilesCfg) ?? "/login/";
-        var anonPaths = GetConfigEnumerable("AnonymousPaths", staticFilesCfg) ?? ["*"];
-        HashSet<string>? anonPathsHash = anonPaths is null ?
-            null : 
-            new(Config.GetConfigEnumerable("AnonymousPaths", staticFilesCfg) ?? ["*"]);
-
         app.UseDefaultFiles();
-        if (anonPathsHash?.Contains("*") is true)
+        var parseCfg = staticFilesCfg.GetSection("ParseContentOptions");
+        
+        if (parseCfg.Exists() is false || GetConfigBool("Enabled", parseCfg) is false)
         {
-            app.UseStaticFiles();
+            app.UseMiddleware<AppStaticFileMiddleware>();
+            Logger?.Information("Serving static files from {0}", app.Environment.WebRootPath);
+            return;
         }
-        else
+
+        var filePaths = GetConfigEnumerable("FilePaths", parseCfg)?.ToArray();
+        var userIdTag = GetConfigStr("UserIdTag", parseCfg);
+        var userNameTag = GetConfigStr("UserNameTag", parseCfg);
+        var userRolesTag = GetConfigStr("UserRolesTag", parseCfg);
+        Dictionary<string, StringValues>? customTags = null;
+        foreach (var section in parseCfg.GetSection("CustomTagToClaimMappings").GetChildren())
         {
-            app.UseStaticFiles(new StaticFileOptions
+            customTags ??= [];
+            if (section?.Value is null)
             {
-                OnPrepareResponse = ctx =>
-                {
-                    if (anonPathsHash is not null && ctx?.Context?.User?.Identity?.IsAuthenticated is false)
-                    {
-                        var path = ctx.Context.Request.Path.Value?[..^ctx.File.Name.Length] ?? "/";
-                        if (anonPathsHash.Contains(path) is false)
-                        {
-                            Logger?.Information("Unauthorized access to {0}", path);
-                            ctx.Context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                            if (redirect is not null)
-                            {
-                                ctx.Context.Response.Redirect(redirect);
-                            }
-                        }
-                    }
-                }
-            });
+                continue;
+            }
+            customTags.Add(section.Key, section.Value!);
         }
-        Logger?.Information("Serving static files from {0}", app.Environment.WebRootPath);
+        AppStaticFileMiddleware.ConfigureStaticFileMiddleware(
+            true,
+            filePaths,
+            userIdTag,
+            userNameTag,
+            userRolesTag,
+            customTags,
+            Logger?.ForContext<AppStaticFileMiddleware>());
+
+        app.UseMiddleware<AppStaticFileMiddleware>();
+        Logger?.Information("Serving static files from {0}. Parsing following file path patterns: {1}", app.Environment.WebRootPath, filePaths);
     }
 
     public static string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
@@ -409,8 +410,14 @@ public static class App
             ExcludeNames = GetConfigEnumerable("ExcludeNames", crudSourceCfg)?.ToArray(),
             CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", crudSourceCfg),
             CrudTypes = GetConfigFlag<CrudCommandType>("CrudTypes", crudSourceCfg),
+
+            ReturningUrlPattern = GetConfigStr("ReturningUrlPattern", crudSourceCfg) ?? "{0}/returning",
+            OnConflictDoNothingUrlPattern = GetConfigStr("OnConflictDoNothingUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-nothing",
+            OnConflictDoNothingReturningUrlPattern = GetConfigStr("OnConflictDoNothingReturningUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-nothing/returning",
+            OnConflictDoUpdateUrlPattern = GetConfigStr("OnConflictDoUpdateUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-update",
+            OnConflictDoUpdateReturningUrlPattern = GetConfigStr("OnConflictDoUpdateReturningUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-update/returning",
         });
 
-        return [source];
+        return sources;
     }
 }
