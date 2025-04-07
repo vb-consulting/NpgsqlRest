@@ -25,9 +25,6 @@ public class AppStaticFileMiddleware
 
     private static readonly ConcurrentDictionary<string, bool> _pathInParsePattern = new();
 
-    const long StreamingThreshold = 1024 * 1024 * 10; // 10MB
-    const int MaxBufferSize = 8192; // 8KB
-
     public static void ConfigureStaticFileMiddleware(
         bool parse,
         string[]? parsePatterns,
@@ -143,69 +140,38 @@ public class AppStaticFileMiddleware
                     customClaims: _customClaimTags,
                     customParameters: null);
 
-
-                if (fileInfo.Length < StreamingThreshold)
+                byte[] buffer = new byte[(int)fileInfo.Length];
+                await fileStream.ReadExactlyAsync(buffer, context.RequestAborted);
+                int charCount = Encoding.UTF8.GetCharCount(buffer);
+                char[] chars = ArrayPool<char>.Shared.Rent(charCount);
+                try
                 {
-                    byte[] buffer = new byte[(int)fileInfo.Length];
-                    await fileStream.ReadExactlyAsync(buffer, context.RequestAborted);
-                    int charCount = Encoding.UTF8.GetCharCount(buffer);
-                    char[] chars = ArrayPool<char>.Shared.Rent(charCount);
-                    try
-                    {
-                        Encoding.UTF8.GetChars(buffer, 0, buffer.Length, chars, 0);
-                        ReadOnlySpan<char> result = parser.Parse(new ReadOnlySpan<char>(chars, 0, charCount), context);
-                        var writer = PipeWriter.Create(context.Response.Body);
-                        try
-                        {
-                            int maxBytesNeeded = Encoding.UTF8.GetMaxByteCount(result.Length);
-                            Memory<byte> memory = writer.GetMemory(maxBytesNeeded);
-                            int actualBytesWritten = Encoding.UTF8.GetBytes(result, memory.Span);
-                            writer.Advance(actualBytesWritten);
-                            context.Response.ContentLength = actualBytesWritten;
-                            await writer.FlushAsync(context.RequestAborted);
-                        }
-                        finally
-                        {
-                            await writer.CompleteAsync();
-                        }
-                    }
-                    finally
-                    {
-                        ArrayPool<char>.Shared.Return(chars);
-                    }
-                }
-                else
-                {
+                    Encoding.UTF8.GetChars(buffer, 0, buffer.Length, chars, 0);
+                    ReadOnlySpan<char> result = parser.Parse(new ReadOnlySpan<char>(chars, 0, charCount), context);
                     var writer = PipeWriter.Create(context.Response.Body);
                     try
                     {
-                        using var reader = new StreamReader(fileStream, Encoding.UTF8, leaveOpen: true);
-                        char[] chars = ArrayPool<char>.Shared.Rent(MaxBufferSize);
-                        try
-                        {
-                            int charsRead;
-                            while ((charsRead = await reader.ReadAsync(chars, context.RequestAborted)) > 0)
-                            {
-                                var result = parser.Parse(chars.AsSpan(0, charsRead), context);
-                                int bytesWritten = Encoding.UTF8.GetBytes(result, writer.GetSpan(result.Length));
-                                writer.Advance(bytesWritten);
-                                await writer.FlushAsync(context.RequestAborted);
-                            }
-                        }
-                        finally
-                        {
-                            ArrayPool<char>.Shared.Return(chars);
-                        }
+                        int maxBytesNeeded = Encoding.UTF8.GetMaxByteCount(result.Length);
+                        Memory<byte> memory = writer.GetMemory(maxBytesNeeded);
+                        int actualBytesWritten = Encoding.UTF8.GetBytes(result, memory.Span);
+                        writer.Advance(actualBytesWritten);
+                        context.Response.ContentLength = actualBytesWritten;
+                        await writer.FlushAsync(context.RequestAborted);
                     }
                     finally
                     {
                         await writer.CompleteAsync();
                     }
                 }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(chars);
+                }
             }
             catch (IOException ex)
             {
                 _logger?.Error(ex, "Failed to serve static file {Path}", path.ToString());
+
                 context.Response.Clear();
                 await _next(context);
                 return;

@@ -4,6 +4,41 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+## Version [2.22.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.22.0 (2025-04-07)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.22.0...2.21.0)
+
+## Improved Logging
+
+Improved Logging for Endpoint creation to include routine and endpoint:
+
+```console
+[14:56:17.477 INF] Function auth.login mapped to POST /api/auth/login has set ALLOW ANONYMOUS by the comment annotation. [NpgsqlRest]
+```
+
+## Fixed CRUD Plugin
+
+CRUD Endpoints are finally getting some love: 
+- Fixed issue with connection as data source.
+- Added new tags: `onconflict`, `on_conflict` and `on-conflict` to generated endpoints handling with on conflict resoluions.
+
+Now it's possible to enable or disable those endpoints explicitly with comment annotations:
+
+```sql
+create table test.crud_table (
+    id bigint generated always as identity primary key,
+    name text not null,
+    description text,
+    created_at timestamp default now()
+);
+
+comment on table test.crud_table is '
+HTTP
+for on-conflict 
+disabled
+';
+```
+
 ## Version [2.21.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.21.0 (2025-03-24)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.21.0...2.20.0)

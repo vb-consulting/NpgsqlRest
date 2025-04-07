@@ -91,8 +91,11 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## Changelog
 
-## 2.16.0
+## 2.17.0
 
+
+
+## 2.16.0
 
 ### New option `ConnectionSettings.LogConnectionNoticeEventsMode`
 
