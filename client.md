@@ -93,11 +93,76 @@ Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
 
 ## 2.17.0
 
+### Fixed CRUD Plugin
 
+Includes new fixed version of CRUD plugin and fixed configuration and connection issues.
+
+### New Static Files System
+
+The entire section is redone. Now, default configuration looks like this:
+
+```jsonc
+{
+  //
+  // Static files settings 
+  //
+  "StaticFiles": {
+    "Enabled": false,
+    "RootPath": "wwwroot",
+    "ParseContentOptions": {
+      //
+      // Enable or disable the parsing of the static files.
+      // When enabled, the static files will be parsed and the tags will be replaced with the values from the claims collection.
+      // 
+      "Enabled": false,
+      //
+      // List of static file patterns that will parse the content and replace the tags with the values from the claims collection.
+      // File paths are relative to the RootPath property and pattern matching is case-insensitive.
+      // Pattern can include wildcards or question marks. For example: *.html, *.htm, *.txt, *.json, *.xml, *.css, *.js
+      // 
+      "FilePaths": [ "*.html" ],
+      //
+      // Tag name to be replaced with authenticated user id for example {userId}
+      //
+      "UserIdTag": "userId",
+      //
+      // Tag name to be replaced with authenticated user name
+      //
+      "UserNameTag": "userName",
+      //
+      // Tag name to be replaced with authenticated user roles
+      //
+      "UserRolesTag": "userRoles",
+      //
+      // Tag names to be replaced with the values from the claims collection
+      //
+      "CustomTagToClaimMappings": {}
+    }
+  }
+}
+```
+
+Biggest changes:
+
+- Keys `AnonymousPaths` and `LoginRedirectPath` are removed. They might return some day, but not today.
+- New `ParseContentOptions` section. Implements high speed template parser to parse configured files with claim values from auth tokens. Use `{userId}` to replace with actual user id `"1213"` (JSON string value), user name `"john"` or array `["admin", "user"]` for user roles (JSON string array format).
+
+### Versions
+
+```
+.NET                  9.0.3
+Client Build          2.17.0.0
+Serilog.AspNetCore    9.0.0.0
+Npgsql                9.0.3.0
+NpgsqlRest            2.22.0.0
+NpgsqlRest.HttpFiles  1.3.0.0
+NpgsqlRest.TsClient   1.18.0.0
+NpgsqlRest.CrudSource 1.3.0.0
+```
 
 ## 2.16.0
 
-### New option `ConnectionSettings.LogConnectionNoticeEventsMode`
+### New option `ConnectionSettings.MatchNpgsqlConnectionParameterNamesWithEnvVarNames`
 
 ```json
 {
