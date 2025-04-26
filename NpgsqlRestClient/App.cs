@@ -10,6 +10,8 @@ using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest.CrudSource;
+using Microsoft.AspNetCore.Antiforgery;
+using NpgsqlRest.UploadHandlers;
 
 namespace NpgsqlRestClient;
 
@@ -31,7 +33,7 @@ public static class App
         {
             app.UseSerilogRequestLogging();
         }
-        
+
         var cfgCfg = Cfg.GetSection("Config");
         var configEndpoint = GetConfigStr("ExposeAsEndpoint", cfgCfg);
         if (configEndpoint is not null)
@@ -63,7 +65,7 @@ public static class App
 
         app.UseDefaultFiles();
         var parseCfg = staticFilesCfg.GetSection("ParseContentOptions");
-        
+
         if (parseCfg.Exists() is false || GetConfigBool("Enabled", parseCfg) is false)
         {
             app.UseMiddleware<AppStaticFileMiddleware>();
@@ -85,6 +87,9 @@ public static class App
             }
             customTags.Add(section.Key, section.Value!);
         }
+        var antiforgeryFieldNameTag = GetConfigStr("AntiforgeryFieldName", parseCfg);
+        var antiforgeryTokenTag = GetConfigStr("AntiforgeryToken", parseCfg);
+        var antiforgery = app.Services.GetService<IAntiforgery>();
         AppStaticFileMiddleware.ConfigureStaticFileMiddleware(
             true,
             filePaths,
@@ -92,6 +97,10 @@ public static class App
             userNameTag,
             userRolesTag,
             customTags,
+            GetConfigBool("CacheParsedFile", parseCfg, true),
+            antiforgeryFieldNameTag,
+            antiforgeryTokenTag,
+            antiforgery,
             Logger?.ForContext<AppStaticFileMiddleware>());
 
         app.UseMiddleware<AppStaticFileMiddleware>();
@@ -151,11 +160,11 @@ public static class App
             customParameters.Add(section.Key, section.Value);
         }
 
-        if (userIdParameterName is null 
-            && userNameParameterName is null 
-            && userRolesParameterName is null 
-            && ipAddressParameterName is null 
-            && customClaims is null 
+        if (userIdParameterName is null
+            && userNameParameterName is null
+            && userRolesParameterName is null
+            && ipAddressParameterName is null
+            && customClaims is null
             && customParameters is null)
         {
             return (null, null);
@@ -214,6 +223,8 @@ public static class App
                 userNameParameterName,
                 userRolesParameterName,
                 ipAddressParameterName,
+                null,
+                null,
                 customClaims,
                 customParameters);
         }
@@ -326,39 +337,40 @@ public static class App
                 IncludeParseRequestParam = GetConfigBool("IncludeParseRequestParam", tsClientCfg),
                 UseRoutineNameInsteadOfEndpoint = GetConfigBool("UseRoutineNameInsteadOfEndpoint", tsClientCfg),
                 DefaultJsonType = GetConfigStr("DefaultJsonType", tsClientCfg) ?? "string",
-                ExportUrls =  GetConfigBool("ExportUrls", tsClientCfg),
+                ExportUrls = GetConfigBool("ExportUrls", tsClientCfg),
                 SkipTypes = GetConfigBool("SkipTypes", tsClientCfg),
                 UniqueModels = GetConfigBool("UniqueModels", tsClientCfg),
+                XsrfTokenHeaderName = GetConfigStr("XsrfTokenHeaderName", tsClientCfg),
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);
             if (headerLines is not null)
             {
-                ts.HeaderLines = headerLines.ToList();
+                ts.HeaderLines = [.. headerLines];
             }
 
             var skipRoutineNames = GetConfigEnumerable("SkipRoutineNames", tsClientCfg);
             if (skipRoutineNames is not null)
             {
-                ts.SkipRoutineNames = skipRoutineNames.ToArray();
+                ts.SkipRoutineNames = [.. skipRoutineNames];
             }
 
             var skipFunctionNames = GetConfigEnumerable("SkipFunctionNames", tsClientCfg);
             if (skipFunctionNames is not null)
             {
-                ts.SkipFunctionNames = skipFunctionNames.ToArray();
+                ts.SkipFunctionNames = [.. skipFunctionNames];
             }
 
             var skipPaths = GetConfigEnumerable("SkipPaths", tsClientCfg);
             if (skipPaths is not null)
             {
-                ts.SkipPaths = skipPaths.ToArray();
+                ts.SkipPaths = [.. skipPaths];
             }
 
             var skipSchemas = GetConfigEnumerable("SkipSchemas", tsClientCfg);
             if (skipSchemas is not null)
             {
-                ts.SkipSchemas = skipSchemas.ToArray();
+                ts.SkipSchemas = [.. skipSchemas];
             }
 
             handlers.Add(new TsClient(ts));
@@ -383,12 +395,12 @@ public static class App
         var includeLanguagues = GetConfigEnumerable("IncludeLanguagues", routineOptionsCfg);
         if (includeLanguagues is not null)
         {
-            source.IncludeLanguagues = includeLanguagues.ToArray();
+            source.IncludeLanguagues = [.. includeLanguagues];
         }
         var excludeLanguagues = GetConfigEnumerable("ExcludeLanguagues", routineOptionsCfg);
         if (excludeLanguagues is not null)
         {
-            source.ExcludeLanguagues = excludeLanguagues.ToArray();
+            source.ExcludeLanguagues = [.. excludeLanguagues];
         }
 
         var sources = new List<IRoutineSource>() { source };
@@ -419,5 +431,29 @@ public static class App
         });
 
         return sources;
+    }
+
+    public static (string defaultUploadHandler, Dictionary<string, Func<IUploadHandler>>? uploadHandlers) CreateUploadHandlers()
+    {
+        var uploadHandlersCfg = NpgsqlRestCfg.GetSection("UploadHandlers");
+        if (uploadHandlersCfg.Exists() is false)
+        {
+            return ("large_object", UploadHandlerOptions.CreateUploadHandlers(new UploadHandlerOptions()));
+        }
+
+        string defaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadHandlersCfg) ?? "large_object";
+        var options = new UploadHandlerOptions();
+        options.LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true);
+        options.LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object";
+        options.LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192;
+
+        options.FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true);
+        options.FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system";
+        options.FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads";
+        options.FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true);
+        options.FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true);
+        options.FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192;
+
+        return (defaultUploadHandler, UploadHandlerOptions.CreateUploadHandlers(options));
     }
 }

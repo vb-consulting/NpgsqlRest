@@ -148,7 +148,10 @@ public static class Builder
                         GetConfigEnum<Serilog.Events.LogEventLevel?>("PostgresMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose);
             }
             var serilog = loggerConfig.CreateLogger();
-            Logger = serilog.ForContext<Program>();
+            var appName = GetConfigStr("ApplicationName", Cfg);
+            Logger = string.IsNullOrEmpty(appName) ? 
+                serilog.ForContext("SourceContext", "NpgsqlRest") : 
+                serilog.ForContext("SourceContext", appName);
             Instance.Host.UseSerilog(serilog);
 
             var providerString = Cfg.Providers.Select(p =>
@@ -369,6 +372,42 @@ public static class Builder
             });
         }
 
+        return true;
+    }
+
+    public static bool ConfigureAntiForgery()
+    {
+        var antiforgeryCfg = Cfg.GetSection("Antiforgery");
+        if (antiforgeryCfg.Exists() is false || GetConfigBool("Enabled", antiforgeryCfg) is false)
+        {
+            return false;
+        }
+
+        Instance.Services.AddAntiforgery(o =>
+        {
+            var str = GetConfigStr("CookieName", antiforgeryCfg);
+            if (string.IsNullOrEmpty(str) is false)
+            {
+                o.Cookie.Name = str;
+            }
+            str = GetConfigStr("FormFieldName", antiforgeryCfg);
+            if (string.IsNullOrEmpty(str) is false)
+            {
+                o.FormFieldName = str;
+            }
+            str = GetConfigStr("HeaderName", antiforgeryCfg);
+            if (string.IsNullOrEmpty(str) is false)
+            {
+                o.HeaderName = str;
+            }
+            o.SuppressXFrameOptionsHeader = GetConfigBool("SuppressXFrameOptionsHeader", antiforgeryCfg, false);
+            o.SuppressReadingTokenFromFormBody = GetConfigBool("SuppressReadingTokenFromFormBody", antiforgeryCfg, false);
+
+            Logger?.Information("Using Antiforgery with cookie name {0}, form field name {1}, header name {2}",
+                o.Cookie.Name,
+                o.FormFieldName,
+                o.HeaderName);
+        });
         return true;
     }
 

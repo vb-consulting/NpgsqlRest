@@ -93,6 +93,47 @@ internal static class AuthHandler
                 }
             }
 
+            if (options.AuthenticationOptions.HashColumnName is not null && options.PasswordHasher is not null)
+            {
+                if (string.Equals(name1, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name2, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (reader?.IsDBNull(i) is false)
+                    {
+                        var hash = reader?.GetValue(i).ToString();
+                        if (hash is not null)
+                        {
+                            // find the password parameter
+                            for(var j = 0; j < command.Parameters.Count; j++)
+                            {
+                                var parameter = command.Parameters[j];
+                                var name = (parameter as NpgsqlRestParameter)?.ActualName;
+                                if (name is not null && name.Contains(options.AuthenticationOptions.PasswordParameterNameContains, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var pass = parameter?.Value?.ToString();
+                                    if (pass is not null && parameter?.Value != DBNull.Value)
+                                    {
+                                        if (options.PasswordHasher.VerifyHashedPassword(hash, pass) is false)
+                                        {
+                                            var userName = claims.FirstOrDefault(c => 
+                                                string.Equals(c.Type, options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal))?.Value;
+                                            var userId = claims.FirstOrDefault(c =>
+                                                string.Equals(c.Type, ClaimTypes.NameIdentifier, StringComparison.Ordinal))?.Value;
+                                            logger?.VerifyPasswordFailed(context.Request.Path.ToString(), userId, userName);
+                                            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                                            await context.Response.CompleteAsync();
+                                            return;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    continue;
+                }
+            }
+
             string? claimType;
             if (options.AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes)
             {
@@ -131,7 +172,8 @@ internal static class AuthHandler
         if (context.Response.StatusCode == (int)HttpStatusCode.OK)
         {
             var principal = new ClaimsPrincipal(new ClaimsIdentity(
-                claims, scheme ?? authenticationType,
+                claims, 
+                scheme ?? authenticationType,
                 nameType: options.AuthenticationOptions.DefaultNameClaimType,
                 roleType: options.AuthenticationOptions.DefaultRoleClaimType));
 

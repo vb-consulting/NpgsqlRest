@@ -4,6 +4,154 @@ Note: For a changelog for a client application [see the client application page 
 
 ---
 
+DONE:
+
+# TsClient fixes:
+
+- Fixed TsClient plugin to handle booleans correctly.
+- Added JsCode style comments for parameters and return values in TsClient plugin.
+- Added upload support for TS and JS client.
+- Added support for XsrfTokenHeaderName if used. This is used by the Uplaod endpoints.
+- Smaller fixes in the TsClient plugin to handle some edge cases.
+
+# Core NpgsqlRest Library fixes:
+
+- Added PATH to comment annotation parser: Ability to set just HTTP path without method.
+    - If HTTP tag has only two params and second param is not VERB, it is treated ass the path then
+    - New comment annotation: PATH path
+
+- Added comment annotation
+    securitysensitive
+    sensitive
+    security
+    security_sensitive
+    security-sensitive
+This will manually obfuscates all log parameters
+
+- Ability to mark the parameter as hash, and value will be pre-hashed.
+    - New comment annotation: 
+        - "param param_name1 is hash of param_name2"
+        - "param param_name is hash of param_name"
+
+- Ability of the Login endpoints to compare and test the password hash.
+    - Login endpoints can now return 'hash' (configurable) column and when they do, it will be verified against parameter that contains "pass" (configurable).
+    - If verification fails, login will return 404 with no message.
+
+- Add file upload support from settings and from comment annotations. 
+    - New annotations:
+    - "upload" - mark as upload
+    - "upload param_name as metadata" - marks as upload and sets the parameter as metadata
+    - "param param_name1 is upload metadata" - marks as upload and sets the parameter as metadata (same thing)
+    - "upload for handler_name1, handler_name2 [, ...]" - marks as upload and sets the upload handler or multiple handlers
+    - Currently implemented upload handlers are (by key):
+        - "large_object" - upload to PostgreSQL large object storage. Metadata example: 
+        ```jsonc
+        {
+            "type": "large_object",
+            "fileName": "test.txt",
+            "fileType": "text/plain",
+            "size": 100,
+            "oid": 1234
+        }
+        ```
+    - "file_system" - upload to PostgreSQL large object storage. Metadata example: 
+        ```jsonc
+        {
+            "type": "file_system",
+            "fileName": "test.txt",
+            "fileType": "text/plain",
+            "size": 100,
+            "filePath": "/tmp/uploads/ADF3B177-D0A5-4AA0-8805-FB63F8504ED8.txt"
+        }
+        ```
+    - For multiple handlers metadata parameter should be json array, otherwise for a single handler it is text or json.
+
+- Fixed issue with endpoint with default parameters, when they receive not existing parameters in same number as default parameters. Endpoint now returns 404 instead of 200 error as it should be.
+- Fixed serialization of binary data in the response. From now on, endpoints that return either:
+    - single value of type bytea (binary)
+    - single column of type setof bytea (binary)
+    - will be written raw directly to response. This allows for example, displaying images directly from the database.
+
+# NpgsqlRest Client App fixes:
+
+- External login was fundamentally broken, now it is fixed.
+- External login function is called with the following parameters:
+  - external login provider (if param exists)
+  - external login email (if param exists)
+  - external login name (if param exists)
+  - external login json data received (if param exists)
+  - client browser analytics json data (if param exists)
+- To accommodate client browser analytics parameter support, two new config keys were added:
+    - ClientAnaliticsData - javascript object definition
+    - ClientAnaliticsIpKey - key name for the IP address that is added to the analytics data
+- Added default configurations for Microsoft and Facebook too
+
+- Add caching static files to the middleware.
+    - New key: StaticFiles -> ParseContentOptions -> CacheParsedFile - caches parsed content, default true
+
+- Add custom message on client started listeting...
+    - Added StartupMessage key to the configuration:
+  //
+  // Logs at startup, placeholders:
+  // {0} - startup time
+  // {1} - listening on urls
+  // {2} - current version
+  //
+  "StartupMessage": "Started in {0}, listening on {1}, version {2}",
+
+- Custom logging context name instead of "NpgsqlRest":
+    - ApplicationName config key is now doing this purpose.
+
+
+- Add support for configuration of the antiforgery token endpoint in the client app.
+    - New configuration section: Antiforgery
+  "Antiforgery": {
+    "Enabled": false,
+    "CookieName": null,
+    "FormFieldName": "__RequestVerificationToken",
+    "HeaderName": "RequestVerificationToken",
+    "SuppressReadingTokenFromFormBody": false,
+    "SuppressXFrameOptionsHeader": false
+  },
+  - New ParseContentOptions options for StaticFiles:
+      //
+      // Name of the configured Antiforgery form field name to be used in the static files (see Antiforgery FormFieldName setting).
+      //
+      "AntiforgeryFieldName": "antiForgeryFieldName",
+      //
+      // Value of the Antiforgery token if Antiforgery is enabled..
+      //
+      "AntiforgeryToken": "antiForgeryToken"
+  - Add new NpgsqlRestClient config section to NpgsqlRest:
+    //
+    // Upload handlers options
+    //
+    "UploadHandlers": {
+      //
+      // Handler that will be used when upload handler or handlers are not specified.
+      //
+      "DefaultUploadHandler": "large_object",
+      //
+      // Enables upload handlers for the NpgsqlRest endpoints that uses PostgreSQL Large Objects API
+      // Metadata example: {"type": "large_object", "fileName": "file.txt", "contentType": "text/plain", "size": 1234567890, "oid": 1234}
+      //
+      "LargeObjectEnabled": true,
+      "LargeObjectKey": "large_object",
+      "LargeObjectHandlerBufferSize": 8192,
+
+      //
+      // Enables upload handlers for the NpgsqlRest endpoints that uses file system
+      // Metadata example: {"type": "file_system", "fileName": "file.txt", "contentType": "text/plain", "size": 1234567890, "filePath": "/tmp/uploads/CB0B16D6-FF10-4A39-94A4-C7017C09D869.txt"}
+      //
+      "FileSystemEnabled": true,
+      "FileSystemKey": "file_system",
+      "FileSystemHandlerPath": "/tmp/uploads",
+      "FileSystemHandlerUseUniqueFileName": true,
+      "FileSystemHandlerCreatePathIfNotExists": true,
+      "FileSystemHandlerBufferSize": 8192
+    }
+
+
 ## Version [2.22.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.22.0 (2025-04-07)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.22.0...2.21.0)

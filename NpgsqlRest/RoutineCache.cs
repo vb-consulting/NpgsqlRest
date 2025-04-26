@@ -4,15 +4,15 @@ namespace NpgsqlRest;
 
 public interface IRoutineCache
 {
-    bool Get(RoutineEndpoint endpoint, string key, out string? result);
-    void AddOrUpdate(RoutineEndpoint endpoint, string key, string? value);
+    bool Get(RoutineEndpoint endpoint, string key, out object? result);
+    void AddOrUpdate(RoutineEndpoint endpoint, string key, object? value);
 }
 
 public class RoutineCache : IRoutineCache
 {
     private class CacheEntry
     {
-        public string? Value { get; set; }
+        public object? Value { get; set; }
         public DateTime? ExpirationTime { get; set; }
         public bool IsExpired => ExpirationTime.HasValue && DateTime.UtcNow > ExpirationTime.Value;
     }
@@ -51,7 +51,7 @@ public class RoutineCache : IRoutineCache
         }
     }
 
-    public bool Get(RoutineEndpoint endpoint, string key, out string? result)
+    public bool Get(RoutineEndpoint endpoint, string key, out object? result)
     {
         var hashedKey = key.GetHashCode();
 
@@ -77,7 +77,7 @@ public class RoutineCache : IRoutineCache
         return false;
     }
 
-    public void AddOrUpdate(RoutineEndpoint endpoint, string key, string? value)
+    public void AddOrUpdate(RoutineEndpoint endpoint, string key, object? value)
     {
         var hashedKey = key.GetHashCode();
         var entry = new CacheEntry

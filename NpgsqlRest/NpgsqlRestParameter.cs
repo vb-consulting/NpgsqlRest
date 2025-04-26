@@ -13,6 +13,8 @@ public class NpgsqlRestParameter : NpgsqlParameter
     public StringValues? QueryStringValues { get; set; } = null;
     public JsonNode? JsonBodyNode { get; set; } = null;
     public TypeDescriptor TypeDescriptor { get; init; } = default!;
+    public NpgsqlRestParameter? HashOf { get; set; } = null;
+    public bool UploadMetadata { get; set; } = false;
 
     internal string GetCacheStringValue()
     {
@@ -22,7 +24,7 @@ public class NpgsqlRestParameter : NpgsqlParameter
         }
         if (TypeDescriptor.IsArray)
         {
-            return string.Join(",", Value as object[] ?? Array.Empty<object>());
+            return string.Join(",", Value as object[] ?? []);
         }
         return Value?.ToString() ?? string.Empty;
     }

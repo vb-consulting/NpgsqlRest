@@ -132,4 +132,6 @@ public class Routine
     /// The meta data associated with the routine.
     /// </summary>
     public required object? Metadata { get; init; }
+
+    internal bool[]? UnknownResultTypeList { get; set; } = null;
 }

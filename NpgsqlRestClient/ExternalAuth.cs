@@ -37,7 +37,11 @@ public static class ExternalAuthConfig
     public static string ReturnToPath { get; private set; } = default!;
     public static string ReturnToPathQueryStringKey { get; private set; } = default!;
     public static string LoginCommand { get; private set; } = default!;
-    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = new Dictionary<string, ExternalAuthClientConfig>
+    public static string ClientAnaliticsData { get; private set; } = default!;
+    public static string ClientAnaliticsIpKey { get; private set; } = default!;
+
+    private static readonly Dictionary<string, ExternalAuthClientConfig> DefaultClientConfigs = 
+        new Dictionary<string, ExternalAuthClientConfig>
     {
         { "google", new ExternalAuthClientConfig
             {
@@ -60,8 +64,24 @@ public static class ExternalAuthConfig
                 TokenUrl = "https://github.com/login/oauth/access_token",
                 InfoUrl = "https://api.github.com/user",
             }
+        },
+        { "microsoft", new ExternalAuthClientConfig
+            {
+                AuthUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?response_type=code&client_id={0}&redirect_uri={1}&scope=openid%20profile%20email&state={2}",
+                TokenUrl = "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                InfoUrl = "https://graph.microsoft.com/oidc/userinfo",
+            }
+        },
+        { "facebook", new ExternalAuthClientConfig
+            {
+                AuthUrl = "https://www.facebook.com/v20.0/dialog/oauth?response_type=code&client_id={0}&redirect_uri={1}&scope=public_profile%20email&state={2}",
+                TokenUrl = "https://graph.facebook.com/v20.0/oauth/access_token",
+                InfoUrl = "https://graph.facebook.com/me?fields=id,name,email",
+            }
         }
     };
+
+    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = [];
 
     public static void Build(IConfigurationSection authConfig)
     {
@@ -86,10 +106,9 @@ public static class ExternalAuthConfig
             var key = section.Key.ToLowerInvariant();
             var signinUrl = string.Format(signinUrlTemplate, key);
 
-            if (ClientConfigs.TryGetValue(key, out var config) is false)
+            if (DefaultClientConfigs.TryGetValue(key, out var config) is false)
             {
                 config = new ExternalAuthClientConfig();
-                ClientConfigs.Add(key, config);
             }
 
             config.Enabled = GetConfigBool("Enabled", section, config.Enabled);
@@ -102,10 +121,11 @@ public static class ExternalAuthConfig
             config.SigninUrl = signinUrl;
             config.ExternalType = section.Key;
 
+            ClientConfigs.Add(config.SigninUrl, config);
             Logger?.Information("External login available for {0} available on path: {1}", section.Key, signinUrl);
         }
 
-        if (ClientConfigs.Where(c => c.Value.Enabled).Any())
+        if (ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
         {
             return;
         }
@@ -113,11 +133,15 @@ public static class ExternalAuthConfig
         BrowserSessionStatusKey = GetConfigStr("BrowserSessionStatusKey", externalCfg) ?? "__external_status";
         BrowserSessionMessageKey = GetConfigStr("BrowserSessionMessageKey", externalCfg) ?? "__external_message";
 
-        SignInHtmlTemplate = GetConfigStr("SignInHtmlTemplate", externalCfg) ?? "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Talking To {0}</title></head><body>Loading...{1}</body></html>";
+        SignInHtmlTemplate = GetConfigStr("SignInHtmlTemplate", externalCfg) ?? 
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Talking To {0}</title></head><body>Loading...{1}</body></html>";
         RedirectUrl = GetConfigStr("RedirectUrl", externalCfg);
         ReturnToPath = GetConfigStr("ReturnToPath", externalCfg) ?? "/";
         ReturnToPathQueryStringKey = GetConfigStr("ReturnToPathQueryStringKey", externalCfg) ?? "return_to";
-        LoginCommand = GetConfigStr("LoginCommand", externalCfg) ?? "select * from auth.login($1, $2)";
+        LoginCommand = GetConfigStr("LoginCommand", externalCfg) ?? "select * from auth.login($1,$2,$3,$4)";
+
+        ClientAnaliticsData = GetConfigStr("ClientAnaliticsData", externalCfg) ?? "{timestamp:new Date().toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:{width:window.screen.width,height:window.screen.height,colorDepth:window.screen.colorDepth,pixelRatio:window.devicePixelRatio,orientation:screen.orientation.type},browser:{userAgent:navigator.userAgent,language:navigator.language,languages:navigator.languages,cookiesEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack,onLine:navigator.onLine,platform:navigator.platform,vendor:navigator.vendor},memory:{deviceMemory:navigator.deviceMemory,hardwareConcurrency:navigator.hardwareConcurrency},window:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerWidth:window.outerWidth,outerHeight:window.outerHeight},location:{href:window.location.href,hostname:window.location.hostname,pathname:window.location.pathname,protocol:window.location.protocol,referrer:document.referrer},performance:{navigation:{type:performance.navigation?.type,redirectCount:performance.navigation?.redirectCount},timing:performance.timing?{loadEventEnd:performance.timing.loadEventEnd,loadEventStart:performance.timing.loadEventStart,domComplete:performance.timing.domComplete,domInteractive:performance.timing.domInteractive,domContentLoadedEventEnd:performance.timing.domContentLoadedEventEnd}:null}}";
+        ClientAnaliticsIpKey = GetConfigStr("ClientAnaliticsIpKey", externalCfg) ?? "ip";
     }
 }
 
@@ -127,7 +151,7 @@ public static class ExternalAuth
 
     public static void Configure(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
     {
-        if (ExternalAuthConfig.ClientConfigs.Where(c => c.Value.Enabled).Any())
+        if (ExternalAuthConfig.ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
         {
             return;
         }
@@ -148,7 +172,7 @@ public static class ExternalAuth
 
             if (string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
             {
-                PrepareResponse(Text.Html);
+                PrepareResponse(Text.Html, context);
                 await context.Response.WriteAsync(BuildHtmlTemplate(config, context.Request));
                 await context.Response.CompleteAsync();
                 return;
@@ -156,7 +180,7 @@ public static class ExternalAuth
 
             if (string.Equals(context.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
             {
-                PrepareResponse(Text.Plain);
+                PrepareResponse(Text.Plain, context);
                 using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
                 try
                 {
@@ -180,16 +204,16 @@ public static class ExternalAuth
             }
 
             await next(context);
-
-            void PrepareResponse(string contentType)
-            {
-                context.Response.ContentType = contentType;
-                context.Response.StatusCode = (int)HttpStatusCode.OK;
-                context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, proxy-revalidate";
-                context.Response.Headers.Pragma = "no-cache";
-                context.Response.Headers.Expires = "0";
-            }
         });
+    }
+
+    private static void PrepareResponse(string contentType, HttpContext context)
+    {
+        context.Response.ContentType = contentType;
+        context.Response.StatusCode = (int)HttpStatusCode.OK;
+        context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, proxy-revalidate";
+        context.Response.Headers.Pragma = "no-cache";
+        context.Response.Headers.Expires = "0";
     }
 
     private static readonly HttpClient _httpClient = new();
@@ -219,6 +243,8 @@ public static class ExternalAuth
             ["client_secret"] = config.ClientSecret,
             ["grant_type"] = "authorization_code"
         });
+        requestTokenMessage.Headers.UserAgent.ParseAdd(_agent);
+
         using var tokenResponse = await _httpClient.SendAsync(requestTokenMessage);
         var tokenContent = await tokenResponse.Content.ReadAsStringAsync();
         if (!tokenResponse.IsSuccessStatusCode)
@@ -261,8 +287,10 @@ public static class ExternalAuth
             JsonNode node = JsonNode.Parse(infoContent) ??
                 throw new ArgumentException("info json node is null");
 
-            email = node["email"]?.ToString() ??
-                node?["elements"]?[0]?["handle~"]?["emailAddress"]?.ToString(); // linkedin format
+            // Email parsing
+            email = node["email"]?.ToString() ?? // Google, GitHub, Facebook, Microsoft
+                    node["userPrincipalName"]?.ToString() ?? // Microsoft (organizational accounts)
+                    node?["elements"]?[0]?["handle~"]?["emailAddress"]?.ToString(); // LinkedIn
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             name = node["localizedLastName"] is not null ?
@@ -311,7 +339,7 @@ public static class ExternalAuth
         }
 
         var logger = NpgsqlRestMiddleware.Logger;
-        using var connection = new NpgsqlConnection(options.ConnectionString);
+        using var connection = new NpgsqlConnection(Builder.ConnectionString);
         if (options.LogConnectionNoticeEvents && logger != null)
         {
             connection.Notice += (sender, args) =>
@@ -327,19 +355,44 @@ public static class ExternalAuth
 
         if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
         {
-            Value = email,
+            Value = config.ExternalType,
             NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
         });
         if (paramCount >= 2) command.Parameters.Add(new NpgsqlParameter()
         {
-            Value = name is not null ? name : DBNull.Value,
+            Value = email,
             NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
         });
         if (paramCount >= 3) command.Parameters.Add(new NpgsqlParameter()
         {
+            Value = name is not null ? name : DBNull.Value,
+            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
+        });
+        if (paramCount >= 4) command.Parameters.Add(new NpgsqlParameter()
+        {
             Value = body is not null ? body : DBNull.Value,
             NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Json
         });
+        if (paramCount >= 5)
+        {
+            var query = context.Request.Query["analyticsData"].ToString();
+            if (string.IsNullOrEmpty(query) is false)
+            {
+                var analyticsData = JsonNode.Parse(query);
+                if (analyticsData is not null)
+                {
+                    if (string.IsNullOrEmpty(ExternalAuthConfig.ClientAnaliticsIpKey) is false)
+                    {
+                        analyticsData[ExternalAuthConfig.ClientAnaliticsIpKey] = App.GetClientIpAddress(context.Request);
+                    }
+                    command.Parameters.Add(new NpgsqlParameter()
+                    {
+                        Value = analyticsData.ToJsonString(),
+                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Json
+                    });
+                }
+            }
+        }
 
         if (logger?.IsEnabled(LogLevel.Information) is true && options.LogCommands)
         {
@@ -369,7 +422,7 @@ public static class ExternalAuth
 
         if (await reader.ReadAsync() is false || reader.FieldCount == 0)
         {
-            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogEventLevel.Warning);
+            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogEventLevel.Warning, context);
             return;
         }
 
@@ -408,7 +461,7 @@ public static class ExternalAuth
                     else
                     {
                         await CompleteWithErrorAsync("External login command returns a status field that is not either boolean or numeric.",
-                            HttpStatusCode.InternalServerError, LogEventLevel.Error);
+                            HttpStatusCode.InternalServerError, LogEventLevel.Error, context);
                         return;
                     }
                     continue;
@@ -480,7 +533,7 @@ public static class ExternalAuth
             if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
             {
                 await CompleteWithErrorAsync("Failed in constructing user identity for authentication.",
-                    HttpStatusCode.InternalServerError, LogEventLevel.Error);
+                    HttpStatusCode.InternalServerError, LogEventLevel.Error, context);
                 return;
             }
             await result.ExecuteAsync(context);
@@ -491,17 +544,21 @@ public static class ExternalAuth
             await context.Response.WriteAsync(message);
         }
         await context.Response.CompleteAsync();
+    }
 
-        async Task CompleteWithErrorAsync(string text, HttpStatusCode code, LogEventLevel? logLevel = null)
+    private static async Task CompleteWithErrorAsync(
+        string text, 
+        HttpStatusCode code, 
+        LogEventLevel? logLevel, 
+        HttpContext context)
+    {
+        if (logLevel.HasValue)
         {
-            if (logLevel.HasValue)
-            {
-                Logger?.Write(logLevel.Value, text);
-            }
-            context.Response.StatusCode = (int)code;
-            await context.Response.WriteAsync(text);
-            await context.Response.CompleteAsync();
+            Logger?.Write(logLevel.Value, text);
         }
+        context.Response.StatusCode = (int)code;
+        await context.Response.WriteAsync(text);
+        await context.Response.CompleteAsync();
     }
 
     private static string BuildHtmlTemplate(ExternalAuthClientConfig config, HttpRequest request)
@@ -510,6 +567,7 @@ public static class ExternalAuth
         var state = Guid.NewGuid().ToString();
         var redirectTo = "/";
         var authUrl = string.Format(config.AuthUrl, config.ClientId, redirectUrl, state);
+        var analyticsData = ExternalAuthConfig.ClientAnaliticsData is null ? "null" : ExternalAuthConfig.ClientAnaliticsData;
         return string.Format(ExternalAuthConfig.SignInHtmlTemplate,
             config.ExternalType,
             string.Format(_jsTemplate,
@@ -522,7 +580,8 @@ public static class ExternalAuth
                 authUrl,//6
                 config.SigninUrl,//7
                 ExternalAuthConfig.ReturnToPathQueryStringKey,//8
-                config.ExternalType//9
+                config.ExternalType,//9
+                analyticsData//10
             ));
     }
 
@@ -559,6 +618,10 @@ public static class ExternalAuth
             var signinUrl = "{7}";
             var returnToPathQueryStringKey = "{8}";
             var externalType = "{9}";
+            var analyticsData = {10};
+            if (analyticsData) {{
+                signinUrl += "?analyticsData=" + encodeURIComponent(JSON.stringify(analyticsData));
+            }}
             var params = paramsToObject(window.location.search);
             var keys = Object.keys(params);
             if (!params.error && !params.state) {{

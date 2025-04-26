@@ -61,10 +61,10 @@ public class TimeSpanParserTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void ParsePostgresInterval_NullOrWhitespace_ThrowsArgumentNullException(string input)
+    public void ParsePostgresInterval_NullOrWhitespace_ThrowsArgumentNullException(string? input)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input);
+        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input!);
 
         // Assert
         result.Should().BeNull();
@@ -102,14 +102,14 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_CaseInsensitivity_WorksWithMixedCase()
     {
         // Arrange
-        string[] inputs = { "10S", "5Min", "2HoUrS", "1DAY" };
+        string[] inputs = ["10S", "5Min", "2HoUrS", "1DAY"];
         TimeSpan[] expected =
-        {
+        [
             TimeSpan.FromSeconds(10),
             TimeSpan.FromMinutes(5),
             TimeSpan.FromHours(2),
             TimeSpan.FromDays(1)
-        };
+        ];
 
         // Act & Assert
         for (int i = 0; i < inputs.Length; i++)

@@ -2,10 +2,12 @@
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Text;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
+using Npgsql;
 
 namespace NpgsqlRestClient;
 
@@ -15,15 +17,15 @@ public class AppStaticFileMiddleware
     private readonly IWebHostEnvironment _hostingEnv;
     private static readonly FileExtensionContentTypeProvider _fileTypeProvider = new();
 
-    private static bool _parse;
     private static string[]? _parsePatterns = default!;
-    private static string? _userIdTag = default!;
-    private static string? _userNameTag = default!;
-    private static string? _userRolesTag = default!;
-    private static Dictionary<string, StringValues>? _customClaimTags = default!;
     private static Serilog.ILogger? _logger = default!;
 
     private static readonly ConcurrentDictionary<string, bool> _pathInParsePattern = new();
+    // New cache for parsed file contents
+    private static readonly ConcurrentDictionary<string, (byte[] Content, DateTimeOffset LastModified)> _parsedFileCache = new();
+    private static readonly bool _cacheParsedFiles = true;
+    private static IAntiforgery? _antiforgery;
+    private static DefaultResponseParser? _parser;
 
     public static void ConfigureStaticFileMiddleware(
         bool parse,
@@ -32,14 +34,32 @@ public class AppStaticFileMiddleware
         string? userNameTag,
         string? userRolesTag,
         Dictionary<string, StringValues>? customClaimTags,
+        bool cacheParsedFiles,
+        string? antiforgeryFieldNameTag,
+        string? antiforgeryTokenTag,
+        IAntiforgery? antiforgery,
         Serilog.ILogger? logger)
     {
-        _parse = parse;
-        _parsePatterns = parsePatterns == null || parsePatterns.Length == 0 ? null : parsePatterns?.Where(p => !string.IsNullOrEmpty(p)).ToArray();
-        _userIdTag = string.IsNullOrEmpty(userIdTag) ? null : userIdTag;
-        _userNameTag = string.IsNullOrEmpty(userNameTag) ? null : userNameTag;
-        _userRolesTag = string.IsNullOrEmpty(userRolesTag) ? null : userRolesTag;
-        _customClaimTags = customClaimTags == null || customClaimTags.Count == 0 ? null : customClaimTags;
+        _parsePatterns = parse == false || parsePatterns == null || parsePatterns.Length == 0 ? null : parsePatterns?.Where(p => !string.IsNullOrEmpty(p)).ToArray();
+        if (parse is false || _parsePatterns is null ||
+            (userIdTag is null && userNameTag is null && userRolesTag is null && customClaimTags is null && antiforgeryFieldNameTag is null && antiforgeryTokenTag is null))
+        {
+            _parser = null;
+        }
+        else
+        {
+            _parser = new DefaultResponseParser(
+                    userIdParameterName: userIdTag,
+                    userNameParameterName: userNameTag,
+                    userRolesParameterName: userRolesTag,
+                    ipAddressParameterName: null,
+                    antiforgeryFieldNameTag: antiforgeryFieldNameTag,
+                    antiforgeryTokenTag: antiforgeryTokenTag,
+                    customClaims: customClaimTags,
+                    customParameters: null);
+        }
+
+        _antiforgery = antiforgery;
         _logger = logger;
     }
 
@@ -56,7 +76,7 @@ public class AppStaticFileMiddleware
         if (!isGet && !HttpMethods.IsHead(method))
         {
             await _next(context);
-            return; 
+            return;
         }
         PathString path = context.Request.Path; // Cache PathString
         IFileInfo fileInfo = _hostingEnv.WebRootFileProvider.GetFileInfo(path);
@@ -65,7 +85,16 @@ public class AppStaticFileMiddleware
             await _next(context);
             return;
         }
-
+        AntiforgeryTokenSet? tokenSet = null;
+        if (_antiforgery is not null)
+        {
+            var pathStr = path.ToString();
+            if (pathStr.EndsWith(".html") is true || pathStr.EndsWith(".htm") is true)
+            {
+                tokenSet = _antiforgery.GetAndStoreTokens(context);
+            }
+        }
+        
         string contentType = fileInfo.PhysicalPath != null && _fileTypeProvider.TryGetContentType(fileInfo.PhysicalPath, out var ct)
             ? ct
             : "application/octet-stream";
@@ -76,8 +105,8 @@ public class AppStaticFileMiddleware
         string etagString = string.Concat("\"", Convert.ToString(etagHash, 16), "\"");
 
         var ifNoneMatch = context.Request.Headers[HeaderNames.IfNoneMatch];
-        if (!string.IsNullOrEmpty(ifNoneMatch) && 
-            System.Net.Http.Headers.EntityTagHeaderValue.TryParse(ifNoneMatch, out var clientEtag) && 
+        if (!string.IsNullOrEmpty(ifNoneMatch) &&
+            System.Net.Http.Headers.EntityTagHeaderValue.TryParse(ifNoneMatch, out var clientEtag) &&
             string.Equals(etagString, clientEtag.ToString(), StringComparison.Ordinal))
         {
             context.Response.StatusCode = StatusCodes.Status304NotModified;
@@ -100,21 +129,20 @@ public class AppStaticFileMiddleware
         {
             try
             {
-                using var fileStream = new FileStream(fileInfo.PhysicalPath!, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true);
-
-                if (_parse is false || _parsePatterns is null || 
-                    (_userIdTag is null && _userNameTag is null && _userRolesTag is null && _customClaimTags is null)
-                    )
+                byte[] buffer;
+                if (_parser is null)
                 {
                     context.Response.ContentLength = length;
+                    using var fileStream = new FileStream(fileInfo.PhysicalPath!, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true);
                     await fileStream.CopyToAsync(context.Response.Body, context.RequestAborted);
                     return;
                 }
+
                 var pathString = path.ToString();
                 if (_pathInParsePattern.TryGetValue(pathString, out bool isInParsePattern) is false)
                 {
                     isInParsePattern = false;
-                    for (int i = 0; i < _parsePatterns.Length; i++)
+                    for (int i = 0; i < _parsePatterns?.Length; i++)
                     {
                         if (DefaultResponseParser.IsPatternMatch(pathString, _parsePatterns[i]))
                         {
@@ -128,26 +156,36 @@ public class AppStaticFileMiddleware
                 if (isInParsePattern is false)
                 {
                     context.Response.ContentLength = length;
+                    using var fileStream = new FileStream(fileInfo.PhysicalPath!, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true);
                     await fileStream.CopyToAsync(context.Response.Body, context.RequestAborted);
                     return;
                 }
 
-                var parser = new DefaultResponseParser(
-                    userIdParameterName: _userIdTag,
-                    userNameParameterName: _userNameTag,
-                    userRolesParameterName: _userRolesTag,
-                    ipAddressParameterName: null,
-                    customClaims: _customClaimTags,
-                    customParameters: null);
+                // Check cache for parsed files
+                if (_cacheParsedFiles && _parsedFileCache.TryGetValue(pathString, out var cached) && cached.LastModified >= lastModified)
+                {
+                    buffer = cached.Content;
+                }
+                else
+                {
+                    // Read file from disk
+                    using var fileStream = new FileStream(fileInfo.PhysicalPath!, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 8192, useAsync: true);
+                    buffer = new byte[(int)fileInfo.Length];
+                    await fileStream.ReadExactlyAsync(buffer, context.RequestAborted);
 
-                byte[] buffer = new byte[(int)fileInfo.Length];
-                await fileStream.ReadExactlyAsync(buffer, context.RequestAborted);
+                    // Cache the file content if enabled
+                    if (_cacheParsedFiles)
+                    {
+                        _parsedFileCache[pathString] = (buffer, lastModified);
+                    }
+                }
+
                 int charCount = Encoding.UTF8.GetCharCount(buffer);
                 char[] chars = ArrayPool<char>.Shared.Rent(charCount);
                 try
                 {
                     Encoding.UTF8.GetChars(buffer, 0, buffer.Length, chars, 0);
-                    ReadOnlySpan<char> result = parser.Parse(new ReadOnlySpan<char>(chars, 0, charCount), context);
+                    ReadOnlySpan<char> result = _parser.Parse(new ReadOnlySpan<char>(chars, 0, charCount), context, tokenSet);
                     var writer = PipeWriter.Create(context.Response.Body);
                     try
                     {

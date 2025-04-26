@@ -153,7 +153,7 @@ public class RoutineSource(
                 }
                 else
                 {
-                    returnTypeDescriptor = returnRecordTypes.Select(x => new TypeDescriptor(x)).ToArray();
+                    returnTypeDescriptor = [.. returnRecordTypes.Select(x => new TypeDescriptor(x))];
                 }
 
 
@@ -369,8 +369,8 @@ public class RoutineSource(
 
                         ParamCount = paramCount,
                         Parameters = parameters,
-                        ParamsHash = parameters.Select(p => p.ConvertedName).ToHashSet(),
-                        OriginalParamsHash = parameters.Select(p => p.ActualName).ToHashSet(),
+                        ParamsHash = [.. parameters.Select(p => p.ConvertedName)],
+                        OriginalParamsHash = [.. parameters.Select(p => p.ActualName)],
 
                         Expression = expression,
                         FullDefinition = reader.Get<string>(17),//"definition"),

@@ -23,6 +23,8 @@ public class TypeDescriptor
     public string? CustomType { get; }
     public short? CustomTypePosition { get; }
     public string? OriginalParameterName { get; }
+    public bool IsBinary { get; }
+    internal bool ShouldRenderAsUnknownType => IsBinary is false;
 
     public TypeDescriptor(
         string type, 
@@ -103,6 +105,7 @@ public class TypeDescriptor
         CustomType = customType;
         CustomTypePosition = customTypePosition;
         OriginalParameterName = originalParameterName;
+        IsBinary = BaseDbType == NpgsqlDbType.Bytea;
     }
 
     internal void SetHasDefault()

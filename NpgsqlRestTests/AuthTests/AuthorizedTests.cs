@@ -24,7 +24,7 @@ public static partial class Database
 }
 
 [Collection("TestFixture")]
-public class AuthTests(TestFixture test)
+public class AuthorizedTests(TestFixture test)
 {
     [Fact]
     public async Task Test_authorized()

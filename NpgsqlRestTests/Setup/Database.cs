@@ -20,6 +20,15 @@ public static partial class Database
         }
     }
 
+    public static NpgsqlConnection CreateConnection()
+    {
+        var builder = new NpgsqlConnectionStringBuilder(InitialConnectionString)
+        {
+            Database = Dbname
+        };
+        return new NpgsqlConnection(builder.ConnectionString);
+    }
+
     public static string Create()
     {
         DropIfExists();

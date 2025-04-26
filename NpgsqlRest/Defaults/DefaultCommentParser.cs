@@ -11,6 +11,8 @@ internal static class DefaultCommentParser
     private static readonly char[] headerSeparator = [Consts.Colon];
 
     private const string HttpKey = "http";
+    private const string PathKey = "path";
+
     private static readonly string[] paramTypeKey = [
         "requestparamtype",
         "paramtype",
@@ -60,9 +62,9 @@ internal static class DefaultCommentParser
         "request_headers",
         "request-headers"
     ];
-    private const string IgnoreKey = "ignore";
-    private const string ContextKey = "context";
-    private const string ParameterKey = "parameter";
+    private const string RequestHeaderModeIgnoreKey = "ignore";
+    private const string RequestHeaderModeContextKey = "context";
+    private const string RequestHeaderModeParameterKey = "parameter";
 
     private static readonly string[] requestHeadersParameterNameKey = [
         "requestheadersparametername",
@@ -151,7 +153,26 @@ internal static class DefaultCommentParser
         "connection-name"
     ];
 
-    public static RoutineEndpoint? Parse(Routine routine, RoutineEndpoint routineEndpoint, NpgsqlRestOptions options, ILogger? logger)
+    private static readonly string[] securitySensitiveKey = [
+        "securitysensitive",
+        "sensitive",
+        "security",
+        "security_sensitive",
+        "security-sensitive"
+    ];
+
+    private const string UploadKey = "upload";
+
+    private static readonly string[] parameterKey = [
+        "parameter",
+        "param",
+    ];
+
+    public static RoutineEndpoint? Parse(
+        Routine routine, 
+        RoutineEndpoint routineEndpoint, 
+        NpgsqlRestOptions options, 
+        ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
         {
@@ -261,9 +282,11 @@ internal static class DefaultCommentParser
                 // HTTP 
                 // HTTP [ GET | POST | PUT | DELETE ]
                 // HTTP [ GET | POST | PUT | DELETE ] path
+                // HTTP path
                 else if (haveTag is true && StrEquals(words[0], HttpKey))
                 {
                     hasHttpTag = true;
+                    string? urlPathSegment = null;
                     if (len == 2 || len == 3)
                     {
                         if (Enum.TryParse<Method>(words[1], true, out var parsedMethod))
@@ -273,12 +296,16 @@ internal static class DefaultCommentParser
                         }
                         else
                         {
-                            logger?.InvalidHttpMethodComment(words[1], description, routineEndpoint.Method);
+                            urlPathSegment = words[1];
+                            //logger?.InvalidHttpMethodComment(words[1], description, routineEndpoint.Method);
                         }
                     }
                     if (len == 3)
                     {
-                        string urlPathSegment = words[2];
+                        urlPathSegment = words[2];
+                    }
+                    if (urlPathSegment is not null)
+                    {
                         if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                         {
                             logger?.InvalidUrlPathSegmentComment(urlPathSegment, description, routineEndpoint.Url);
@@ -300,6 +327,34 @@ internal static class DefaultCommentParser
                         }
                         urlDescription = string.Concat(routineEndpoint.Method.ToString(), " ", routineEndpoint.Url);
                         description = string.Concat(routineDescription, " mapped to ", urlDescription);
+                    }
+                }
+
+                // PATH path
+                else if (haveTag is true && StrEquals(words[0], PathKey))
+                {
+                    if (len == 2)
+                    {
+                        string? urlPathSegment = words[1];
+                        if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
+                        {
+                            logger?.InvalidUrlPathSegmentComment(urlPathSegment, description, routineEndpoint.Url);
+                        }
+                        else
+                        {
+                            routineEndpoint.Url = uri.ToString();
+                            if (!routineEndpoint.Url.StartsWith('/'))
+                            {
+                                routineEndpoint.Url = string.Concat("/", routineEndpoint.Url);
+                            }
+
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentSetHttp(description, routineEndpoint.Method, routineEndpoint.Url);
+                            }
+                            urlDescription = string.Concat(routineEndpoint.Method.ToString(), " ", routineEndpoint.Url);
+                            description = string.Concat(routineDescription, " mapped to ", urlDescription);
+                        }
                     }
                 }
 
@@ -342,12 +397,13 @@ internal static class DefaultCommentParser
                     routineEndpoint.RequiresAuthorization = true;
                     if (words.Length > 1)
                     {
-                        routineEndpoint.AuthorizeRoles = new(words[1..]);
+                        routineEndpoint.AuthorizeRoles = [.. words[1..]];
                         if (options.LogAnnotationSetInfo)
                         {
                             logger?.CommentSetAuthRoles(description, routineEndpoint.AuthorizeRoles);
                         }
-                    } else
+                    }
+                    else
                     {
                         if (options.LogAnnotationSetInfo)
                         {
@@ -401,15 +457,15 @@ internal static class DefaultCommentParser
                 // request-headers [ ignore | context | parameter ]
                 else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersModeKey))
                 {
-                    if (StrEquals(words[1], IgnoreKey))
+                    if (StrEquals(words[1], RequestHeaderModeIgnoreKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Ignore;
                     }
-                    else if (StrEquals(words[1], ContextKey))
+                    else if (StrEquals(words[1], RequestHeaderModeContextKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Context;
                     }
-                    else if (StrEquals(words[1], ParameterKey))
+                    else if (StrEquals(words[1], RequestHeaderModeParameterKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Parameter;
                     }
@@ -511,7 +567,7 @@ internal static class DefaultCommentParser
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.NullLiteral;
                     }
-                    else if (StrEquals(words[1], IgnoreKey))
+                    else if (StrEquals(words[1], RequestHeaderModeIgnoreKey))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.Ignore;
                     }
@@ -625,6 +681,19 @@ internal static class DefaultCommentParser
                     }
                 }
 
+                // securitysensitive
+                // sensitive
+                // security_sensitive
+                // security-sensitive
+                else if (haveTag is true && StrEqualsToArray(words[0], securitySensitiveKey))
+                {
+                    routineEndpoint.SecuritySensitive = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentSecuritySensitive(description);
+                    }
+                }
+
                 // cached
                 // cached [ param1, param2, param3 [, ...] ]
                 else if (haveTag is true && StrEquals(words[0], CacheKey))
@@ -638,13 +707,14 @@ internal static class DefaultCommentParser
                     {
                         var names = words[1..];
                         HashSet<string> result = new(names.Length);
-                        for(int j = 0; j < names.Length; j++)
+                        for (int j = 0; j < names.Length; j++)
                         {
                             var name = names[j];
                             if (!routine.OriginalParamsHash.Contains(name) && !routine.ParamsHash.Contains(name))
                             {
                                 logger?.CommentInvalidCacheParam(description, name);
-                            } else
+                            }
+                            else
                             {
                                 result.Add(name);
                             }
@@ -702,6 +772,191 @@ internal static class DefaultCommentParser
                     else
                     {
                         logger?.CommentEmptyConnectionName(description);
+                    }
+                }
+
+                // upload
+                // upload for handler_name1, handler_name2 [, ...]
+                // upload param_name as metadata
+                else if (haveTag is true && StrEquals(words[0], UploadKey))
+                {
+                    if (options.UploadHandlers is null || options.UploadHandlers.Count == 0)
+                    {
+                        logger?.CommentUploadNoHandlers(description);
+                    }
+                    else
+                    {
+                        if (routineEndpoint.Upload is false)
+                        {
+                            routineEndpoint.Upload = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUpload(description);
+                            }
+                        }
+                        if (routineEndpoint.RequestParamType != RequestParamType.QueryString)
+                        {
+                            routineEndpoint.RequestParamType = RequestParamType.QueryString;
+                        }
+                        if (routineEndpoint.Method != Method.POST)
+                        {
+                            routineEndpoint.Method = Method.POST;
+                        }
+                        if (len >= 3 && StrEquals(words[1], "for"))
+                        {
+                            HashSet<string> existingHandlers = options.UploadHandlers?.Keys.ToHashSet() ?? [];
+                            var handlers = words[2..]
+                                .Select(w =>
+                                {
+                                    var handler = w.TrimEnd(',');
+                                    bool exists = true;
+                                    if (existingHandlers.Contains(handler) is false)
+                                    {
+                                        logger?.CommentUploadHandlerNotExists(description, handler, existingHandlers);
+                                        exists = false;
+                                    }
+                                    return new { exists, handler };
+                                })
+                                .Where(x => x.exists is true)
+                                .Select(x => x.handler)
+                                .ToArray();
+
+                            routineEndpoint.UploadHandlers = handlers;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                if (handlers.Length == 0)
+                                {
+                                    var first = options.UploadHandlers?.Keys.FirstOrDefault();
+                                    logger?.CommentUploadFirstAvaialbleHandler(description, first);
+                                }
+                                if (handlers.Length == 1)
+                                {
+                                    logger?.CommentUploadSingleHandler(description, handlers[0]);
+                                }
+                                else
+                                {
+                                    logger?.CommentUploadHandlers(description, handlers);
+                                }
+                            }
+                        }
+
+                        else if (len >= 4 && StrEquals(words[2], "as") && StrEquals(words[3], "metadata"))
+                        {
+                            var paramName = words[1];
+                            NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                    string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                    string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                            if (param is null)
+                            {
+                                logger?.CommentUploadWrongMetadataParam(description, paramName);
+                            }
+                            else
+                            {
+                                param.UploadMetadata = true;
+                                if (options.LogAnnotationSetInfo)
+                                {
+                                    logger?.CommentUploadMetadataParam(description, paramName);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // param param_name1 is hash of param_name2
+                // param param_name is upload metadata
+                else if (haveTag is true && StrEqualsToArray(words[0], parameterKey))
+                {
+                    // param param_name1 is hash of param_name2
+                    if (len >= 6 && StrEquals(words[2], "is") && StrEquals(words[3], "hash") && StrEquals(words[4], "of"))
+                    {
+                        var paramName1 = words[1];
+                        var paramName2 = words[5];
+
+                        var found = true;
+                        NpgsqlRestParameter? param = null;
+
+                        if (routine.OriginalParamsHash.Contains(paramName1) is false && 
+                            routine.ParamsHash.Contains(paramName1) is false)
+                        {
+                            logger?.CommentParamNotExistsCantHash(description, paramName1);
+                            found = false;
+                        }
+
+                        if (found is true && 
+                            routine.OriginalParamsHash.Contains(paramName2) is false &&
+                            routine.ParamsHash.Contains(paramName2) is false)
+                        {
+                            logger?.CommentParamNotExistsCantHash(description, paramName2);
+                            found = false;
+                        }
+
+                        if (found is true)
+                        {
+                            param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName1, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName1, StringComparison.Ordinal));
+                            if (param is not null)
+                            {
+                                param.HashOf = routine.Parameters.FirstOrDefault(x =>
+                                    string.Equals(x.ActualName, paramName2, StringComparison.Ordinal) ||
+                                    string.Equals(x.ConvertedName, paramName2, StringComparison.Ordinal));
+                                if (param.HashOf is null)
+                                {
+                                    logger?.CommentParamNotExistsCantHash(description, paramName2);
+                                }
+                                else
+                                {
+                                    if (options.LogAnnotationSetInfo)
+                                    {
+                                        logger?.CommentParamIsHashOf(description, paramName1, paramName2);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                logger?.CommentParamNotExistsCantHash(description, paramName1);
+                            }
+                        }
+                    }
+
+                    // param param_name1 is upload metadata
+                    if (len >= 5 && (
+                        StrEquals(words[2], "is") && StrEquals(words[3], "upload") && StrEquals(words[4], "metadata")
+                        ))
+                    {
+                        if (routineEndpoint.Upload is false)
+                        {
+                            routineEndpoint.Upload = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUpload(description);
+                            }
+                        }
+                        if (routineEndpoint.RequestParamType != RequestParamType.QueryString)
+                        {
+                            routineEndpoint.RequestParamType = RequestParamType.QueryString;
+                        }
+                        if (routineEndpoint.Method != Method.POST)
+                        {
+                            routineEndpoint.Method = Method.POST;
+                        }
+
+                        var paramName = words[1];
+                        NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                        if (param is null)
+                        {
+                            logger?.CommentUploadWrongMetadataParam(description, paramName);
+                        }
+                        else
+                        {
+                            param.UploadMetadata = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUploadMetadataParam(description, paramName);
+                            }
+                        }
                     }
                 }
 
@@ -793,9 +1048,8 @@ internal static class DefaultCommentParser
 
     private static string[] Split(string str)
     {
-        return str
+        return [.. str
             .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Trim())
-            .ToArray();
+            .Select(x => x.Trim().ToLowerInvariant())];
     }
 }

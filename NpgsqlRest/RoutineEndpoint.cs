@@ -19,6 +19,7 @@ public class RoutineEndpoint(
     HashSet<string>? authorizeRoles = null,
     bool login = false,
     bool logout = false,
+    bool securitySensitive = false,
     ulong? bufferRows = null,
     bool raw = false,
     string? rawValueSeparator = null,
@@ -28,7 +29,9 @@ public class RoutineEndpoint(
     string[]? cachedParams = null,
     TimeSpan? cacheExpiresIn = null,
     bool parseResponse = false,
-    string? connectionName = null)
+    string? connectionName = null,
+    bool upload = false,
+    string[]? uploadHandlers = null)
 {
     private string? _bodyParameterName = bodyParameterName;
     internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
@@ -59,7 +62,8 @@ public class RoutineEndpoint(
     public HashSet<string>? AuthorizeRoles { get; set; } = authorizeRoles;
     public bool Login { get; set; } = login;
     public bool Logout { get; set; } = logout;
-    public bool IsAuth => Login || Logout;
+    public bool SecuritySensitive { get; set; } = securitySensitive;
+    public bool IsAuth => Login || Logout || SecuritySensitive;
     public ulong? BufferRows { get; set; } = bufferRows;
     public bool Raw { get; set; } = raw;
     public string? RawValueSeparator { get; set; } = rawValueSeparator;
@@ -71,4 +75,6 @@ public class RoutineEndpoint(
     public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
     public bool ParseResponse { get; set; } = parseResponse;
     public string? ConnectionName { get; set; } = connectionName;
+    public bool Upload { get; set; } = upload;
+    public string[]? UploadHandlers { get; set; } = uploadHandlers;
 }

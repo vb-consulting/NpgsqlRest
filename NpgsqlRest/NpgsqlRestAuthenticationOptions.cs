@@ -11,7 +11,9 @@ public class NpgsqlRestAuthenticationOptions(
     string defaultNameClaimType = ClaimTypes.Name,
     string defaultRoleClaimType = ClaimTypes.Role,
     bool serializeAuthEndpointsResponse = false,
-    bool obfuscateAuthParameterLogValues = true)
+    bool obfuscateAuthParameterLogValues = true,
+    string hashColumnName = "hash",
+    string passwordParameterNameContains = "pass")
 {
     /// <summary>
     /// Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
@@ -84,4 +86,18 @@ public class NpgsqlRestAuthenticationOptions(
     /// Default is true.
     /// </summary>
     public bool ObfuscateAuthParameterLogValues { get; set; } = obfuscateAuthParameterLogValues;
+
+    /// <summary>
+    /// The default column name to in the data reader which will be used to read the value of the hash of the password.
+    /// If this column is present, the value will be used to verify the password from the password parameter.
+    /// Password parameter is the first parameter which name contains the value of PasswordParameterNameContains.
+    /// If verification fails, the login will fail and the HTTP Status Code will be set to 404 Not Found.
+    /// </summary>
+    public string HashColumnName { get; set; } = hashColumnName;
+
+    /// <summary>
+    /// The default name of the password parameter. The first parameter which name contains this value will be used as the password parameter.
+    /// This is used to verify the password from the password parameter when login endpoint returns a hash of the password (see HashColumnName).
+    /// </summary>
+    public string PasswordParameterNameContains { get; set; } = passwordParameterNameContains;
 }

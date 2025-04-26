@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest;
 
@@ -12,6 +13,8 @@ public class DefaultResponseParser(
     string? userNameParameterName,
     string? userRolesParameterName,
     string? ipAddressParameterName,
+    string? antiforgeryFieldNameTag,
+    string? antiforgeryTokenTag,
     Dictionary<string, StringValues>? customClaims,
     Dictionary<string, string?>? customParameters) : IResponseParser
 {
@@ -19,6 +22,10 @@ public class DefaultResponseParser(
     private readonly string? userNameParameterName = userNameParameterName;
     private readonly string? userRolesParameterName = userRolesParameterName;
     private readonly string? ipAddressParameterName = ipAddressParameterName;
+
+    private readonly string? antiforgeryFieldNameTag = antiforgeryFieldNameTag;
+    private readonly string? antiforgeryTokenTag = antiforgeryTokenTag;
+
     private readonly Dictionary<string, StringValues>? customClaims = customClaims;
     private readonly Dictionary<string, string?>? customParameters = customParameters;
 
@@ -35,10 +42,10 @@ public class DefaultResponseParser(
 
     public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context)
     {
-        return Parse(input, context);
+        return Parse(input, context, null);
     }
 
-    public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, HttpContext context)
+    public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, HttpContext context, AntiforgeryTokenSet? tokenSet)
     {
         Dictionary<string, string> replacements = [];
 
@@ -75,6 +82,17 @@ public class DefaultResponseParser(
             foreach (var (key, value) in customParameters)
             {
                 replacements.Add(key, value is null ? @null : string.Concat(@quote, value, @quote));
+            }
+        }
+        if (tokenSet is not null && (antiforgeryFieldNameTag is not null || antiforgeryTokenTag is not null))
+        {
+            if (antiforgeryFieldNameTag is not null)
+            {
+                replacements.Add(antiforgeryFieldNameTag, tokenSet.FormFieldName);
+            }
+            if (antiforgeryTokenTag is not null && tokenSet.RequestToken is not null)
+            {
+                replacements.Add(antiforgeryTokenTag, tokenSet.RequestToken);
             }
         }
         return FormatString(input, replacements);

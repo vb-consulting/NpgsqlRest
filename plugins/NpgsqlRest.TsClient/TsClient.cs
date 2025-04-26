@@ -397,14 +397,15 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     if (descriptor.IsArray)
                     {
                         json = true;
-                        if (options.SkipTypes is false)
-                        {
-                            returnExp = GetReturnExp($"await response.json() as {responseName}[]");
-                        }
-                        else
-                        {
-                            returnExp = GetReturnExp("await response.json()");
-                        }
+                        //if (options.SkipTypes is false)
+                        //{
+                        //    returnExp = GetReturnExp($"await response.json() as {responseName}[]");
+                        //}
+                        //else
+                        //{
+                        //    returnExp = GetReturnExp("await response.json()");
+                        //}
+                        returnExp = GetReturnExp("await response.json()");
                     }
                     else
                     {
@@ -418,7 +419,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         }
                         else if (descriptor.IsBoolean)
                         {
-                            returnExp = GetReturnExp("(await response.text()).toLowerCase() == \"true\"");
+                            returnExp = GetReturnExp("await response.text() == \"t\"");
                         }
                         else
                         {
@@ -571,7 +572,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             {
                 url = options.IncludeParseUrlParam is true ?
                     (requestName is not null && body is null ? string.Format("parseUrl({0}Url(request))", camel) : string.Format("parseUrl({0}Url())", camel)) :
-                    string.Format("{0}Url(request)", camel);
+                    (requestName is not null && body is null ? string.Format("{0}Url(request)", camel) : string.Format("{0}Url()", camel));
 
                 if (options.SkipTypes is false)
                 {
@@ -627,44 +628,337 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     responseName;
             }
 
-            if (options.SkipTypes is false)
-            { 
-                content.AppendLine(string.Format(
+            if (endpoint.Upload is true)
+            {
+                returnExp = returnExp?
+                    .Replace("return ", "")
+                    .Replace(";", "")
+                    .Replace("        ", "                    ")
+                    .Replace("    }", "                }")
+                    .Replace("response.status", "this.status")
+                    .Replace("await response.text()", "this.responseText")
+                    .Replace("await response.json()", "JSON.parse(this.responseText)");
+                if (options.SkipTypes is false)
+                {
+                    parameters = parameters.Trim('\n', '\r').Replace("RequestInit", "XMLHttpRequest");
+                    content.AppendLine(string.Format(
                     """
+                    /**
+                    {0}
+                    */
+                    export async function {1}(
+                    {2},
+                        files: File[] = [],
+                        progress?: (loaded: number, total: number) => void,{3}
+                    ): Promise<{4}> {{
+                        return new Promise((resolve, reject) => {{
+                            if (!files || files.length === 0) {{
+                                reject(new Error("No files to upload"));
+                                return;
+                            }}
+                            var xhr = new XMLHttpRequest();
+
+                            if (progress) {{
+                                xhr.upload.addEventListener(
+                                    "progress",
+                                    (event) => {{
+                                        if (event.lengthComputable && progress) {{
+                                            progress(event.loaded, event.total);
+                                        }}
+                                    }},
+                                    false
+                                );
+                            }}
+
+                            xhr.onload = function () {{
+                                if (this.status >= 200 && this.status < 300) {{
+                                    resolve({5});
+                                }} else {{
+                                    reject({{
+                                        xhr: this, 
+                                        status: this.status,
+                                        statusText: this.statusText || 'Request failed',
+                                        response: this.response
+                                    }});
+                                }}
+                            }};
+
+                            xhr.onerror = function () {{
+                                reject({{
+                                    xhr: this, 
+                                    status: this.status,
+                                    statusText: this.statusText || 'Network error occurred',
+                                    response: this.response
+                                }});
+                            }};
+
+                            xhr.open("POST", {6});
+
+                            const formData = new FormData();
+                            for(let i = 0; i < files.length; i++) {{
+                                const file = files[i];
+                                formData.append("file", file, file.name);
+                            }}
+                    {7}
+                    {8}
+                            xhr.send(formData);
+                        }});
+                    }}
+                    """,
+                        GetComment(routine, parameters, resultType),//0
+                        camel,//1
+                        parameters,//2
+                        options.XsrfTokenHeaderName is not null ?
+                        string.Format("""
+                        {0}    xsrfToken?: string
+                        """, Environment.NewLine) : "", //3
+                        resultType,//4
+                        returnExp,//5
+                        url,//6
+                        options.XsrfTokenHeaderName is not null ?
+                        string.Format("""
+                                if (xsrfToken) {{
+                                    xhr.setRequestHeader("{0}", xsrfToken);
+                                }}
+                        """, options.XsrfTokenHeaderName) : "", //7
+                        options.IncludeParseRequestParam is true ?
+                        """
+                                if (parseRequest) {
+                                    const modifiedXhr = parseRequest(xhr);
+                                    if (modifiedXhr instanceof XMLHttpRequest) {
+                                        xhr = modifiedXhr;
+                                    } else {
+                                        console.warn('parseRequest did not return an XMLHttpRequest object');
+                                    }
+                                }
+                        """ : "" //8
+                     ));
+                }
+                else
+                {
+                    //content.AppendLine(string.Format(
+                    //    """
+                    ///**
+                    //{0}
+                    //*/
+                    //export async function {1}(
+                    //    request, 
+                    //    parseUrl, 
+                    //    parseRequest,
+                    //    files,
+                    //    progress,
+                    //    xsrfToken
+                    //) {{
+                    //    return new Promise((resolve, reject) => {{
+                    //        if (!files || files.length === 0) {{
+                    //            reject(new Error("No files to upload"));
+                    //            return;
+                    //        }}
+                    //        if (!parseUrl) {{
+                    //            parseUrl = url => url;
+                    //        }}
+                    //        var xhr = new XMLHttpRequest();
+
+                    //        if (progress) {{
+                    //            xhr.upload.addEventListener(
+                    //                "progress",
+                    //                (event) => {{
+                    //                    if (event.lengthComputable && progress) {{
+                    //                        progress(event.loaded, event.total);
+                    //                    }}
+                    //                }},
+                    //                false
+                    //            );
+                    //        }}
+
+                    //        xhr.onload = function () {{
+                    //            if (this.status >= 200 && this.status < 300) {{
+                    //                resolve({2});
+                    //            }} else {{
+                    //                reject({{
+                    //                    xhr: this, 
+                    //                    status: this.status,
+                    //                    statusText: this.statusText || 'Request failed',
+                    //                    response: this.response
+                    //                }});
+                    //            }}
+                    //        }};
+
+                    //        xhr.onerror = function () {{
+                    //            reject({{
+                    //                xhr: this, 
+                    //                status: this.status,
+                    //                statusText: this.statusText || 'Network error occurred',
+                    //                response: this.response
+                    //            }});
+                    //        }};
+
+                    //        xhr.open("POST", {3});
+
+                    //        const formData = new FormData();
+                    //        for(let i = 0; i < files.length; i++) {{
+                    //            const file = files[i];
+                    //            formData.append("file", file, file.name);
+                    //        }}
+
+                    //        xhr.setRequestHeader("Accept", "text/plain; charset=utf-8");
+                    //        if (xsrfToken) {{
+                    //            xhr.setRequestHeader("X-XSRF-TOKEN", xsrfToken);
+                    //        }}
+                    //        if (parseRequest) {{
+                    //            const modifiedXhr = parseRequest(xhr);
+                    //            if (modifiedXhr instanceof XMLHttpRequest) {{
+                    //                xhr = modifiedXhr;
+                    //            }} else {{
+                    //                console.warn('parseRequest did not return an XMLHttpRequest object');
+                    //            }}
+                    //        }}
+
+                    //        xhr.send(formData);
+                    //    }});
+                    //}}
+                    //""",
+                    //    GetComment(routine, parameters, resultType),
+                    //    camel,
+                    //    returnExp,
+                    //    url));
+
+                    parameters = parameters.Trim('\n', '\r');
+                    content.AppendLine(string.Format(
+                    """
+                    /**
+                    {0}
+                    */
+                    export async function {1}(
+                    {2},
+                        files,
+                        progress,{3}
+                    ) {{
+                        return new Promise((resolve, reject) => {{
+                            if (!files || files.length === 0) {{
+                                reject(new Error("No files to upload"));
+                                return;
+                            }}
+                            var xhr = new XMLHttpRequest();
+
+                            if (progress) {{
+                                xhr.upload.addEventListener(
+                                    "progress",
+                                    (event) => {{
+                                        if (event.lengthComputable && progress) {{
+                                            progress(event.loaded, event.total);
+                                        }}
+                                    }},
+                                    false
+                                );
+                            }}
+
+                            xhr.onload = function () {{
+                                if (this.status >= 200 && this.status < 300) {{
+                                    resolve({4});
+                                }} else {{
+                                    reject({{
+                                        xhr: this, 
+                                        status: this.status,
+                                        statusText: this.statusText || 'Request failed',
+                                        response: this.response
+                                    }});
+                                }}
+                            }};
+
+                            xhr.onerror = function () {{
+                                reject({{
+                                    xhr: this, 
+                                    status: this.status,
+                                    statusText: this.statusText || 'Network error occurred',
+                                    response: this.response
+                                }});
+                            }};
+
+                            xhr.open("POST", {5});
+
+                            const formData = new FormData();
+                            for(let i = 0; i < files.length; i++) {{
+                                const file = files[i];
+                                formData.append("file", file, file.name);
+                            }}
+                    {6}
+                    {7}
+                            xhr.send(formData);
+                        }});
+                    }}
+                    """,
+                        GetComment(routine, parameters, resultType),//0
+                        camel,//1
+                        parameters,//2
+                        options.XsrfTokenHeaderName is not null ?
+                        string.Format("""
+                        {0}    xsrfToken
+                        """, Environment.NewLine) : "", //3
+                        returnExp,//4
+                        url,//5
+                        options.XsrfTokenHeaderName is not null ?
+                        string.Format("""
+                                if (xsrfToken) {{
+                                    xhr.setRequestHeader("{0}", xsrfToken);
+                                }}
+                        """, options.XsrfTokenHeaderName) : "", //6
+                        options.IncludeParseRequestParam is true ?
+                        """
+                                if (parseRequest) {
+                                    const modifiedXhr = parseRequest(xhr);
+                                    if (modifiedXhr instanceof XMLHttpRequest) {
+                                        xhr = modifiedXhr;
+                                    } else {
+                                        console.warn('parseRequest did not return an XMLHttpRequest object');
+                                    }
+                                }
+                        """ : "" //7
+                     ));
+
+                }
+            }
+            else
+            {
+                if (options.SkipTypes is false)
+                {
+                    content.AppendLine(string.Format(
+                        """
                 /**
                 {0}
                 */
                 export async function {1}({2}) : Promise<{3}> {{
                 {4}
                 """,
-                    GetComment(routine),
-                    camel,
-                    parameters,
-                    resultType,
-                    funcBody));
-                content.AppendLine("}");
-            }
-            else
-            {
-                content.AppendLine(string.Format(
-                    """
+                        GetComment(routine, parameters, resultType), // 0
+                        camel, // 1
+                        parameters,  // 2
+                        resultType,  // 3
+                        funcBody));  // 4
+                    content.AppendLine("}");
+                }
+                else
+                {
+                    content.AppendLine(string.Format(
+                        """
                 /**
                 {0}
                 */
                 export async function {1}({2}) {{
                 {3}
                 """,
-                    GetComment(routine),
-                    camel,
-                    parameters,
-                    funcBody));
-                content.AppendLine("}");
+                        GetComment(routine, parameters, resultType),
+                        camel,
+                        parameters,
+                        funcBody));
+                    content.AppendLine("}");
+                }
             }
             return true;
         } // void Handle
     }
 
-    private string GetComment(Routine routine)
+    private string GetComment(Routine routine, string parameters, string resultType)
     {
         StringBuilder sb = new();
         if (options.CommentHeader != CommentHeader.None)
@@ -717,6 +1011,37 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         else
         {
             //sb.AppendLine(string.Format("* {0} {1}", endpoint.Method, endpoint.Url));
+        }
+        sb.AppendLine("* ");
+        if (string.IsNullOrEmpty(parameters) is false)
+        {
+            foreach(var p in parameters.Trim().Split(','))
+            {
+                var param = p.Trim();
+                if (string.IsNullOrEmpty(param))
+                {
+                    continue;
+                }
+                if (param.Contains(':'))
+                {
+                    var parts = param.Split(':');
+                    var name = parts[0].Trim();
+                    var type = string.Join(':', parts[1..]).Trim();
+                    if (type.Contains(" = "))
+                    {
+                        type = type.Split(" = ")[0].Trim();
+                    }
+                    sb.AppendLine(string.Concat("* @param {", type, "} ", name));
+                }
+                else
+                {
+                    sb.AppendLine(string.Concat("* @param ", param));
+                }
+            }
+        }
+        if (string.IsNullOrEmpty(resultType) is false)
+        {
+            sb.AppendLine(string.Concat("* @returns {", resultType, "}"));
         }
         sb.AppendLine("* ");
         sb.Append(string.Format("* @see {0} {1}.{2}", routine.Type.ToString().ToUpperInvariant(), routine.Schema, routine.Name));

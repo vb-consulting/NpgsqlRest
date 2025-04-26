@@ -9,6 +9,8 @@ using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRestClient.App;
 using Npgsql;
+using System.Data.Common;
+using System.Data;
 
 if (Arguments.Parse(args) is false)
 {
@@ -31,14 +33,20 @@ BuildAuthentication();
 var usingCors = BuildCors();
 var compressionEnabled = ConfigureResponseCompression();
 
-WebApplication app = Build();
+var antiforgerUsed = ConfigureAntiForgery();
 
+WebApplication app = Build();
 Configure(app, () =>
 {
     sw.Stop();
-    Logger?.Information("Started in {0}", sw);
-    Logger?.Information("Listening on {0}", app.Urls);
-    Logger?.Information("NpgsqlRestClient Version {0}", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-");
+    var message = GetConfigStr("StartupMessage", Cfg);
+    if (string.IsNullOrEmpty(message) is false)
+    {
+        Logger?.Information(message,
+                sw,
+                app.Urls, 
+                System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-");
+    }
 });
 
 if (usingCors)
@@ -49,6 +57,10 @@ if (compressionEnabled)
 {
     app.UseResponseCompression();
 }
+if (antiforgerUsed)
+{
+    app.UseAntiforgery();
+}
 ConfigureStaticFiles(app);
 
 var refreshOptionsCfg = NpgsqlRestCfg.GetSection("RefreshOptions");
@@ -57,6 +69,13 @@ await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build
 var logConnectionNoticeEventsMode = GetConfigEnum<PostgresConnectionNoticeLoggingMode?>("LogConnectionNoticeEventsMode", NpgsqlRestCfg) ?? PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
 
 var paramHandlers = CreateParametersHandlers();
+(string defaultUploadHandler, Dictionary<string, Func<IUploadHandler>>? uploadHandlers) = CreateUploadHandlers();
+
+if (uploadHandlers is not null && uploadHandlers.Count > 1)
+{
+    Logger?.Information("Using {0} upload handlers where {1} is default.", uploadHandlers.Keys, defaultUploadHandler);
+}
+
 NpgsqlRestOptions options = new()
 {
     DataSource = dataSource,
@@ -75,6 +94,7 @@ NpgsqlRestOptions options = new()
     NameConverter = GetConfigBool("CamelCaseNames", NpgsqlRestCfg, true) ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
     RequiresAuthorization = GetConfigBool("RequiresAuthorization", NpgsqlRestCfg, true),
 
+    LoggerName = GetConfigStr("ApplicationName", Cfg),
     LogEndpointCreatedInfo = GetConfigBool("LogEndpointCreatedInfo", NpgsqlRestCfg, true),
     LogAnnotationSetInfo = GetConfigBool("LogEndpointCreatedInfo", NpgsqlRestCfg, true),
     LogConnectionNoticeEvents = GetConfigBool("LogConnectionNoticeEvents", NpgsqlRestCfg, true),
@@ -107,7 +127,10 @@ NpgsqlRestOptions options = new()
     RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),
     RefreshPath = GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
     RefreshMethod = GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
-    DefaultResponseParser = paramHandlers.defaultParser
+    DefaultResponseParser = paramHandlers.defaultParser,
+
+    UploadHandlers = uploadHandlers,
+    DefaultUploadHandler = defaultUploadHandler,
 };
 
 app.UseNpgsqlRest(options);

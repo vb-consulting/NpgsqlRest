@@ -21,7 +21,8 @@ public class TsClientOptions(
     bool useRoutineNameInsteadOfEndpoint = false,
     bool exportUrls = false,
     bool skipTypes = false,
-    bool uniqueModels = false)
+    bool uniqueModels = false,
+    string? xsrfTokenHeaderName = null)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -140,4 +141,9 @@ public class TsClientOptions(
     /// Keep TypeScript models unique, meaning, models will same fields and types will be merged into one model with name of the last model. Significantly reduces number of generated models. 
     /// </summary>
     public bool UniqueModels { get; set; } = uniqueModels;
+
+    /// <summary>
+    /// Name of the header to use for XSRF token. Set to null to skip.
+    /// </summary>
+    public string? XsrfTokenHeaderName { get; set; } = xsrfTokenHeaderName;
 }

@@ -11,9 +11,9 @@ public class PatternMatcherTests
     [InlineData(null, "test", false)]
     [InlineData("test", null, false)]
     [InlineData(null, null, false)]
-    public void EdgeCases_EmptyAndNull_ReturnFalse(string name, string pattern, bool expected)
+    public void EdgeCases_EmptyAndNull_ReturnFalse(string? name, string? pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        DefaultResponseParser.IsPatternMatch(name!, pattern!).Should().Be(expected);
     }
 
     [Theory]
@@ -81,7 +81,7 @@ public class PatternMatcherTests
     [Fact]
     public void PerformanceTest_LargeInput_DoesNotStackOverflow()
     {
-        string largeName = new string('a', 10000);
+        string largeName = new('a', 10000);
         string largePattern = "*" + new string('?', 9999);
         Assert.True(DefaultResponseParser.IsPatternMatch(largeName, largePattern));
     }

@@ -89,9 +89,22 @@ public static class NpgsqlRestMetadataBuilder
                 if (endpoint.HasBodyParameter is true && endpoint.RequestParamType == RequestParamType.BodyJson)
                 {
                     endpoint.RequestParamType = RequestParamType.QueryString;
-                    logger?.EndpointTypeChanged(method, endpoint.Url, endpoint!.BodyParameterName ?? "");
-
+                    logger?.EndpointTypeChangedBodyParam(method, endpoint.Url, endpoint!.BodyParameterName ?? "");
                 }
+                if (endpoint.Upload is true)
+                {
+                    if (endpoint.Method != Method.POST)
+                    {
+                        logger?.EndpointMethodChangedUpload(method, endpoint.Url, Method.POST.ToString());
+                        endpoint.Method = Method.POST;
+                    }
+                    if (endpoint.RequestParamType == RequestParamType.BodyJson)
+                    {
+                        endpoint.RequestParamType = RequestParamType.QueryString;
+                        logger?.EndpointTypeChangedUpload(method, endpoint.Url);
+                    }
+                }
+
                 var key = string.Concat(method, endpoint?.Url);
                 var value = new NpgsqlRestMetadataEntry(endpoint!, formatter, key);
                 if (lookup.TryGetValue(key, out var existing))
@@ -99,6 +112,24 @@ public static class NpgsqlRestMetadataBuilder
                     overloads[string.Concat(key, existing.Endpoint.Routine.ParamCount)] = existing;
                 }
                 lookup[key] = value;
+
+                if (routine.ColumnsTypeDescriptor is not null && routine.ColumnsTypeDescriptor.Length == 1)
+                {
+                    bool[] unknownResultTypeList = new bool[routine.ColumnsTypeDescriptor.Length];
+                    bool hasKnownType = false;
+                    for (var i = 0; i < routine.ColumnsTypeDescriptor.Length; i++)
+                    {
+                        unknownResultTypeList[i] = routine.ColumnsTypeDescriptor[i].ShouldRenderAsUnknownType;
+                        if (routine.ColumnsTypeDescriptor[i].ShouldRenderAsUnknownType is false)
+                        {
+                            hasKnownType = true;
+                        }
+                    }
+                    if (hasKnownType)
+                    {
+                        routine.UnknownResultTypeList = unknownResultTypeList;
+                    }
+                }
 
                 if (builder is not null)
                 {
@@ -154,9 +185,14 @@ public static class NpgsqlRestMetadataBuilder
             }
         }
 
+        if (options.UploadHandlers is not null && options.UploadHandlers.ContainsKey(options.DefaultUploadHandler) is false)
+        {
+            logger?.LogError("Default upload handler {defaultUploadHandler} not found in the list of upload handlers. Using upload endpoint with default handler may cause an error.", options.DefaultUploadHandler);
+        }
+
         if (options.EndpointsCreated is not null)
         {
-            options.EndpointsCreated(lookup.Values.Select(x => x.Endpoint).ToArray());
+            options.EndpointsCreated([.. lookup.Values.Select(x => x.Endpoint)]);
         }
 
         if (builder is not null)
@@ -164,7 +200,7 @@ public static class NpgsqlRestMetadataBuilder
             RoutineEndpoint[]? array = null;
             foreach (var handler in options.EndpointCreateHandlers)
             {
-                array ??= lookup.Values.Select(x => x.Endpoint).ToArray();
+                array ??= [.. lookup.Values.Select(x => x.Endpoint)];
                 handler.Cleanup(array);
                 handler.Cleanup();
             }

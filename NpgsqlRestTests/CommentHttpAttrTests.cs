@@ -19,6 +19,10 @@ comment on function comment_verb_test3() is 'HTTP GET custom_url_from_comment';
 
 create function comment_wrong_verb() returns text language sql as 'select ''wrong verb''';
 comment on function comment_wrong_verb() is 'HTTP wrong-verb';
+
+create function comment_http_path() returns text language sql as 'select ''new path''';
+comment on function comment_http_path() is 'HTTP GET
+PATH new-path';
 ");
     }
 }
@@ -54,10 +58,19 @@ public class CommentHttpAttrTests(TestFixture test)
         response1?.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         using var response2 = await test.Client.PostAsync("/wrong-verb", null);
-        response1?.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        //response2?.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await AssertResponse(response2, "wrong verb");
 
         using var response3 = await test.Client.PostAsync("/api/comment-wrong-verb/", null);
-        await AssertResponse(response3, "wrong verb");
+        //await AssertResponse(response3, "wrong verb");
+        response3?.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Test_comment_new_path()
+    {
+        using var response1 = await test.Client.GetAsync("/new-path");
+        await AssertResponse(response1, "new path");
     }
 
     private static async Task AssertResponse(HttpResponseMessage response, string expectedContent)
