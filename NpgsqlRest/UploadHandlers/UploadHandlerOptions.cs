@@ -2,13 +2,14 @@
 
 public class UploadHandlerOptions
 {
+    public bool UploadsEnabled { get; set; } = true;
     public bool LargeObjectEnabled { get; set; } = true;
     public string LargeObjectKey { get; set; } = "large_object";
     public int LargeObjectHandlerBufferSize { get; set; } = 8192;
 
     public bool FileSystemEnabled { get; set; } = true;
     public string FileSystemKey { get; set; } = "file_system";
-    public string FileSystemHandlerPath { get; set; } = "/tmp/uploads";
+    public string FileSystemHandlerPath { get; set; } = "./";
     public bool FileSystemHandlerUseUniqueFileName { get; set; } = true;
     public bool FileSystemHandlerCreatePathIfNotExists { get; set; } = true;
     public int FileSystemHandlerBufferSize { get; set; } = 8192;
@@ -16,6 +17,10 @@ public class UploadHandlerOptions
     public static Dictionary<string, Func<IUploadHandler>>? CreateUploadHandlers(UploadHandlerOptions options)
     {
         if (options is null)
+        {
+            return null;
+        }
+        if (options.UploadsEnabled is false)
         {
             return null;
         }

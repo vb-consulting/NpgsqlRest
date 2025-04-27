@@ -443,17 +443,19 @@ public static class App
         }
 
         string defaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadHandlersCfg) ?? "large_object";
-        var options = new UploadHandlerOptions();
-        options.LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true);
-        options.LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object";
-        options.LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192;
+        var options = new UploadHandlerOptions
+        {
+            LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
+            LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object",
+            LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192,
 
-        options.FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true);
-        options.FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system";
-        options.FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads";
-        options.FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true);
-        options.FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true);
-        options.FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192;
+            FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true),
+            FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system",
+            FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads",
+            FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true),
+            FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true),
+            FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192
+        };
 
         return (defaultUploadHandler, UploadHandlerOptions.CreateUploadHandlers(options));
     }

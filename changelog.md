@@ -1,10 +1,10 @@
 # Changelog
 
-Note: For a changelog for a client application [see the client application page changelog](https://vb-consulting.github.io/npgsqlrest/client/#changelog).
+Note: The changelog for the older version can be found here: [Changelog Archive](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog-old.md)
 
 ---
 
-## Version [2.23.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.23.0 (2025-04-26)
+## Version [2.23.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.23.0) (2025-04-28)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.23.0...2.22.0)
 
@@ -13,16 +13,43 @@ Note: For a changelog for a client application [see the client application page 
 - Fixed TsClient plugin to handle booleans correctly.
 - Added JsCode style comments for parameters and return values in TsClient plugin.
 - Added upload support for TS and JS client.
-- Added support for XsrfTokenHeaderName if used. This is used by the Uplaod endpoints.
+- Added support for XsrfTokenHeaderName if used. This is used by the Upload endpoints.
 - Smaller fixes in the TsClient plugin to handle some edge cases.
 
 ### Core NpgsqlRest Library fixes
+
+#### Simplified EndpointCreated Option Event
+
+- From now on, this event doesn't require returning an endpoint, since it receives the endpoint instance as the parameter:
+
+```csharp
+/// <summary>
+/// Callback function that is executed just after the new endpoint is created. Set the RoutineEndpoint to null to disable endpoint.
+/// </summary>
+public Action<RoutineEndpoint?>? EndpointCreated { get; set; } = null;
+```
+
+To change endpoint properties, simply change them on the parameter instance directly or set to null to disable if necessary:
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    EndpointCreated = endpoint => 
+    {
+        if (endpoint?.Routine.Name == "restricted")
+        {
+            // disable the endpoint
+            endpoint = null;
+        }
+    }
+});
+```
 
 #### Added PATH to Comment Annotation Parser 
 
 - New comment annotation: `PATH path`.
 - Ability to set just HTTP path without method by using `PATH /my-path/`
-- If HTTP tag has only two params and second param is not valid VERB, it is treated as the path.
+- If HTTP tag has only two params and second param is not valid VERB (GET, POST, etc) - it is treated as the path.
 
 #### Added SecuritySensitive Routine Option
 
@@ -33,11 +60,11 @@ Note: For a changelog for a client application [see the client application page 
     `security_sensitive`
     `security-sensitive`
 
-- This will manually obfuscates all parameter values before sending them to log.
+- This will manually obfuscate all parameter values before sending them to log.
 
 #### Hashing Capabilities
 
-- This is completely new feature. There is a default hasher class that can be injected into system with the new option called `PasswordHasher`.
+- This is a completely new feature. There is a default hasher class that can be injected into the system with the new option called `PasswordHasher`.
 
 ```csharp
 /// <summary>
@@ -46,102 +73,296 @@ Note: For a changelog for a client application [see the client application page 
 public IPasswordHasher PasswordHasher { get; set; } = new PasswordHasher();
 ```
 
-- Default implementation in `PasswordHasher` class is using PBKDF2 (Password-Based Key Derivation Function 2) with SHA-256 and it incorporates 128-bit salt with 600,000 iterations (OWASP-recommended as of 2025). So it's secure, but there is option to inject a different one.
+- Default implementation in `PasswordHasher` class is using PBKDF2 (Password-Based Key Derivation Function 2) with SHA-256 and it incorporates 128-bit salt with 600,000 iterations (OWASP-recommended as of 2025). So it's secure, but there is an option to inject a different one.
 
 ##### Mark Parameter as Hash
 
 - Ability to mark the parameter as hash and the value will be pre-hashed with the default hasher.
 
 - New comment annotations: 
-    - `param param_name1 is hash of param_name2` - the first pararameter `param_name1` will have the hashed value of the first `param_name2`.
-    - `param param_name is hash of param_name` - this pararameter `param_name` will have the original value hashed.
+    - `param param_name1 is hash of param_name2` - the first parameter `param_name1` will have the hashed value of `param_name2`.
+    - `param param_name is hash of param_name` - this parameter `param_name` will have the original value hashed.
     - Typical usage: `param _hashed_password is hash of _password` or just `param _password is hash of _password`.
 
-- This can be set programatically also: 
+- This can be set programmatically also: 
 
 ```csharp
-app.UseNpgsqlRest(new()
+app.UseNpgsqlRest(new(connectionString)
 {
-    ConnectionString = connectionString,
-    EndpointCreated = endpoint => endpoint with { AuthorizeRoles = ["admin", "super"] }
+    EndpointCreated = endpoint => 
+    {
+        if (endpoint?.Routine.Name == "login")
+        {
+            // Set the second parameter to contain the hash instead of plain text
+            endpoint.Routine.Parameters[1].HashOf = endpoint.Routine.Parameters[1];
+        }
+    }
 });
 ```
 
-- Ability of the Login endpoints to compare and test the password hash.
-    - Login endpoints can now return 'hash' (configurable) column and when they do, it will be verified against parameter that contains "pass" (configurable).
-    - If verification fails, login will return 404 with no message.
+##### Login Endpoints Can Verify Hashes
 
+- New ability of the Login endpoints to compare and verify returned password hashes.
 
+- Login endpoints can now return field `hash` (configurable) and when they do, it will be verified against a parameter that contains "pass" (configurable).
 
+- If verification fails, login will automatically return status 404 with no message and relevant information will be logged as a warning to default logger: `Password verification failed for attempted login: path={path} userId={userId}, username={userName}`
 
-- Add file upload support from settings and from comment annotations. 
-    - New annotations:
-    - "upload" - mark as upload
-    - "upload param_name as metadata" - marks as upload and sets the parameter as metadata
-    - "param param_name1 is upload metadata" - marks as upload and sets the parameter as metadata (same thing)
-    - "upload for handler_name1, handler_name2 [, ...]" - marks as upload and sets the upload handler or multiple handlers
-    - Currently implemented upload handlers are (by key):
-        - "large_object" - upload to PostgreSQL large object storage. Metadata example: 
-        ```jsonc
+- New `AuthenticationOptions` values to support this feature are these:
+
+1) `AuthenticationOptions.HashColumnName`
+
+    - Type: `string`
+    - Default: `"hash"`
+
+    The default column name in the data reader that will contain password hash. If this column is present, value will be verified with the default hasher against the password parameter.
+
+2) `AuthenticationOptions.PasswordParameterNameContains`
+
+- Type: `string`
+- Default: `"pass"`
+
+When the login endpoint tries to verify supplied hash with the password parameter, this value will be used to locate the password parameter from the parameter collection. That will be the first parameter that contains this string in parameter name (either original or translated). 
+
+#### Upload Support
+
+- There is robust and flexible UPLOAD endpoint support from this version.
+
+- There are three new options to support this feature:
+
+```csharp
+/// <summary>
+/// Default upload handler options. 
+/// Set this option to null to disable upload handlers or use this to modify upload handler options.
+/// </summary>
+public UploadHandlerOptions DefaultUploadHandlerOptions { get; set; } = new UploadHandlerOptions();
+
+/// <summary>
+/// Upload handlers dictionary map. 
+/// When the endpoint has set Upload to true, this dictionary will be used to find the upload handlers for the current request. 
+/// Handler will be located by the key values from the endpoint UploadHandlers string array property if set or by the default upload handler (DefaultUploadHandler option).
+/// Set this option to null to use default upload handler from the UploadHandlerOptions property.
+/// Set this option to empty dictionary to disable upload handlers.
+/// Set this option to a dictionary with one or more upload handlers to enable your own custom upload handlers.
+/// </summary>
+public Dictionary<string, Func<IUploadHandler>>? UploadHandlers { get; set; } = null;
+
+/// <summary>
+/// Default upload handler name. This value is used when the upload handlers are not specified.
+/// </summary>
+public string DefaultUploadHandler { get; set; } = "large_object";
+```
+
+- Endpoints also have two new properties:
+
+```csharp
+public bool Upload { get; set; } = true;
+public string[]? UploadHandlers { get; set; } = null;
+```
+
+- When the endpoint has Upload set to true, the request will first try to locate appropriate handlers.
+
+- Endpoint can specify one or more handlers with `UploadHandlers` property (keys in `UploadHandlers` dictionary).
+
+- When endpoint `UploadHandlers` property is null, Upload handler will use the one from the `DefaultUploadHandler` option ("large_object" by default).
+
+- Option `Dictionary<string, Func<IUploadHandler>>? UploadHandlers` is initialized from the `DefaultUploadHandlerOptions` option which has these defaults:
+
+```csharp
+public bool UploadsEnabled { get; set; } = true;
+public bool LargeObjectEnabled { get; set; } = true;
+public string LargeObjectKey { get; set; } = "large_object";
+public int LargeObjectHandlerBufferSize { get; set; } = 8192;
+public bool FileSystemEnabled { get; set; } = true;
+public string FileSystemKey { get; set; } = "file_system";
+public string FileSystemHandlerPath { get; set; } = "./";
+public bool FileSystemHandlerUseUniqueFileName { get; set; } = true;
+public bool FileSystemHandlerCreatePathIfNotExists { get; set; } = true;
+public int FileSystemHandlerBufferSize { get; set; } = 8192;
+```
+
+- Each upload handler returns a string text by convention, which usually represents JSON metadata for the upload.
+  
+- This metadata is then assigned to a routine parameter that has `UploadMetadata` set to true.
+
+- That routine is executed on PostgreSQL after successful upload (handlers execution).
+  
+- If the routine fails, upload handlers automatically perform upload cleanup.
+  
+- There are currently two upload handlers implemented in the library:
+
+1) PostgreSQL Large Object Upload Handler
+
+- Key: `large_object`
+- Description: uses [PostgreSQL Large Object API](https://www.postgresql.org/docs/current/largeobjects.html) to upload content directly to database.
+- Metadata example: `{"type": "large_object", "fileName": "test.txt", "fileType": "text/plain", "size": 100, "oid": 1234}`
+
+2) File System Upload Handler
+
+- Key: `file_system`
+- Description: Uploads files to the file system
+- Metadata example: `{"type": "file_system", "fileName": "test.txt", "fileType": "text/plain", "size": 100, "filePath": "/tmp/uploads/ADF3B177-D0A5-4AA0-8805-FB63F8504ED8.txt"}`
+
+- If the endpoint has multiple upload handlers, metadata parameter is expected to be array of text or array of JSON.
+
+- Example of programmatic usage:
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    DefaultUploadHandlerOptions = new() { FileSystemHandlerPath = "./images/" },
+    EndpointCreated = endpoint =>
+    {
+        if (endpoint?.Url.EndsWith("upload") is true)
         {
-            "type": "large_object",
-            "fileName": "test.txt",
-            "fileType": "text/plain",
-            "size": 100,
-            "oid": 1234
-        }
-        ```
-    - "file_system" - upload to PostgreSQL large object storage. Metadata example: 
-        ```jsonc
-        {
-            "type": "file_system",
-            "fileName": "test.txt",
-            "fileType": "text/plain",
-            "size": 100,
-            "filePath": "/tmp/uploads/ADF3B177-D0A5-4AA0-8805-FB63F8504ED8.txt"
-        }
-        ```
-    - For multiple handlers metadata parameter should be json array, otherwise for a single handler it is text or json.
+            endpoint.Upload = true;
 
-- Fixed issue with endpoint with default parameters, when they receive not existing parameters in same number as default parameters. Endpoint now returns 404 instead of 200 error as it should be.
-- Fixed serialization of binary data in the response. From now on, endpoints that return either:
-    - single value of type bytea (binary)
-    - single column of type setof bytea (binary)
-    - will be written raw directly to response. This allows for example, displaying images directly from the database.
+            if (endpoint?.Url.Contains("image") is true)
+            {
+                endpoint.UploadHandlers = ["file_system"];
+            }
+            else if (endpoint?.Url.Contains("csv") is true)
+            {
+                endpoint.UploadHandlers = ["large_object"];
+            }
+        }
+    }
+});
+```
 
-# NpgsqlRest Client App fixes:
+- This example will enable upload for all URL paths that end with "upload" text. 
+- If the URL path contains "image", it will upload them to file system and to configured `./images/` path. 
+- If the URL path contains "csv", it will be uploaded as the PostgreSQL large object.
+
+- There is also robust comment annotation support for this feature:
+  - `upload` - mark routine as upload (uses default handlers)
+  - `upload for handler_name1, handler_name2 [, ...]` mark routine as upload and set handler key to be used (e.g. `upload for file_system`).
+  - `upload param_name as metadata` mark routine as upload (uses default handlers) and sets `param_name` as metadata parameter. 
+  - Note: mixing these two is not (yet) possible, `upload for file_system param_name as metadata` or `upload param_name as metadata for file_system` will not work.
+  - `param param_name1 is upload metadata` set `param_name1` as the upload metadata.
+
+- Examples:
+
+```sql
+create procedure simple_upload(
+    _meta json = null
+)
+language plpgsql
+as 
+$$
+begin
+    raise info 'upload metadata: %', _meta;
+end;
+$$;
+
+comment on procedure simple_upload(json) is 'upload'; -- does not send _meta parameter
+-- or --
+comment on procedure simple_upload(json) is 'upload _meta as metadata' -- sends _meta parameter
+-- or --
+comment on procedure simple_upload(json) is '
+upload
+param _meta is upload metadata
+'; 
+-- or --
+comment on procedure simple_upload(json) is '
+upload for file_system
+param _meta is upload metadata
+';
+-- or --
+comment on procedure simple_upload(json) is '
+upload for large_object
+param _meta is upload metadata
+';
+```
+
+- In case of multiple handlers, parameter has to be an array:
+
+```sql
+create procedure simple_upload(
+    _meta[] json = null
+)
+language plpgsql
+as 
+$$
+begin
+    raise info 'upload metadata: %', _meta;
+end;
+$$;
+
+-- multiple handlers
+comment on procedure simple_upload(json) is '
+upload for large_object, file_system
+param _meta is upload metadata
+';
+```
+
+#### Other Improvements
+
+1) Fixed issue with endpoint with default parameters. When they receive non-existing parameters in same number as default parameters, the endpoint now returns 404 instead of 200 error as it should be.
+
+2) Fixed serialization of binary data in the response. From now on, endpoints that return either:
+ - single value of type bytea (binary)
+ - single column of type setof bytea (binary)
+ - will be written raw directly to response. 
+ - This allows, for example, displaying images directly from the database.
+
+### NpgsqlRest Client App fixes:
+
+#### External Login Fixes and Improvements
 
 - External login was fundamentally broken, now it is fixed.
+
 - External login function is called with the following parameters:
   - external login provider (if param exists)
   - external login email (if param exists)
   - external login name (if param exists)
   - external login json data received (if param exists)
   - client browser analytics json data (if param exists)
+
 - To accommodate client browser analytics parameter support, two new config keys were added:
-    - ClientAnaliticsData - javascript object definition
-    - ClientAnaliticsIpKey - key name for the IP address that is added to the analytics data
+    - ClientAnalyticsData - javascript object definition
+    - ClientAnalyticsIpKey - key name for the IP address that is added to the analytics data
+
 - Added default configurations for Microsoft and Facebook too
 
-- Add caching static files to the middleware.
-    - New key: StaticFiles -> ParseContentOptions -> CacheParsedFile - caches parsed content, default true
+#### Caching Static Files
 
-- Add custom message on client started listeting...
-    - Added StartupMessage key to the configuration:
+- This applies only to static content being parsed.
+
+- Add caching static files to the middleware.
+    - New key: StaticFiles -> ParseContentOptions -> CacheParsedFile - caches parsed content, default true.
+
+#### Custom Startup Message
+
+- Added custom message on client started listening support. 
+- Following configuration key was added:
+  
+```jsonc
+{
   //
   // Logs at startup, placeholders:
   // {0} - startup time
   // {1} - listening on urls
   // {2} - current version
   //
-  "StartupMessage": "Started in {0}, listening on {1}, version {2}",
+  "StartupMessage": "Started in {0}, listening on {1}, version {2}"
+}
+```
 
-- Custom logging context name instead of "NpgsqlRest":
-    - ApplicationName config key is now doing this purpose.
+- Format placeholders are optional.
 
+#### Logging Context from ApplicationName
 
-- Add support for configuration of the antiforgery token endpoint in the client app.
-    - New configuration section: Antiforgery
+- Using the `ApplicationName` value (if any) as custom logging context name instead of `NpgsqlRest`.
+- Set `ApplicationName` to null to keep using `NpgsqlRest`.
+- This applies to both client app logs and core library logs.
+
+#### Antiforgery Token Support
+
+- New configuration section in root: `Antiforgery`:
+  
+```jsonc
+{
   "Antiforgery": {
     "Enabled": false,
     "CookieName": null,
@@ -149,8 +370,22 @@ app.UseNpgsqlRest(new()
     "HeaderName": "RequestVerificationToken",
     "SuppressReadingTokenFromFormBody": false,
     "SuppressXFrameOptionsHeader": false
-  },
-  - New ParseContentOptions options for StaticFiles:
+  }
+}
+```
+
+- Antiforgery Tokens are also added as new keys to static content parser:
+
+```jsonc
+{
+  //
+  // Static files settings 
+  //
+  "StaticFiles": {
+    // ...
+    "ParseContentOptions": {
+      // ...
+
       //
       // Name of the configured Antiforgery form field name to be used in the static files (see Antiforgery FormFieldName setting).
       //
@@ -159,7 +394,19 @@ app.UseNpgsqlRest(new()
       // Value of the Antiforgery token if Antiforgery is enabled..
       //
       "AntiforgeryToken": "antiForgeryToken"
-  - Add new NpgsqlRestClient config section to NpgsqlRest:
+    }
+  }
+}
+```
+
+#### Upload Support
+
+- New config section in `NpgsqlRest` section:
+```jsonc
+{
+  //...
+  "NpgsqlRest": {
+    // ...
     //
     // Upload handlers options
     //
@@ -187,13 +434,15 @@ app.UseNpgsqlRest(new()
       "FileSystemHandlerCreatePathIfNotExists": true,
       "FileSystemHandlerBufferSize": 8192
     }
+  }
+}
+```
 
-
-## Version [2.22.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.22.0 (2025-04-07)
+## Version [2.22.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.22.0) (2025-04-07)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.22.0...2.21.0)
 
-## Improved Logging
+### Improved Logging
 
 Improved Logging for Endpoint creation to include routine and endpoint:
 
@@ -201,11 +450,11 @@ Improved Logging for Endpoint creation to include routine and endpoint:
 [14:56:17.477 INF] Function auth.login mapped to POST /api/auth/login has set ALLOW ANONYMOUS by the comment annotation. [NpgsqlRest]
 ```
 
-## Fixed CRUD Plugin
+### Fixed CRUD Plugin
 
 CRUD Endpoints are finally getting some love: 
 - Fixed issue with connection as data source.
-- Added new tags: `onconflict`, `on_conflict` and `on-conflict` to generated endpoints handling with on conflict resoluions.
+- Added new tags: `onconflict`, `on_conflict` and `on-conflict` to generated endpoints handling with on conflict resolutions.
 
 Now it's possible to enable or disable those endpoints explicitly with comment annotations:
 
@@ -224,7 +473,7 @@ disabled
 ';
 ```
 
-## Version [2.21.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.21.0 (2025-03-24)
+## Version [2.21.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.21.0) (2025-03-24)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.21.0...2.20.0)
 
@@ -252,12 +501,12 @@ public string? ConnectionName { get; set; } = connectionName;
 
 The default value for all these properties is null.
 
-Set the ConnectionStrings dictionary to alternate connection and then set ConnectionName for a specific connection key name. If the key doesn't exist, the endpoint will return 500 (Interval Server Error).
+Set the ConnectionStrings dictionary to alternate connection and then set ConnectionName for a specific connection key name. If the key doesn't exist, the endpoint will return 500 (Internal Server Error).
 
 This feature was added to add support for configuring certain routines to be executed on read-only replicas.
 
 
-## Version [2.20.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.20.0 (2025-03-05)
+## Version [2.20.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.20.0) (2025-03-05)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.20.0...2.19.0)
 
@@ -269,7 +518,7 @@ There are some small breaking changes in public interfaces. These are just simpl
 
 From this version, `RoutineEndpoint` has a `Routine` read-only property. This allows simplification where we don't have to have these two parameters: `RoutineEndpoint` and `Routine`. 
 
-We can only have one `RoutineEndpoint`. Every interface and structure that had these two parameters, fields, or properties now only has one: `RoutineEndpoint.` 
+We can only have one `RoutineEndpoint`. Every interface and structure that had these two parameters, fields, or properties now only has one: `RoutineEndpoint`. 
 
 ### 2) Logging improvements
 
@@ -286,15 +535,15 @@ public PostgresConnectionNoticeLoggingMode LogConnectionNoticeEventsMode { get; 
 
 The default is the `FirstStackFrameAndMessage` that logs only the first stack frame and the message. In chained calls, the stack frame can be longer and obfuscate the log message. This option will show only the first (starting) stack frame along with the message.
 
-- The log pattern was also slightly changed. The last two options now look like this: `" {where}:\n{message}" `.
+- The log pattern was also slightly changed. The last two options now look like this: `" {where}:\n{message}"`.
 
 - Fix: Fixed parameter ordinal number when logging command parameters (`LogCommands` and `LogCommandParameters` options are true).
 
 ### 3) Caching Improvements
 
-In the previous version, some basic response caching in sever memory was introduced (when the routine is marked as cached). This feature is now massively improved:
+In the previous version, some basic response caching in server memory was introduced (when the routine is marked as cached). This feature is now massively improved:
 
-- Injectible Cache Object
+- Injectable Cache Object
 
 Cache Object can be injected in options by using the new `DefaultRoutineCache`
 
@@ -310,8 +559,8 @@ Interface `IRoutineCache` can implement any caching strategy:
 ```cs
 public interface IRoutineCache
 {
-    bool Get(RoutineEndpoint endpoint, string key, out string? result);
-    void AddOrUpdate(RoutineEndpoint endpoint, string key, string? value);
+    bool Get(RoutineEndpoint endpoint, string key, out string? result);
+    void AddOrUpdate(RoutineEndpoint endpoint, string key, string? value);
 }
 ```
 
@@ -327,7 +576,7 @@ public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
 public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
 ```
 
-It can be also set as routine comment annotation by using any of these annotation tags:
+It can also be set as routine comment annotation by using any of these annotation tags:
 
 ```
 cacheexpires [ time_span_value ]
@@ -345,7 +594,7 @@ Valid abbreviations are:
 | abbr | meaning |
 | ---- | ------------------------------- |
 | `s`, `sec`, `second` or `seconds` | value is expressed in seconds |
-| `m', `min`, `minute` or `minutes` | value is expressed in minutes |
+| `m`, `min`, `minute` or `minutes` | value is expressed in minutes |
 | `h`, `hour`, `hours` | value is expressed in hours |
 | `d`, `day`, `days` | value is expressed in days |
 
@@ -357,7 +606,7 @@ There is also a new option to set cache prune interval:
 
 ```cs
 /// <summary>
-/// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entires). Default is 1 minute.
+/// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entries). Default is 1 minute.
 /// </summary>
 public int CachePruneIntervalMin { get; set; } = 1;
 ```
@@ -384,7 +633,7 @@ public interface IResponseParser
     /// Parse response from PostgreSQL.
     /// </summary>
     /// <returns>Response string</returns>
-    ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
+    ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
 }
 ```
 
@@ -403,11 +652,11 @@ parse-response
 
 When `ParseResponse` is set to true on the endpoint, and DefaultResponseParser has been set to nonnull instance, the response will be parsed and returned from the `Parse` method always, even when it is cached.
 
-## Version [2.19.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.19.0 (2025-02-24)
+## Version [2.19.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.19.0) (2025-02-24)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.19.0...2.18.0)
 
-New routine annotation and new enpoint options:
+New routine annotation and new endpoint options:
 
 ```console
                                                 
@@ -419,11 +668,11 @@ cached [ param1 param2 param3 [...] ]
 
 If the routine returns a single value of any type, result will be cached in memory and retrieved from memory on next call. Use the optional list of parameter names (original or converted) to be used as additional cache keys.
 
-Same will can be set programmatically directly on the endpoint settings:
+Same can be set programmatically directly on the endpoint settings:
 
 ```csharp
-    public bool Cached { get; set; } = false;
-    public HashSet<string>? CachedParams { get; set; } = null;
+public bool Cached { get; set; } = false;
+public HashSet<string>? CachedParams { get; set; } = null;
 ```
 
 If the associated routine doesn't return a single value of any type, there will be a warning on startup and cache will be ignored.

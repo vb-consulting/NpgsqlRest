@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Primitives;
 using Npgsql;
+using NpgsqlRest.Auth;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.UploadHandlers;
 
@@ -113,7 +114,7 @@ public class NpgsqlRestOptions
     public ServiceProviderObject ServiceProviderMode { get; set; } = ServiceProviderObject.None;
 
     /// <summary>
-    /// Callback function that is executed just after the new endpoint is created. Receives routine into and new endpoint info as parameters and it is expected to return the same endpoint or `null`. It offers an opportunity to modify the endpoint based on custom logic or disable endpoints by returning `null` based on some custom logic. Default is `null`, which means this callback is not defined.
+    /// Callback function that is executed just after the new endpoint is created. Set the RoutineEndpoint to null to disable endpoint.
     /// </summary>
     public Action<RoutineEndpoint?>? EndpointCreated { get; set; } = null;
 
@@ -321,11 +322,20 @@ public class NpgsqlRestOptions
     public IPasswordHasher PasswordHasher { get; set; } = new PasswordHasher();
 
     /// <summary>
-    /// Upload handlers dictionary map. If not specified otherwise, the first upload handler will be used for all upload requests.
-    /// Routines can specify one or more preferred upload handlers in the comment annotations.
+    /// Default upload handler options. 
+    /// Set this option to null to disable upload handlers or use this to modify upload handler options.
     /// </summary>
-    public Dictionary<string, Func<IUploadHandler>>? UploadHandlers { get; set; } =
-        UploadHandlerOptions.CreateUploadHandlers(new UploadHandlerOptions());
+    public UploadHandlerOptions DefaultUploadHandlerOptions { get; set; } = new UploadHandlerOptions();
+
+    /// <summary>
+    /// Upload handlers dictionary map. 
+    /// When the endpoint has set Upload to true, this dictionary will be used to find the upload handlers for the current request. 
+    /// Handler will be located by the key values from the endpoint UploadHandlers string array property if set or by the default upload handler (DefaultUploadHandler option).
+    /// Set this option to null to use default upload handler from the UploadHandlerOptions property.
+    /// Set this option to empty dictionary to disable upload handlers.
+    /// Set this option to a dictionary with one or more upload handlers to enable your own custom upload handlers.
+    /// </summary>
+    public Dictionary<string, Func<IUploadHandler>>? UploadHandlers { get; set; } = null;
 
     /// <summary>
     /// Default upload handler name. This value is used when the upload handlers are not specified.

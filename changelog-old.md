@@ -1,4 +1,4 @@
-# Changelog
+# Changelog Archive
 
 ## Version [2.18.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.18.0 (2025-02-23)
 

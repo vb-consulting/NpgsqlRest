@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using NpgsqlRest.Defaults;
+using NpgsqlRest.UploadHandlers;
 
 namespace NpgsqlRest;
 
@@ -38,6 +39,9 @@ public static class NpgsqlRestMetadataBuilder
     {
         Dictionary<string, NpgsqlRestMetadataEntry> lookup = [];
         Dictionary<string, NpgsqlRestMetadataEntry> overloads = [];
+
+        // Create default upload handlers from upload handler options
+        options.UploadHandlers ??= UploadHandlerOptions.CreateUploadHandlers(options.DefaultUploadHandlerOptions);
 
         var hasLogin = false;
         if (builder is not null)

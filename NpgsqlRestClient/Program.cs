@@ -10,7 +10,6 @@ using static NpgsqlRestClient.Builder;
 using static NpgsqlRestClient.App;
 using Npgsql;
 
-
 if (Arguments.Parse(args) is false)
 {
     return;
@@ -67,7 +66,7 @@ var refreshOptionsCfg = NpgsqlRestCfg.GetSection("RefreshOptions");
 await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 var logConnectionNoticeEventsMode = GetConfigEnum<PostgresConnectionNoticeLoggingMode?>("LogConnectionNoticeEventsMode", NpgsqlRestCfg) ?? PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
 
-var paramHandlers = CreateParametersHandlers();
+var (paramHandler, defaultParser) = CreateParametersHandlers();
 (string defaultUploadHandler, Dictionary<string, Func<IUploadHandler>>? uploadHandlers) = CreateUploadHandlers();
 
 if (uploadHandlers is not null && uploadHandlers.Count > 1)
@@ -109,7 +108,7 @@ NpgsqlRestOptions options = new()
     RequestHeadersParameterName = GetConfigStr("RequestHeadersParameterName", NpgsqlRestCfg) ?? "_headers",
 
     EndpointCreated = CreateEndpointCreatedHandler(),
-    ValidateParameters = paramHandlers.paramHandler,
+    ValidateParameters = paramHandler,
     ReturnNpgsqlExceptionMessage = GetConfigBool("ReturnNpgsqlExceptionMessage", NpgsqlRestCfg, true),
     PostgreSqlErrorCodeToHttpStatusCodeMapping = CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
     BeforeConnectionOpen = BeforeConnectionOpen(connectionString),
@@ -126,7 +125,7 @@ NpgsqlRestOptions options = new()
     RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),
     RefreshPath = GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
     RefreshMethod = GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
-    DefaultResponseParser = paramHandlers.defaultParser,
+    DefaultResponseParser = defaultParser,
 
     UploadHandlers = uploadHandlers,
     DefaultUploadHandler = defaultUploadHandler,
