@@ -9,8 +9,7 @@ using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRestClient.App;
 using Npgsql;
-using System.Data.Common;
-using System.Data;
+
 
 if (Arguments.Parse(args) is false)
 {

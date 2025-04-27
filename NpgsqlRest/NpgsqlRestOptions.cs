@@ -115,7 +115,7 @@ public class NpgsqlRestOptions
     /// <summary>
     /// Callback function that is executed just after the new endpoint is created. Receives routine into and new endpoint info as parameters and it is expected to return the same endpoint or `null`. It offers an opportunity to modify the endpoint based on custom logic or disable endpoints by returning `null` based on some custom logic. Default is `null`, which means this callback is not defined.
     /// </summary>
-    public Func<RoutineEndpoint, RoutineEndpoint?>? EndpointCreated { get; set; }
+    public Action<RoutineEndpoint?>? EndpointCreated { get; set; } = null;
 
     /// <summary>
     /// Custom function callback that receives names from PostgreSQL (parameter names, column names, etc), and is expected to return the same or new name. It offers an opportunity to convert names based on certain conventions. The default converter converts snake case names into camel case names.

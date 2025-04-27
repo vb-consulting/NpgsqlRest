@@ -115,7 +115,7 @@ public static class App
             routine.Name.Trim(Consts.DoubleQuote).Trim('/'),
             "/");
 
-    public static Func<RoutineEndpoint, RoutineEndpoint?>? CreateEndpointCreatedHandler()
+    public static Action<RoutineEndpoint?>? CreateEndpointCreatedHandler()
     {
         var loginPath = GetConfigStr("LoginPath", AuthCfg);
         var logoutPath = GetConfigStr("LogoutPath", AuthCfg);
@@ -123,19 +123,20 @@ public static class App
         {
             return null;
         }
-        return (RoutineEndpoint endpoint) =>
+        return (RoutineEndpoint? endpoint) =>
         {
+            if (endpoint is null)
+            {
+                return;
+            }
             if (loginPath is not null && string.Equals(endpoint.Url, loginPath, StringComparison.OrdinalIgnoreCase))
             {
                 endpoint.Login = true;
-                return endpoint;
             }
             if (logoutPath is not null && string.Equals(endpoint.Routine.Name, logoutPath, StringComparison.OrdinalIgnoreCase))
             {
                 endpoint.Login = true;
-                return endpoint;
             }
-            return endpoint;
         };
     }
 

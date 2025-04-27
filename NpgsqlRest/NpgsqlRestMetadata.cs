@@ -72,7 +72,7 @@ public static class NpgsqlRestMetadataBuilder
 
                 if (options.EndpointCreated is not null)
                 {
-                    endpoint = options.EndpointCreated(endpoint)!;
+                    options.EndpointCreated(endpoint);
                 }
 
                 if (endpoint is null)
