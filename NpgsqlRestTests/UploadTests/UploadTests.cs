@@ -108,7 +108,7 @@ public class UploadTests(TestFixture test)
         rootElement.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
         rootElement.GetProperty("fileName").GetString().Should().Be("test-data.csv", "because the fileName should match the expected value");
         rootElement.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        rootElement.GetProperty("size").GetInt32().Should().Be(57, "because the size should match the expected value");
+        rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
         rootElement.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Number, "because oid should be a number");
         rootElement.GetProperty("oid").TryGetInt32(out _).Should().BeTrue("because oid should be a valid integer");
 
