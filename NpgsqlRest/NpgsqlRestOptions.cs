@@ -317,11 +317,6 @@ public class NpgsqlRestOptions
     public IResponseParser? DefaultResponseParser { get; set; }
 
     /// <summary>
-    /// Default password hasher object. Inject custom password hasher object to add default password hasher.
-    /// </summary>
-    public IPasswordHasher PasswordHasher { get; set; } = new PasswordHasher();
-
-    /// <summary>
     /// Default upload handler options. 
     /// Set this option to null to disable upload handlers or use this to modify upload handler options.
     /// </summary>

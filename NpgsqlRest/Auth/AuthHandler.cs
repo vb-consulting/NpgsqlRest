@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Security.Claims;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
 
@@ -16,157 +17,221 @@ internal static class AuthHandler
         NpgsqlRestOptions options,
         ILogger? logger)
     {
-        await using var reader = await command.ExecuteReaderAsync();
-
-        if (await reader.ReadAsync() is false)
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-            return;
-        }
-
-        if (reader.FieldCount == 0)
-        {
-            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-            return;
-        }
-
-        var authenticationType = options.AuthenticationOptions.DefaultAuthenticationType;
+        var connection = command.Connection;
         string? scheme = null;
         string? message = null;
+        string? userId = null;
+        string? userName = null;
+        var authenticationType = options.AuthenticationOptions.DefaultAuthenticationType;
         var claims = new List<Claim>(10);
+        var verificationFailed = false;
 
-        for (int i = 0; i < routine.ColumnCount; i++)
+
+        await using (var reader = await command.ExecuteReaderAsync())
         {
-            var name1 = routine.OriginalColumnNames[i];
-            var name2 = routine.ColumnNames[i];
-            var descriptor = routine.ColumnsTypeDescriptor[i];
-
-            if (options.AuthenticationOptions.StatusColumnName is not null)
+            if (await reader.ReadAsync() is false)
             {
-                if (string.Equals(name1, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (descriptor.IsBoolean)
-                    {
-                        var ok = reader?.GetBoolean(i);
-                        if (ok is false)
-                        {
-                            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                        }
-                    }
-                    else if (descriptor.IsNumeric)
-                    {
-                        var status = reader?.GetInt32(i) ?? 200;
-                        if (status != (int)HttpStatusCode.OK)
-                        {
-                            context.Response.StatusCode = status;
-                        }
-                    }
-                    else
-                    {
-                        logger?.WrongStatusType(string.Concat(routine.Type, " ", routine.Schema, ".", routine.Name));
-                        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                        await context.Response.CompleteAsync();
-                        return;
-                    }
-                    continue;
-                }
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                return;
+            }
+            if (reader.FieldCount == 0)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                return;
             }
 
-            if (options.AuthenticationOptions.SchemeColumnName is not null)
+            for (int i = 0; i < routine.ColumnCount; i++)
             {
-                if (string.Equals(name1, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    scheme = reader?.GetValue(i).ToString();
-                    continue;
-                }
-            }
+                var name1 = routine.OriginalColumnNames[i];
+                var name2 = routine.ColumnNames[i];
+                var descriptor = routine.ColumnsTypeDescriptor[i];
 
-            if (options.AuthenticationOptions.MessageColumnName is not null)
-            {
-                if (string.Equals(name1, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+                if (options.AuthenticationOptions.StatusColumnName is not null)
                 {
-                    message = reader?.GetValue(i).ToString();
-                    continue;
-                }
-            }
-
-            if (options.AuthenticationOptions.HashColumnName is not null && options.PasswordHasher is not null)
-            {
-                if (string.Equals(name1, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (reader?.IsDBNull(i) is false)
+                    if (string.Equals(name1, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase))
                     {
-                        var hash = reader?.GetValue(i).ToString();
-                        if (hash is not null)
+                        if (descriptor.IsBoolean)
                         {
-                            // find the password parameter
-                            for(var j = 0; j < command.Parameters.Count; j++)
+                            var ok = reader?.GetBoolean(i);
+                            if (ok is false)
                             {
-                                var parameter = command.Parameters[j];
-                                var name = (parameter as NpgsqlRestParameter)?.ActualName;
-                                if (name is not null && name.Contains(options.AuthenticationOptions.PasswordParameterNameContains, StringComparison.OrdinalIgnoreCase))
+                                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                            }
+                        }
+                        else if (descriptor.IsNumeric)
+                        {
+                            var status = reader?.GetInt32(i) ?? 200;
+                            if (status != (int)HttpStatusCode.OK)
+                            {
+                                context.Response.StatusCode = status;
+                            }
+                        }
+                        else
+                        {
+                            logger?.WrongStatusType(string.Concat(routine.Type, " ", routine.Schema, ".", routine.Name));
+                            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                            await context.Response.CompleteAsync();
+                            return;
+                        }
+                        continue;
+                    }
+                }
+
+                if (options.AuthenticationOptions.SchemeColumnName is not null)
+                {
+                    if (string.Equals(name1, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        scheme = reader?.GetValue(i).ToString();
+                        continue;
+                    }
+                }
+
+                if (options.AuthenticationOptions.MessageColumnName is not null)
+                {
+                    if (string.Equals(name1, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        message = reader?.GetValue(i).ToString();
+                        continue;
+                    }
+                }
+
+                string? claimType;
+                if (options.AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes)
+                {
+                    if (ClaimTypesDictionary.TryGetValue(name1.ToLowerInvariant(), out claimType) is false)
+                    {
+                        if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
+                        {
+                            claimType = name1;
+                        }
+                    }
+                }
+                else
+                {
+                    claimType = name1;
+                }
+
+                if (reader?.IsDBNull(i) is true)
+                {
+                    claims.Add(new Claim(claimType, ""));
+                    if (string.Equals(claimType, options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal))
+                    {
+                        userName = null;
+                    }
+                    else if (string.Equals(claimType, ClaimTypes.NameIdentifier, StringComparison.Ordinal))
+                    {
+                        userId = null;
+                    }
+                }
+                else if (descriptor.IsArray)
+                {
+                    object[]? values = reader?.GetValue(i) as object[];
+                    for (int j = 0; j < values?.Length; j++)
+                    {
+                        claims.Add(new Claim(claimType, values[j]?.ToString() ?? ""));
+                    }
+                }
+                else
+                {
+                    string? value = reader?.GetValue(i)?.ToString();
+                    claims.Add(new Claim(claimType, value ?? ""));
+                    if (string.Equals(claimType, options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal))
+                    {
+                        userName = value;
+                    }
+                    else if (string.Equals(claimType, ClaimTypes.NameIdentifier, StringComparison.Ordinal))
+                    {
+                        userId = value;
+                    }
+                }
+            }
+
+            // hash verification last
+            if (options.AuthenticationOptions.HashColumnName is not null &&
+                options.AuthenticationOptions.PasswordHasher is not null &&
+                options.AuthenticationOptions.PasswordParameterNameContains is not null)
+            {
+                for (int i = 0; i < routine.ColumnCount; i++)
+                {
+                    var name1 = routine.OriginalColumnNames[i];
+                    var name2 = routine.ColumnNames[i];
+                    if (string.Equals(name1, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (reader?.IsDBNull(i) is false)
+                        {
+                            var hash = reader?.GetValue(i).ToString();
+                            if (hash is not null)
+                            {
+                                var endpoint = string.Concat(context.Request.Method.ToString(), " ", context.Request.Path.ToString());
+                                // find the password parameter
+                                var foundPasswordParameter = false;
+                                for (var j = 0; j < command.Parameters.Count; j++)
                                 {
-                                    var pass = parameter?.Value?.ToString();
-                                    if (pass is not null && parameter?.Value != DBNull.Value)
+                                    var parameter = command.Parameters[j];
+                                    var name = (parameter as NpgsqlRestParameter)?.ActualName;
+                                    if (name is not null && name.Contains(options.AuthenticationOptions.PasswordParameterNameContains, // found password parameter
+                                        StringComparison.OrdinalIgnoreCase))
                                     {
-                                        if (options.PasswordHasher.VerifyHashedPassword(hash, pass) is false)
+                                        foundPasswordParameter = true;
+                                        var pass = parameter?.Value?.ToString();
+                                        if (pass is not null && parameter?.Value != DBNull.Value)
                                         {
-                                            var userName = claims.FirstOrDefault(c => 
-                                                string.Equals(c.Type, options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal))?.Value;
-                                            var userId = claims.FirstOrDefault(c =>
-                                                string.Equals(c.Type, ClaimTypes.NameIdentifier, StringComparison.Ordinal))?.Value;
-                                            logger?.VerifyPasswordFailed(context.Request.Path.ToString(), userId, userName);
-                                            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                                            await context.Response.CompleteAsync();
-                                            return;
+                                            if (options.AuthenticationOptions.PasswordHasher?.VerifyHashedPassword(hash, pass) is false)
+                                            {
+                                                logger?.VerifyPasswordFailed(endpoint, userId, userName);
+                                                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                                                await context.Response.CompleteAsync();
+                                                verificationFailed = true;
+                                            }
                                         }
+                                        break;
                                     }
-                                    break;
+                                }
+                                if (foundPasswordParameter is false)
+                                {
+                                    logger?.CantFindPasswordParameter(endpoint,
+                                        command.Parameters.Select(p => (p as NpgsqlRestParameter)?.ActualName)?.ToArray(),
+                                        options.AuthenticationOptions.PasswordParameterNameContains);
                                 }
                             }
                         }
                     }
-                    continue;
                 }
             }
+        }
 
-            string? claimType;
-            if (options.AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes)
+        if (verificationFailed is true)
+        {
+            if (string.IsNullOrEmpty(options.AuthenticationOptions.PasswordVerificationFailedCommand) is false)
             {
-                if (ClaimTypesDictionary.TryGetValue(name1.ToLowerInvariant(), out claimType) is false)
+                using var passwordVerificationFailedCommand = connection?.CreateCommand();
+                if (passwordVerificationFailedCommand is not null)
                 {
-                    if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
+                    passwordVerificationFailedCommand.CommandText = options.AuthenticationOptions.PasswordVerificationFailedCommand;
+                    var paramCount = PostgreSqlParameterCounter.CountParameters(passwordVerificationFailedCommand.CommandText);
+                    if (paramCount >= 1) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
                     {
-                        claimType = name1;
-                    }
+                        Value = scheme is null ? DBNull.Value : scheme,
+                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
+                    });
+                    if (paramCount >= 2) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
+                    {
+                        Value = userName is null ? DBNull.Value : userName,
+                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
+                    });
+                    if (paramCount >= 3) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
+                    {
+                        Value = userId is null ? DBNull.Value : userId,
+                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
+                    });
+                    await passwordVerificationFailedCommand.ExecuteNonQueryAsync();
                 }
             }
-            else
-            {
-                claimType = name1;
-            }
-
-            if (reader?.IsDBNull(i) is true)
-            {
-                claims.Add(new Claim(claimType, ""));
-            }
-            else if (descriptor.IsArray)
-            {
-                object[]? values = reader?.GetValue(i) as object[];
-                for (int j = 0; j < values?.Length; j++)
-                {
-                    claims.Add(new Claim(claimType, values[j]?.ToString() ?? ""));
-                }
-            }
-            else
-            {
-                string? value = reader?.GetValue(i)?.ToString();
-                claims.Add(new Claim(claimType, value ?? ""));
-            }
+            return;
         }
 
         if (context.Response.StatusCode == (int)HttpStatusCode.OK)

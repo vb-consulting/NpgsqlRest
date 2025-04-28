@@ -4,6 +4,20 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+## Version [2.24.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.24.0) (2025-04-29)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.24.0...2.23.0)
+
+### Core NpgsqlRest Library
+
+- Added support for callback command when password verification fails on login.
+
+### NpgsqlRest Client App
+
+- Added support for callback command when password verification fails on login.
+- Fixed data parameter for external login to send actual retrieved data.
+- Fixed Docker image to have valid certificate.
+
 ## Version [2.23.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.23.0) (2025-04-28)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.23.0...2.22.0)
@@ -16,7 +30,7 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 - Added support for XsrfTokenHeaderName if used. This is used by the Upload endpoints.
 - Smaller fixes in the TsClient plugin to handle some edge cases.
 
-### Core NpgsqlRest Library fixes
+### Core NpgsqlRest Library
 
 #### Simplified EndpointCreated Option Event
 
@@ -306,7 +320,7 @@ param _meta is upload metadata
  - will be written raw directly to response. 
  - This allows, for example, displaying images directly from the database.
 
-### NpgsqlRest Client App fixes:
+### NpgsqlRest Client App
 
 #### External Login Fixes and Improvements
 

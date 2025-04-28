@@ -37,7 +37,7 @@ WebApplication app = Build();
 Configure(app, () =>
 {
     sw.Stop();
-    var message = GetConfigStr("StartupMessage", Cfg);
+    var message = GetConfigStr("StartupMessage", Cfg) ?? "Started in {0}, listening on {1}, version {2}";
     if (string.IsNullOrEmpty(message) is false)
     {
         Logger?.Information(message,
@@ -115,7 +115,8 @@ NpgsqlRestOptions options = new()
 
     AuthenticationOptions = new()
     {
-        DefaultAuthenticationType = GetConfigStr("DefaultAuthenticationType", AuthCfg)
+        DefaultAuthenticationType = GetConfigStr("DefaultAuthenticationType", AuthCfg) ?? GetConfigStr("ApplicationName", Cfg),
+        PasswordVerificationFailedCommand = GetConfigStr("PasswordVerificationFailedCommand", AuthCfg),
     },
 
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),

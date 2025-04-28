@@ -311,7 +311,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         }
                         else
                         {
-                            parameter.Value = options.PasswordHasher?.HashPassword(hashValueQueryDict) as object ?? DBNull.Value;
+                            parameter.Value = options.AuthenticationOptions.PasswordHasher?.HashPassword(hashValueQueryDict) as object ?? DBNull.Value;
                         }
                     }
                     if (parameter.UploadMetadata is true)
@@ -749,7 +749,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         }
                         else
                         {
-                            parameter.Value = options.PasswordHasher?.HashPassword(hashValueBodyDict) as object ?? DBNull.Value;
+                            parameter.Value = options.AuthenticationOptions.PasswordHasher?.HashPassword(hashValueBodyDict) as object ?? DBNull.Value;
                         }
                     }
                     if (parameter.UploadMetadata is true)

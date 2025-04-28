@@ -160,7 +160,6 @@ public class HashedParameterTests(TestFixture test)
         response.Should().Be("");
     }
 
-
     [Fact]
     public async Task Test_post_hashed_parameter1()
     {

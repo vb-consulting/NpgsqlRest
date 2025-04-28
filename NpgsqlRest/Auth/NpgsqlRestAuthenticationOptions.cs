@@ -89,4 +89,18 @@ public class NpgsqlRestAuthenticationOptions
     /// This is used to verify the password from the password parameter when login endpoint returns a hash of the password (see HashColumnName).
     /// </summary>
     public string PasswordParameterNameContains { get; set; } = "pass";
+
+    /// <summary>
+    /// Default password hasher object. Inject custom password hasher object to add default password hasher.
+    /// </summary>
+    public IPasswordHasher? PasswordHasher { get; set; } = new PasswordHasher();
+
+    /// <summary>
+    /// Command that is executed when the password verification fails. There are three text parameters:
+    ///     - scheme: authentication scheme used for the login (if exists)
+    ///     - user_name: user id used for the login (if exists)
+    ///     - user_id: user id used for the login (if exists)
+    /// Please use PostgreSQL parameter placeholders for the parameters ($1, $2, $3).
+    /// </summary>
+    public string? PasswordVerificationFailedCommand { get; set; } = null;
 }

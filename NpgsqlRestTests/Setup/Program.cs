@@ -116,7 +116,12 @@ public class Program
             CustomRequestHeaders = new()
             {
                 { "custom-header1", "custom-header1-value" }
-            }
+            },
+
+            AuthenticationOptions = new()
+            {
+                PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)"
+            },
         });
         app.Run();
     }

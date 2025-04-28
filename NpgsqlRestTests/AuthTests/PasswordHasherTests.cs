@@ -1,4 +1,4 @@
-namespace NpgsqlRestTests;
+namespace NpgsqlRestTests.AuthTests;
 
 public class PasswordHasherTests
 {

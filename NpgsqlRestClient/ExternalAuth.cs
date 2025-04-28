@@ -12,6 +12,7 @@ using static System.Net.Mime.MediaTypeNames;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRest.Auth.ClaimsDictionary;
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRestClient;
 
@@ -41,8 +42,8 @@ public static class ExternalAuthConfig
     public static string ClientAnaliticsIpKey { get; private set; } = default!;
 
     private static readonly Dictionary<string, ExternalAuthClientConfig> DefaultClientConfigs = 
-        new Dictionary<string, ExternalAuthClientConfig>
-    {
+        new()
+        {
         { "google", new ExternalAuthClientConfig
             {
                 AuthUrl = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={0}&redirect_uri={1}&scope=openid profile email&state={2}",
@@ -190,7 +191,7 @@ public static class ExternalAuth
                     string code = (node["code"]?.ToString()) ??
                         throw new ArgumentException("code retrieved from the external provider is null");
 
-                    await ProcessAsync(code, body, config, context, options);
+                    await ProcessAsync(code, config, context, options);
                     return;
                 }
                 catch (Exception e)
@@ -216,7 +217,7 @@ public static class ExternalAuth
         context.Response.Headers.Expires = "0";
     }
 
-    private static readonly HttpClient _httpClient = new();
+    private static HttpClient? _httpClient = null;
     private static readonly string _agent = $"{Guid.NewGuid().ToString()[..8]}";
 
     private const string browserSessionStateKey = "__external_state";
@@ -224,7 +225,6 @@ public static class ExternalAuth
 
     private static async Task ProcessAsync(
         string code,
-        string body,
         ExternalAuthClientConfig config, 
         HttpContext context, 
         NpgsqlRestOptions options)
@@ -232,6 +232,8 @@ public static class ExternalAuth
         string? email;
         string? name;
         string token;
+
+        _httpClient ??= new();
 
         using var requestTokenMessage = new HttpRequestMessage(HttpMethod.Post, config.TokenUrl);
         requestTokenMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Application.Json));
@@ -273,6 +275,7 @@ public static class ExternalAuth
         infoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var infoResponse = await _httpClient.SendAsync(infoRequest);
         var infoContent = await infoResponse.Content.ReadAsStringAsync();
+        JsonNode infoNode;
         if (!infoResponse.IsSuccessStatusCode)
         {
             throw new HttpRequestException($"Info endpoint {config.InfoUrl} returned {infoResponse.StatusCode} with following content: {infoContent}");
@@ -284,18 +287,18 @@ public static class ExternalAuth
 
         try
         {
-            JsonNode node = JsonNode.Parse(infoContent) ??
+            infoNode = JsonNode.Parse(infoContent) ??
                 throw new ArgumentException("info json node is null");
 
             // Email parsing
-            email = node["email"]?.ToString() ?? // Google, GitHub, Facebook, Microsoft
-                    node["userPrincipalName"]?.ToString() ?? // Microsoft (organizational accounts)
-                    node?["elements"]?[0]?["handle~"]?["emailAddress"]?.ToString(); // LinkedIn
+            email = infoNode["email"]?.ToString() ?? // Google, GitHub, Facebook, Microsoft
+                    infoNode["userPrincipalName"]?.ToString() ?? // Microsoft (organizational accounts)
+                    infoNode?["elements"]?[0]?["handle~"]?["emailAddress"]?.ToString(); // LinkedIn
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            name = node["localizedLastName"] is not null ?
-                $"{node["localizedFirstName"]} {node["localizedLastName"]}".Trim() : // linkedin format
-                node["name"]?.ToString(); // normal format
+            name = infoNode["localizedLastName"] is not null ?
+                $"{infoNode["localizedFirstName"]} {infoNode["localizedLastName"]}".Trim() : // linkedin format
+                infoNode["name"]?.ToString(); // normal format
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         }
         catch (Exception e)
@@ -323,6 +326,7 @@ public static class ExternalAuth
             {
                 JsonNode node = JsonNode.Parse(emailContent) ??
                     throw new ArgumentException("email json node is null");
+                infoNode["emailRequest"] = node;
 
                 email = node["email"]?.ToString() ??
                     node?["elements"]?[0]?["handle~"]?["emailAddress"]?.ToString(); // linkedin format
@@ -351,8 +355,8 @@ public static class ExternalAuth
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = ExternalAuthConfig.LoginCommand;
-        var paramCount = command.CommandText[command.CommandText.IndexOf(Consts.OpenParenthesis)..].Split(Consts.Comma).Length;
 
+        var paramCount = PostgreSqlParameterCounter.CountParameters(command.CommandText);
         if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
         {
             Value = config.ExternalType,
@@ -368,9 +372,11 @@ public static class ExternalAuth
             Value = name is not null ? name : DBNull.Value,
             NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
         });
+        //emailContent
+        
         if (paramCount >= 4) command.Parameters.Add(new NpgsqlParameter()
         {
-            Value = body is not null ? body : DBNull.Value,
+            Value = infoNode is not null ? infoContent.ToString() : DBNull.Value,
             NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Json
         });
         if (paramCount >= 5)

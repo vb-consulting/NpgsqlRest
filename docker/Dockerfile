@@ -10,7 +10,8 @@ WORKDIR /app
 COPY --from=builder /app/npgsqlrest /usr/local/bin/npgsqlrest
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libssl3 && \
+    apt-get install -y --no-install-recommends libssl3 ca-certificates && \
+    update-ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean autoclean && \
     apt-get autoremove --yes && \

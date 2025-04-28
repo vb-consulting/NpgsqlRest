@@ -1,3 +1,5 @@
+using Npgsql;
+
 namespace NpgsqlRestTests;
 
 public static partial class Database
@@ -42,6 +44,16 @@ public static partial class Database
         $$;
         comment on function password_protected_login2(text) is 'login';
         
+        create table failed_logins(scheme text, user_id text, user_name text);
+
+        create procedure failed_login(
+            _scheme text,
+            _user_id text,
+            _user_name text
+        )
+        language sql as $$
+        insert into failed_logins(scheme, user_id, user_name) values (_scheme, _user_id, _user_name);
+        $$;
         """);
     }
 }
@@ -94,5 +106,15 @@ public class AuthPasswordLoginTests(TestFixture test)
         using var content = new StringContent($"{{\"pass\": \"{password}\", \"hashed\": \"{hashed}\"}}", Encoding.UTF8, "application/json");
         using var login = await client.PostAsync(requestUri: "/api/password-protected-login1/", content);
         login.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var connection = Database.CreateConnection();
+        await connection.OpenAsync();
+        using var command = new NpgsqlCommand("select * from failed_logins", connection);
+        using var reader = await command.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue(); // there is a record
+
+        reader.IsDBNull(0).Should().Be(true);
+        reader.GetString(1).Should().Be("passwordprotected"); // username
+        reader.GetString(2).Should().Be("999"); // user id
     }
 }
