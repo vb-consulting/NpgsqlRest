@@ -4,12 +4,21 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
+/// <summary>
+/// Custom parameters:
+/// - oid: OID of the large object to upload to. If not specified, it will be chosen by database.
+/// - buffer_size: int - size of the buffer to use when saving the file
+/// </summary>
 public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
 {
-    public int BufferSize => bufferSize; 
-
     public bool RequiresTransaction => true;
+    public string[] Parameters => _parameters;
 
+    private readonly string[] _parameters = [
+        "oid",
+        "buffer_size"
+    ];
+    private int _bufferSize => bufferSize;
     private object? _oid = null;
     private string? _type = null;
 
@@ -19,8 +28,23 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
         return this;
     }
 
-    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context)
+    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
+        var bufferSize = _bufferSize;
+
+        long? oid = null;
+        if (parameters is not null)
+        {
+            if (parameters.TryGetValue(_parameters[0], out var oidStr) && long.TryParse(oidStr, out var oidParsed))
+            {
+                oid = oidParsed;
+            }
+            if (parameters.TryGetValue(_parameters[1], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
+            {
+                bufferSize = bufferSizeParsed;
+            }
+        }
+
         StringBuilder result = new(context.Request.Form.Files.Count*100);
         result.Append('[');
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
@@ -48,7 +72,7 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
             result.Append(formFile.Length);
             result.Append(",\"oid\":");
 
-            using var command = new NpgsqlCommand("select lo_create(0)", connection);
+            using var command = new NpgsqlCommand(oid is null ? "select lo_create(0)" : string.Concat("select lo_create(", oid.ToString(), ")"), connection);
             _oid = await command.ExecuteScalarAsync();
             
             result.Append(_oid);
@@ -64,7 +88,7 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
             command.Parameters.Add(new NpgsqlParameter() { NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bytea });
 
             using var fileStream = formFile.OpenReadStream();
-            byte[] buffer = new byte[BufferSize];
+            byte[] buffer = new byte[bufferSize];
             int bytesRead;
             long offset = 0;
             while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)

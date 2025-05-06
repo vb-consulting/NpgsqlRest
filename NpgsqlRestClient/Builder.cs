@@ -4,10 +4,14 @@ using System.IO.Compression;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Npgsql;
+using NpgsqlRest;
 using Serilog;
 
 using static NpgsqlRestClient.Config;
@@ -170,6 +174,101 @@ public static class Builder
         }
     }
 
+    /*
+      //
+      // Data protection settings. Encryption keys for Auth Cookies and Antiforgery tokens.
+      //
+      "DataProtection": {
+        "Enabled": true,
+        //
+        // Set to null to use the current "ApplicationName"
+        //
+        "CustomApplicationName": null,
+        //
+        // Data protection location: "FileSystem" or "Database"
+        //
+        "Storage": "FileSystem",
+        "DefaultKeyLifetimeDays": 90,
+        //
+        // FileSystem storage path. Use null to use the default path.
+        //
+        "FileSystemPath": null,
+        //
+        // GetAllElements database command. Expected to rows with two columns: unique name and data of type text.
+        //
+        "GetAllElementsCommand": "select data from get_all_data_protection_elements()",
+        //
+        // StoreElement database command. Receives two parameters: name and data of type text. Doesn't return anything.
+        //
+        "StoreElementCommand": "call store_data_protection_element($1,$2)"
+      },
+     */
+
+    public enum DataProtectionStorage
+    {
+        Default,
+        FileSystem,
+        Database
+    }
+
+    public static void BuildDataProtection()
+    {
+        var dataProtectionCfg = Cfg.GetSection("DataProtection");
+        if (dataProtectionCfg.Exists() is false || GetConfigBool("Enabled", dataProtectionCfg) is false)
+        {
+            return;
+        }
+        var dataProtectionBuilder = Instance.Services.AddDataProtection();
+        DirectoryInfo? dirInfo = null;
+        var storage = GetConfigEnum<DataProtectionStorage?>("Storage", dataProtectionCfg) ?? DataProtectionStorage.Default;
+        if (storage == DataProtectionStorage.FileSystem)
+        {
+            var path = GetConfigStr("FileSystemPath", dataProtectionCfg);
+            if (string.IsNullOrEmpty(path) is true)
+            {
+                throw new ArgumentException("FileSystemPath value in DataProtection can't be null or empty when using FileSystem Storage");
+            }
+            dirInfo = new DirectoryInfo(path);
+            dataProtectionBuilder.PersistKeysToFileSystem(dirInfo);
+        }
+        else if (storage == DataProtectionStorage.Database)
+        {
+            var getAllElementsCommand = GetConfigStr("GetAllElementsCommand", dataProtectionCfg) ?? "select data from get_all_data_protection_elements()";
+            var storeElementCommand = GetConfigStr("StoreElementCommand", dataProtectionCfg) ?? "call store_data_protection_element($1,$2)";
+            Instance.Services.Configure<KeyManagementOptions>(options =>
+            {
+                options.XmlRepository = new DbDataProtection(
+                    ConnectionString,
+                    getAllElementsCommand,
+                    storeElementCommand);
+            });
+        }
+
+        var expiresInDays = GetConfigInt("DefaultKeyLifetimeDays", dataProtectionCfg) ?? 90;
+        dataProtectionBuilder.SetDefaultKeyLifetime(TimeSpan.FromDays(expiresInDays));
+
+        var customAppName = GetConfigStr("CustomApplicationName", dataProtectionCfg);
+        if (string.IsNullOrEmpty(customAppName) is true)
+        {
+            customAppName = Instance.Environment.ApplicationName;
+        }
+        dataProtectionBuilder.SetApplicationName(customAppName);
+
+        if (storage == DataProtectionStorage.Default)
+        {
+            Logger?.Information("Using Data Protection for application {0} with default provider. Expiration in {1} days.",
+                customAppName,
+                expiresInDays);
+        }
+        else
+        {
+            Logger?.Information($"Using Data Protection for application {{0}} in {(dirInfo is null ? "" : "directory")} {{1}}. Expiration in {{2}} days.",
+                customAppName,
+                dirInfo?.FullName ?? "database",
+                expiresInDays);
+        }
+    }
+
     public static void BuildAuthentication()
     {
         var authCfg = Cfg.GetSection("Auth");
@@ -179,7 +278,6 @@ public static class Builder
         {
             cookieAuth = GetConfigBool("CookieAuth", authCfg);
             bearerTokenAuth = GetConfigBool("BearerTokenAuth", authCfg);
-
         }
 
         if (cookieAuth is true || bearerTokenAuth is true)
@@ -197,7 +295,7 @@ public static class Builder
 
             if (cookieAuth is true)
             {
-                var days = GetConfigInt("CookieExpireDays", authCfg) ?? 14;
+                var days = GetConfigInt("CookieValidDays", authCfg) ?? 14;
                 auth.AddCookie(cookieScheme, options =>
                 {
                     options.ExpireTimeSpan = TimeSpan.FromDays(days);
@@ -553,11 +651,9 @@ public static class Builder
 
         if (GetConfigBool("TestConnectionStrings", ConnectionSettingsCfg) is true)
         {
-            using (var conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                conn.Close();
-            }
+            using var conn = new NpgsqlConnection(connectionString);
+            conn.Open();
+            conn.Close();
         }
 
         return connectionString;

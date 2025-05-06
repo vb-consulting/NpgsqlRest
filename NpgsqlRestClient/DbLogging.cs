@@ -7,18 +7,11 @@ using Serilog.Events;
 
 namespace NpgsqlRestClient;
 
-public class PostgresSink : ILogEventSink
+public class PostgresSink(string command, LogEventLevel restrictedToMinimumLevel, int paramCount) : ILogEventSink
 {
-    private readonly string _command;
-    private readonly LogEventLevel _restrictedToMinimumLevel;
-    private readonly int _paramCount;
-
-    public PostgresSink(string command, LogEventLevel restrictedToMinimumLevel, int paramCount)
-    {
-        _command = command;
-        _restrictedToMinimumLevel = restrictedToMinimumLevel;
-        _paramCount = paramCount;
-    }
+    private readonly string _command = command;
+    private readonly LogEventLevel _restrictedToMinimumLevel = restrictedToMinimumLevel;
+    private readonly int _paramCount = paramCount;
 
     public void Emit(LogEvent logEvent)
     {

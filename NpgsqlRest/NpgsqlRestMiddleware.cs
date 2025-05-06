@@ -90,13 +90,9 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         IRoutineSourceParameterFormatter formatter = entry.Formatter;
 
         string? headers = null;
-
         if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
         {
-            if (headers is null)
-            {
-                SearializeHeader(options, context, ref headers);
-            }
+            SearializeHeader(options, context, ref headers);
         }
 
         if (endpoint.Login is false)
@@ -133,10 +129,10 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
         NpgsqlConnection? connection = null;
         NpgsqlTransaction? transaction = null;
-        IUploadHandler? uploadHandler = null;
         string? commandText = null;
         bool shouldDispose = true;
         bool shouldCommit = true;
+        IUploadHandler? uploadHandler = null;
 
         var writer = System.IO.Pipelines.PipeWriter.Create(context.Response.Body);
         try
@@ -190,25 +186,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     NpgsqlRestLogger.LogConnectionNotice(logger, args, options.LogConnectionNoticeEventsMode);
                 };
             }
-
-            object? uploadMetadata = null;
-            if (endpoint.Upload is true)
-            {
-                if (options.BeforeConnectionOpen is not null)
-                {
-                    options.BeforeConnectionOpen(connection, endpoint, context);
-                }
-                await connection.OpenAsync();
-                uploadHandler = DefaultUploadHandler.Create(options, endpoint);
-                if (uploadHandler?.RequiresTransaction is true)
-                {
-                    transaction = await connection.BeginTransactionAsync();
-                }
-                if (uploadHandler is not null)
-                {
-                    uploadMetadata = await uploadHandler.UploadAsync(connection, context);
-                }
-            }
             await using var command = connection.CreateCommand();
 
             var shouldLog = options.LogCommands && logger != null;
@@ -229,6 +206,9 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             string? body = null;
             Dictionary<string, StringValues>? queryDict = null;
             StringBuilder? cacheKeys = null;
+            
+            uploadHandler = endpoint.Upload is true ? uploadHandler = DefaultUploadHandler.Create(options, endpoint) : null;
+            int uploadMetaParamIndex = -1;
 
             if (endpoint.Cached is true)
             {
@@ -316,7 +296,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     if (parameter.UploadMetadata is true)
                     {
-                        parameter.Value = uploadMetadata is null ? DBNull.Value : uploadMetadata;
+                        uploadMetaParamIndex = i;
+                        parameter.Value = DBNull.Value;
                     }
 
                     // body parameter
@@ -362,10 +343,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                                     cacheKeys?.Append(parameter.GetCacheStringValue());
                                 }
                             }
-                            //if (parameter.HashOf is not null && hashed is not null)
-                            //{
-                            //    hashed.Add(parameter);
-                            //}
                             command.Parameters.Add(parameter);
 
                             if (hasNulls is false && parameter.Value == DBNull.Value)
@@ -442,12 +419,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                                         cacheKeys?.Append(parameter.GetCacheStringValue());
                                     }
                                 }
-                                //if (parameter.HashOf is not null && hashed is not null)
-                                //{
-                                //    hashed.Add(parameter);
-                                //}
                                 command.Parameters.Add(parameter);
-
                                 if (hasNulls is false && parameter.Value == DBNull.Value)
                                 {
                                     hasNulls = true;
@@ -754,7 +726,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     if (parameter.UploadMetadata is true)
                     {
-                        parameter.Value = uploadMetadata is null ? DBNull.Value : uploadMetadata;
+                        uploadMetaParamIndex = i;
+                        parameter.Value = DBNull.Value;
                     }
 
                     // header parameter
@@ -1034,6 +1007,84 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 return;
             }
 
+            Dictionary<string, string>.AlternateLookup<ReadOnlySpan<char>>? lookup = null;
+            if (endpoint.HeadersNeedParsing is true || endpoint.CustomParamsNeedParsing)
+            {
+                Dictionary<string, string> replacements = [];
+                for (var i = 0; i < command.Parameters.Count; i++)
+                {
+                    var value = command.Parameters[i].Value == DBNull.Value ? "" : command.Parameters[i].Value?.ToString() ?? "";
+                    replacements[((NpgsqlRestParameter)command.Parameters[i]).ActualName] = value;
+                    replacements[((NpgsqlRestParameter)command.Parameters[i]).ConvertedName] = value;
+                }
+                lookup = replacements.GetAlternateLookup<ReadOnlySpan<char>>();
+
+                if (endpoint.CustomParamsNeedParsing && endpoint.CustomParameters is not null)
+                {
+                    foreach (var (key, value) in endpoint.CustomParameters)
+                    {
+                        if (value is not null)
+                        {
+                            endpoint.CustomParameters[key] = Formatter.FormatString(value, lookup!.Value).ToString();
+                        }
+                    }
+                }
+            }
+
+            if (endpoint.ResponseContentType is not null || endpoint.ResponseHeaders.Count > 0)
+            {
+                if (endpoint.HeadersNeedParsing is true)
+                {
+                    if (endpoint.ResponseContentType is not null)
+                    {
+                        context.Response.ContentType = Formatter.FormatString(endpoint.ResponseContentType, lookup!.Value).ToString();
+                    }
+                    if (endpoint.ResponseHeaders.Count > 0)
+                    {
+                        foreach (var (headerKey, headerValue) in endpoint.ResponseHeaders)
+                        {
+                            context.Response.Headers.Append(headerKey, Formatter.FormatString(headerValue.ToString(), lookup!.Value).ToString());
+                        }
+                    }
+                }
+                else
+                {
+                    if (endpoint.ResponseContentType is not null)
+                    {
+                        context.Response.ContentType = endpoint.ResponseContentType;
+                    }
+                    if (endpoint.ResponseHeaders.Count > 0)
+                    {
+                        foreach (var (headerKey, headerValue) in endpoint.ResponseHeaders)
+                        {
+                            context.Response.Headers.Append(headerKey, headerValue);
+                        }
+                    }
+                }
+            }
+
+            if (endpoint.Upload is true && uploadHandler is not null)
+            {
+                if (connection.State != ConnectionState.Open)
+                {
+                    if (options.BeforeConnectionOpen is not null)
+                    {
+                        options.BeforeConnectionOpen(connection, endpoint, context);
+                    }
+                    await connection.OpenAsync();
+                }
+                if (uploadHandler.RequiresTransaction is true)
+                {
+                    transaction = await connection.BeginTransactionAsync();
+                }
+                object? uploadMetadata = await uploadHandler.UploadAsync(connection, context, endpoint.CustomParameters);
+
+                if (uploadMetaParamIndex > -1)
+                {
+                    command.Parameters[uploadMetaParamIndex].Value = uploadMetadata ?? DBNull.Value;
+                }
+            }
+
             if (endpoint.Login is true)
             {
                 if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, false) is false)
@@ -1063,6 +1114,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 {
                     return;
                 }
+
                 await command.ExecuteNonQueryAsync();
                 context.Response.StatusCode = (int)HttpStatusCode.NoContent;
                 return;
@@ -1133,32 +1185,19 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         }
                     }
 
-                    if (endpoint.ResponseContentType is not null)
+                    if (context.Response.ContentType is null)
                     {
-                        context.Response.ContentType = endpoint.NeedsParsing ?
-                            PgConverters.ParseParameters(command.Parameters, endpoint.ResponseContentType) :
-                            endpoint.ResponseContentType;
-
-                    }
-                    else if (descriptor.IsBinary)
-                    {
-                        context.Response.ContentType = Application.Octet;
-                    }
-                    else if (descriptor.IsJson || descriptor.IsArray)
-                    {
-                        context.Response.ContentType = Application.Json;
-                    }
-                    else
-                    {
-                        context.Response.ContentType = Text.Plain;
-                    }
-                    if (endpoint.ResponseHeaders.Count > 0)
-                    {
-                        foreach ((string headerKey, StringValues headerValue) in endpoint.ResponseHeaders)
+                        if (descriptor.IsBinary)
                         {
-                            context.Response.Headers.Append(headerKey,
-                                endpoint.NeedsParsing ?
-                                PgConverters.ParseParameters(command.Parameters, headerValue.ToString()) : headerValue);
+                            context.Response.ContentType = Application.Octet;
+                        }
+                        else if (descriptor.IsJson || descriptor.IsArray)
+                        {
+                            context.Response.ContentType = Application.Json;
+                        }
+                        else
+                        {
+                            context.Response.ContentType = Text.Plain;
                         }
                     }
 
@@ -1226,13 +1265,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     {
                         NpgsqlRestLogger.LogEndpoint(logger, endpoint, cmdLog?.ToString() ?? "", command.CommandText);
                     }
-                    if (endpoint.ResponseContentType is not null)
-                    {
-                        context.Response.ContentType = endpoint.NeedsParsing ?
-                            PgConverters.ParseParameters(command.Parameters, endpoint.ResponseContentType) :
-                            endpoint.ResponseContentType;
-                    }
-                    else
+                    if (context.Response.ContentType is null)
                     {
                         if (binary is true)
                         {
@@ -1244,16 +1277,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         }
                     }
 
-                    if (endpoint.ResponseHeaders.Count > 0)
-                    {
-                        foreach (var (headerKey, headerValue) in endpoint.ResponseHeaders)
-                        {
-                            context.Response.Headers.Append(headerKey,
-                                endpoint.NeedsParsing ?
-                                PgConverters.ParseParameters(command.Parameters, headerValue.ToString()) : headerValue);
-                        }
-                    }
-                    
                     if (routine.ReturnsSet && endpoint.Raw is false && binary is false)
                     {
                         writer.Advance(Encoding.UTF8.GetBytes(Consts.OpenBracket.ToString().AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(1))));

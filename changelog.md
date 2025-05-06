@@ -4,6 +4,231 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+## Version [2.25.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.25.0) (2025-05-06)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.25.0...2.24.0)
+
+### Core NpgsqlRest Library
+
+#### Support for Custom Parameters
+
+Custom parameters support for created endpoint has been added.
+
+For now, only upload handlers are using custom parameters:
+
+- `large_object` upload handler have following parameters:
+
+1) `oid`: set the custom `oid` number to be used. By default, new `oid` is assigned on each upload.
+2) `buffer_size`: set the custom buffer size. Default is 8192 or 8K buffer size
+
+- `file_system` upload handler ave following parameters:
+
+1) `path`: set the custom path for upload. Default is current path `./`
+2) `file`: set the custom file name for upload. Default is whatever name is received in request.
+3) `unique_name`: boolean field that, if true, will automatically set file name to be unique (name is GUID and extension is the same). Can only have true or false values (case insensitive). Default is true.
+4) `create_path`: boolean field that, if true, will check if the path exists, and create it if it doesn't. Can only have true or false values (case insensitive). Default is false.
+5) `buffer_size`: set the custom buffer size. Default is 8192 or 8K buffer size.
+
+- Custom parameters can be set programmatically in `CustomParameters` dictionary for each endpoint:
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    EndpointCreated = endpoint =>
+    {
+        if (endpoint?.Routine.Name == "upload")
+        {
+            endpoint.CustomParameters = new() { ["unique_name"] = "false"};
+        }
+    }
+});
+```
+
+- Custom parameters can be set by using comment annotations.
+- Each comment annotations line that:
+  - has equal character `=`
+  - first part, before equal character is word (alphanumerics, `_`, `-`)
+- For example:
+
+```sql
+create function my_upload(
+    _meta json = null
+)
+returns json 
+language plpgsql
+as 
+$$
+begin
+    -- return same upload metadata
+    return _meta;
+end;
+$$;
+
+comment on function my_upload(json) is '
+upload for file_system
+param _meta is upload metadata
+path = ./uploads
+unique_name = false
+create_path = false
+';
+```
+
+- Custom parameters annotations can be set from the parameter value, using default formatter (name enclosed with `{` and `}`). Parameter name can be original or parsed. For example:
+
+```sql
+create function my_upload(
+    _path text,
+    _file text,
+    _unique_name boolean,
+    _create_path boolean,
+    _meta json = null
+)
+returns json 
+language plpgsql
+as 
+$$
+begin
+    -- return same upload metadata
+    return _meta;
+end;
+$$;
+
+comment on function my_upload(text, text, boolean, boolean, json) is '
+upload for file_system
+param _meta is upload metadata
+path = {_path}
+file = {_file}
+unique_name = {_unique_name}
+create_path = {_create_path}
+';
+```
+
+- Note: parameter name can be original name or parsed name. Default name parser is camel case, so the names like `path`, `file`, `uniqueName` or `createPath` are equally valid.
+- This example can be used like this: 
+
+```csharp
+// csvContent is the string content
+var fileName = "test-data.csv";
+var contentBytes = Encoding.UTF8.GetBytes(csvContent);
+using var formData = new MultipartFormDataContent();
+using var byteContent = new ByteArrayContent(contentBytes);
+byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+formData.Add(byteContent, "file", fileName);
+
+var query = new QueryBuilder
+{
+    { "path", "./test" },
+    { "file", fileName },
+    { "uniqueName", "false" },
+    { "createPath", "true" },
+};
+
+using var result = await test.Client.PostAsync($"/api/my-upload/{query}", formData);
+
+//
+// upload is saved as ./test/test-data.csv
+//
+```
+
+#### Other Improvements
+
+- Improved parameter parsing for header values set by comment annotations
+- Now using high speed and well tested template parser to parse `{name}` formats
+- When using header values set by comment annotations, header name must be a single word (alphanumerics, `_`, `-`).
+- When using header values set by comment annotations that should be parsed from parameter values, parameter name can also be parsed name:
+
+```sql
+create function header_template_response1(_type text, _file text) 
+returns table(n numeric, d timestamp, b boolean, t text)
+language sql
+as 
+$$
+select sub.* 
+from (
+values 
+    (123, '2024-01-01'::timestamp, true, 'some text'),
+    (456, '2024-12-31'::timestamp, false, 'another text')
+)
+sub (n, d, b, t)
+$$;
+
+comment on function header_template_response1(text, text) is '
+raw
+separator ,
+newline \n
+Content-Type: {_type}
+Content-Disposition: attachment; filename={_file}
+```
+
+This is also valid, when using default name parser:
+
+```sql
+comment on function header_template_response1(text, text) is '
+raw
+separator ,
+newline \n
+Content-Type: {type}
+Content-Disposition: attachment; filename={file}
+```
+
+### NpgsqlRest Client App
+
+#### Added Data Protection
+
+- Data protection mechanism is included from this version.
+- Data protection helps securely store encryption keys for encrypted cookies and antiforgery tokens.
+- When data protection is not enabled, and application is using authentication cookies, user will be invalidated (signed out) every time application restarts (redeployment scenario).
+- Three modes are supported:
+1) `Default`: Windows only.
+2) `FileSystem`: Requires setting path in `FileSystemPath` for storing keys. Note: when using Docker, this path must be volume path to persist after restarts.
+3) `Database`: Store keys in database require setting `GetAllElementsCommand` (expected to return rows with a single column of type text and have no parameters) and `StoreElementCommand` (receives two parameters: name and data of type text. Doesn't return anything).
+
+- New configuration section:
+
+```jsonc
+{
+  //
+  // Data protection settings. Encryption keys for Auth Cookies and Antiforgery tokens.
+  //
+  "DataProtection": {
+    "Enabled": true,
+    //
+    // Set to null to use the current "ApplicationName"
+    //
+    "CustomApplicationName": null,
+    //
+    // Sets the default lifetime in days of keys created by the data protection system.
+    //
+    "DefaultKeyLifetimeDays": 90,
+    //
+    // Data protection location: "Default", "FileSystem" or "Database"
+    //
+    // Note: When running on Linux, using Default keys will not be persisted. 
+    // When keys are lost on restarts, Cookie Auth and Antiforgery tokens will also not work on restart.
+    // Linux users should use FileSystem or Database storage.
+    //
+    "Storage": "Default",
+    //
+    // FileSystem storage path. Set to a valid path when using FileSystem.
+    // Note: When running in Docker environment, the path must be a Docker volume path.
+    //
+    "FileSystemPath": "./data-protection-keys",
+    //
+    // GetAllElements database command. Expected to rows with a single column of type text.
+    //
+    "GetAllElementsCommand": "select get_data_protection_keys()",
+    //
+    // StoreElement database command. Receives two parameters: name and data of type text. Doesn't return anything.
+    //
+    "StoreElementCommand": "call store_data_protection_keys($1,$2)"
+  }
+}
+```
+
+#### Other Improvements
+
+- Fixed `Auth.CookieValidDays` bug which prevented setting validation different than 90 days.
+
 ## Version [2.24.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.24.0) (2025-04-29)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.24.0...2.23.0)
@@ -324,380 +549,4 @@ param _meta is upload metadata
 
 #### External Login Fixes and Improvements
 
-- External login was fundamentally broken, now it is fixed.
-
-- External login function is called with the following parameters:
-  - external login provider (if param exists)
-  - external login email (if param exists)
-  - external login name (if param exists)
-  - external login json data received (if param exists)
-  - client browser analytics json data (if param exists)
-
-- To accommodate client browser analytics parameter support, two new config keys were added:
-    - ClientAnalyticsData - javascript object definition
-    - ClientAnalyticsIpKey - key name for the IP address that is added to the analytics data
-
-- Added default configurations for Microsoft and Facebook too
-
-#### Caching Static Files
-
-- This applies only to static content being parsed.
-
-- Add caching static files to the middleware.
-    - New key: StaticFiles -> ParseContentOptions -> CacheParsedFile - caches parsed content, default true.
-
-#### Custom Startup Message
-
-- Added custom message on client started listening support. 
-- Following configuration key was added:
-  
-```jsonc
-{
-  //
-  // Logs at startup, placeholders:
-  // {0} - startup time
-  // {1} - listening on urls
-  // {2} - current version
-  //
-  "StartupMessage": "Started in {0}, listening on {1}, version {2}"
-}
-```
-
-- Format placeholders are optional.
-
-#### Logging Context from ApplicationName
-
-- Using the `ApplicationName` value (if any) as custom logging context name instead of `NpgsqlRest`.
-- Set `ApplicationName` to null to keep using `NpgsqlRest`.
-- This applies to both client app logs and core library logs.
-
-#### Antiforgery Token Support
-
-- New configuration section in root: `Antiforgery`:
-  
-```jsonc
-{
-  "Antiforgery": {
-    "Enabled": false,
-    "CookieName": null,
-    "FormFieldName": "__RequestVerificationToken",
-    "HeaderName": "RequestVerificationToken",
-    "SuppressReadingTokenFromFormBody": false,
-    "SuppressXFrameOptionsHeader": false
-  }
-}
-```
-
-- Antiforgery Tokens are also added as new keys to static content parser:
-
-```jsonc
-{
-  //
-  // Static files settings 
-  //
-  "StaticFiles": {
-    // ...
-    "ParseContentOptions": {
-      // ...
-
-      //
-      // Name of the configured Antiforgery form field name to be used in the static files (see Antiforgery FormFieldName setting).
-      //
-      "AntiforgeryFieldName": "antiForgeryFieldName",
-      //
-      // Value of the Antiforgery token if Antiforgery is enabled..
-      //
-      "AntiforgeryToken": "antiForgeryToken"
-    }
-  }
-}
-```
-
-#### Upload Support
-
-- New config section in `NpgsqlRest` section:
-```jsonc
-{
-  //...
-  "NpgsqlRest": {
-    // ...
-    //
-    // Upload handlers options
-    //
-    "UploadHandlers": {
-      //
-      // Handler that will be used when upload handler or handlers are not specified.
-      //
-      "DefaultUploadHandler": "large_object",
-      //
-      // Enables upload handlers for the NpgsqlRest endpoints that uses PostgreSQL Large Objects API
-      // Metadata example: {"type": "large_object", "fileName": "file.txt", "contentType": "text/plain", "size": 1234567890, "oid": 1234}
-      //
-      "LargeObjectEnabled": true,
-      "LargeObjectKey": "large_object",
-      "LargeObjectHandlerBufferSize": 8192,
-
-      //
-      // Enables upload handlers for the NpgsqlRest endpoints that uses file system
-      // Metadata example: {"type": "file_system", "fileName": "file.txt", "contentType": "text/plain", "size": 1234567890, "filePath": "/tmp/uploads/CB0B16D6-FF10-4A39-94A4-C7017C09D869.txt"}
-      //
-      "FileSystemEnabled": true,
-      "FileSystemKey": "file_system",
-      "FileSystemHandlerPath": "/tmp/uploads",
-      "FileSystemHandlerUseUniqueFileName": true,
-      "FileSystemHandlerCreatePathIfNotExists": true,
-      "FileSystemHandlerBufferSize": 8192
-    }
-  }
-}
-```
-
-## Version [2.22.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.22.0) (2025-04-07)
-
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.22.0...2.21.0)
-
-### Improved Logging
-
-Improved Logging for Endpoint creation to include routine and endpoint:
-
-```console
-[14:56:17.477 INF] Function auth.login mapped to POST /api/auth/login has set ALLOW ANONYMOUS by the comment annotation. [NpgsqlRest]
-```
-
-### Fixed CRUD Plugin
-
-CRUD Endpoints are finally getting some love: 
-- Fixed issue with connection as data source.
-- Added new tags: `onconflict`, `on_conflict` and `on-conflict` to generated endpoints handling with on conflict resolutions.
-
-Now it's possible to enable or disable those endpoints explicitly with comment annotations:
-
-```sql
-create table test.crud_table (
-    id bigint generated always as identity primary key,
-    name text not null,
-    description text,
-    created_at timestamp default now()
-);
-
-comment on table test.crud_table is '
-HTTP
-for on-conflict 
-disabled
-';
-```
-
-## Version [2.21.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.21.0) (2025-03-24)
-
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.21.0...2.20.0)
-
-### Support For Multiple Connections
-
-In this version, it is possible to set multiple connections by using the `ConnectionStrings` dictionary option and setting the correct `ConnectionName` on the routine endpoint.
-
-- New option:
-
-```csharp
-/// <summary>
-/// Dictionary of connection strings. The key is the connection name and the value is the connection string.
-/// This option is used when the RoutineEndpoint has a connection name defined.
-/// This allows the middleware to use different connection strings for different routines.
-/// For example, some routines might use the primary database connection string, while others might use a read-only connection string from the replica servers.
-/// </summary>
-public IDictionary<string, string>? ConnectionStrings { get; set; } = connectionStrings;
-```
-
-- New property on the routine endpoint:
-
-```csharp
-public string? ConnectionName { get; set; } = connectionName;
-```
-
-The default value for all these properties is null.
-
-Set the ConnectionStrings dictionary to alternate connection and then set ConnectionName for a specific connection key name. If the key doesn't exist, the endpoint will return 500 (Internal Server Error).
-
-This feature was added to add support for configuring certain routines to be executed on read-only replicas.
-
-
-## Version [2.20.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.20.0) (2025-03-05)
-
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.20.0...2.19.0)
-
-Many changes:
-
-### 1) Breaking changes in interfaces
-
-There are some small breaking changes in public interfaces. These are just simplifications: 
-
-From this version, `RoutineEndpoint` has a `Routine` read-only property. This allows simplification where we don't have to have these two parameters: `RoutineEndpoint` and `Routine`. 
-
-We can only have one `RoutineEndpoint`. Every interface and structure that had these two parameters, fields, or properties now only has one: `RoutineEndpoint`. 
-
-### 2) Logging improvements
-
-- New option:
-
-```cs
-/// <summary>
-/// MessageOnly - Log only connection messages.
-/// FirstStackFrameAndMessage - Log first stack frame and the message.
-/// FullStackAndMessage - Log full stack trace and message.
-/// </summary>
-public PostgresConnectionNoticeLoggingMode LogConnectionNoticeEventsMode { get; set; } = PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
-```
-
-The default is the `FirstStackFrameAndMessage` that logs only the first stack frame and the message. In chained calls, the stack frame can be longer and obfuscate the log message. This option will show only the first (starting) stack frame along with the message.
-
-- The log pattern was also slightly changed. The last two options now look like this: `" {where}:\n{message}"`.
-
-- Fix: Fixed parameter ordinal number when logging command parameters (`LogCommands` and `LogCommandParameters` options are true).
-
-### 3) Caching Improvements
-
-In the previous version, some basic response caching in server memory was introduced (when the routine is marked as cached). This feature is now massively improved:
-
-- Injectable Cache Object
-
-Cache Object can be injected in options by using the new `DefaultRoutineCache`
-
-```cs
-/// <summary>
-/// Default routine cache object. Inject custom cache object to override default cache.
-/// </summary>
-public IRoutineCache DefaultRoutineCache { get; set; } = defaultRoutineCache ?? new RoutineCache();
-```
-
-Interface `IRoutineCache` can implement any caching strategy:
-
-```cs
-public interface IRoutineCache
-{
-    bool Get(RoutineEndpoint endpoint, string key, out string? result);
-    void AddOrUpdate(RoutineEndpoint endpoint, string key, string? value);
-}
-```
-
-There is a new default cache implementation that supports a cache expiration time span.
-
-- Cache Expiration
-
-Cache expiration can be defined on a `RoutineEndpoint` property, together with other caching properties
-
-```cs
-public bool Cached { get; set; } = cached;
-public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
-public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
-```
-
-It can also be set as routine comment annotation by using any of these annotation tags:
-
-```
-cacheexpires [ time_span_value ]
-cacheexpiresin [ time_span_value ]
-cache-expires [ time_span_value ]
-cache-expires-in [ time_span_value ]
-cache_expires [ time_span_value ]
-cache_expires_in [ time_span_value ]
-```
-
-Value is a simplified PostgreSQL interval value, for example, `10s` or `10sec` for 10 seconds, `5d` is for 5 days, and so on. Space between is also allowed. For example, `3h`, `3 hours`, `3 h`, and `3 hours` are the same.
-
-Valid abbreviations are:
-
-| abbr | meaning |
-| ---- | ------------------------------- |
-| `s`, `sec`, `second` or `seconds` | value is expressed in seconds |
-| `m`, `min`, `minute` or `minutes` | value is expressed in minutes |
-| `h`, `hour`, `hours` | value is expressed in hours |
-| `d`, `day`, `days` | value is expressed in days |
-
-- Other Cache Improvements
-
-There are some other improvements, such as avoiding unnecessary allocations when returning from the cache, creating a connection, and so on.
-
-There is also a new option to set cache prune interval:
-
-```cs
-/// <summary>
-/// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entries). Default is 1 minute.
-/// </summary>
-public int CachePruneIntervalMin { get; set; } = 1;
-```
-
-This is the interval in minutes that, if the cache is used, will remove expired items in this interval.
-
-### 4) Responses Parser
-
-From this version, it is possible to inject a custom response parser mechanism by using a new option:
-
-```cs
-/// <summary>
-/// Default response parser object. Inject custom response parser object to add default response parser.
-/// </summary>
-public IResponseParser? DefaultResponseParser { get; set; } = null;
-```
-
-You can set a custom implementation to the `DefaultResponseParser` option that implements the `IResponseParser` interface:
-
-```cs
-public interface IResponseParser
-{
-    /// <summary>
-    /// Parse response from PostgreSQL.
-    /// </summary>
-    /// <returns>Response string</returns>
-    ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
-}
-```
-
-This is useful when response content needs to be enriched from the Http context, such as user claims, IP address, etc.
-
-In order to call this parser, `RoutineEndpoint` needs to have `ParseResponse` set to true (default is false).
-
-This also can be set by using new comment annotations:
-
-```
-parse
-parseresponse
-parse_response
-parse-response
-```
-
-When `ParseResponse` is set to true on the endpoint, and DefaultResponseParser has been set to nonnull instance, the response will be parsed and returned from the `Parse` method always, even when it is cached.
-
-## Version [2.19.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.19.0) (2025-02-24)
-
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.19.0...2.18.0)
-
-New routine annotation and new endpoint options:
-
-```console
-                                                
-cached                                          
-cached [ param1, param2, param3 [, ...] ]       
-cached [ param1 param2 param3 [...] ]           
-                                                
-```
-
-If the routine returns a single value of any type, result will be cached in memory and retrieved from memory on next call. Use the optional list of parameter names (original or converted) to be used as additional cache keys.
-
-Same can be set programmatically directly on the endpoint settings:
-
-```csharp
-public bool Cached { get; set; } = false;
-public HashSet<string>? CachedParams { get; set; } = null;
-```
-
-If the associated routine doesn't return a single value of any type, there will be a warning on startup and cache will be ignored.
-
-Results from cache will have `[from cache]` tag in execution log.
-
-
------------
-
-## Older Versions
-
-The changelog for the previous version can be found here: [Changelog Archive](https://github.com/vb-consulting/NpgsqlRest/blob/2.0.0/changelog-old.md)
-
------------
+- External login was fundamentally broken

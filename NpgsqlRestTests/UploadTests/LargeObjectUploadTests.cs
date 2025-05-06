@@ -6,10 +6,10 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void UploadTests()
+    public static void LargeObjectUploadTests()
     {
         script.Append(@"
-        create function simple_upload(
+        create function lo_simple_upload(
             _meta json = null
         )
         returns json 
@@ -21,16 +21,37 @@ public static partial class Database
         end;
         $$;
 
-        comment on function simple_upload(json) is 'upload _meta as metadata';
+        comment on function lo_simple_upload(json) is '
+        upload _meta as metadata
+        ';
+
+        create function lo_custom_parameter_upload(
+            _oid bigint,
+            _meta json = null
+        )
+        returns json 
+        language plpgsql
+        as 
+        $$
+        begin
+            return _meta;
+        end;
+        $$;
+
+        comment on function lo_custom_parameter_upload(bigint, json) is '
+        upload for large_object
+        param _meta is upload metadata
+        oid = {_oid}
+        ';
 ");
     }
 }
 
 [Collection("TestFixture")]
-public class UploadTests(TestFixture test)
+public class LargeObjectUploadTests(TestFixture test)
 {
     [Fact]
-    public async Task Test_simple_upload_test1()
+    public async Task Test_lo_simple_upload_test1()
     {
         var fileName = "test-data.csv";
         var sb = new StringBuilder();
@@ -45,7 +66,7 @@ public class UploadTests(TestFixture test)
         byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
         formData.Add(byteContent, "file", fileName);
 
-        using var result = await test.Client.PostAsync("/api/simple-upload/", formData);
+        using var result = await test.Client.PostAsync("/api/lo-simple-upload/", formData);
         result.StatusCode.Should().Be(HttpStatusCode.OK);
         var response = await result.Content.ReadAsStringAsync();
 
@@ -84,7 +105,7 @@ public class UploadTests(TestFixture test)
     }
 
     [Fact]
-    public async Task Test_simple_upload_meta_param1()
+    public async Task Test_lo_simple_upload_meta_param1()
     {
         var fileName = "test-data.csv";
         var sb = new StringBuilder();
@@ -99,7 +120,7 @@ public class UploadTests(TestFixture test)
         byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
         formData.Add(byteContent, "file", fileName);
 
-        using var result = await test.Client.PostAsync("/api/simple-upload/?meta=this_content_is_ignored", formData);
+        using var result = await test.Client.PostAsync("/api/lo-simple-upload/?meta=this_content_is_ignored", formData);
         result.StatusCode.Should().Be(HttpStatusCode.OK);
         var response = await result.Content.ReadAsStringAsync();
 
@@ -137,9 +158,8 @@ public class UploadTests(TestFixture test)
         }
     }
 
-
     [Fact]
-    public async Task Test_simple_upload_failed1()
+    public async Task Test_lo_simple_upload_failed1()
     {
         var fileName = "test-data.csv";
         var sb = new StringBuilder();
@@ -154,7 +174,7 @@ public class UploadTests(TestFixture test)
         byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
         formData.Add(byteContent, "file", fileName);
 
-        using var result = await test.Client.PostAsync("/api/simple-upload/?unknown=unseen", formData);
+        using var result = await test.Client.PostAsync("/api/lo-simple-upload/?unknown=unseen", formData);
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
         var response = await result.Content.ReadAsStringAsync();
 
@@ -170,5 +190,58 @@ public class UploadTests(TestFixture test)
         });
         using var reader = await command.ExecuteReaderAsync();
         (await reader.ReadAsync()).Should().BeFalse(); // there is a NO record, LOB has rolled-back
+    }
+
+    [Fact]
+    public async Task Test_lo_custom_parameter_upload_oid1()
+    {
+        var fileName = "test-data.csv";
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,Name,Value");
+        sb.AppendLine("10,Item 10,1000");
+        sb.AppendLine("11,Item 11,1100");
+        sb.AppendLine("12,Item 12,1200");
+        var csvContent = sb.ToString();
+        var contentBytes = Encoding.UTF8.GetBytes(csvContent);
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(contentBytes);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+        formData.Add(byteContent, "file", fileName);
+
+        var oid = 1;
+
+        using var result = await test.Client.PostAsync($"/api/lo-custom-parameter-upload/?oid={oid}", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+
+        var jsonDoc = JsonDocument.Parse(response);
+        var rootElement = jsonDoc.RootElement[0]; // Get the first object in the array
+        rootElement.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
+        rootElement.GetProperty("fileName").GetString().Should().Be("test-data.csv", "because the fileName should match the expected value");
+        rootElement.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
+        rootElement.GetProperty("oid").GetInt64().Should().Be(1, "because oid should be a 1");
+        
+        using var connection = Database.CreateConnection();
+        await connection.OpenAsync();
+        using (var command = new NpgsqlCommand("select * from pg_largeobject_metadata where oid = " + oid, connection))
+        {
+            using var reader = await command.ExecuteReaderAsync();
+            (await reader.ReadAsync()).Should().BeTrue(); // there is a record
+        }
+        using (var command = new NpgsqlCommand("select convert_from(lo_get(" + oid + "), 'utf8')", connection))
+        {
+            var content = (string?)await command.ExecuteScalarAsync();
+            content.Should().Be(csvContent);
+        }
+        using (var command = new NpgsqlCommand("select * from pg_largeobject where convert_from(data, 'utf8') = $1", connection))
+        {
+            command.Parameters.Add(new NpgsqlParameter()
+            {
+                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text,
+                Value = csvContent
+            });
+            using var reader = await command.ExecuteReaderAsync();
+            (await reader.ReadAsync()).Should().BeTrue(); // there is a record
+        }
     }
 }

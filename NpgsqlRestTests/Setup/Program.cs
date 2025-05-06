@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Npgsql;
+using NpgsqlRest.UploadHandlers;
 
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 #pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
@@ -56,6 +57,20 @@ public class Program
 
     public static void Main()
     {
+        var uploadHandlerOptions = new UploadHandlerOptions();
+        var files = Directory.GetFiles(uploadHandlerOptions.FileSystemHandlerPath, "*.csv");
+        foreach (var file in files)
+        {
+            try
+            {
+                File.Delete(file);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting file {file}: {ex.Message}");
+            }
+        }
+
         var connectionString = Database.Create();
         // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);

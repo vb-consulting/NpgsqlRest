@@ -116,6 +116,35 @@ connection-name [ name ]
 
 Defines an alternative connection name. The name must be an existing key in a `ConnectionStrings` dictionary option. This is useful when some routines have to read from read-only replicas. However, the same routine also has to exist on the primary connection to be able to build the necessary metadata.
 
+## Custom Parameters
+
+```console
+                                                
+name = value                                     
+                                                
+```
+
+Any line containing `=` character is interpreted as the pararameter name and value where the name is the left side and the value is the right side string. 
+
+For example: `path = ./my_path`
+
+To be custom parameter name, name part must constist of alphanumerics or `_`, `-` characters.
+
+Custom parameters are use in different handelrs that execute varios code, depending on the request. Currenlty, only upload handlers are using custom parameters system:
+
+- `large_object` upload handler have following parameters:
+
+1) `oid`: set the custom `oid` number to be used. By default, new `oid` is assigned on each upload.
+2) `buffer_size`: set the custom buffer size. Default is 8192 or 8K buffer size
+
+- `file_system` upload handler ave following parameters:
+
+1) `path`: set the custom path for upload. Default is current path `./`
+2) `file`: set the custom file name for upload. Default is whatever name is received in request.
+3) `unique_name`: boolean field that, if true, will automatically set file name to be unique (name is GUID and extension is the same). Can only have true or false values (case insensitive). Default is true.
+4) `create_path`: boolean field that, if true, will check if the path exists, and create it if it doesn't. Can only have true or false values (case insensitive). Default is false.
+5) `buffer_size`: set the custom buffer size. Default is 8192 or 8K buffer size.
+
 ## Disabled
 
 ```console
@@ -137,16 +166,6 @@ enabled [ tag1, tag2, tag3 [, ...] ]
 ```
 
 The endpoint is enabled. Optional tag list enabled only for tags in the argument list.
-
-## Headers
-
-```console
-                                                
-key: value                                      
-                                                
-```
-
-Any line containing a`:` character is interpreted as the request header key and value where the key is the left side and the value is the right side string. For example: `Content-Type: text/html`
 
 ## HTTP
 
@@ -373,7 +392,19 @@ Require authorization for this endpoint.
 
 - If the user is not authorized and authorization is required, the endpoint will return the status code `401 Unauthorized`.
 - If the user is authorized but not in any of the roles required by the authorization, the endpoint will return the status code `403 Forbidden`.
-  
+
+## Response Headers
+
+```console
+                                                
+key: value                                      
+                                                
+```
+
+Any line containing `:` character is interpreted as the request header key and value where the key is the left side and the value is the right side string. For example: `Content-Type: text/html`
+
+To be valid header key, key part must constist of alphanumerics or `_`, `-` characters.
+
 ## ResponseNullHandling
 
 ```console

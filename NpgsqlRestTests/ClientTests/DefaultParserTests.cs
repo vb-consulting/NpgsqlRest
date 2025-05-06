@@ -1,39 +1,37 @@
-﻿using NpgsqlRestClient;
-
-namespace NpgsqlRestTests.ClientTests;
+﻿namespace NpgsqlRestTests.ClientTests;
 
 public class DefaultParserTests
 {
     [Fact]
     public void Parse_simple()
     {
-        DefaultResponseParser.FormatString("", []).ToString().Should().Be("");
+        Formatter.FormatString("", []).ToString().Should().Be("");
 
         var str5 = GenerateRandomString(5);
-        DefaultResponseParser.FormatString(str5.AsSpan(), []).ToString().Should().Be(str5);
+        Formatter.FormatString(str5.AsSpan(), []).ToString().Should().Be(str5);
 
         var str10 = GenerateRandomString(10);
-        DefaultResponseParser.FormatString(str10.AsSpan(), []).ToString().Should().Be(str10);
+        Formatter.FormatString(str10.AsSpan(), []).ToString().Should().Be(str10);
 
         var str50 = GenerateRandomString(50);
-        DefaultResponseParser.FormatString(str50.AsSpan(), []).ToString().Should().Be(str50);
+        Formatter.FormatString(str50.AsSpan(), []).ToString().Should().Be(str50);
 
         var str100 = GenerateRandomString(100);
-        DefaultResponseParser.FormatString(str100.AsSpan(), []).ToString().Should().Be(str100);
+        Formatter.FormatString(str100.AsSpan(), []).ToString().Should().Be(str100);
     }
 
     [Fact]
     public void Parse_one()
     {
         var str1 = "Hello, {name}!";
-        DefaultResponseParser.FormatString(str1.AsSpan(), new Dictionary<string, string> { { "name", "world" } }).ToString().Should().Be("Hello, world!");
+        Formatter.FormatString(str1.AsSpan(), new Dictionary<string, string> { { "name", "world" } }).ToString().Should().Be("Hello, world!");
     }
 
     [Fact]
     public void Parse_two()
     {
         var str1 = "Hello, {name1} and {name2}!";
-        DefaultResponseParser.FormatString(str1.AsSpan(), new Dictionary<string, string> { 
+        Formatter.FormatString(str1.AsSpan(), new Dictionary<string, string> { 
             { "name1", "world1" }, { "name2", "world2" } }).ToString().Should().Be("Hello, world1 and world2!");
     }
 
@@ -46,14 +44,14 @@ public class DefaultParserTests
             { "name", "Alice" },
             { "day", "Monday" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Hello, Alice! Today is Monday.");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Hello, Alice! Today is Monday.");
     }
 
     [Fact]
     public void Parse_placeholder_not_found()
     {
         var str = "Hello, {name}!";
-        DefaultResponseParser.FormatString(str.AsSpan(), []).ToString().Should().Be("Hello, {name}!");
+        Formatter.FormatString(str.AsSpan(), []).ToString().Should().Be("Hello, {name}!");
     }
 
     [Fact]
@@ -64,7 +62,7 @@ public class DefaultParserTests
         {
             { "user_name", "user@domain.com" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Hello, user@domain.com!");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Hello, user@domain.com!");
     }
 
     [Fact]
@@ -75,21 +73,21 @@ public class DefaultParserTests
         {
             { "order_number", "12345" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Your order number is 12345.");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Your order number is 12345.");
     }
 
     [Fact]
     public void Parse_empty_placeholder()
     {
         var str = "Hello, {}!";
-        DefaultResponseParser.FormatString(str.AsSpan(), []).ToString().Should().Be("Hello, {}!");
+        Formatter.FormatString(str.AsSpan(), []).ToString().Should().Be("Hello, {}!");
     }
 
     [Fact]
     public void Parse_null_replacements()
     {
         var str = "Hello, {name}!";
-        DefaultResponseParser.FormatString(str.AsSpan(), null!).ToString().Should().Be("Hello, {name}!");
+        Formatter.FormatString(str.AsSpan(), null!).ToString().Should().Be("Hello, {name}!");
     }
 
     [Fact]
@@ -100,7 +98,7 @@ public class DefaultParserTests
         {
             { "greeting", "Hi" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Hi, Hi!");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("Hi, Hi!");
     }
 
     [Fact]
@@ -111,7 +109,7 @@ public class DefaultParserTests
         {
             { "name", "" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().ToString().Should().Be("Hello, !");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().ToString().Should().Be("Hello, !");
     }
 
     [Fact]
@@ -131,7 +129,7 @@ public class DefaultParserTests
         { "name9", "value9" },
         { "name10", "value10" }
     };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements)
+        Formatter.FormatString(str.AsSpan(), replacements)
             .ToString().Should().Be(str
                 .Replace("{name1}", "value1")
                 .Replace("{name2}", "value2")
@@ -153,7 +151,7 @@ public class DefaultParserTests
         {
             { "name", "" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("");
     }
 
     [Fact]
@@ -164,7 +162,7 @@ public class DefaultParserTests
         {
             { "name", "" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("{name");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("{name");
     }
 
     [Fact]
@@ -175,7 +173,7 @@ public class DefaultParserTests
         {
             { "name", "" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("name}");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("name}");
     }
 
     [Fact]
@@ -186,7 +184,7 @@ public class DefaultParserTests
         {
             { "name", "value" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("value, value, value");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("value, value, value");
     }
 
     [Fact]
@@ -197,7 +195,7 @@ public class DefaultParserTests
         {
             { "name", "value" }
         };
-        DefaultResponseParser.FormatString(str.AsSpan(), replacements).ToString().Should().Be("{ value, value, value }");
+        Formatter.FormatString(str.AsSpan(), replacements).ToString().Should().Be("{ value, value, value }");
     }
 
     private static string GenerateRandomString(int length)
@@ -205,7 +203,6 @@ public class DefaultParserTests
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 _-*/*?=()/&%$#\"!";
         var random = new Random(DateTime.Now.Millisecond);
 
-        return new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
+        return new string([.. Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)])]);
     }
 }

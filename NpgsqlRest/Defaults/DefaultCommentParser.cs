@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Net.WebSockets;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 
@@ -8,7 +9,6 @@ internal static class DefaultCommentParser
 {
     private static readonly char[] newlineSeparator = ['\r', '\n'];
     private static readonly char[] wordSeparators = [Consts.Space, Consts.Comma];
-    private static readonly char[] headerSeparator = [Consts.Colon];
 
     private const string HttpKey = "http";
     private const string PathKey = "path";
@@ -206,7 +206,7 @@ internal static class DefaultCommentParser
             for (var i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
-                string[] words = Split(line);
+                string[] words = line.SplitWords();
                 routineEndpoint.CommentWordLines[i] = words;
                 var len = words.Length;
                 if (len == 0)
@@ -231,6 +231,81 @@ internal static class DefaultCommentParser
                         }
                     }
                     haveTag = found;
+                }
+
+                // key = value
+                // custom_parameter_1 = custom parameter 1 value
+                // custom_parameter_2 = custom parameter 2 value
+                else if (haveTag is true && SplitBySeparatorChar(line, Consts.Equal, out var customParamName, out var customParamValue))
+                {
+                    if (customParamValue.Contains(Consts.OpenBrace) && customParamValue.Contains(Consts.CloseBrace))
+                    {
+                        routineEndpoint.CustomParamsNeedParsing = true;
+                    }
+                    if (routineEndpoint.CustomParameters is null)
+                    {
+                        routineEndpoint.CustomParameters = new()
+                        {
+                            [customParamName] = customParamValue
+                        };
+                    }
+                    else
+                    {
+                        routineEndpoint.CustomParameters[customParamName] = customParamValue;
+                    }
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentSetCustomParemeter(description, customParamName, customParamValue);
+                    }
+                }
+
+                // key: value
+                // Content-Type: application/json
+                else if (haveTag is true && SplitBySeparatorChar(line, Consts.Colon, out var headerName, out var headerValue))
+                {
+                    if (headerValue.Contains(Consts.OpenBrace) && headerValue.Contains(Consts.CloseBrace))
+                    {
+                        routineEndpoint.HeadersNeedParsing = true;
+                    }
+                    if (StrEquals(headerName, ContentTypeKey))
+                    {
+                        if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
+                        {
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentSetContentType(description, headerValue);
+                            }
+                        }
+                        routineEndpoint.ResponseContentType = headerValue;
+                    }
+                    else
+                    {
+                        if (routineEndpoint.ResponseHeaders is null)
+                        {
+                            routineEndpoint.ResponseHeaders = new()
+                            {
+                                [headerName] = new StringValues(headerValue)
+                            };
+                        }
+                        else
+                        {
+                            if (routineEndpoint.ResponseHeaders.TryGetValue(headerName, out StringValues values))
+                            {
+                                routineEndpoint.ResponseHeaders[headerName] = StringValues.Concat(values, headerValue);
+                            }
+                            else
+                            {
+                                routineEndpoint.ResponseHeaders.Add(headerName, new StringValues(headerValue));
+                            }
+                        }
+                        if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
+                        {
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentSetHeader(description, headerName, headerValue);
+                            }
+                        }
+                    }
                 }
 
                 // disabled
@@ -875,14 +950,14 @@ internal static class DefaultCommentParser
                         var found = true;
                         NpgsqlRestParameter? param = null;
 
-                        if (routine.OriginalParamsHash.Contains(paramName1) is false && 
+                        if (routine.OriginalParamsHash.Contains(paramName1) is false &&
                             routine.ParamsHash.Contains(paramName1) is false)
                         {
                             logger?.CommentParamNotExistsCantHash(description, paramName1);
                             found = false;
                         }
 
-                        if (found is true && 
+                        if (found is true &&
                             routine.OriginalParamsHash.Contains(paramName2) is false &&
                             routine.ParamsHash.Contains(paramName2) is false)
                         {
@@ -959,61 +1034,6 @@ internal static class DefaultCommentParser
                         }
                     }
                 }
-
-                // key: value
-                // Content-Type: application/json
-                else if (haveTag is true && line.Contains(Consts.Colon))
-                {
-                    var parts = line.Split(headerSeparator, 2);
-                    if (parts.Length == 2)
-                    {
-                        var headerName = parts[0].Trim();
-                        var headerValue = parts[1].Trim();
-                        if (headerValue.Contains(Consts.OpenBrace) && headerValue.Contains(Consts.CloseBrace))
-                        {
-                            routineEndpoint.NeedsParsing = true;
-                        }
-                        if (StrEquals(headerName, ContentTypeKey))
-                        {
-                            if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
-                            {
-                                if (options.LogAnnotationSetInfo)
-                                {
-                                    logger?.CommentSetContentType(description, headerValue);
-                                }
-                            }
-                            routineEndpoint.ResponseContentType = headerValue;
-                        }
-                        else
-                        {
-                            if (routineEndpoint.ResponseHeaders is null)
-                            {
-                                routineEndpoint.ResponseHeaders = new()
-                                {
-                                    [headerName] = new StringValues(headerValue)
-                                };
-                            }
-                            else
-                            {
-                                if (routineEndpoint.ResponseHeaders.TryGetValue(headerName, out StringValues values))
-                                {
-                                    routineEndpoint.ResponseHeaders[headerName] = StringValues.Concat(values, headerValue);
-                                }
-                                else
-                                {
-                                    routineEndpoint.ResponseHeaders.Add(headerName, new StringValues(headerValue));
-                                }
-                            }
-                            if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
-                            {
-                                if (options.LogAnnotationSetInfo)
-                                {
-                                    logger?.CommentSetHeader(description, headerName, headerValue);
-                                }
-                            }
-                        }
-                    }
-                }
             }
             if (disabled)
             {
@@ -1046,10 +1066,43 @@ internal static class DefaultCommentParser
         return false;
     }
 
-    private static string[] Split(string str)
+    private static string[] SplitWords(this string str) => [.. str
+        .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Trim().ToLowerInvariant())
+    ];
+
+    private static bool SplitBySeparatorChar(string str, char sep, out string part1, out string part2)
     {
-        return [.. str
-            .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Trim().ToLowerInvariant())];
+        part1 = null!;
+        part2 = null!;
+        if (str.Contains(sep) is false)
+        {
+            return false;
+        }
+
+        var parts = str.Split(sep, 2);
+        if (parts.Length == 2)
+        {
+            part1 = parts[0].Trim();
+            part2 = parts[1].Trim();
+            if (ContainsValidNameCharacter(part1))
+            {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public static bool ContainsValidNameCharacter(string input)
+    {
+        foreach (char c in input)
+        {
+            if (char.IsLetterOrDigit(c) is false && c != '-' && c != '_')
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

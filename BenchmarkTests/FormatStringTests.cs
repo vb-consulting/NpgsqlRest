@@ -3,13 +3,13 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using BenchmarkDotNet.Attributes;
-using NpgsqlRestClient;
+using NpgsqlRest;
 
 namespace BenchmarkTests;
 
 public class FormatStringTests
 {
-    private readonly Dictionary<string, string> replacements = new Dictionary<string, string>
+    private readonly Dictionary<string, string> replacements = new()
     {
         { "name", "John" },
         { "place", "NpgsqlRest" }
@@ -19,7 +19,7 @@ public class FormatStringTests
     public ReadOnlySpan<char> FormatStringMethod()
     {
         ReadOnlySpan<char> input = "Hello, {name}! Welcome to {place}.";
-        return DefaultResponseParser.FormatString(input, replacements);
+        return Formatter.FormatString(input, replacements);
     }
 
     [Benchmark]

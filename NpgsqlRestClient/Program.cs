@@ -9,6 +9,9 @@ using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRestClient.App;
 using Npgsql;
+using NpgsqlRest.UploadHandlers;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Options;
 
 if (Arguments.Parse(args) is false)
 {
@@ -27,6 +30,7 @@ if (connectionString is null)
     return;
 }
 var connectionStrings = GetConfigBool("UseMultipleConnections", NpgsqlRestCfg, true) ? BuildConnectionStringDict() : null;
+BuildDataProtection();
 BuildAuthentication();
 var usingCors = BuildCors();
 var compressionEnabled = ConfigureResponseCompression();
@@ -72,6 +76,10 @@ var (paramHandler, defaultParser) = CreateParametersHandlers();
 if (uploadHandlers is not null && uploadHandlers.Count > 1)
 {
     Logger?.Information("Using {0} upload handlers where {1} is default.", uploadHandlers.Keys, defaultUploadHandler);
+    foreach (var uploadHandler in uploadHandlers)
+    {
+        Logger?.Information("Upload handler {0} has following parameters: {1}", uploadHandler.Key, uploadHandler.Value().Parameters);
+    }
 }
 
 NpgsqlRestOptions options = new()

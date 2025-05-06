@@ -31,13 +31,16 @@ public class RoutineEndpoint(
     bool parseResponse = false,
     string? connectionName = null,
     bool upload = false,
-    string[]? uploadHandlers = null)
+    string[]? uploadHandlers = null,
+    Dictionary<string, string>? customParameters = null)
 {
     private string? _bodyParameterName = bodyParameterName;
-    internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
 
+    internal bool HasBodyParameter = !string.IsNullOrWhiteSpace(bodyParameterName);
     internal Action<ILogger, string, string, Exception?>? LogCallback { get; set; }
-    internal bool NeedsParsing { get; set; } = false;
+    internal bool HeadersNeedParsing { get; set; } = false;
+    internal bool CustomParamsNeedParsing { get; set; } = false;
+
     public Routine Routine { get; } = routine;
     public string Url { get; set; } = url;
     public Method Method { get; set; } = method;
@@ -77,4 +80,5 @@ public class RoutineEndpoint(
     public string? ConnectionName { get; set; } = connectionName;
     public bool Upload { get; set; } = upload;
     public string[]? UploadHandlers { get; set; } = uploadHandlers;
+    public Dictionary<string, string>? CustomParameters { get; set; } = customParameters;
 }

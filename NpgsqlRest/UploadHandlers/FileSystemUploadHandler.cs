@@ -1,38 +1,40 @@
-﻿using System.Text;
+﻿using System.IO;
+using System.Text;
 using Npgsql;
 using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
-public class FileSystemUploadHandler : IUploadHandler
+/// <summary>
+/// Custom parameters:
+/// - path: string - path to save the file
+/// - file: string - name of the file
+/// - unique_name: bool - whether to use a unique file name
+/// - create_path: bool - whether to create the path if it does not exist
+/// - buffer_size: int - size of the buffer to use when saving the file
+/// </summary>
+public class FileSystemUploadHandler(
+    string path = "./",
+    bool useUniqueFileName = true,
+    bool createPathIfNotExists = true,
+    int bufferSize = 8192) : IUploadHandler
 {
-    private readonly string _basePath;
-    private readonly bool _useUniqueFileName;
-    private readonly int _bufferSize;
+    private readonly string _basePath = path;
+    private readonly bool _useUniqueFileName = useUniqueFileName;
+    private readonly bool _createPathIfNotExists = createPathIfNotExists;
+    private readonly int _bufferSize = bufferSize;
     private string? _type = null;
     private string? _currentFilePath = null;
+    private readonly string[] _parameters = [
+        "path",
+        "file",
+        "unique_name",
+        "create_path",
+        "buffer_size"
+    ];
 
-    public FileSystemUploadHandler(
-        string path = "/tmp/uploads",
-        bool useUniqueFileName = true,
-        bool createPathIfNotExists = true,
-        int bufferSize = 8192)
-    {
-        _basePath = path;
-        _useUniqueFileName = useUniqueFileName;
-        _bufferSize = bufferSize;
-
-        // Ensure the directory exists
-        if (createPathIfNotExists is true && Directory.Exists(_basePath) is false)
-        {
-            Directory.CreateDirectory(_basePath);
-        }
-    }
-
-    public int BufferSize => _bufferSize;
-
-    // This implementation doesn't require a transaction
     public bool RequiresTransaction => false;
+    public string[] Parameters => _parameters;
 
     public IUploadHandler SetType(string type)
     {
@@ -40,8 +42,45 @@ public class FileSystemUploadHandler : IUploadHandler
         return this;
     }
 
-    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context)
+    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
+        var basePath = _basePath;
+        var useUniqueFileName = _useUniqueFileName;
+        var bufferSize = _bufferSize;
+        string? newFileName = null;
+        bool createPathIfNotExists = _createPathIfNotExists;
+
+        if (parameters is not null)
+        {
+            if (parameters.TryGetValue(_parameters[0], out var path) && !string.IsNullOrEmpty(path))
+            {
+                basePath = path;
+            }
+            if (parameters.TryGetValue(_parameters[1], out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
+            {
+                newFileName = newFileNameStr;
+            }
+            if (parameters.TryGetValue(_parameters[2], out var useUniqueFileNameStr) 
+                && bool.TryParse(useUniqueFileNameStr, out var useUniqueFileNameParsed))
+            {
+                useUniqueFileName = useUniqueFileNameParsed;
+            }
+            if (parameters.TryGetValue(_parameters[3], out var createPathIfNotExistsStr)
+                && bool.TryParse(createPathIfNotExistsStr, out var createPathIfNotExistsParsed))
+            {
+                createPathIfNotExists = createPathIfNotExistsParsed;
+            }
+            if (parameters.TryGetValue(_parameters[4], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
+            {
+                bufferSize = bufferSizeParsed;
+            }
+        }
+
+        if (createPathIfNotExists is true && Directory.Exists(basePath) is false)
+        {
+            Directory.CreateDirectory(basePath);
+        }
+
         StringBuilder result = new(context.Request.Form.Files.Count * 100);
         result.Append('[');
 
@@ -54,20 +93,17 @@ public class FileSystemUploadHandler : IUploadHandler
                 result.Append(',');
             }
 
-            // Generate file path (with unique name if specified)
-            string fileName = formFile.FileName;
-            if (_useUniqueFileName)
+            string fileName = newFileName ?? formFile.FileName;
+            if (useUniqueFileName)
             {
                 string extension = Path.GetExtension(fileName);
                 fileName = $"{Guid.NewGuid()}{extension}";
             }
 
-            _currentFilePath = Path.Combine(_basePath, fileName);
-
-            // Save the file
+            _currentFilePath = Path.Combine(basePath, fileName);
             using (var fileStream = new FileStream(_currentFilePath, FileMode.Create))
             {
-                byte[] buffer = new byte[BufferSize];
+                byte[] buffer = new byte[bufferSize];
                 int bytesRead;
                 using var sourceStream = formFile.OpenReadStream();
 

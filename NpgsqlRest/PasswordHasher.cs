@@ -1,7 +1,24 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 
 namespace NpgsqlRest;
+
+public interface IPasswordHasher
+{
+    /// <summary>
+    /// Hashes a password.
+    /// </summary>
+    /// <param name="password">The password to hash.</param>
+    /// <returns>A hashed representation of the password.</returns>
+    string HashPassword(string password);
+
+    /// <summary>
+    /// Verifies a provided password against a stored hash.
+    /// </summary>
+    /// <param name="hashedPassword">The stored hashed password.</param>
+    /// <param name="providedPassword">The password to verify.</param>
+    /// <returns>True if the password matches, false otherwise.</returns>
+    bool VerifyHashedPassword(string hashedPassword, string providedPassword);
+}
 
 public class PasswordHasher : IPasswordHasher
 {

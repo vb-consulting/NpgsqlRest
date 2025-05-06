@@ -181,4 +181,7 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Login endpoint {endpoint} failed to locate the password parameter in parameter collection {parameters}. Password parameter is the first that contains \"{contains}\" text in parameter name.")]
     public static partial void CantFindPasswordParameter(this ILogger logger, string endpoint, string?[]? parameters, string contains);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set {paramName} TO {paramValue}.")]
+    public static partial void CommentSetCustomParemeter(this ILogger logger, string description, string paramName, string paramValue);
 }

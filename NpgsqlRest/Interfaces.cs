@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Npgsql;
+﻿using Npgsql;
 
 namespace NpgsqlRest;
 
@@ -161,61 +160,4 @@ public interface IResponseParser
     /// </summary>
     /// <returns>Response string</returns>
     ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
-}
-
-public interface IPasswordHasher
-{
-    /// <summary>
-    /// Hashes a password.
-    /// </summary>
-    /// <param name="password">The password to hash.</param>
-    /// <returns>A hashed representation of the password.</returns>
-    string HashPassword(string password);
-
-    /// <summary>
-    /// Verifies a provided password against a stored hash.
-    /// </summary>
-    /// <param name="hashedPassword">The stored hashed password.</param>
-    /// <param name="providedPassword">The password to verify.</param>
-    /// <returns>True if the password matches, false otherwise.</returns>
-    bool VerifyHashedPassword(string hashedPassword, string providedPassword);
-}
-
-/// <summary>
-/// Interface for handling file uploads.
-/// </summary>
-public interface IUploadHandler
-{
-    /// <summary>
-    /// Set the type of the upload handler.
-    /// </summary>
-    /// <param name="type"></param>
-    IUploadHandler SetType(string type)
-    {
-        return this;
-    }
-
-    /// <summary>
-    /// Uploads a file from the context.
-    /// </summary>
-    /// <param name="connection">Opened connection object</param>
-    /// <param name="context">Http context</param>
-    /// <returns>
-    /// JSON string with upload metadata that is passed to the upload metadata parameter. 
-    /// It can be array of filename, mime type, size, etc. It depends on implementation.
-    /// </returns>
-    Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context);
-
-    /// <summary>
-    /// Connection in Upload call will be under transaction yes or no.
-    /// </summary>
-    bool RequiresTransaction { get; }
-
-    /// <summary>
-    /// Runs is the subsequent command fails.
-    /// </summary>
-    /// <param name="connection">Opened connection object</param>
-    /// <param name="context"></param>
-    /// <param name="exception"></param>
-    void OnError(NpgsqlConnection? connection, HttpContext context, Exception? exception);
 }

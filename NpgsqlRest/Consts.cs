@@ -12,6 +12,7 @@ public static class Consts
     public const char Comma = ',';
     public const char Backslash = '\\';
     public const char Colon = ':';
+    public const char Equal = '=';
     public const char OpenBrace = '{';
     public const char CloseBrace = '}';
     public const char OpenBracket = '[';
@@ -25,4 +26,5 @@ public static class Consts
     public const string NamedParam = "=>$";
     public const string OpenRow = "=>row(";
     public const string CloseRow = ")::";
+    public const char At = '@';
 }

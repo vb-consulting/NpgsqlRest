@@ -11,7 +11,7 @@ public class UploadHandlerOptions
     public string FileSystemKey { get; set; } = "file_system";
     public string FileSystemHandlerPath { get; set; } = "./";
     public bool FileSystemHandlerUseUniqueFileName { get; set; } = true;
-    public bool FileSystemHandlerCreatePathIfNotExists { get; set; } = true;
+    public bool FileSystemHandlerCreatePathIfNotExists { get; set; } = false;
     public int FileSystemHandlerBufferSize { get; set; } = 8192;
 
     public static Dictionary<string, Func<IUploadHandler>>? CreateUploadHandlers(UploadHandlerOptions options)
