@@ -42,6 +42,12 @@ buffer number
 
 Sets the buffered amount of rows before they are written to the response for this endpoint.
 
+This value can also be set using custom parameters by setting number values to paremeters with same name:
+- `bufferrows`
+- `buffer_rows`
+- `buffer-rows`
+- `buffer`
+
 ## Cached
 
 ```console
@@ -88,6 +94,11 @@ column-names
                                                 
 ```
 
+This value can also be set using custom parameters by setting true or false value to paremeters with these names:
+- `columnnames`
+- `column_names`
+- `column-names`
+
 If this option is set to true - and if the endpoint is in the "raw" mode - the endpoint will contain header names. If separators are applied, they will be used also.
 
 ## CommandTimeout
@@ -115,6 +126,12 @@ connection-name [ name ]
 ```
 
 Defines an alternative connection name. The name must be an existing key in a `ConnectionStrings` dictionary option. This is useful when some routines have to read from read-only replicas. However, the same routine also has to exist on the primary connection to be able to build the necessary metadata.
+
+This value can also be set using custom parameters by setting text value to paremeters with these names:
+- `connection`
+- `connectionname`
+- `connection_name`
+- `connection-name`
 
 ## Custom Parameters
 
@@ -220,6 +237,14 @@ newline [ newline ]
                                                 
 ```
 
+This value can also be set using custom parameters by setting text value to paremeters with these names:
+- `newline`
+- `new_line`
+- `new-line`
+- `rawnewline`
+- `raw_new_line`
+- `raw-new-line`
+
 Defines a standard separator between raw value columns. It only applies when `raw` is on.
 
 ## Parameter Hash
@@ -286,6 +311,12 @@ Sets the response NULL handling option for the query string parameters:
 ```console
                                                 
 raw                                             
+rawmode                                         
+raw_mode                                        
+raw-mode                                        
+rawresults                                      
+raw_results                                     
+raw-results                                     
                                                 
 ```
 
@@ -326,6 +357,15 @@ Transfer-Encoding: chunked
 456,"2024-12-31 00:00:00",f,"another text"
 
 ```
+
+This value can also be set using custom parameters by setting true or false value to paremeters with these names:
+- `raw`
+- `rawmode`
+- `raw_mode`
+- `raw-mode`
+- `rawresults`
+- `raw_results`
+- `raw-results`
 
 ## RequestHeadersMode
 
@@ -445,6 +485,12 @@ separator [ separator_value ]
 
 Defines a standard separator between raw values. It only applies when `raw` is on.
 
+This value can also be set using custom parameters by setting text value to paremeters with these names:
+- `separator`
+- `rawseparator`
+- `raw_separator`
+- `raw-separator`
+
 ## Tags
 
 ```console
@@ -470,3 +516,117 @@ upload param_name as metadata
 Marks routines as Upload endpoint.
 
 Optionally, set handler name (or multiple handlers names) - or set the upload metadata parameter name.
+
+# Tags
+
+Tags are applied by different routine sources that can generate a valid endpoint. They are used with following comment annotations:
+
+- Tag: `for tag1, tag2, tag3 [, ...]`
+- Enabled: `enabled [ tag1, tag2, tag3 [, ...] ]`
+- Disabled: `disabled [ tag1, tag2, tag3 [, ...] ]`
+
+## Function or Procedure Source
+
+This source generates tags based on routine volatility:
+
+- `volatile`
+- `stable`
+- `immutable`
+- `other`
+
+## Table or View CRUD Source
+
+### Select Routines
+
+- `select`
+- `read`
+- `get`
+
+### Update Returning Routines
+
+- `update`
+- `post`
+- `updatereturning`
+- `update-returning`
+- `update_returning`
+- `returning`
+
+### Delete Routines
+
+- `delete`
+
+### Delete Returning Routines
+
+- `delete`
+- `deletereturning`
+- `delete-returning`
+- `delete_returning`
+- `returning`
+
+### Insert Routines
+
+- `insert`
+- `put`
+- `create`
+
+### Insert On Conflict Do Nothing Routines
+
+- `insert`
+- `put`
+- `create`
+- `insertonconflictdonothing`
+- `insert-on-conflict-do-nothing`
+- `insert_on_conflict_do_nothing`
+- `onconflictdonothing`
+- `on-conflict-do-nothing`
+- `on_conflict_do_nothing`
+- `onconflict`
+- `on_conflict`
+- `on-conflict`
+
+### Insert On Conflict Do Nothing Returning Routines
+
+- `insert`
+- `put`
+- `create`
+- `insertonconflictdonothingreturning`
+- `insert-on-conflict-do-nothing-returning`
+- `insert_on_conflict_do_nothing-returning`
+- `onconflictdonothing`
+- `on-conflict-do-nothing`
+- `on_conflict_do_nothing`
+- `onconflict`
+- `on_conflict`
+- `on-conflict`
+- `returning`
+
+### Insert On Conflict Do Update Routines
+
+- `insert`
+- `put`
+- `create`
+- `insertonconflictdoupdate`
+- `insert-on-conflict-do-update`
+- `insert_on_conflict_do_update`
+- `onconflictdoupdate`
+- `onconflict`
+- `on_conflict`
+- `on-conflict`
+- `on-conflict-do-update`
+- `on_conflict_do_update`
+
+### Insert On Conflict Do Update Returning Routines
+
+- `insert`
+- `put`
+- `create`
+- `insertonconflictdoupdatereturning`
+- `insert-on-conflict-do-update-returning`
+- `insert_on_conflict_do_update_returning`
+- `onconflictdoupdate`
+- `on-conflict-do-update`
+- `on_conflict_do_update`
+- `onconflict`
+- `on_conflict`
+- `on-conflict`
+- `returning`

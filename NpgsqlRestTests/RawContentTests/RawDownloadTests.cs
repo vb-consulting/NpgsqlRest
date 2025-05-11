@@ -2,7 +2,7 @@ namespace NpgsqlRestTests;
 
 public static partial class Database
 {
-    public static void HeaderValueTemplateTests()
+    public static void RawDownloadTests()
     {
         script.Append(
         """
@@ -54,7 +54,7 @@ public static partial class Database
 }
 
 [Collection("TestFixture")]
-public class HeaderValueTemplateTests(TestFixture test)
+public class RawDownloadTests(TestFixture test)
 {
     [Fact]
     public async Task Test_header_template_response1()

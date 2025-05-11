@@ -166,39 +166,27 @@ public class RoutineSource(
                 string?[] paramDefaults = new string?[paramCount];
                 bool[] hasParamDefaults = new bool[paramCount];
 
-                if (string.IsNullOrEmpty(argumentDef))
-                {
-                    for (int i = 0; i < paramCount; i++)
-                    {
-                        paramDefaults[i] = null;
-                        hasParamDefaults[i] = false;
-                    }
-                }
-                else
+                if (string.IsNullOrEmpty(argumentDef) is false)
                 {
                     const string defaultArgExp = " DEFAULT ";
+                    var defParts = argumentDef.Split(Consts.Comma, StringSplitOptions.TrimEntries);
                     for (int i = 0; i < paramCount; i++)
                     {
-                        string paramName = originalParamNames[i] ?? "";
-                        string? nextParamName = i < paramCount - 1 ? originalParamNames[i + 1] : null;
-
-                        int startIndex = argumentDef.IndexOf(paramName);
-                        int endIndex = nextParamName != null ? argumentDef.IndexOf(string.Concat(", " + nextParamName, " ")) : argumentDef.Length;
-
-                        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex)
+                        string paramName = originalParamNames[i];
+                        if (paramName is null)
                         {
-                            string paramDef = argumentDef[startIndex..endIndex];
-
-                            int defaultIndex = paramDef.IndexOf(defaultArgExp);
-                            if (defaultIndex != -1)
+                            continue;
+                        }
+                        if (i < defParts.Length)
+                        { 
+                            if (defParts[i].Contains(paramName) is false)
                             {
-                                string defaultValue = paramDef[(defaultIndex + 9)..].Trim();
-
-                                if (defaultValue.EndsWith(Consts.Comma))
-                                {
-                                    defaultValue = defaultValue[..^1].Trim();
-                                }
-
+                                continue;
+                            }
+                            int idx = defParts[i].IndexOf(defaultArgExp);
+                            if (idx != -1)
+                            {
+                                string defaultValue = defParts[i][(idx + defaultArgExp.Length)..];
                                 paramDefaults[i] = defaultValue;
                                 hasParamDefaults[i] = true;
                             }
@@ -207,11 +195,6 @@ public class RoutineSource(
                                 paramDefaults[i] = null;
                                 hasParamDefaults[i] = false;
                             }
-                        }
-                        else
-                        {
-                            paramDefaults[i] = null;
-                            hasParamDefaults[i] = false;
                         }
                     }
                 }

@@ -2,13 +2,20 @@
 using System.Text.Json;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace NpgsqlRest;
 
 [JsonSerializable(typeof(string))]
 internal partial class NpgsqlRestSerializerContext : JsonSerializerContext;
 
-internal static class PgConverters
+internal static partial class ParameterPattern
+{
+    [GeneratedRegex(@"\$\d+")]
+    public static partial Regex PostgreSqlParameterPattern();
+}
+
+public static class PgConverters
 {
     private static readonly JsonSerializerOptions PlainTextSerializerOptions = new()
     {
@@ -20,15 +27,21 @@ internal static class PgConverters
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    public static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+    internal static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+
+    [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
+    Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
+    [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
+    Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
+    internal static string SerializeObject(object? value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
 
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    public static string SerializeString(ref ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
-    
-    public static ReadOnlySpan<char> PgUnknownToJsonArray(ref ReadOnlySpan<char> value)
+    internal static string SerializeString(ref ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
+
+    internal static ReadOnlySpan<char> PgUnknownToJsonArray(ref ReadOnlySpan<char> value)
     {
         if (value[0] != Consts.OpenParenthesis || value[^1] != Consts.CloseParenthesis)
         {
@@ -99,7 +112,7 @@ internal static class PgConverters
         return result.ToString();
     }
 
-    public static ReadOnlySpan<char> PgArrayToJsonArray(ReadOnlySpan<char> value, TypeDescriptor descriptor)
+    internal static ReadOnlySpan<char> PgArrayToJsonArray(ReadOnlySpan<char> value, TypeDescriptor descriptor)
     {
         var len = value.Length;
         if (value.IsEmpty || len < 3 || value[0] != Consts.OpenBrace || value[^1] != Consts.CloseBrace)
@@ -212,8 +225,8 @@ internal static class PgConverters
         result.Append(Consts.CloseBracket);
         return result.ToString().AsSpan();
     }
-    
-    public static string QuoteText(ReadOnlySpan<char> value)
+
+    internal static string QuoteText(ReadOnlySpan<char> value)
     {
         int newLength = value.Length + 2;
         for (int i = 0; i < value.Length; i++)
@@ -241,8 +254,8 @@ internal static class PgConverters
         result[currentPos] = Consts.DoubleQuote;
         return new string(result);
     }
-    
-    public static string QuoteDateTime(ref ReadOnlySpan<char> value)
+
+    internal static string QuoteDateTime(ref ReadOnlySpan<char> value)
     {
         int newLength = value.Length + 2;
         Span<char> result = stackalloc char[newLength];
@@ -262,8 +275,8 @@ internal static class PgConverters
         result[currentPos] = Consts.DoubleQuote;
         return new string(result);
     }
-    
-    public static string Quote(ref ReadOnlySpan<char> value)
+
+    internal static string Quote(ref ReadOnlySpan<char> value)
     {
         int newLength = value.Length + 2;
         Span<char> result = stackalloc char[newLength];
@@ -275,5 +288,55 @@ internal static class PgConverters
         }
         result[currentPos] = Consts.DoubleQuote;
         return new string(result);
+    }
+
+    public static int PgCountParams(this string sql)
+    {
+        return ParameterPattern.PostgreSqlParameterPattern().Matches(sql).Count;
+    }
+
+    public static string SerializeDatbaseObject(object? value)
+    {
+        if (value is null || value == DBNull.Value)
+        {
+            return Consts.Null;
+        }
+        if (value is string stringValue)
+        {
+            return SerializeObject(stringValue);
+        }
+        else if (value is int or long or double or decimal or float or short or byte)
+        {
+            return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)!;
+        }
+        else if (value is bool boolValue)
+        {
+            return boolValue.ToString().ToLowerInvariant();
+        }
+        else if (value is DateTime dateTime)
+        {
+            return string.Concat("\"", dateTime.ToString("o"), "\"");
+        }
+        else if (value is Array array)
+        {
+            return FormatArray(array);
+        }
+        else
+        {
+            return string.Concat("\"", value.ToString(), "\"");
+        }
+    }
+
+    private static string FormatArray(Array array)
+    {
+        var elements = new List<string>();
+
+        for (int i = 0; i < array.Length; i++)
+        {
+            var item = array.GetValue(i);
+            elements.Add(SerializeDatbaseObject(item));
+        }
+
+        return $"[{string.Join(",", elements)}]";
     }
 }

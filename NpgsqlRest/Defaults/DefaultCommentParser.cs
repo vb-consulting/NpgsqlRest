@@ -1,7 +1,9 @@
-﻿using System.Net.WebSockets;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Net.Http.Headers;
 
 namespace NpgsqlRest.Defaults;
 
@@ -119,9 +121,32 @@ internal static class DefaultCommentParser
         "buffer"
     ];
 
-    private const string RawKey = "raw";
-    private const string SeparatorKey = "separator";
-    private const string NewLineKey = "newline";
+    private static readonly string[] rawKey = [
+        "raw",
+        "rawmode",
+        "raw_mode",
+        "raw-mode",
+        "rawresults",
+        "raw_results",
+        "raw-results",
+    ];
+
+    private static readonly string[] separatorKey = [
+        "separator",
+        "rawseparator",
+        "raw_separator",
+        "raw-separator",
+    ];
+
+    private static readonly string[] newLineKey = [
+        "newline",
+        "new_line",
+        "new-line",
+        "rawnewline",
+        "raw_new_line",
+        "raw-new-line"
+    ];
+
     private static readonly string[] columnNamesKey = [
         "columnnames",
         "column_names",
@@ -242,17 +267,7 @@ internal static class DefaultCommentParser
                     {
                         routineEndpoint.CustomParamsNeedParsing = true;
                     }
-                    if (routineEndpoint.CustomParameters is null)
-                    {
-                        routineEndpoint.CustomParameters = new()
-                        {
-                            [customParamName] = customParamValue
-                        };
-                    }
-                    else
-                    {
-                        routineEndpoint.CustomParameters[customParamName] = customParamValue;
-                    }
+                    SetCustomParameter(routineEndpoint, customParamName, customParamValue, options);
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentSetCustomParemeter(description, customParamName, customParamValue);
@@ -705,14 +720,24 @@ internal static class DefaultCommentParser
                 }
 
                 // raw
-                else if (haveTag is true && StrEquals(words[0], RawKey))
+                // rawmode
+                // raw_mode
+                // raw-mode
+                // rawresults
+                // raw_results
+                // raw-results
+                else if (haveTag is true && StrEqualsToArray(words[0], rawKey))
                 {
                     logger?.CommentSetRawMode(description);
                     routineEndpoint.Raw = true;
                 }
 
                 // separator [ value ]
-                else if (haveTag is true && line.StartsWith(string.Concat(SeparatorKey, " ")))
+                // rawseparator [ value ]
+                // raw_separator [ value ]
+                // raw-separator [ value ]
+                else if (haveTag is true && line.StartsWith(string.Concat(separatorKey[0], " ")))
+                //else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], separatorKey))
                 {
                     var sep = line[(words[0].Length + 1)..];
                     logger?.CommentSetRawValueSeparator(description, sep);
@@ -720,7 +745,13 @@ internal static class DefaultCommentParser
                 }
 
                 // newline [ value ]
-                else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(NewLineKey, " ")))
+                // new_line [ value ]
+                // new-line [ value ]
+                // rawnewline [ value ]
+                // raw_new_line [ value ]
+                // raw-new-line [ value ]
+                else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(newLineKey[0], " ")))
+                //else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], newLineKey))
                 {
                     var nl = line[(words[0].Length + 1)..];
                     logger?.CommentSetRawNewLineSeparator(description, nl);
@@ -810,7 +841,7 @@ internal static class DefaultCommentParser
                 // cache_expires
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], cacheExpiresInKey))
                 {
-                    var value = TimeSpanParser.ParsePostgresInterval(string.Join(Consts.Space, words[1..]));
+                    var value = Parser.ParsePostgresInterval(string.Join(Consts.Space, words[1..]));
                     if (value is not null)
                     {
                         routineEndpoint.CacheExpiresIn = value.Value;
@@ -1052,9 +1083,63 @@ internal static class DefaultCommentParser
         return routineEndpoint;
     }
 
+    public static void SetCustomParameter(RoutineEndpoint endpoint, string name, string value, NpgsqlRestOptions options)
+    {
+        value = Regex.Unescape(value);
+        if (endpoint.CustomParameters is null)
+        {
+            endpoint.CustomParameters = new()
+            {
+                [name] = value
+            };
+        }
+        else
+        {
+            endpoint.CustomParameters[name] = value;
+        }
+
+        if (StrEqualsToArray(name, bufferRowsKey))
+        {
+            if (ulong.TryParse(value, out var parsedBuffer))
+            {
+                endpoint.BufferRows = parsedBuffer;
+            }
+        }
+        else if (StrEqualsToArray(name, rawKey))
+        {
+            if (bool.TryParse(value, out var parsedRaw))
+            {
+                endpoint.Raw = parsedRaw;
+            }
+        }
+        else if (StrEqualsToArray(name, separatorKey))
+        {
+            endpoint.RawValueSeparator = value;
+        }
+        else if (StrEqualsToArray(name, newLineKey))
+        {
+            endpoint.RawNewLineSeparator = value;
+        }
+        else if (StrEqualsToArray(name, columnNamesKey))
+        {
+            if (bool.TryParse(value, out var parsedRawColumnNames))
+            {
+                endpoint.RawColumnNames = parsedRawColumnNames;
+            }
+        }
+        else if (StrEqualsToArray(name, connectionNameKey))
+        {
+            //if (options.ConnectionStrings is not null && options.ConnectionStrings.ContainsKey(value) is true)
+            //{
+            //    endpoint.ConnectionName = value;
+            //}
+            endpoint.ConnectionName = value;
+        }
+    }
+
     private static bool StrEquals(string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
 
-    private static bool StrEqualsToArray(string str, string[] arr)
+    private static bool StrEqualsToArray(string str, params string[] arr)
     {
         for (var i = 0; i < arr.Length; i++)
         {

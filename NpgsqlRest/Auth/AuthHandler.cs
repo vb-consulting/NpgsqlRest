@@ -212,7 +212,7 @@ internal static class AuthHandler
                 if (passwordVerificationFailedCommand is not null)
                 {
                     passwordVerificationFailedCommand.CommandText = options.AuthenticationOptions.PasswordVerificationFailedCommand;
-                    var paramCount = PostgreSqlParameterCounter.CountParameters(passwordVerificationFailedCommand.CommandText);
+                    var paramCount = passwordVerificationFailedCommand.CommandText.PgCountParams();
                     if (paramCount >= 1) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
                     {
                         Value = scheme is null ? DBNull.Value : scheme,

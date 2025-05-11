@@ -12,7 +12,6 @@ using static System.Net.Mime.MediaTypeNames;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRest.Auth.ClaimsDictionary;
-using NpgsqlRest.Auth;
 
 namespace NpgsqlRestClient;
 
@@ -356,7 +355,7 @@ public static class ExternalAuth
         using var command = connection.CreateCommand();
         command.CommandText = ExternalAuthConfig.LoginCommand;
 
-        var paramCount = PostgreSqlParameterCounter.CountParameters(command.CommandText);
+        var paramCount = command.CommandText.PgCountParams();
         if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
         {
             Value = config.ExternalType,

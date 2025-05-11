@@ -1,26 +1,22 @@
-﻿using System.Text;
+﻿using System.Net.Mime;
+using System.Text;
 using Npgsql;
 using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
-/// <summary>
-/// Custom parameters:
-/// - oid: OID of the large object to upload to. If not specified, it will be chosen by database.
-/// - buffer_size: int - size of the buffer to use when saving the file
-/// </summary>
-public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
+public class LargeObjectUploadHandler(UploadHandlerOptions options, ILogger? logger) : IUploadHandler
 {
-    public bool RequiresTransaction => true;
-    public string[] Parameters => _parameters;
-
     private readonly string[] _parameters = [
+        "included_mime_types",
+        "excluded_mime_types",
         "oid",
         "buffer_size"
     ];
-    private int _bufferSize => bufferSize;
-    private object? _oid = null;
     private string? _type = null;
+
+    public bool RequiresTransaction => true;
+    public string[] Parameters => _parameters;
 
     public IUploadHandler SetType(string type)
     {
@@ -30,16 +26,26 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
 
     public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var bufferSize = _bufferSize;
-
+        string[]? includedMimeTypePatterns = options.LargeObjectIncludedMimeTypePatterns;
+        string[]? excludedMimeTypePatterns = options.LargeObjectExcludedMimeTypePatterns;
+        var bufferSize = options.LargeObjectHandlerBufferSize;
         long? oid = null;
+
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(_parameters[0], out var oidStr) && long.TryParse(oidStr, out var oidParsed))
+            if (parameters.TryGetValue(_parameters[0], out var includedMimeTypeStr) && includedMimeTypeStr is not null)
+            {
+                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
+            }
+            if (parameters.TryGetValue(_parameters[1], out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
+            {
+                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
+            }
+            if (parameters.TryGetValue(_parameters[2], out var oidStr) && long.TryParse(oidStr, out var oidParsed))
             {
                 oid = oidParsed;
             }
-            if (parameters.TryGetValue(_parameters[1], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
+            if (parameters.TryGetValue(_parameters[3], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
             {
                 bufferSize = bufferSizeParsed;
             }
@@ -47,14 +53,20 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
 
         StringBuilder result = new(context.Request.Form.Files.Count*100);
         result.Append('[');
+        int fileId = 0;
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
+            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            {
+                continue;
+            }
 
-            if (i > 0)
+            if (fileId > 0)
             {
                 result.Append(',');
             }
+
             if (_type is not null)
             {
                 result.Append("{\"type\":");
@@ -73,16 +85,16 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
             result.Append(",\"oid\":");
 
             using var command = new NpgsqlCommand(oid is null ? "select lo_create(0)" : string.Concat("select lo_create(", oid.ToString(), ")"), connection);
-            _oid = await command.ExecuteScalarAsync();
+            var resultOid = await command.ExecuteScalarAsync();
             
-            result.Append(_oid);
+            result.Append(resultOid);
             result.Append('}');
 
             command.CommandText = "select lo_put($1,$2,$3)";
             command.Parameters.Add(new NpgsqlParameter() 
             { 
                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Oid,
-                Value = _oid
+                Value = resultOid
             });
             command.Parameters.Add(new NpgsqlParameter() { NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bigint });
             command.Parameters.Add(new NpgsqlParameter() { NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bytea });
@@ -98,6 +110,11 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
                 await command.ExecuteNonQueryAsync();
                 offset += bytesRead;
             }
+            if (options.LogUploadEvent)
+            {
+                logger?.UploadedFileToLargeObject(formFile.FileName, formFile.ContentType, formFile.Length, resultOid);
+            }
+            fileId++;
         }
 
         result.Append(']');
@@ -106,17 +123,5 @@ public class LargeObjectUploadHandler(int bufferSize = 8192) : IUploadHandler
 
     public void OnError(NpgsqlConnection? connection, HttpContext context, Exception? exception)
     {
-        if (exception is not null || connection is null || _oid is null)
-        {
-            return;
-        }
-
-        using var command = new NpgsqlCommand("select lo_unlink($1)", connection);
-        command.Parameters.Add(new NpgsqlParameter()
-        {
-            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Oid,
-            Value = _oid
-        });
-        command.ExecuteNonQuery();
     }
 }

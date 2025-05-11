@@ -10,6 +10,7 @@ public static class Consts
     public const char OpenParenthesis = '(';
     public const char CloseParenthesis = ')';
     public const char Comma = ',';
+    public const char Dot = '.';
     public const char Backslash = '\\';
     public const char Colon = ':';
     public const char Equal = '=';
@@ -27,4 +28,6 @@ public static class Consts
     public const string OpenRow = "=>row(";
     public const string CloseRow = ")::";
     public const char At = '@';
+    public const char Multiply = '*';
+    public const char Question = '?';
 }

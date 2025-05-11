@@ -41,7 +41,7 @@ public static class NpgsqlRestMetadataBuilder
         Dictionary<string, NpgsqlRestMetadataEntry> overloads = [];
 
         // Create default upload handlers from upload handler options
-        options.UploadHandlers ??= UploadHandlerOptions.CreateUploadHandlers(options.DefaultUploadHandlerOptions);
+        options.UploadHandlers ??= options.DefaultUploadHandlerOptions.CreateUploadHandlers();
 
         var hasLogin = false;
         if (builder is not null)

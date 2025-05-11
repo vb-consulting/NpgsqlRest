@@ -1,37 +1,23 @@
-﻿using System.IO;
+﻿using System.Net.Mime;
 using System.Text;
 using Npgsql;
 using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
-/// <summary>
-/// Custom parameters:
-/// - path: string - path to save the file
-/// - file: string - name of the file
-/// - unique_name: bool - whether to use a unique file name
-/// - create_path: bool - whether to create the path if it does not exist
-/// - buffer_size: int - size of the buffer to use when saving the file
-/// </summary>
-public class FileSystemUploadHandler(
-    string path = "./",
-    bool useUniqueFileName = true,
-    bool createPathIfNotExists = true,
-    int bufferSize = 8192) : IUploadHandler
+public class FileSystemUploadHandler(UploadHandlerOptions options, ILogger? logger) : IUploadHandler
 {
-    private readonly string _basePath = path;
-    private readonly bool _useUniqueFileName = useUniqueFileName;
-    private readonly bool _createPathIfNotExists = createPathIfNotExists;
-    private readonly int _bufferSize = bufferSize;
-    private string? _type = null;
-    private string? _currentFilePath = null;
     private readonly string[] _parameters = [
+        "included_mime_types",
+        "excluded_mime_types",
         "path",
         "file",
         "unique_name",
         "create_path",
         "buffer_size"
     ];
+    private string? _type = null;
+    private string[]? _uploadedFiles = null;
 
     public bool RequiresTransaction => false;
     public string[] Parameters => _parameters;
@@ -44,33 +30,44 @@ public class FileSystemUploadHandler(
 
     public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var basePath = _basePath;
-        var useUniqueFileName = _useUniqueFileName;
-        var bufferSize = _bufferSize;
+        string[]? includedMimeTypePatterns = options.FileSystemIncludedMimeTypePatterns;
+        string[]? excludedMimeTypePatterns = options.FileSystemExcludedMimeTypePatterns;
+
+        var basePath = options.FileSystemHandlerPath;
+        var useUniqueFileName = options.FileSystemHandlerUseUniqueFileName;
+        var bufferSize = options.FileSystemHandlerBufferSize;
         string? newFileName = null;
-        bool createPathIfNotExists = _createPathIfNotExists;
+        bool createPathIfNotExists = options.FileSystemHandlerCreatePathIfNotExists;
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(_parameters[0], out var path) && !string.IsNullOrEmpty(path))
+            if (parameters.TryGetValue(_parameters[0], out var includedMimeTypeStr) && includedMimeTypeStr is not null)
+            {
+                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
+            }
+            if (parameters.TryGetValue(_parameters[1], out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
+            {
+                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
+            }
+            if (parameters.TryGetValue(_parameters[2], out var path) && !string.IsNullOrEmpty(path))
             {
                 basePath = path;
             }
-            if (parameters.TryGetValue(_parameters[1], out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
+            if (parameters.TryGetValue(_parameters[3], out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
             {
                 newFileName = newFileNameStr;
             }
-            if (parameters.TryGetValue(_parameters[2], out var useUniqueFileNameStr) 
+            if (parameters.TryGetValue(_parameters[4], out var useUniqueFileNameStr) 
                 && bool.TryParse(useUniqueFileNameStr, out var useUniqueFileNameParsed))
             {
                 useUniqueFileName = useUniqueFileNameParsed;
             }
-            if (parameters.TryGetValue(_parameters[3], out var createPathIfNotExistsStr)
+            if (parameters.TryGetValue(_parameters[5], out var createPathIfNotExistsStr)
                 && bool.TryParse(createPathIfNotExistsStr, out var createPathIfNotExistsParsed))
             {
                 createPathIfNotExists = createPathIfNotExistsParsed;
             }
-            if (parameters.TryGetValue(_parameters[4], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
+            if (parameters.TryGetValue(_parameters[6], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
             {
                 bufferSize = bufferSizeParsed;
             }
@@ -81,14 +78,20 @@ public class FileSystemUploadHandler(
             Directory.CreateDirectory(basePath);
         }
 
+        _uploadedFiles = new string[context.Request.Form.Files.Count];
         StringBuilder result = new(context.Request.Form.Files.Count * 100);
         result.Append('[');
-
+        
+        int fileId = 0;
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
+            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            {
+                continue;
+            }
 
-            if (i > 0)
+            if (fileId > 0)
             {
                 result.Append(',');
             }
@@ -100,8 +103,8 @@ public class FileSystemUploadHandler(
                 fileName = $"{Guid.NewGuid()}{extension}";
             }
 
-            _currentFilePath = Path.Combine(basePath, fileName);
-            using (var fileStream = new FileStream(_currentFilePath, FileMode.Create))
+            var currentFilePath = Path.Combine(basePath, fileName);
+            using (var fileStream = new FileStream(currentFilePath, FileMode.Create))
             {
                 byte[] buffer = new byte[bufferSize];
                 int bytesRead;
@@ -112,6 +115,7 @@ public class FileSystemUploadHandler(
                     await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
                 }
             }
+            _uploadedFiles[i] = currentFilePath;
 
             // Build the result JSON
             if (_type is not null)
@@ -131,8 +135,13 @@ public class FileSystemUploadHandler(
             result.Append(",\"size\":");
             result.Append(formFile.Length);
             result.Append(",\"filePath\":");
-            result.Append(SerializeString(_currentFilePath));
+            result.Append(SerializeString(currentFilePath));
             result.Append('}');
+            if (options.LogUploadEvent)
+            {
+                logger?.UploadedFileToFileSystem(formFile.FileName, formFile.ContentType, formFile.Length, currentFilePath);
+            }
+            fileId++;
         }
 
         result.Append(']');
@@ -141,16 +150,22 @@ public class FileSystemUploadHandler(
 
     public void OnError(NpgsqlConnection? connection, HttpContext context, Exception? exception)
     {
-        // If there was an error and we have a current file path, delete the file
-        if (_currentFilePath != null && File.Exists(_currentFilePath))
+        if (_uploadedFiles is not null)
         {
-            try
+            for(int i = 0; i < _uploadedFiles.Length; i++)
             {
-                File.Delete(_currentFilePath);
-            }
-            catch
-            {
-                // Ignore any exceptions during cleanup
+                var filePath = _uploadedFiles[i];
+                try
+                {
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                    }
+                }
+                catch
+                {
+                    // Ignore any exceptions during cleanup
+                }
             }
         }
     }

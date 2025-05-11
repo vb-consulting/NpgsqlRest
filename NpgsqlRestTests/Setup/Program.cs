@@ -97,7 +97,7 @@ public class Program
 
         app.UseNpgsqlRest(new(connectionString)
         {
-            //NameSimilarTo = "case_overload",
+            //NameSimilarTo = "get_conn1_connection_name_p",
             //SchemaSimilarTo = "custom_param_schema",
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,

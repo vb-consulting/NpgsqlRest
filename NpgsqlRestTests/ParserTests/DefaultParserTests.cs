@@ -1,6 +1,6 @@
-﻿namespace NpgsqlRestTests.ClientTests;
+﻿namespace NpgsqlRestTests.ParserTests;
 
-public class DefaultParserTests
+public class MimeTypeFilterTests
 {
     [Fact]
     public void Parse_simple()

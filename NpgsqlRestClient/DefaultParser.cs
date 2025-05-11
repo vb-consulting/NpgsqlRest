@@ -27,15 +27,6 @@ public class DefaultResponseParser(
     private readonly Dictionary<string, StringValues>? customClaims = customClaims;
     private readonly Dictionary<string, string?>? customParameters = customParameters;
 
-    private const string @null = "null";
-    private const char @quote = '"';
-    private const char @arrOpen = '[';
-    private const char @arrClose = ']';
-    private const char @comma = ',';
-    private const char @dot = '.';
-    private const char @multiply = '*';
-    private const char @question = '?';
-
     public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context)
     {
         return Parse(input, context, null);
@@ -48,36 +39,36 @@ public class DefaultResponseParser(
         if (userIdParameterName is not null)
         {
             var value = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            replacements.Add(userIdParameterName, value is null ? @null : string.Concat(@quote, value, @quote)); 
+            replacements.Add(userIdParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote)); 
         }
         if (userNameParameterName is not null)
         {
             var value = context.User.Identity?.Name;
-            replacements.Add(userNameParameterName, value is null ? @null : string.Concat(@quote, value, @quote));
+            replacements.Add(userNameParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
         }
         if (userRolesParameterName is not null)
         {
-            var value = context.User.FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?.Select(r => string.Concat(@quote, r.Value, @quote));
-            replacements.Add(userRolesParameterName, value is null ? @null : string.Concat(@arrOpen, string.Join(@comma, value), @arrClose));
+            var value = context.User.FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?.Select(r => string.Concat(Consts.DoubleQuote, r.Value, Consts.DoubleQuote));
+            replacements.Add(userRolesParameterName, value is null ? Consts.Null : string.Concat(Consts.OpenBracket, string.Join(Consts.Comma, value), Consts.CloseBracket));
         }
         if (ipAddressParameterName is not null)
         {
             var value = App.GetClientIpAddress(context.Request);
-            replacements.Add(ipAddressParameterName, value is null ? @null : string.Concat(@quote, value, @quote));
+            replacements.Add(ipAddressParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
         }
         if (customClaims is not null)
         {
             foreach (var (key, value) in customClaims)
             {
                 var claim = context.User.FindFirst(key);
-                replacements.Add(key, claim is null ? @null : string.Concat(@quote, claim.Value, @quote));
+                replacements.Add(key, claim is null ? Consts.Null : string.Concat(Consts.DoubleQuote, claim.Value, Consts.DoubleQuote));
             }
         }
         if (customParameters is not null)
         {
             foreach (var (key, value) in customParameters)
             {
-                replacements.Add(key, value is null ? @null : string.Concat(@quote, value, @quote));
+                replacements.Add(key, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
             }
         }
         if (tokenSet is not null && (antiforgeryFieldNameTag is not null || antiforgeryTokenTag is not null))
@@ -92,52 +83,5 @@ public class DefaultResponseParser(
             }
         }
         return Formatter.FormatString(input, replacements);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsPatternMatch(string name, string pattern)
-    {
-        if (name == null || pattern == null) return false;
-        int nl = name.Length, pl = pattern.Length;
-        if (nl == 0 || pl == 0) return false;
-
-        if (pl > 1 && pattern[0] == @multiply && pattern[1] == @dot)
-        {
-            ReadOnlySpan<char> ext = pattern.AsSpan(1);
-            return nl > ext.Length && name.AsSpan(nl - ext.Length).Equals(ext, StringComparison.OrdinalIgnoreCase);
-        }
-
-        int ni = 0, pi = 0;
-        int lastStar = -1, lastMatch = 0;
-
-        while (ni < nl)
-        {
-            if (pi < pl)
-            {
-                char pc = pattern[pi];
-                if (pc == @multiply)
-                {
-                    lastStar = pi++;
-                    lastMatch = ni;
-                    continue;
-                }
-                if (pc == @question ? ni < nl : char.ToLowerInvariant(pc) == char.ToLowerInvariant(name[ni]))
-                {
-                    ni++;
-                    pi++;
-                    continue;
-                }
-            }
-            if (lastStar >= 0)
-            {
-                pi = lastStar + 1;
-                ni = ++lastMatch;
-                continue;
-            }
-            return false;
-        }
-
-        while (pi < pl && pattern[pi] == @multiply) pi++;
-        return pi == pl;
     }
 }

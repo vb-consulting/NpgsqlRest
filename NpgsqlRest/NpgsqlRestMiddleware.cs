@@ -206,8 +206,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             string? body = null;
             Dictionary<string, StringValues>? queryDict = null;
             StringBuilder? cacheKeys = null;
-            
-            uploadHandler = endpoint.Upload is true ? uploadHandler = DefaultUploadHandler.Create(options, endpoint) : null;
+            uploadHandler = endpoint.Upload is true ? options.CreateUploadHandler(endpoint, logger) : null;
             int uploadMetaParamIndex = -1;
 
             if (endpoint.Cached is true)
@@ -296,7 +295,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     if (parameter.UploadMetadata is true)
                     {
-                        uploadMetaParamIndex = i;
+                        //uploadMetaParamIndex = i;
+                        uploadMetaParamIndex = command.Parameters.Count; // the last one added
                         parameter.Value = DBNull.Value;
                     }
 
@@ -726,7 +726,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     if (parameter.UploadMetadata is true)
                     {
-                        uploadMetaParamIndex = i;
+                        //uploadMetaParamIndex = i;
+                        uploadMetaParamIndex = command.Parameters.Count; // the last one added
                         parameter.Value = DBNull.Value;
                     }
 
@@ -1497,7 +1498,16 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 }
                 if (context.Response.StatusCode != 205) // 205 forbids writing
                 {
-                    writer.Advance(Encoding.UTF8.GetBytes(exception.Message.AsSpan(), writer.GetSpan(Encoding.UTF8.GetMaxByteCount(exception.Message.Length))));
+                    ReadOnlySpan<char> msg;
+                    if (context.Response.StatusCode == 400)
+                    {
+                        msg = exception.Message.Replace(string.Concat(exception.SqlState, ": "), "").AsSpan();
+                    }
+                    else
+                    {
+                        msg = exception.Message.AsSpan();
+                    }
+                    writer.Advance(Encoding.UTF8.GetBytes(msg, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(msg.Length))));
                 }
             }
 

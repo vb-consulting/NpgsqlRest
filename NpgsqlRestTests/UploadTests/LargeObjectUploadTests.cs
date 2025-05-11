@@ -43,6 +43,26 @@ public static partial class Database
         param _meta is upload metadata
         oid = {_oid}
         ';
+
+        create function lo_upload_raise_exception(
+            _oid bigint,
+            _meta json = null
+        )
+        returns json 
+        language plpgsql
+        as 
+        $$
+        begin
+            raise exception 'failed upload';
+            return _meta;
+        end;
+        $$;
+
+        comment on function lo_upload_raise_exception(bigint, json) is '
+        upload for large_object
+        param _meta is upload metadata
+        oid = {_oid}
+        ';
 ");
     }
 }
@@ -243,5 +263,46 @@ public class LargeObjectUploadTests(TestFixture test)
             using var reader = await command.ExecuteReaderAsync();
             (await reader.ReadAsync()).Should().BeTrue(); // there is a record
         }
+    }
+
+    [Fact]
+    public async Task Test_lo_upload_raise_exception1()
+    {
+        var fileName = "test-data.csv";
+        var sb = new StringBuilder();
+        sb.AppendLine("11,XXX,a");
+        sb.AppendLine("22,YYY,b");
+        sb.AppendLine("33,ZZZ,c");
+        var csvContent = sb.ToString();
+
+        var contentBytes = Encoding.UTF8.GetBytes(csvContent);
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(contentBytes);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+        formData.Add(byteContent, "file", fileName);
+
+        var oid = 2;
+        using var result = await test.Client.PostAsync($"/api/lo-upload-raise-exception/?oid={oid}", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        
+        //var response = await result.Content.ReadAsStringAsync();
+        //response.Should().BeEmpty();
+
+        using var connection = Database.CreateConnection();
+        await connection.OpenAsync();
+        using (var command1 = new NpgsqlCommand("select * from pg_largeobject where convert_from(data, 'utf8') = $1", connection))
+        {
+            command1.Parameters.Add(new NpgsqlParameter()
+            {
+                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text,
+                Value = csvContent
+            });
+            using var reader1 = await command1.ExecuteReaderAsync();
+            (await reader1.ReadAsync()).Should().BeFalse(); // there is a NO record, LOB has rolled-back
+        }
+
+        using var command2 = new NpgsqlCommand("select * from pg_largeobject_metadata where oid = " + oid, connection);
+        using var reader2 = await command2.ExecuteReaderAsync();
+        (await reader2.ReadAsync()).Should().BeFalse();  // there is a NO record, LOB has rolled-back
     }
 }

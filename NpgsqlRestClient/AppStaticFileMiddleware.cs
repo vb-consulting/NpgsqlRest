@@ -8,13 +8,14 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Npgsql;
+using NpgsqlRest;
 
 namespace NpgsqlRestClient;
 
-public class AppStaticFileMiddleware
+public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment hostingEnv)
 {
-    private readonly RequestDelegate _next;
-    private readonly IWebHostEnvironment _hostingEnv;
+    private readonly RequestDelegate _next = next ?? throw new ArgumentNullException(nameof(next));
+    private readonly IWebHostEnvironment _hostingEnv = hostingEnv ?? throw new ArgumentNullException(nameof(hostingEnv));
     private static readonly FileExtensionContentTypeProvider _fileTypeProvider = new();
 
     private static string[]? _parsePatterns = default!;
@@ -23,7 +24,7 @@ public class AppStaticFileMiddleware
     private static readonly ConcurrentDictionary<string, bool> _pathInParsePattern = new();
     // New cache for parsed file contents
     private static readonly ConcurrentDictionary<string, (byte[] Content, DateTimeOffset LastModified)> _parsedFileCache = new();
-    private static readonly bool _cacheParsedFiles = true;
+    private static bool _cacheParsedFiles = true;
     private static IAntiforgery? _antiforgery;
     private static DefaultResponseParser? _parser;
 
@@ -61,12 +62,7 @@ public class AppStaticFileMiddleware
 
         _antiforgery = antiforgery;
         _logger = logger;
-    }
-
-    public AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment hostingEnv)
-    {
-        _next = next ?? throw new ArgumentNullException(nameof(next));
-        _hostingEnv = hostingEnv ?? throw new ArgumentNullException(nameof(hostingEnv));
+        _cacheParsedFiles = cacheParsedFiles;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -144,7 +140,7 @@ public class AppStaticFileMiddleware
                     isInParsePattern = false;
                     for (int i = 0; i < _parsePatterns?.Length; i++)
                     {
-                        if (DefaultResponseParser.IsPatternMatch(pathString, _parsePatterns[i]))
+                        if (Parser.IsPatternMatch(pathString, _parsePatterns[i]))
                         {
                             isInParsePattern = true;
                             break;

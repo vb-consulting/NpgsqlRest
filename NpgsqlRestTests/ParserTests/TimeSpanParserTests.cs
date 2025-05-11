@@ -15,7 +15,7 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_ValidSimpleInputs_ReturnsCorrectTimeSpan(string input, int expectedHours, int expectedMinutes, int expectedSeconds)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input);
+        TimeSpan? result = Parser.ParsePostgresInterval(input);
 
         // Assert
         TimeSpan expected = TimeSpan.FromHours(expectedHours) +
@@ -32,7 +32,7 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_ValidDecimalInputs_ReturnsCorrectTimeSpan(string input, int expectedHours, int expectedMinutes, double expectedSeconds)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input);
+        TimeSpan? result = Parser.ParsePostgresInterval(input);
 
         // Assert
         TimeSpan expected = TimeSpan.FromHours(expectedHours) +
@@ -48,7 +48,7 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_EdgeCaseNumbers_ReturnsCorrectTimeSpan(string input, int expectedHours, int expectedMinutes, int expectedSeconds)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input);
+        TimeSpan? result = Parser.ParsePostgresInterval(input);
 
         // Assert
         TimeSpan expected = TimeSpan.FromHours(expectedHours) +
@@ -64,7 +64,7 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_NullOrWhitespace_ThrowsArgumentNullException(string? input)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input!);
+        TimeSpan? result = Parser.ParsePostgresInterval(input!);
 
         // Assert
         result.Should().BeNull();
@@ -79,7 +79,7 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_InvalidFormat_ThrowsFormatException(string input)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input);
+        TimeSpan? result = Parser.ParsePostgresInterval(input);
 
         // Assert
         result.Should().BeNull();
@@ -92,7 +92,7 @@ public class TimeSpanParserTests
     public void ParsePostgresInterval_UnknownUnit_ThrowsFormatException(string input)
     {
         // Act
-        TimeSpan? result = TimeSpanParser.ParsePostgresInterval(input);
+        TimeSpan? result = Parser.ParsePostgresInterval(input);
 
         // Assert
         result.Should().BeNull();
@@ -114,7 +114,7 @@ public class TimeSpanParserTests
         // Act & Assert
         for (int i = 0; i < inputs.Length; i++)
         {
-            TimeSpan? result = TimeSpanParser.ParsePostgresInterval(inputs[i]);
+            TimeSpan? result = Parser.ParsePostgresInterval(inputs[i]);
             result.Should().Be(expected[i], because: $"input '{inputs[i]}' should parse correctly");
         }
     }

@@ -268,6 +268,8 @@ public class NpgsqlRestOptions
     public Dictionary<string, int> PostgreSqlErrorCodeToHttpStatusCodeMapping { get; set; } = new()
     {
         { "57014", 205 }, //query_canceled -> 205 Reset Content
+        { "P0001", 400 }, // raise_exception -> 400 Bad Request
+        { "P0004", 400 }, // assert_failure -> 400 Bad Request
     };
 
     /// <summary>
@@ -330,7 +332,7 @@ public class NpgsqlRestOptions
     /// Set this option to empty dictionary to disable upload handlers.
     /// Set this option to a dictionary with one or more upload handlers to enable your own custom upload handlers.
     /// </summary>
-    public Dictionary<string, Func<IUploadHandler>>? UploadHandlers { get; set; } = null;
+    public Dictionary<string, Func<ILogger?, IUploadHandler>>? UploadHandlers { get; set; } = null;
 
     /// <summary>
     /// Default upload handler name. This value is used when the upload handlers are not specified.

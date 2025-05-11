@@ -3,15 +3,14 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using BenchmarkDotNet.Attributes;
-using NpgsqlRestClient;
+using NpgsqlRest;
 
 namespace BenchmarkTests;
 
 public class ParseStringsTests
 {
-    string[] names = { "test.txt", "x", "verylongfilename.txt", "abcde" };
-    string[] patterns = { "*.txt", "*?*", "*long*.txt", "a?c*" };
-
+    readonly string[] names = ["test.txt", "x", "verylongfilename.txt", "abcde"];
+    readonly string[] patterns = ["*.txt", "*?*", "*long*.txt", "a?c*"];
 
     [Benchmark]
     public void IsPatternMatchMethod()
@@ -19,7 +18,7 @@ public class ParseStringsTests
         foreach (var name in names)
             foreach (var pattern in patterns)
             {
-                DefaultResponseParser.IsPatternMatch(name, pattern);
+                Parser.IsPatternMatch(name, pattern);
             }
     }
 

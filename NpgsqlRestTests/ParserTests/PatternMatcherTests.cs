@@ -1,6 +1,4 @@
-﻿using NpgsqlRestClient;
-
-namespace NpgsqlRestTests.ClientTests;
+﻿namespace NpgsqlRestTests.ParserTests;
 
 public class PatternMatcherTests
 {
@@ -13,7 +11,7 @@ public class PatternMatcherTests
     [InlineData(null, null, false)]
     public void EdgeCases_EmptyAndNull_ReturnFalse(string? name, string? pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name!, pattern!).Should().Be(expected);
+        Parser.IsPatternMatch(name!, pattern!).Should().Be(expected);
     }
 
     [Theory]
@@ -23,7 +21,7 @@ public class PatternMatcherTests
     [InlineData("abc", "abcd", false)]
     public void ExactMatches_WithoutWildcards(string name, string pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        Parser.IsPatternMatch(name, pattern).Should().Be(expected);
     }
 
     [Theory]
@@ -38,7 +36,7 @@ public class PatternMatcherTests
     [InlineData("abc", "*d", false)]
     public void StarWildcard_MatchesCorrectly(string name, string pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        Parser.IsPatternMatch(name, pattern).Should().Be(expected);
     }
 
     [Theory]
@@ -52,7 +50,7 @@ public class PatternMatcherTests
     [InlineData("abc", "a?d", false)]
     public void QuestionMarkWildcard_MatchesCorrectly(string name, string pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        Parser.IsPatternMatch(name, pattern).Should().Be(expected);
     }
 
     [Theory]
@@ -65,7 +63,7 @@ public class PatternMatcherTests
     [InlineData("abc", "a**c", true)]
     public void CombinedWildcards_MatchesCorrectly(string name, string pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        Parser.IsPatternMatch(name, pattern).Should().Be(expected);
     }
 
     [Theory]
@@ -75,7 +73,7 @@ public class PatternMatcherTests
     [InlineData("special@#$%.txt", "*@#$%.txt", true)]
     public void ExtremeCases_MatchesCorrectly(string name, string pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        Parser.IsPatternMatch(name, pattern).Should().Be(expected);
     }
 
     [Fact]
@@ -83,7 +81,7 @@ public class PatternMatcherTests
     {
         string largeName = new('a', 10000);
         string largePattern = "*" + new string('?', 9999);
-        Assert.True(DefaultResponseParser.IsPatternMatch(largeName, largePattern));
+        Assert.True(Parser.IsPatternMatch(largeName, largePattern));
     }
 
     [Theory]
@@ -95,6 +93,6 @@ public class PatternMatcherTests
     [InlineData("TEST", "*st", true)]
     public void CaseInsensitive_MatchesCorrectly(string name, string pattern, bool expected)
     {
-        DefaultResponseParser.IsPatternMatch(name, pattern).Should().Be(expected);
+        Parser.IsPatternMatch(name, pattern).Should().Be(expected);
     }
 }
