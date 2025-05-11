@@ -30,10 +30,10 @@ Outputs:
 ```
 Versions:
 .NET                  9.0.4
-Client Build          2.20.0.0
+Client Build          2.21.0.0
 Serilog.AspNetCore    9.0.0.0
 Npgsql                9.0.3.0
-NpgsqlRest            2.25.0.0
+NpgsqlRest            2.26.0.0
 NpgsqlRest.HttpFiles  1.3.0.0
 NpgsqlRest.TsClient   1.19.0.0
 NpgsqlRest.CrudSource 1.3.0.0
