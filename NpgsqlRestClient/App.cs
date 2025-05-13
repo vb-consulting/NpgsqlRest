@@ -64,13 +64,17 @@ public static class App
         }
 
         app.UseDefaultFiles();
-        var parseCfg = staticFilesCfg.GetSection("ParseContentOptions");
 
+        string[]? autorizePaths = GetConfigEnumerable("AutorizePaths", staticFilesCfg)?.ToArray();
+        string? unauthorizedRedirectPath = GetConfigStr("UnauthorizedRedirectPath", staticFilesCfg);
+        string? unautorizedReturnToQueryParameter = GetConfigStr("UnautorizedReturnToQueryParameter", staticFilesCfg);
+
+        var parseCfg = staticFilesCfg.GetSection("ParseContentOptions");
+        
+        bool parse = true;
         if (parseCfg.Exists() is false || GetConfigBool("Enabled", parseCfg) is false)
         {
-            app.UseMiddleware<AppStaticFileMiddleware>();
-            Logger?.Information("Serving static files from {0}", app.Environment.WebRootPath);
-            return;
+            parse = false;
         }
 
         var filePaths = GetConfigEnumerable("FilePaths", parseCfg)?.ToArray();
@@ -90,8 +94,9 @@ public static class App
         var antiforgeryFieldNameTag = GetConfigStr("AntiforgeryFieldName", parseCfg);
         var antiforgeryTokenTag = GetConfigStr("AntiforgeryToken", parseCfg);
         var antiforgery = app.Services.GetService<IAntiforgery>();
+
         AppStaticFileMiddleware.ConfigureStaticFileMiddleware(
-            true,
+            parse,
             filePaths,
             userIdTag,
             userNameTag,
@@ -101,6 +106,9 @@ public static class App
             antiforgeryFieldNameTag,
             antiforgeryTokenTag,
             antiforgery,
+            autorizePaths,
+            unauthorizedRedirectPath,
+            unautorizedReturnToQueryParameter,
             Logger?.ForContext<AppStaticFileMiddleware>());
 
         app.UseMiddleware<AppStaticFileMiddleware>();

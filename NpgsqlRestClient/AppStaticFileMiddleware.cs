@@ -22,11 +22,18 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
     private static Serilog.ILogger? _logger = default!;
 
     private static readonly ConcurrentDictionary<string, bool> _pathInParsePattern = new();
+    private static ConcurrentDictionary<string, bool> _pathInAuthorizePattern = null!;
     // New cache for parsed file contents
     private static readonly ConcurrentDictionary<string, (byte[] Content, DateTimeOffset LastModified)> _parsedFileCache = new();
     private static bool _cacheParsedFiles = true;
     private static IAntiforgery? _antiforgery;
     private static DefaultResponseParser? _parser;
+
+    private static string[]? _autorizePaths;
+    private static string? _unauthorizedRedirectPath;
+    private static string? _unautorizedReturnToQueryParameter;
+    private static bool _checkAuthorize = false;
+    private static string[] _defaultFileNames = default!;
 
     public static void ConfigureStaticFileMiddleware(
         bool parse,
@@ -39,6 +46,9 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         string? antiforgeryFieldNameTag,
         string? antiforgeryTokenTag,
         IAntiforgery? antiforgery,
+        string[]? autorizePaths,
+        string? unauthorizedRedirectPath,
+        string? unautorizedReturnToQueryParameter,
         Serilog.ILogger? logger)
     {
         _parsePatterns = parse == false || parsePatterns == null || parsePatterns.Length == 0 ? null : parsePatterns?.Where(p => !string.IsNullOrEmpty(p)).ToArray();
@@ -63,6 +73,17 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         _antiforgery = antiforgery;
         _logger = logger;
         _cacheParsedFiles = cacheParsedFiles;
+
+        _autorizePaths = autorizePaths;
+        _unauthorizedRedirectPath = unauthorizedRedirectPath;
+        _unautorizedReturnToQueryParameter = unautorizedReturnToQueryParameter;
+        _checkAuthorize = autorizePaths is not null && autorizePaths.Length > 0;
+        if (_checkAuthorize is true)
+        {
+            _pathInAuthorizePattern = new();
+            var dfo = new DefaultFilesOptions();
+            _defaultFileNames = [.. dfo.DefaultFileNames];
+        }
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -81,6 +102,60 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
             await _next(context);
             return;
         }
+
+        if (_checkAuthorize is true)
+        {
+            var pathString = path.ToString();
+            if (_pathInAuthorizePattern.TryGetValue(pathString, out bool isInAuthPattern) is false)
+            {
+                isInAuthPattern = false;
+                for (int i = 0; i < _autorizePaths?.Length; i++)
+                {
+                    if (Parser.IsPatternMatch(pathString, _autorizePaths[i]))
+                    {
+                        isInAuthPattern = true;
+                        break;
+                    }
+                }
+                _pathInAuthorizePattern.TryAdd(pathString, isInAuthPattern);
+            }
+            if (isInAuthPattern is true)
+            {
+                if (context.User.Identity is not null && context.User.Identity.IsAuthenticated is false)
+                {
+                    context.Response.Clear();
+
+                    if (string.IsNullOrEmpty(_unauthorizedRedirectPath) is false)
+                    {
+                        if (string.IsNullOrEmpty(_unautorizedReturnToQueryParameter) is false)
+                        {
+                            string returnPath = GetOriginalRequestPath(context, pathString);
+                            string returnQuery = context.Request.QueryString.ToString();
+                            string returnTo = string.Concat(returnPath, returnQuery);
+
+                            string redirectUrl = string.Concat(
+                                _unauthorizedRedirectPath,
+                                _unauthorizedRedirectPath.Contains('?') ? "&" : "?",
+                                _unautorizedReturnToQueryParameter,
+                                "=",
+                                Uri.EscapeDataString(returnTo));
+
+                            context.Response.Redirect(redirectUrl);
+                        }
+                        else
+                        {
+                            context.Response.Redirect(_unauthorizedRedirectPath);
+                        }
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    }
+                    return;
+                }
+            }
+        }
+
         AntiforgeryTokenSet? tokenSet = null;
         if (_antiforgery is not null)
         {
@@ -213,5 +288,24 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         }
 
         // HEAD request completes here
+    }
+
+    private string GetOriginalRequestPath(HttpContext context, string path)
+    {
+        if (string.IsNullOrEmpty(path) || path.Length < 2)
+        {
+            return path;
+        }
+        ReadOnlySpan<char> pathSpan = path.AsSpan();
+        for (int i = 0; i < _defaultFileNames.Length; i++)
+        {
+            string defaultFile = _defaultFileNames[i];
+            if (pathSpan.EndsWith(defaultFile.AsSpan(), StringComparison.OrdinalIgnoreCase) &&
+                pathSpan.Length > defaultFile.Length && pathSpan[^(defaultFile.Length + 1)] == '/')
+            {
+                return path[..^defaultFile.Length];
+            }
+        }
+        return path;
     }
 }

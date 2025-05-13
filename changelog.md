@@ -4,6 +4,19 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+  "StaticFiles": {
+    "Enabled": false,
+    "RootPath": "wwwroot",
+    //
+    // List of static file patterns that will require authorization.
+    // File paths are relative to the RootPath property and pattern matching is case-insensitive.
+    // Pattern can include wildcards or question marks. For example: *.html, /user/*, etc
+    // 
+    "AutorizePaths": [],
+    "UnauthorizedRedirectPath": "/",
+    "UnautorizedReturnToQueryParameter": "return_to",
+
+
 ## Version [2.26.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.26.0) (2025-05-11)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.26.0...2.25.0)
