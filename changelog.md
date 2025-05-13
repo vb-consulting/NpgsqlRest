@@ -563,7 +563,13 @@ app.UseNpgsqlRest(new(connectionString)
 
 - Login endpoints can now return field `hash` (configurable) and when they do, it will be verified against a parameter that contains "pass" (configurable).
 
-- If verification fails, login will automatically return status 404 with no message and relevant information will be logged as a warning to default logger: `Password verification failed for attempted login: path={path} userId={userId}, username={userName}`
+- If verification fails, login will: 
+  - Automatically return status 404 with no message.
+  - Relevant information will be logged as a warning to default logger: `Password verification failed for attempted login: path={path} userId={userId}, username={userName}`.
+  - If the option `AuthenticationOptions.PasswordVerificationFailedCommand` is defined, this command will be executed with following optional parameters:
+    - 1) scheme (text)
+    - 2) user name (text)
+    - 3) user id (text)
 
 - New `AuthenticationOptions` values to support this feature are these:
 
@@ -580,6 +586,17 @@ app.UseNpgsqlRest(new(connectionString)
 - Default: `"pass"`
 
 When the login endpoint tries to verify supplied hash with the password parameter, this value will be used to locate the password parameter from the parameter collection. That will be the first parameter that contains this string in parameter name (either original or translated). 
+
+3) `AuthenticationOptions.PasswordVerificationFailedCommand`
+
+Text command with three optiona parameters that is executed when automatic hash verfiociation fails. Executing this command gives you chance to update appswrod attempts in database for example.
+
+Command accepts three optional and possitional parameters:
+1) scheme (text)
+2) user name (text)
+3) user id (text)
+
+Exectuon will be skipped if this option is null or empty.
 
 #### Upload Support
 

@@ -72,6 +72,20 @@ For example, the Cookie authentication scheme doesn't write anything into the bo
 
 When the login endpoint tries to verify supplied hash with the password parameter, this value will be used to locate the password parameter from the parameter collection. That will be the first parameter that cotnains this string in parameter name (either original or translated). 
 
+### AuthenticationOptions.PasswordVerificationFailedCommand
+
+- Type: `string`
+- Default: `null`
+
+Text command with three optiona parameters that is executed when automatic hash verfiociation fails. Executing this command gives you chance to update appswrod attempts in database for example.
+
+Command accepts three optional and possitional parameters:
+1) scheme (text)
+2) user name (text)
+3) user id (text)
+
+Exectuon will be skipped if this option is null or empty.
+
 ### AuthenticationOptions.SchemeColumnName
 
 - Type: `string?`
