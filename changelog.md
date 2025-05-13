@@ -579,4 +579,192 @@ app.UseNpgsqlRest(new(connectionString)
 - Type: `string`
 - Default: `"pass"`
 
-When the
+When the login endpoint tries to verify supplied hash with the password parameter, this value will be used to locate the password parameter from the parameter collection. That will be the first parameter that contains this string in parameter name (either original or translated). 
+
+#### Upload Support
+
+- There is robust and flexible UPLOAD endpoint support from this version.
+
+- There are three new options to support this feature:
+
+```csharp
+/// <summary>
+/// Default upload handler options. 
+/// Set this option to null to disable upload handlers or use this to modify upload handler options.
+/// </summary>
+public UploadHandlerOptions DefaultUploadHandlerOptions { get; set; } = new UploadHandlerOptions();
+
+/// <summary>
+/// Upload handlers dictionary map. 
+/// When the endpoint has set Upload to true, this dictionary will be used to find the upload handlers for the current request. 
+/// Handler will be located by the key values from the endpoint UploadHandlers string array property if set or by the default upload handler (DefaultUploadHandler option).
+/// Set this option to null to use default upload handler from the UploadHandlerOptions property.
+/// Set this option to empty dictionary to disable upload handlers.
+/// Set this option to a dictionary with one or more upload handlers to enable your own custom upload handlers.
+/// </summary>
+public Dictionary<string, Func<IUploadHandler>>? UploadHandlers { get; set; } = null;
+
+/// <summary>
+/// Default upload handler name. This value is used when the upload handlers are not specified.
+/// </summary>
+public string DefaultUploadHandler { get; set; } = "large_object";
+```
+
+- Endpoints also have two new properties:
+
+```csharp
+public bool Upload { get; set; } = true;
+public string[]? UploadHandlers { get; set; } = null;
+```
+
+- When the endpoint has Upload set to true, the request will first try to locate appropriate handlers.
+
+- Endpoint can specify one or more handlers with `UploadHandlers` property (keys in `UploadHandlers` dictionary).
+
+- When endpoint `UploadHandlers` property is null, Upload handler will use the one from the `DefaultUploadHandler` option ("large_object" by default).
+
+- Option `Dictionary<string, Func<IUploadHandler>>? UploadHandlers` is initialized from the `DefaultUploadHandlerOptions` option which has these defaults:
+
+```csharp
+public bool UploadsEnabled { get; set; } = true;
+public bool LargeObjectEnabled { get; set; } = true;
+public string LargeObjectKey { get; set; } = "large_object";
+public int LargeObjectHandlerBufferSize { get; set; } = 8192;
+public bool FileSystemEnabled { get; set; } = true;
+public string FileSystemKey { get; set; } = "file_system";
+public string FileSystemHandlerPath { get; set; } = "./";
+public bool FileSystemHandlerUseUniqueFileName { get; set; } = true;
+public bool FileSystemHandlerCreatePathIfNotExists { get; set; } = true;
+public int FileSystemHandlerBufferSize { get; set; } = 8192;
+```
+
+- Each upload handler returns a string text by convention, which usually represents JSON metadata for the upload.
+  
+- This metadata is then assigned to a routine parameter that has `UploadMetadata` set to true.
+
+- That routine is executed on PostgreSQL after successful upload (handlers execution).
+  
+- If the routine fails, upload handlers automatically perform upload cleanup.
+  
+- There are currently two upload handlers implemented in the library:
+
+1) PostgreSQL Large Object Upload Handler
+
+- Key: `large_object`
+- Description: uses [PostgreSQL Large Object API](https://www.postgresql.org/docs/current/largeobjects.html) to upload content directly to database.
+- Metadata example: `{"type": "large_object", "fileName": "test.txt", "fileType": "text/plain", "size": 100, "oid": 1234}`
+
+2) File System Upload Handler
+
+- Key: `file_system`
+- Description: Uploads files to the file system
+- Metadata example: `{"type": "file_system", "fileName": "test.txt", "fileType": "text/plain", "size": 100, "filePath": "/tmp/uploads/ADF3B177-D0A5-4AA0-8805-FB63F8504ED8.txt"}`
+
+- If the endpoint has multiple upload handlers, metadata parameter is expected to be array of text or array of JSON.
+
+- Example of programmatic usage:
+
+```csharp
+app.UseNpgsqlRest(new(connectionString)
+{
+    DefaultUploadHandlerOptions = new() { FileSystemHandlerPath = "./images/" },
+    EndpointCreated = endpoint =>
+    {
+        if (endpoint?.Url.EndsWith("upload") is true)
+        {
+            endpoint.Upload = true;
+
+            if (endpoint?.Url.Contains("image") is true)
+            {
+                endpoint.UploadHandlers = ["file_system"];
+            }
+            else if (endpoint?.Url.Contains("csv") is true)
+            {
+                endpoint.UploadHandlers = ["large_object"];
+            }
+        }
+    }
+});
+```
+
+- This example will enable upload for all URL paths that end with "upload" text. 
+- If the URL path contains "image", it will upload them to file system and to configured `./images/` path. 
+- If the URL path contains "csv", it will be uploaded as the PostgreSQL large object.
+
+- There is also robust comment annotation support for this feature:
+  - `upload` - mark routine as upload (uses default handlers)
+  - `upload for handler_name1, handler_name2 [, ...]` mark routine as upload and set handler key to be used (e.g. `upload for file_system`).
+  - `upload param_name as metadata` mark routine as upload (uses default handlers) and sets `param_name` as metadata parameter. 
+  - Note: mixing these two is not (yet) possible, `upload for file_system param_name as metadata` or `upload param_name as metadata for file_system` will not work.
+  - `param param_name1 is upload metadata` set `param_name1` as the upload metadata.
+
+- Examples:
+
+```sql
+create procedure simple_upload(
+    _meta json = null
+)
+language plpgsql
+as 
+$$
+begin
+    raise info 'upload metadata: %', _meta;
+end;
+$$;
+
+comment on procedure simple_upload(json) is 'upload'; -- does not send _meta parameter
+-- or --
+comment on procedure simple_upload(json) is 'upload _meta as metadata' -- sends _meta parameter
+-- or --
+comment on procedure simple_upload(json) is '
+upload
+param _meta is upload metadata
+'; 
+-- or --
+comment on procedure simple_upload(json) is '
+upload for file_system
+param _meta is upload metadata
+';
+-- or --
+comment on procedure simple_upload(json) is '
+upload for large_object
+param _meta is upload metadata
+';
+```
+
+- In case of multiple handlers, parameter has to be an array:
+
+```sql
+create procedure simple_upload(
+    _meta[] json = null
+)
+language plpgsql
+as 
+$$
+begin
+    raise info 'upload metadata: %', _meta;
+end;
+$$;
+
+-- multiple handlers
+comment on procedure simple_upload(json) is '
+upload for large_object, file_system
+param _meta is upload metadata
+';
+```
+
+#### Other Improvements
+
+1) Fixed issue with endpoint with default parameters. When they receive non-existing parameters in same number as default parameters, the endpoint now returns 404 instead of 200 error as it should be.
+
+2) Fixed serialization of binary data in the response. From now on, endpoints that return either:
+ - single value of type bytea (binary)
+ - single column of type setof bytea (binary)
+ - will be written raw directly to response. 
+ - This allows, for example, displaying images directly from the database.
+
+### NpgsqlRest Client App
+
+#### External Login Fixes and Improvements
+
+- External login was fundamentally broken
