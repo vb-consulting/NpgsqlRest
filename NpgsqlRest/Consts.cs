@@ -30,4 +30,5 @@ public static class Consts
     public const char At = '@';
     public const char Multiply = '*';
     public const char Question = '?';
+    public const string SetContext = "select set_config($1,$2,false)";
 }

@@ -67,7 +67,7 @@ public static class App
 
         string[]? autorizePaths = GetConfigEnumerable("AutorizePaths", staticFilesCfg)?.ToArray();
         string? unauthorizedRedirectPath = GetConfigStr("UnauthorizedRedirectPath", staticFilesCfg);
-        string? unautorizedReturnToQueryParameter = GetConfigStr("UnautorizedReturnToQueryParameter", staticFilesCfg);
+        string? unauthorizedReturnToQueryParameter = GetConfigStr("UnauthorizedReturnToQueryParameter", staticFilesCfg);
 
         var parseCfg = staticFilesCfg.GetSection("ParseContentOptions");
         
@@ -106,9 +106,10 @@ public static class App
             antiforgeryFieldNameTag,
             antiforgeryTokenTag,
             antiforgery,
+            GetConfigEnumerable("Headers", parseCfg)?.ToArray(),
             autorizePaths,
             unauthorizedRedirectPath,
-            unautorizedReturnToQueryParameter,
+            unauthorizedReturnToQueryParameter,
             Logger?.ForContext<AppStaticFileMiddleware>());
 
         app.UseMiddleware<AppStaticFileMiddleware>();

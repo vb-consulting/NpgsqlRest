@@ -29,10 +29,34 @@ public class NpgsqlRestParameter : NpgsqlParameter
         return Value?.ToString() ?? string.Empty;
     }
 
-    public NpgsqlRestParameter NpgsqlResMemberwiseClone()
+    public NpgsqlRestParameter NpgsqlRestParameterMemberwiseClone()
     {
 #pragma warning disable CS8603 // Possible null reference return.
         return MemberwiseClone() as NpgsqlRestParameter;
 #pragma warning restore CS8603 // Possible null reference return.
+    }
+
+    private static readonly NpgsqlRestParameter _textParam = new()
+    {
+        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text,
+        Value = DBNull.Value,
+    };
+
+    public static NpgsqlParameter CreateParamWithType(NpgsqlTypes.NpgsqlDbType type)
+    {
+        var result = _textParam.NpgsqlRestParameterMemberwiseClone();
+        result.NpgsqlDbType = type;
+        return result;
+    }
+
+    public static NpgsqlParameter CreateTextParam(string? value)
+    {
+        var result = _textParam.NpgsqlRestParameterMemberwiseClone();
+        if (value is null)
+        {
+            return result;
+        }
+        result.Value = value;
+        return result;
     }
 }

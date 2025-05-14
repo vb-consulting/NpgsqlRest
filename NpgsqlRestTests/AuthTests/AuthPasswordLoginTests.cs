@@ -45,6 +45,7 @@ public static partial class Database
         comment on function password_protected_login2(text) is 'login';
         
         create table failed_logins(scheme text, user_id text, user_name text);
+        create table succeeded_logins(scheme text, user_id text, user_name text);
 
         create procedure failed_login(
             _scheme text,
@@ -53,6 +54,15 @@ public static partial class Database
         )
         language sql as $$
         insert into failed_logins(scheme, user_id, user_name) values (_scheme, _user_id, _user_name);
+        $$;
+
+        create procedure succeeded_login(
+            _scheme text,
+            _user_id text,
+            _user_name text
+        )
+        language sql as $$
+        insert into succeeded_logins(scheme, user_id, user_name) values (_scheme, _user_id, _user_name);
         $$;
         """);
     }
@@ -114,7 +124,7 @@ public class AuthPasswordLoginTests(TestFixture test)
         (await reader.ReadAsync()).Should().BeTrue(); // there is a record
 
         reader.IsDBNull(0).Should().Be(true);
-        reader.GetString(1).Should().Be("passwordprotected"); // username
-        reader.GetString(2).Should().Be("999"); // user id
+        reader.GetString(1).Should().Be("999"); // user id
+        reader.GetString(2).Should().Be("passwordprotected"); // username
     }
 }

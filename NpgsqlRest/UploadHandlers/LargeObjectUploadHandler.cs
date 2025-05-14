@@ -1,6 +1,7 @@
 ﻿using System.Net.Mime;
 using System.Text;
 using Npgsql;
+using NpgsqlTypes;
 using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
@@ -91,13 +92,10 @@ public class LargeObjectUploadHandler(UploadHandlerOptions options, ILogger? log
             result.Append('}');
 
             command.CommandText = "select lo_put($1,$2,$3)";
-            command.Parameters.Add(new NpgsqlParameter() 
-            { 
-                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Oid,
-                Value = resultOid
-            });
-            command.Parameters.Add(new NpgsqlParameter() { NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bigint });
-            command.Parameters.Add(new NpgsqlParameter() { NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bytea });
+            command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Oid));
+            command.Parameters[0].Value = resultOid;
+            command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Bigint));
+            command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Bytea));
 
             using var fileStream = formFile.OpenReadStream();
             byte[] buffer = new byte[bufferSize];

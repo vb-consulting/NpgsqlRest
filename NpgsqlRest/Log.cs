@@ -184,4 +184,7 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set {paramName} TO {paramValue}.")]
     public static partial void CommentSetCustomParemeter(this ILogger logger, string description, string paramName, string paramValue);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER CONTEXT to true by the comment annotation.")]
+    public static partial void CommentUserContext(this ILogger logger, string description);
 }

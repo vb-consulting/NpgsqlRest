@@ -24,6 +24,7 @@ internal static class AuthHandler
         string? userName = null;
         var authenticationType = options.AuthenticationOptions.DefaultAuthenticationType;
         var claims = new List<Claim>(10);
+        var verificationPerformed = false;
         var verificationFailed = false;
 
 
@@ -180,6 +181,7 @@ internal static class AuthHandler
                                         var pass = parameter?.Value?.ToString();
                                         if (pass is not null && parameter?.Value != DBNull.Value)
                                         {
+                                            verificationPerformed = true;
                                             if (options.AuthenticationOptions.PasswordHasher?.VerifyHashedPassword(hash, pass) is false)
                                             {
                                                 logger?.VerifyPasswordFailed(endpoint, userId, userName);
@@ -204,34 +206,60 @@ internal static class AuthHandler
             }
         }
 
-        if (verificationFailed is true)
+        if (verificationPerformed is true)
         {
-            if (string.IsNullOrEmpty(options.AuthenticationOptions.PasswordVerificationFailedCommand) is false)
+            if (verificationFailed is true)
             {
-                using var passwordVerificationFailedCommand = connection?.CreateCommand();
-                if (passwordVerificationFailedCommand is not null)
+                if (string.IsNullOrEmpty(options.AuthenticationOptions.PasswordVerificationFailedCommand) is false)
                 {
-                    passwordVerificationFailedCommand.CommandText = options.AuthenticationOptions.PasswordVerificationFailedCommand;
-                    var paramCount = passwordVerificationFailedCommand.CommandText.PgCountParams();
-                    if (paramCount >= 1) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
+                    using var failedCommand = connection?.CreateCommand();
+                    if (failedCommand is not null)
                     {
-                        Value = scheme is null ? DBNull.Value : scheme,
-                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
-                    });
-                    if (paramCount >= 2) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
+                        failedCommand.CommandText = options.AuthenticationOptions.PasswordVerificationFailedCommand;
+                        var paramCount = failedCommand.CommandText.PgCountParams();
+                        if (paramCount >= 1)
+                        {
+                            failedCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(scheme));
+                        }
+                        if (paramCount >= 2)
+                        {
+                            failedCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(userId));
+                        }
+                        if (paramCount >= 3)
+                        {
+                            failedCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(userName));
+                        }
+                        await failedCommand.ExecuteNonQueryAsync();
+                    }
+                }
+                return;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(options.AuthenticationOptions.PasswordVerificationSucceededCommand) is false)
+                {
+                    using var succeededCommand = connection?.CreateCommand();
+                    if (succeededCommand is not null)
                     {
-                        Value = userName is null ? DBNull.Value : userName,
-                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
-                    });
-                    if (paramCount >= 3) passwordVerificationFailedCommand.Parameters.Add(new NpgsqlParameter()
-                    {
-                        Value = userId is null ? DBNull.Value : userId,
-                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
-                    });
-                    await passwordVerificationFailedCommand.ExecuteNonQueryAsync();
+                        succeededCommand.CommandText = options.AuthenticationOptions.PasswordVerificationSucceededCommand;
+                        var paramCount = succeededCommand.CommandText.PgCountParams();
+
+                        if (paramCount >= 1)
+                        {
+                            succeededCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(scheme));
+                        }
+                        if (paramCount >= 2)
+                        {
+                            succeededCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(userId));
+                        }
+                        if (paramCount >= 3)
+                        {
+                            succeededCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(userName));
+                        }
+                        await succeededCommand.ExecuteNonQueryAsync();
+                    }
                 }
             }
-            return;
         }
 
         if (context.Response.StatusCode == (int)HttpStatusCode.OK)

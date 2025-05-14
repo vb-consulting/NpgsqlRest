@@ -13,6 +13,7 @@ using static NpgsqlRest.ParameterParser;
 
 using NpgsqlRest.Auth;
 using NpgsqlRest.UploadHandlers;
+using NpgsqlRest.Extensions;
 
 namespace NpgsqlRest;
 
@@ -186,7 +187,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     NpgsqlRestLogger.LogConnectionNotice(logger, args, options.LogConnectionNoticeEventsMode);
                 };
             }
-            await using var command = connection.CreateCommand();
+            await using var command = NpgsqlRestCommand.Create(connection);
 
             var shouldLog = options.LogCommands && logger != null;
             StringBuilder? cmdLog = shouldLog ?
@@ -279,7 +280,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
                 for (int i = 0; i < routine.Parameters.Length; i++)
                 {
-                    var parameter = routine.Parameters[i].NpgsqlResMemberwiseClone();
+                    var parameter = routine.Parameters[i].NpgsqlRestParameterMemberwiseClone();
 
                     if (parameter.HashOf is not null)
                     {
@@ -710,7 +711,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
                 for (int i = 0; i < routine.Parameters.Length; i++)
                 {
-                    var parameter = routine.Parameters[i].NpgsqlResMemberwiseClone();
+                    var parameter = routine.Parameters[i].NpgsqlRestParameterMemberwiseClone();
 
                     if (parameter.HashOf is not null)
                     {
@@ -1564,10 +1565,51 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             }
             await connection.OpenAsync();
         }
-        if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
+
+        if (
+            (endpoint.RequestHeadersMode == RequestHeadersMode.Context && headers is not null && options.RequestHeadersContextKey is not null) ||
+            (endpoint.UserContext is true && context.User.Identity?.IsAuthenticated is true &&
+                (options.AuthenticationOptions.UserIdContextKey is not null ||
+                options.AuthenticationOptions.UserNameContextKey is not null ||
+                options.AuthenticationOptions.UserRolesContextKey is not null))
+            )
         {
-            command.CommandText = string.Concat("select set_config('request.headers','", headers, "',false)");
-            command.ExecuteNonQuery();
+            await using var batch = NpgsqlRestBatch.Create(connection);
+
+            if (endpoint.RequestHeadersMode == RequestHeadersMode.Context && headers is not null && options.RequestHeadersContextKey is not null)
+            {
+                var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.RequestHeadersContextKey));
+                cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(headers));
+                batch.BatchCommands.Add(cmd);
+            }
+
+            if (endpoint.UserContext is true && context.User.Identity?.IsAuthenticated is true)
+            {
+                if (options.AuthenticationOptions.UserIdContextKey is not null)
+                {
+                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserIdContextKey));
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserId()));
+                    batch.BatchCommands.Add(cmd);
+                }
+                if (options.AuthenticationOptions.UserNameContextKey is not null)
+                {
+                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserNameContextKey));
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserName()));
+                    batch.BatchCommands.Add(cmd);
+                }
+                if (options.AuthenticationOptions.UserRolesContextKey is not null)
+                {
+                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserRolesContextKey));
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserRoles(options)));
+                    batch.BatchCommands.Add(cmd);
+                }
+            }
+
+            await batch.ExecuteNonQueryAsync();
         }
         command.CommandText = commandText;
         

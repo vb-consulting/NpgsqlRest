@@ -135,7 +135,8 @@ public class Program
 
             AuthenticationOptions = new()
             {
-                PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)"
+                PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)",
+                PasswordVerificationSucceededCommand = "call succeeded_login($1,$2,$3)"
             },
         });
         app.Run();

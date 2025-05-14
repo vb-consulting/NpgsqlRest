@@ -38,7 +38,8 @@ internal static class DefaultEndpoint
                 requestHeadersParameterName: options.RequestHeadersParameterName,
                 bodyParameterName: null,
                 textResponseNullHandling: options.TextResponseNullHandling,
-                queryStringNullHandling: options.QueryStringNullHandling);
+                queryStringNullHandling: options.QueryStringNullHandling,
+                userContext: options.AuthenticationOptions.UseUserContext);
 
         if (options.LogCommands && logger != null)
         {

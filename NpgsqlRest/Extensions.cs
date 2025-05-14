@@ -1,4 +1,6 @@
-﻿using Npgsql;
+﻿using System.Security.Claims;
+using System.Text;
+using Npgsql;
 
 namespace NpgsqlRest.Extensions;
 
@@ -39,5 +41,48 @@ public static class Ext
         Enum.TryParse<T>(value, true, out var result);
         // return the first enum (Other) when no match
         return result;
+    }
+
+    public static bool IsTypeOf(this Claim claim, string type)
+    {
+        return string.Equals(claim.Type, type, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string? GetUserId(this ClaimsPrincipal user)
+    {
+        foreach (var claim in user.Claims)
+        {
+            if (claim.IsTypeOf(ClaimTypes.NameIdentifier))
+            {
+                return claim.Value;
+            }
+        }
+        return null;
+    }
+
+    public static string? GetUserName(this ClaimsPrincipal user)
+    {
+        return user.Identity?.Name;
+    }
+
+    public static string? GetUserRoles(this ClaimsPrincipal user, NpgsqlRestOptions options)
+    {
+        StringBuilder sb = new(100);
+        sb.Append('{');
+        int i = 0;
+        foreach (var claim in user.Claims)
+        {
+            if (claim.IsTypeOf(options.AuthenticationOptions.DefaultRoleClaimType))
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                sb.Append(claim.Value);
+                i++;
+            }
+        }
+        sb.Append('}');
+        return sb.ToString();
     }
 }

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
-using Npgsql;
 using NpgsqlRest;
 
 namespace NpgsqlRestClient;
@@ -29,9 +28,10 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
     private static IAntiforgery? _antiforgery;
     private static DefaultResponseParser? _parser;
 
+    private static string[]? _headers;
     private static string[]? _autorizePaths;
     private static string? _unauthorizedRedirectPath;
-    private static string? _unautorizedReturnToQueryParameter;
+    private static string? _unauthorizedReturnToQueryParameter;
     private static bool _checkAuthorize = false;
     private static string[] _defaultFileNames = default!;
 
@@ -46,6 +46,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         string? antiforgeryFieldNameTag,
         string? antiforgeryTokenTag,
         IAntiforgery? antiforgery,
+        string[]? headers,
         string[]? autorizePaths,
         string? unauthorizedRedirectPath,
         string? unautorizedReturnToQueryParameter,
@@ -73,10 +74,10 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         _antiforgery = antiforgery;
         _logger = logger;
         _cacheParsedFiles = cacheParsedFiles;
-
+        _headers = headers;
         _autorizePaths = autorizePaths;
         _unauthorizedRedirectPath = unauthorizedRedirectPath;
-        _unautorizedReturnToQueryParameter = unautorizedReturnToQueryParameter;
+        _unauthorizedReturnToQueryParameter = unautorizedReturnToQueryParameter;
         _checkAuthorize = autorizePaths is not null && autorizePaths.Length > 0;
         if (_checkAuthorize is true)
         {
@@ -103,9 +104,13 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
             return;
         }
 
+        var pathString = path.ToString();
+        long length = fileInfo.Length;
+        DateTimeOffset lastModified = fileInfo.LastModified.ToUniversalTime();
+        bool isInParsePattern = false;
+
         if (_checkAuthorize is true)
         {
-            var pathString = path.ToString();
             if (_pathInAuthorizePattern.TryGetValue(pathString, out bool isInAuthPattern) is false)
             {
                 isInAuthPattern = false;
@@ -127,20 +132,15 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
 
                     if (string.IsNullOrEmpty(_unauthorizedRedirectPath) is false)
                     {
-                        if (string.IsNullOrEmpty(_unautorizedReturnToQueryParameter) is false)
+                        if (string.IsNullOrEmpty(_unauthorizedReturnToQueryParameter) is false)
                         {
-                            string returnPath = GetOriginalRequestPath(context, pathString);
-                            string returnQuery = context.Request.QueryString.ToString();
-                            string returnTo = string.Concat(returnPath, returnQuery);
-
-                            string redirectUrl = string.Concat(
-                                _unauthorizedRedirectPath,
-                                _unauthorizedRedirectPath.Contains('?') ? "&" : "?",
-                                _unautorizedReturnToQueryParameter,
-                                "=",
-                                Uri.EscapeDataString(returnTo));
-
-                            context.Response.Redirect(redirectUrl);
+                            context.Response.Redirect(new StringBuilder()
+                                .Append(_unauthorizedRedirectPath)
+                                .Append(_unauthorizedRedirectPath.Contains('?') ? "&" : "?")
+                                .Append(_unauthorizedReturnToQueryParameter)
+                                .Append('=')
+                                .Append(Uri.EscapeDataString(string.Concat(GetOriginalRequestPath(pathString), context.Request.QueryString.ToString())))
+                                .ToString());
                         }
                         else
                         {
@@ -156,11 +156,27 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
             }
         }
 
+        if (isGet)
+        {
+            if (_pathInParsePattern.TryGetValue(pathString, out isInParsePattern) is false)
+            {
+                isInParsePattern = false;
+                for (int i = 0; i < _parsePatterns?.Length; i++)
+                {
+                    if (Parser.IsPatternMatch(pathString, _parsePatterns[i]))
+                    {
+                        isInParsePattern = true;
+                        break;
+                    }
+                }
+                _pathInParsePattern.TryAdd(pathString, isInParsePattern);
+            }
+        }
+
         AntiforgeryTokenSet? tokenSet = null;
         if (_antiforgery is not null)
         {
-            var pathStr = path.ToString();
-            if (pathStr.EndsWith(".html") is true || pathStr.EndsWith(".htm") is true)
+            if (pathString.EndsWith(".html") is true || pathString.EndsWith(".htm") is true)
             {
                 tokenSet = _antiforgery.GetAndStoreTokens(context);
             }
@@ -169,33 +185,52 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         string contentType = fileInfo.PhysicalPath != null && _fileTypeProvider.TryGetContentType(fileInfo.PhysicalPath, out var ct)
             ? ct
             : "application/octet-stream";
-
-        DateTimeOffset lastModified = fileInfo.LastModified.ToUniversalTime();
-        long length = fileInfo.Length;
-        long etagHash = lastModified.ToFileTime() ^ length;
-        string etagString = string.Concat("\"", Convert.ToString(etagHash, 16), "\"");
-
-        var ifNoneMatch = context.Request.Headers[HeaderNames.IfNoneMatch];
-        if (!string.IsNullOrEmpty(ifNoneMatch) &&
-            System.Net.Http.Headers.EntityTagHeaderValue.TryParse(ifNoneMatch, out var clientEtag) &&
-            string.Equals(etagString, clientEtag.ToString(), StringComparison.Ordinal))
-        {
-            context.Response.StatusCode = StatusCodes.Status304NotModified;
-            return;
-        }
-
-        var ifModifiedSince = context.Request.Headers[HeaderNames.IfModifiedSince];
-        if (!string.IsNullOrEmpty(ifModifiedSince) && DateTimeOffset.TryParse(ifModifiedSince, out var since) && since >= lastModified)
-        {
-            context.Response.StatusCode = StatusCodes.Status304NotModified;
-            return;
-        }
         context.Response.StatusCode = StatusCodes.Status200OK;
         context.Response.ContentType = contentType;
-        context.Response.Headers[HeaderNames.LastModified] = lastModified.ToString("R");
-        context.Response.Headers[HeaderNames.ETag] = etagString;
-        context.Response.Headers[HeaderNames.AcceptRanges] = "bytes";
 
+        if (isInParsePattern is false)
+        {
+            long etagHash = lastModified.ToFileTime() ^ length;
+            string etagString = string.Concat("\"", Convert.ToString(etagHash, 16), "\"");
+
+            var ifNoneMatch = context.Request.Headers[HeaderNames.IfNoneMatch];
+            if (!string.IsNullOrEmpty(ifNoneMatch) &&
+                System.Net.Http.Headers.EntityTagHeaderValue.TryParse(ifNoneMatch, out var clientEtag) &&
+                string.Equals(etagString, clientEtag.ToString(), StringComparison.Ordinal))
+            {
+                context.Response.StatusCode = StatusCodes.Status304NotModified;
+                return;
+            }
+
+            var ifModifiedSince = context.Request.Headers[HeaderNames.IfModifiedSince];
+            if (!string.IsNullOrEmpty(ifModifiedSince) && DateTimeOffset.TryParse(ifModifiedSince, out var since) && since >= lastModified)
+            {
+                context.Response.StatusCode = StatusCodes.Status304NotModified;
+                return;
+            }
+            context.Response.Headers[HeaderNames.LastModified] = lastModified.ToString("R");
+            context.Response.Headers[HeaderNames.ETag] = etagString;
+            context.Response.Headers[HeaderNames.AcceptRanges] = "bytes";
+        }
+        else
+        {
+            if (_headers is not null)
+            {
+                for (int i = 0; i < _headers.Length; i++)
+                {
+                    if (string.IsNullOrEmpty(_headers[i]))
+                    {
+                        continue;
+                    }
+                    var parts = _headers[i].Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+                    {
+                        continue;
+                    }
+                    context.Response.Headers[parts[0]] = parts[1];
+                }
+            }
+        }
         if (isGet)
         {
             try
@@ -209,21 +244,6 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
                     return;
                 }
 
-                var pathString = path.ToString();
-                if (_pathInParsePattern.TryGetValue(pathString, out bool isInParsePattern) is false)
-                {
-                    isInParsePattern = false;
-                    for (int i = 0; i < _parsePatterns?.Length; i++)
-                    {
-                        if (Parser.IsPatternMatch(pathString, _parsePatterns[i]))
-                        {
-                            isInParsePattern = true;
-                            break;
-                        }
-                    }
-                    _pathInParsePattern.TryAdd(pathString, isInParsePattern);
-                }
-
                 if (isInParsePattern is false)
                 {
                     context.Response.ContentLength = length;
@@ -233,7 +253,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
                 }
 
                 // Check cache for parsed files
-                if (_cacheParsedFiles && _parsedFileCache.TryGetValue(pathString, out var cached) && cached.LastModified >= lastModified)
+                if (isInParsePattern && _cacheParsedFiles && _parsedFileCache.TryGetValue(pathString, out var cached) && cached.LastModified >= lastModified)
                 {
                     buffer = cached.Content;
                 }
@@ -279,7 +299,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
             }
             catch (IOException ex)
             {
-                _logger?.Error(ex, "Failed to serve static file {Path}", path.ToString());
+                _logger?.Error(ex, "Failed to serve static file {Path}", path);
 
                 context.Response.Clear();
                 await _next(context);
@@ -290,7 +310,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         // HEAD request completes here
     }
 
-    private string GetOriginalRequestPath(HttpContext context, string path)
+    private static string GetOriginalRequestPath(string path)
     {
         if (string.IsNullOrEmpty(path) || path.Length < 2)
         {

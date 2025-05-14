@@ -32,7 +32,8 @@ public class RoutineEndpoint(
     string? connectionName = null,
     bool upload = false,
     string[]? uploadHandlers = null,
-    Dictionary<string, string>? customParameters = null)
+    Dictionary<string, string>? customParameters = null,
+    bool userContext = false)
 {
     private string? _bodyParameterName = bodyParameterName;
 
@@ -81,4 +82,5 @@ public class RoutineEndpoint(
     public bool Upload { get; set; } = upload;
     public string[]? UploadHandlers { get; set; } = uploadHandlers;
     public Dictionary<string, string>? CustomParameters { get; set; } = customParameters;
+    public bool UserContext { get; set; } = userContext;
 }

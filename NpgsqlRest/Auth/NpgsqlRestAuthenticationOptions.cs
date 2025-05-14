@@ -97,10 +97,41 @@ public class NpgsqlRestAuthenticationOptions
 
     /// <summary>
     /// Command that is executed when the password verification fails. There are three text parameters:
-    ///     - scheme: authentication scheme used for the login (if exists)
-    ///     - user_name: user id used for the login (if exists)
-    ///     - user_id: user id used for the login (if exists)
+    ///     - authentication scheme used for the login (if exists)
+    ///     - user id used for the login (if exists)
+    ///     - user name used for the login (if exists)
     /// Please use PostgreSQL parameter placeholders for the parameters ($1, $2, $3).
     /// </summary>
     public string? PasswordVerificationFailedCommand { get; set; } = null;
+
+    /// <summary>
+    /// Command that is executed when the password verification succeeds. There are three text parameters:
+    ///     - authentication scheme used for the login (if exists)
+    ///     - user id used for the login (if exists)
+    ///     - user name used for the login (if exists)
+    /// Please use PostgreSQL parameter placeholders for the parameters ($1, $2, $3).
+    /// </summary>
+    public string? PasswordVerificationSucceededCommand { get; set; } = null;
+
+    /// <summary>
+    /// Set user context to true for all requests. 
+    /// When this is set to true, user information (user id, user name and user roles) will be set to the context variables.
+    /// You can set this individually for each request.
+    /// </summary>
+    public bool UseUserContext { get; set; } = false;
+
+    /// <summary>
+    /// User id context key that is used to set context variable for the user id.
+    /// </summary>
+    public string? UserIdContextKey { get; set; } = "request.user_id";
+
+    /// <summary>
+    /// User name context key that is used to set context variable for the user name.
+    /// </summary>
+    public string? UserNameContextKey { get; set; } = "request.user_name";
+
+    /// <summary>
+    /// User roles context key that is used to set context variable for the user roles.
+    /// </summary>
+    public string? UserRolesContextKey { get; set; } = "request.user_roles";
 }

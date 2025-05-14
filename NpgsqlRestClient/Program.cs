@@ -111,6 +111,7 @@ NpgsqlRestOptions options = new()
     DefaultRequestParamType = GetConfigEnum<RequestParamType?>("DefaultRequestParamType", NpgsqlRestCfg),
     CommentsMode = GetConfigEnum<CommentsMode?>("CommentsMode", NpgsqlRestCfg) ?? CommentsMode.OnlyWithHttpTag,
     RequestHeadersMode = GetConfigEnum<RequestHeadersMode?>("RequestHeadersMode", NpgsqlRestCfg) ?? RequestHeadersMode.Ignore,
+    RequestHeadersContextKey = GetConfigStr("RequestHeadersContextKey", NpgsqlRestCfg) ?? "request.headers",
     RequestHeadersParameterName = GetConfigStr("RequestHeadersParameterName", NpgsqlRestCfg) ?? "_headers",
 
     EndpointCreated = CreateEndpointCreatedHandler(),
@@ -123,6 +124,8 @@ NpgsqlRestOptions options = new()
     {
         DefaultAuthenticationType = GetConfigStr("DefaultAuthenticationType", AuthCfg) ?? GetConfigStr("ApplicationName", Cfg),
         PasswordVerificationFailedCommand = GetConfigStr("PasswordVerificationFailedCommand", AuthCfg),
+        PasswordVerificationSucceededCommand = GetConfigStr("PasswordVerificationSucceededCommand", AuthCfg),
+        UseUserContext = GetConfigBool("UseUserContext", AuthCfg),
     },
 
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),

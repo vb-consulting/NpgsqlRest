@@ -186,6 +186,12 @@ internal static class DefaultCommentParser
         "security-sensitive"
     ];
 
+    private static readonly string[] userContextKey = [
+        "usercontext",
+        "user_context",
+        "user-context",
+    ];
+
     private const string UploadKey = "upload";
 
     private static readonly string[] parameterKey = [
@@ -267,7 +273,7 @@ internal static class DefaultCommentParser
                     {
                         routineEndpoint.CustomParamsNeedParsing = true;
                     }
-                    SetCustomParameter(routineEndpoint, customParamName, customParamValue, options);
+                    SetCustomParameter(routineEndpoint, customParamName, customParamValue);
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentSetCustomParemeter(description, customParamName, customParamValue);
@@ -800,6 +806,18 @@ internal static class DefaultCommentParser
                     }
                 }
 
+                // usercontext
+                // user_context
+                // user-context
+                else if (haveTag is true && StrEqualsToArray(words[0], userContextKey))
+                {
+                    routineEndpoint.UserContext = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentUserContext(description);
+                    }
+                }
+
                 // cached
                 // cached [ param1, param2, param3 [, ...] ]
                 else if (haveTag is true && StrEquals(words[0], CacheKey))
@@ -1083,7 +1101,7 @@ internal static class DefaultCommentParser
         return routineEndpoint;
     }
 
-    public static void SetCustomParameter(RoutineEndpoint endpoint, string name, string value, NpgsqlRestOptions options)
+    public static void SetCustomParameter(RoutineEndpoint endpoint, string name, string value)
     {
         value = Regex.Unescape(value);
         if (endpoint.CustomParameters is null)
@@ -1134,6 +1152,13 @@ internal static class DefaultCommentParser
             //    endpoint.ConnectionName = value;
             //}
             endpoint.ConnectionName = value;
+        }
+        else if (StrEqualsToArray(name, userContextKey))
+        {
+            if (bool.TryParse(value, out var parserUserContext))
+            {
+                endpoint.UserContext = parserUserContext;
+            }
         }
     }
 

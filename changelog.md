@@ -4,17 +4,50 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
-  "StaticFiles": {
-    "Enabled": false,
-    "RootPath": "wwwroot",
-    //
-    // List of static file patterns that will require authorization.
-    // File paths are relative to the RootPath property and pattern matching is case-insensitive.
-    // Pattern can include wildcards or question marks. For example: *.html, /user/*, etc
-    // 
-    "AutorizePaths": [],
-    "UnauthorizedRedirectPath": "/",
-    "UnautorizedReturnToQueryParameter": "return_to",
+"StaticFiles": {
+//
+// List of static file patterns that will require authorization.
+// File paths are relative to the RootPath property and pattern matching is case-insensitive.
+// Pattern can include wildcards or question marks. For example: *.html, /user/*, etc
+// 
+"AutorizePaths": [],
+"UnauthorizedRedirectPath": "/",
+"UnauthorizedReturnToQueryParameter": "return_to",
+- Done!
+
+Add no cache headers to static files
+"StaticFiles": {
+    "ParseContentOptions": {
+          "Headers": [ "Cache-Control: no-store, no-cache, must-revalidate", "Pragma: no-cache", "Expires: 0" ],
+- Done!
+
+
+- Add NpgsqlRestAuthenticationOptions.PasswordVerificationSucceededCommand that will with NpgsqlRestAuthenticationOptions.PasswordVerificationFailedCommand 
+- Done!
+
+Change:
+- Commands NpgsqlRestAuthenticationOptions.PasswordVerificationFailedCommand and NpgsqlRestAuthenticationOptions.PasswordVerificationFailedCommand 
+have flipped username and userid paramaters
+
+Now, the order is:
+
+1) scheme (text)
+2) user id (text)
+3) user name (text)
+
+
+Change:
+- New option: public string RequestHeadersContextKey { get; set; } = "request.headers";
+
+Optimization: fast command creation with MemberwiseClone cached instance
+
+doing:
+if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
+{
+    command.CommandText = string.Concat("select set_config('request.headers','", headers, "',false)");
+    command.ExecuteNonQuery();
+}
+- To this for user_id too
 
 
 ## Version [2.26.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.26.0) (2025-05-11)
@@ -602,14 +635,14 @@ When the login endpoint tries to verify supplied hash with the password paramete
 
 3) `AuthenticationOptions.PasswordVerificationFailedCommand`
 
-Text command with three optiona parameters that is executed when automatic hash verfiociation fails. Executing this command gives you chance to update appswrod attempts in database for example.
+Text command with three optional parameters that is executed when automatic hash verification fails. Executing this command gives you chance to update appswrod attempts in database for example.
 
-Command accepts three optional and possitional parameters:
+Command accepts three optional and positional parameters:
 1) scheme (text)
 2) user name (text)
 3) user id (text)
 
-Exectuon will be skipped if this option is null or empty.
+Execution will be skipped if this option is null or empty.
 
 #### Upload Support
 

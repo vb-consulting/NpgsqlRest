@@ -206,6 +206,11 @@ public class NpgsqlRestOptions
     public RequestHeadersMode RequestHeadersMode { get; set; } = RequestHeadersMode.Ignore;
 
     /// <summary>
+    /// Name of the context variable that will receive the request headers when RequestHeadersMode is set to Context.
+    /// </summary>
+    public string RequestHeadersContextKey { get; set; } = "request.headers";
+
+    /// <summary>
     /// Sets a parameter name that will receive a request headers JSON when the `Parameter` value is used in `RequestHeadersMode` options. A parameter with this name must exist, must be one of the JSON or text types and must have the default value defined. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
     /// </summary>
     public string RequestHeadersParameterName { get; set; } = "headers";

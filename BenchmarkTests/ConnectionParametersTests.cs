@@ -8,7 +8,7 @@ namespace BenchmarkTests;
 
 public class ConnectionParametersTests
 {
-    private string _connectionPoolingEnabled = "Host=127.0.0.1;Port=5437;Database=perftests;Username=postgres;Password=postgres;Pooling=true";
+    private string _connectionStr = "Host=127.0.0.1;Port=5437;Database=perftests;Username=postgres;Password=postgres;Pooling=true";
     private string _connectionPoolingDisabled = "Host=127.0.0.1;Port=5437;Database=perftests;Username=postgres;Password=postgres;Pooling=false";
     private string _connectionFullPreparePoolingEnabled = "Host=127.0.0.1;Port=5437;Database=perftests;Username=postgres;Password=postgres;Pooling=true;Max Auto Prepare=5000;Auto Prepare Min Usages=1";
     private string _connectionFullPreparePoolingEnabledNoReset = "Host=127.0.0.1;Port=5437;Database=perftests;Username=postgres;Password=postgres;Pooling=true;Max Auto Prepare=5000;Auto Prepare Min Usages=1;No Reset On Close=true";
@@ -199,7 +199,7 @@ public class ConnectionParametersTests
     [Benchmark()]
     public async Task Query_PoolingEnabled()
     {
-        using var connection = new NpgsqlConnection(_connectionPoolingEnabled);
+        using var connection = new NpgsqlConnection(_connectionStr);
         connection.Open();
         using var cmd = connection.CreateCommand();
         cmd.CommandText = _query;
@@ -355,7 +355,7 @@ public class ConnectionParametersTests
     [Benchmark()]
     public async Task Func_PoolingEnabled()
     {
-        using var connection = new NpgsqlConnection(_connectionPoolingEnabled);
+        using var connection = new NpgsqlConnection(_connectionStr);
         connection.Open();
         using var cmd = connection.CreateCommand();
         cmd.CommandText = "select region_id,month,unique_customers,unique_stores,total_amount,avg_amount,median_amount,top_stores_in_countries,top_10_global_stores,vip_customers,top_global_stores from complex_analysis($1, $2);";

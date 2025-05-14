@@ -87,19 +87,10 @@ public class CsvUploadHandler(UploadHandlerOptions options, ILogger? logger) : I
         string[] delimitersArr = [.. delimiters.Select(c => c.ToString())];
         using var command = new NpgsqlCommand(rowCommand, connection);
         var paramCount = rowCommand.PgCountParams();
-        if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
-        {
-            NpgsqlDbType = NpgsqlDbType.Integer
-        });
-        if (paramCount >= 2) command.Parameters.Add(new NpgsqlParameter()
-        {
-            NpgsqlDbType = NpgsqlDbType.Text | NpgsqlDbType.Array
-        });
+        if (paramCount >= 1) command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Integer));
+        if (paramCount >= 2) command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Text | NpgsqlDbType.Array));
         if (paramCount >= 3) command.Parameters.Add(new NpgsqlParameter());
-        if (paramCount >= 4) command.Parameters.Add(new NpgsqlParameter()
-        {
-            NpgsqlDbType = NpgsqlDbType.Json
-        });
+        if (paramCount >= 4) command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Json));
 
         StringBuilder result = new(context.Request.Form.Files.Count*100);
         result.Append('[');
@@ -188,7 +179,7 @@ public class CsvUploadHandler(UploadHandlerOptions options, ILogger? logger) : I
 
                 rowIndex++;
             }
-            fileJson[fileJson.Length - 1] = ',';
+            fileJson[^1] = ',';
             fileJson.Append("\"lastResult\":");
             fileJson.Append(SerializeDatbaseObject(commandResult));
             fileJson.Append('}');
