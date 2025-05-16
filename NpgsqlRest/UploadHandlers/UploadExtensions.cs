@@ -4,32 +4,34 @@ public enum UploadFileStatus { Empty, ProbablyBinary, NoNewLines, Ok }
 
 public static class UploadExtensions
 {
-    public static Dictionary<string, Func<ILogger?, IUploadHandler>>? CreateUploadHandlers(this UploadHandlerOptions options)
+    public static Dictionary<string, Func<ILogger?, IUploadHandler>>? CreateUploadHandlers(this NpgsqlRestUploadOptions options)
     {
         if (options is null)
         {
             return null;
         }
-        if (options.UploadsEnabled is false)
+        if (options.Enabled is false)
         {
             return null;
         }
-        if (options.LargeObjectEnabled is false && options.FileSystemEnabled is false && options.CsvUploadEnabled is false)
+        if (options.DefaultUploadHandlerOptions.LargeObjectEnabled is false && 
+            options.DefaultUploadHandlerOptions.FileSystemEnabled is false && 
+            options.DefaultUploadHandlerOptions.CsvUploadEnabled is false)
         {
             return null;
         }
         var result = new Dictionary<string, Func<ILogger?, IUploadHandler>>();
-        if (options.LargeObjectEnabled)
+        if (options.DefaultUploadHandlerOptions.LargeObjectEnabled)
         {
-            result.Add(options.LargeObjectKey, logger => new LargeObjectUploadHandler(options, logger));
+            result.Add(options.DefaultUploadHandlerOptions.LargeObjectKey, logger => new LargeObjectUploadHandler(options, logger));
         }
-        if (options.FileSystemEnabled)
+        if (options.DefaultUploadHandlerOptions.FileSystemEnabled)
         {
-            result.Add(options.FileSystemKey, logger => new FileSystemUploadHandler(options, logger));
+            result.Add(options.DefaultUploadHandlerOptions.FileSystemKey, logger => new FileSystemUploadHandler(options, logger));
         }
-        if (options.CsvUploadEnabled)
+        if (options.DefaultUploadHandlerOptions.CsvUploadEnabled)
         {
-            result.Add(options.CsvUploadKey, logger => new CsvUploadHandler(options, logger));
+            result.Add(options.DefaultUploadHandlerOptions.CsvUploadKey, logger => new CsvUploadHandler(options, logger));
         }
         return result;
     }
@@ -38,19 +40,19 @@ public static class UploadExtensions
     {
         if (endpoint.UploadHandlers is null || endpoint.UploadHandlers.Length == 0)
         {
-            if (options.UploadHandlers is not null && options.UploadHandlers.TryGetValue(options.DefaultUploadHandler, out var handler))
+            if (options.UploadOptions.UploadHandlers is not null && options.UploadOptions.UploadHandlers.TryGetValue(options.UploadOptions.DefaultUploadHandler, out var handler))
             {
-                return handler(logger).SetType(options.DefaultUploadHandler);
+                return handler(logger).SetType(options.UploadOptions.DefaultUploadHandler);
             }
             else
             {
-                throw new Exception($"Default upload handler '{options.DefaultUploadHandler}' not found.");
+                throw new Exception($"Default upload handler '{options.UploadOptions.DefaultUploadHandler}' not found.");
             }
         }
         else if (endpoint.UploadHandlers.Length == 1)
         { 
             var handlerName = endpoint.UploadHandlers[0];
-            if (options.UploadHandlers is not null && options.UploadHandlers.TryGetValue(handlerName, out var handler))
+            if (options.UploadOptions.UploadHandlers is not null && options.UploadOptions.UploadHandlers.TryGetValue(handlerName, out var handler))
             {
                 return handler(logger).SetType(handlerName);
             }
@@ -62,7 +64,7 @@ public static class UploadExtensions
         else
         {
             // all handlers defined
-            return new DefaultUploadHandler(options.UploadHandlers?.Select(h => h.Value(logger).SetType(h.Key)).ToArray() ?? []);
+            return new DefaultUploadHandler(options.UploadOptions.UploadHandlers?.Select(h => h.Value(logger).SetType(h.Key)).ToArray() ?? []);
         }
     }
 

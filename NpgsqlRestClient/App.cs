@@ -132,7 +132,7 @@ public static class App
         {
             return null;
         }
-        return (RoutineEndpoint? endpoint) =>
+        return endpoint =>
         {
             if (endpoint is null)
             {
@@ -186,7 +186,7 @@ public static class App
         Action<ParameterValidationValues>? paramHandler = null;
         if (bindParameters is true)
         {
-            paramHandler = (ParameterValidationValues p) =>
+            paramHandler = p =>
             {
                 if (userIdParameterName is not null && string.Equals(p.Parameter.ActualName, userIdParameterName, StringComparison.OrdinalIgnoreCase))
                 {
@@ -204,7 +204,7 @@ public static class App
                 }
                 else if (ipAddressParameterName is not null && string.Equals(p.Parameter.ActualName, ipAddressParameterName, StringComparison.OrdinalIgnoreCase))
                 {
-                    p.Parameter.Value = GetClientIpAddress(p.Context.Request) as object ?? DBNull.Value;
+                    p.Parameter.Value = p.Context.Request.GetClientIpAddressDbParam();
                 }
                 else if (customClaims is not null && customClaims.TryGetValue(p.Parameter.ActualName, out var claimName))
                 {
@@ -242,23 +242,6 @@ public static class App
         return (paramHandler, defaultParser);
     }
 
-    public static string? GetClientIpAddress(HttpRequest request)
-    {
-        string? ip = request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(ip))
-        {
-            return ip.Split(',')[0].Trim();
-        }
-        ip = request.Headers["X-Real-IP"].FirstOrDefault()
-            ?? request.Headers["HTTP_X_FORWARDED_FOR"].FirstOrDefault()
-            ?? request.Headers["REMOTE_ADDR"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(ip))
-        {
-            return ip;
-        }
-        return request.HttpContext.Connection.RemoteIpAddress?.ToString();
-    }
-
     public static Dictionary<string, int> CreatePostgreSqlErrorCodeToHttpStatusCodeMapping()
     {
         if (NpgsqlRestCfg.Exists() is false)
@@ -293,12 +276,12 @@ public static class App
 
     public static Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? BeforeConnectionOpen(string connectionString)
     {
-        if (Config.UseConnectionApplicationNameWithUsername is false)
+        if (UseConnectionApplicationNameWithUsername is false)
         {
             return null;
         }
 
-        return (NpgsqlConnection connection, RoutineEndpoint endpoint, HttpContext context) =>
+        return (connection, endpoint, context) =>
         {
             var uid = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var executionId = context.Request.Headers["X-Execution-Id"].FirstOrDefault();
@@ -447,46 +430,110 @@ public static class App
         return sources;
     }
 
-    public static (string defaultUploadHandler, Dictionary<string, Func<Microsoft.Extensions.Logging.ILogger?, IUploadHandler>>? uploadHandlers) CreateUploadHandlers()
+    public static NpgsqlRestUploadOptions CreateUploadOptions()
     {
-        var uploadHandlersCfg = NpgsqlRestCfg.GetSection("UploadHandlers");
-        if (uploadHandlersCfg.Exists() is false)
+        var uploadCfg = NpgsqlRestCfg.GetSection("UploadOptions");
+        if (uploadCfg.Exists() is false)
         {
-            return ("large_object", new UploadHandlerOptions().CreateUploadHandlers());
+            return new NpgsqlRestUploadOptions();
         }
 
-        string defaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadHandlersCfg) ?? "large_object";
-        var options = new UploadHandlerOptions
+        var result = new NpgsqlRestUploadOptions
         {
-            LogUploadEvent = GetConfigBool("LogUploadEvent", uploadHandlersCfg, true),
-
-            LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
-            LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-            LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-            LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object",
-            LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192,
-
-            FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true),
-            FileSystemIncludedMimeTypePatterns = GetConfigStr("FileSystemIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-            FileSystemExcludedMimeTypePatterns = GetConfigStr("FileSystemExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-            FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system",
-            FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads",
-            FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true),
-            FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true),
-            FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192,
-
-            CsvUploadEnabled = GetConfigBool("CsvUploadEnabled", uploadHandlersCfg, true),
-            CsvUploadIncludedMimeTypePatterns = GetConfigStr("CsvUploadIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-            CsvUploadExcludedMimeTypePatterns = GetConfigStr("CsvUploadExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-            CsvUploadCheckFileStatus = GetConfigBool("CsvUploadCheckFileStatus", uploadHandlersCfg, true),
-            CsvUploadTestBufferSize = GetConfigInt("CsvUploadTestBufferSize", uploadHandlersCfg) ?? 4096,
-            CsvUploadNonPrintableThreshold = GetConfigInt("CsvUploadNonPrintableThreshold", uploadHandlersCfg) ?? 5,
-            CsvUploadDelimiterChars = GetConfigStr("CsvUploadDelimiterChars", uploadHandlersCfg) ?? ",",
-            CsvUploadHasFieldsEnclosedInQuotes = GetConfigBool("CsvUploadHasFieldsEnclosedInQuotes", uploadHandlersCfg, true),
-            CsvUploadSetWhiteSpaceToNull = GetConfigBool("CsvUploadSetWhiteSpaceToNull", uploadHandlersCfg, true),
-            CsvUploadRowCommand = GetConfigStr("CsvUploadRowCommand", uploadHandlersCfg) ?? "call process_csv_row($1,$2,$3,$4)",
+            Enabled = GetConfigBool("Enabled", uploadCfg, true),
+            LogUploadEvent = GetConfigBool("LogUploadEvent", uploadCfg, true),
+            DefaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadCfg) ?? "large_object"
         };
 
-        return (defaultUploadHandler, options.CreateUploadHandlers());
+        var uploadHandlersCfg = uploadCfg.GetSection("UploadHandlers");
+        UploadHandlerOptions uploadHandlerOptions;
+        if (uploadHandlersCfg.Exists() is false)
+        {
+            uploadHandlerOptions = new();
+        }
+        else
+        {
+            uploadHandlerOptions = new()
+            {
+                LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
+                LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object",
+                LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192,
+
+                FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true),
+                FileSystemIncludedMimeTypePatterns = GetConfigStr("FileSystemIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                FileSystemExcludedMimeTypePatterns = GetConfigStr("FileSystemExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system",
+                FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads",
+                FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true),
+                FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true),
+                FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192,
+
+                CsvUploadEnabled = GetConfigBool("CsvUploadEnabled", uploadHandlersCfg, true),
+                CsvUploadIncludedMimeTypePatterns = GetConfigStr("CsvUploadIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                CsvUploadExcludedMimeTypePatterns = GetConfigStr("CsvUploadExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                CsvUploadCheckFileStatus = GetConfigBool("CsvUploadCheckFileStatus", uploadHandlersCfg, true),
+                CsvUploadTestBufferSize = GetConfigInt("CsvUploadTestBufferSize", uploadHandlersCfg) ?? 4096,
+                CsvUploadNonPrintableThreshold = GetConfigInt("CsvUploadNonPrintableThreshold", uploadHandlersCfg) ?? 5,
+                CsvUploadDelimiterChars = GetConfigStr("CsvUploadDelimiterChars", uploadHandlersCfg) ?? ",",
+                CsvUploadHasFieldsEnclosedInQuotes = GetConfigBool("CsvUploadHasFieldsEnclosedInQuotes", uploadHandlersCfg, true),
+                CsvUploadSetWhiteSpaceToNull = GetConfigBool("CsvUploadSetWhiteSpaceToNull", uploadHandlersCfg, true),
+                CsvUploadRowCommand = GetConfigStr("CsvUploadRowCommand", uploadHandlersCfg) ?? "call process_csv_row($1,$2,$3,$4)",
+            };
+        }
+        result.DefaultUploadHandlerOptions = uploadHandlerOptions;
+
+        result.UploadHandlers = result.CreateUploadHandlers();
+        if (result.UploadHandlers is not null && result.UploadHandlers.Count > 1)
+        {
+            Logger?.Information("Using {0} upload handlers where {1} is default.", result.UploadHandlers.Keys, result.DefaultUploadHandler);
+            foreach (var uploadHandler in result.UploadHandlers)
+            {
+                Logger?.Information("Upload handler {0} has following parameters: {1}", uploadHandler.Key, uploadHandler.Value(null!).Parameters);
+            }
+        }
+        return result;
     }
+
+    //public static (string defaultUploadHandler, Dictionary<string, Func<Microsoft.Extensions.Logging.ILogger?, IUploadHandler>>? uploadHandlers) CreateUploadHandlers()
+    //{
+    //    var uploadHandlersCfg = NpgsqlRestCfg.GetSection("UploadHandlers");
+    //    if (uploadHandlersCfg.Exists() is false)
+    //    {
+    //        return ("large_object", new UploadHandlerOptions().CreateUploadHandlers());
+    //    }
+
+    //    string defaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadHandlersCfg) ?? "large_object";
+    //    var options = new UploadHandlerOptions
+    //    {
+    //        LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
+    //        LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+    //        LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+    //        LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object",
+    //        LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192,
+
+    //        FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true),
+    //        FileSystemIncludedMimeTypePatterns = GetConfigStr("FileSystemIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+    //        FileSystemExcludedMimeTypePatterns = GetConfigStr("FileSystemExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+    //        FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system",
+    //        FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads",
+    //        FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true),
+    //        FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true),
+    //        FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192,
+
+    //        CsvUploadEnabled = GetConfigBool("CsvUploadEnabled", uploadHandlersCfg, true),
+    //        CsvUploadIncludedMimeTypePatterns = GetConfigStr("CsvUploadIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+    //        CsvUploadExcludedMimeTypePatterns = GetConfigStr("CsvUploadExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+    //        CsvUploadCheckFileStatus = GetConfigBool("CsvUploadCheckFileStatus", uploadHandlersCfg, true),
+    //        CsvUploadTestBufferSize = GetConfigInt("CsvUploadTestBufferSize", uploadHandlersCfg) ?? 4096,
+    //        CsvUploadNonPrintableThreshold = GetConfigInt("CsvUploadNonPrintableThreshold", uploadHandlersCfg) ?? 5,
+    //        CsvUploadDelimiterChars = GetConfigStr("CsvUploadDelimiterChars", uploadHandlersCfg) ?? ",",
+    //        CsvUploadHasFieldsEnclosedInQuotes = GetConfigBool("CsvUploadHasFieldsEnclosedInQuotes", uploadHandlersCfg, true),
+    //        CsvUploadSetWhiteSpaceToNull = GetConfigBool("CsvUploadSetWhiteSpaceToNull", uploadHandlersCfg, true),
+    //        CsvUploadRowCommand = GetConfigStr("CsvUploadRowCommand", uploadHandlersCfg) ?? "call process_csv_row($1,$2,$3,$4)",
+    //    };
+
+    //    return (defaultUploadHandler, options.CreateUploadHandlers());
+    //}
 }

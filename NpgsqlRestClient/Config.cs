@@ -35,7 +35,7 @@ public static class Config
                 .Build();
         }
         var cfgCfg = tempCfg.GetSection("Config");
-        IConfigurationBuilder configBuilder = new ConfigurationBuilder();
+        ConfigurationBuilder configBuilder = new();
         var useEnv = cfgCfg != null && GetConfigBool("AddEnvironmentVariables", cfgCfg);
 
         if (configFiles.Count > 0)

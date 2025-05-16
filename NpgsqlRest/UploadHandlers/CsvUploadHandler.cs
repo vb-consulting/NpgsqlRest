@@ -6,7 +6,7 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
-public class CsvUploadHandler(UploadHandlerOptions options, ILogger? logger) : IUploadHandler
+public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
 {
     public bool RequiresTransaction => true;
     public string[] Parameters => _parameters;
@@ -33,16 +33,16 @@ public class CsvUploadHandler(UploadHandlerOptions options, ILogger? logger) : I
 
     public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        string[]? includedMimeTypePatterns = options.CsvUploadIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.CsvUploadExcludedMimeTypePatterns;
+        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.CsvUploadIncludedMimeTypePatterns;
+        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.CsvUploadExcludedMimeTypePatterns;
 
-        bool checkFileStatus = options.CsvUploadCheckFileStatus;
-        int testBufferSize = options.CsvUploadTestBufferSize;
-        int nonPrintableThreshold = options.CsvUploadNonPrintableThreshold;
-        string delimiters = options.CsvUploadDelimiterChars;
-        bool hasFieldsEnclosedInQuotes = options.CsvUploadHasFieldsEnclosedInQuotes;
-        bool setWhiteSpaceToNull = options.CsvUploadSetWhiteSpaceToNull;
-        string rowCommand = options.CsvUploadRowCommand;
+        bool checkFileStatus = options.DefaultUploadHandlerOptions.CsvUploadCheckFileStatus;
+        int testBufferSize = options.DefaultUploadHandlerOptions.CsvUploadTestBufferSize;
+        int nonPrintableThreshold = options.DefaultUploadHandlerOptions.CsvUploadNonPrintableThreshold;
+        string delimiters = options.DefaultUploadHandlerOptions.CsvUploadDelimiterChars;
+        bool hasFieldsEnclosedInQuotes = options.DefaultUploadHandlerOptions.CsvUploadHasFieldsEnclosedInQuotes;
+        bool setWhiteSpaceToNull = options.DefaultUploadHandlerOptions.CsvUploadSetWhiteSpaceToNull;
+        string rowCommand = options.DefaultUploadHandlerOptions.CsvUploadRowCommand;
 
         if (parameters is not null)
         {

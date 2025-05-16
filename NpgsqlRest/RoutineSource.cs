@@ -1,9 +1,6 @@
 ﻿using System.Text;
 using Npgsql;
 using NpgsqlTypes;
-using NpgsqlRest.Extensions;
-using System.Collections.Frozen;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace NpgsqlRest;
 
@@ -284,14 +281,20 @@ public class RoutineSource(
                             customTypePosition: customTypePositions[i],
                             originalParameterName: originalParameterName);
 
-                        parameters[i] = new NpgsqlRestParameter
-                        {
-                            Ordinal = i,
-                            NpgsqlDbType = descriptor.ActualDbType,
-                            ConvertedName = convertedName,
-                            ActualName = originalParameterName,
-                            TypeDescriptor = descriptor
-                        };
+                        //parameters[i] = new NpgsqlRestParameter
+                        //{
+                        //    Ordinal = i,
+                        //    NpgsqlDbType = descriptor.ActualDbType,
+                        //    ConvertedName = convertedName,
+                        //    ActualName = originalParameterName,
+                        //    TypeDescriptor = descriptor
+                        //};
+                        parameters[i] = new NpgsqlRestParameter(
+                            options,
+                            ordinal: i,
+                            convertedName: convertedName,
+                            actualName: originalParameterName,
+                            typeDescriptor: descriptor);
                     }
                     simpleDefinition.AppendLine(")");
                 }

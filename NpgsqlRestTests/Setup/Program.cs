@@ -136,8 +136,17 @@ public class Program
             AuthenticationOptions = new()
             {
                 PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)",
-                PasswordVerificationSucceededCommand = "call succeeded_login($1,$2,$3)"
+                PasswordVerificationSucceededCommand = "call succeeded_login($1,$2,$3)",
+                UserClaimsContextKey = "request.user_claims",
             },
+
+            UploadOptions = new()
+            {
+                UseDefaultUploadMetadataParameter = true,
+                DefaultUploadMetadataParameterName = "_default_upload_metadata",
+                UseDefaultUploadMetadataContextKey = true,
+                //DefaultUploadMetadataContextKey = "request.upload_metadata",
+            }
         });
         app.Run();
     }

@@ -11,7 +11,9 @@ public class NpgsqlCachedCommand : NpgsqlCommand
 {
     private static readonly NpgsqlCachedCommand _instanceCache = new();
 
+#pragma warning disable CS8603 // Possible null reference return.
     private NpgsqlCommand CachedCommandClone() => MemberwiseClone() as NpgsqlCommand;
+#pragma warning restore CS8603 // Possible null reference return.
 
     public static NpgsqlCommand Create(NpgsqlConnection connection)
     {
@@ -29,7 +31,9 @@ public class NpgsqlCachedParameter : NpgsqlParameter
         Value = DBNull.Value,
     };
 
+#pragma warning disable CS8603 // Possible null reference return.
     public NpgsqlParameter CachedParameterMemberwiseClone() => MemberwiseClone() as NpgsqlParameter;
+#pragma warning restore CS8603 // Possible null reference return.
 
     public static NpgsqlParameter CreateTextParam(string? value)
     {
@@ -45,17 +49,8 @@ public class NpgsqlCachedParameter : NpgsqlParameter
 [MemoryDiagnoser]
 public class CacheCommandTests
 {
-    private string _connectionStr = "Host=127.0.0.1;Port=5432;Database=postgres;Username=postgres;Password=postgres";
+    private readonly string _connectionStr = "Host=127.0.0.1;Port=5432;Database=postgres;Username=postgres;Password=postgres";
     
-    [GlobalSetup]
-    public void Setup()
-    {
-    }
-
-    [GlobalCleanup]
-    public void Cleanup()
-    {
-    }
 
     [Benchmark(Baseline = true)]
     public async Task NormalCommand()

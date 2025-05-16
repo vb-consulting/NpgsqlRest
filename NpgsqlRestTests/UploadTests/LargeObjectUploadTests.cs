@@ -63,6 +63,33 @@ public static partial class Database
         param _meta is upload metadata
         oid = {_oid}
         ';
+
+        create function lo_simple_upload_default_paramater(
+            _default_upload_metadata json = null
+        )
+        returns json 
+        language plpgsql
+        as 
+        $$
+        begin
+            return _default_upload_metadata;
+        end;
+        $$;
+
+        comment on function lo_simple_upload_default_paramater(json) is 'upload';
+
+        create function lo_simple_upload_context_metadata(
+        )
+        returns json 
+        language plpgsql
+        as 
+        $$
+        begin
+            return current_setting('request.upload_metadata', true)::text;
+        end;
+        $$;
+
+        comment on function lo_simple_upload_context_metadata() is 'upload';
 ");
     }
 }
@@ -107,7 +134,7 @@ public class LargeObjectUploadTests(TestFixture test)
             using var reader = await command.ExecuteReaderAsync();
             (await reader.ReadAsync()).Should().BeTrue(); // there is a record
         }
-        using (var command = new NpgsqlCommand("select convert_from(lo_get(" + oid + "), 'utf8')", connection)) 
+        using (var command = new NpgsqlCommand("select convert_from(lo_get(" + oid + "), 'utf8')", connection))
         {
             var content = (string?)await command.ExecuteScalarAsync();
             content.Should().Be(csvContent);
@@ -122,6 +149,66 @@ public class LargeObjectUploadTests(TestFixture test)
             using var reader = await command.ExecuteReaderAsync();
             (await reader.ReadAsync()).Should().BeTrue(); // there is a record
         }
+    }
+
+    [Fact]
+    public async Task Test_lo_simple_upload_default_paramater_test()
+    {
+        var fileName = "test-data.csv";
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,Name,Value");
+        sb.AppendLine("1,Item 1,100");
+        sb.AppendLine("2,Item 2,200");
+        sb.AppendLine("3,Item 3,300");
+        var csvContent = sb.ToString();
+        var contentBytes = Encoding.UTF8.GetBytes(csvContent);
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(contentBytes);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+        formData.Add(byteContent, "file", fileName);
+
+        using var result = await test.Client.PostAsync("/api/lo-simple-upload-default-paramater/", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+
+        var jsonDoc = JsonDocument.Parse(response);
+        var rootElement = jsonDoc.RootElement[0]; // Get the first object in the array
+        rootElement.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
+        rootElement.GetProperty("fileName").GetString().Should().Be("test-data.csv", "because the fileName should match the expected value");
+        rootElement.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
+        rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
+        rootElement.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Number, "because oid should be a number");
+        rootElement.GetProperty("oid").TryGetInt32(out _).Should().BeTrue("because oid should be a valid integer");
+    }
+
+    [Fact]
+    public async Task Test_lo_simple_upload_context_metadata_test()
+    {
+        var fileName = "test-data.csv";
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,Name,Value");
+        sb.AppendLine("1,Item 1,100");
+        sb.AppendLine("2,Item 2,200");
+        sb.AppendLine("3,Item 3,300");
+        var csvContent = sb.ToString();
+        var contentBytes = Encoding.UTF8.GetBytes(csvContent);
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(contentBytes);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+        formData.Add(byteContent, "file", fileName);
+
+        using var result = await test.Client.PostAsync("/api/lo-simple-upload-context-metadata/", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+
+        var jsonDoc = JsonDocument.Parse(response);
+        var rootElement = jsonDoc.RootElement[0]; // Get the first object in the array
+        rootElement.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
+        rootElement.GetProperty("fileName").GetString().Should().Be("test-data.csv", "because the fileName should match the expected value");
+        rootElement.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
+        rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
+        rootElement.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Number, "because oid should be a number");
+        rootElement.GetProperty("oid").TryGetInt32(out _).Should().BeTrue("because oid should be a valid integer");
     }
 
     [Fact]

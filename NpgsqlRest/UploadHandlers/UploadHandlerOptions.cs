@@ -2,9 +2,6 @@
 
 public class UploadHandlerOptions
 {
-    public bool UploadsEnabled { get; set; } = true;
-    public bool LogUploadEvent { get; set; } = true;
-
     public bool LargeObjectEnabled { get; set; } = true;
     public string LargeObjectKey { get; set; } = "large_object";
     public string[]? LargeObjectIncludedMimeTypePatterns { get; set; } = null;

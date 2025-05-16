@@ -1,9 +1,5 @@
 ﻿using Npgsql;
 using NpgsqlTypes;
-using NpgsqlRest.Extensions;
-using System.Linq.Expressions;
-using System.ComponentModel;
-using System.Collections.Frozen;
 
 namespace NpgsqlRest.CrudSource;
 
@@ -363,14 +359,20 @@ public class CrudSource(
                     for (var i = 0; i < columnCount; i++)
                     {
                         var descriptor = ts[i];
-                        parameters[i] = new NpgsqlRestParameter
-                        {
-                            Ordinal = i,
-                            NpgsqlDbType = descriptor.ActualDbType,
-                            ConvertedName = convertedColumnNames[i],
-                            ActualName = columnNames[i],
-                            TypeDescriptor = descriptor
-                        };
+                        //parameters[i] = new NpgsqlRestParameter
+                        //{
+                        //    Ordinal = i,
+                        //    NpgsqlDbType = descriptor.ActualDbType,
+                        //    ConvertedName = convertedColumnNames[i],
+                        //    ActualName = columnNames[i],
+                        //    TypeDescriptor = descriptor
+                        //};
+                        parameters[i] = new NpgsqlRestParameter(
+                            options,
+                            ordinal: i,
+                            convertedName: convertedColumnNames[i],
+                            actualName: columnNames[i],
+                            typeDescriptor: descriptor);
                     }
                 }
 
@@ -393,8 +395,8 @@ public class CrudSource(
 
                     ParamCount = columnCount,
                     Parameters = parameters,
-                    ParamsHash = parameters.Select(p => p.ConvertedName).ToHashSet(),
-                    OriginalParamsHash = parameters.Select(p => p.ActualName).ToHashSet(),
+                    ParamsHash = [.. parameters.Select(p => p.ConvertedName)],
+                    OriginalParamsHash = [.. parameters.Select(p => p.ActualName)],
 
                     Expression = expression,
                     FullDefinition = fullDefinition,

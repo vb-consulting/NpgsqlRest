@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest;
@@ -53,7 +52,7 @@ public class DefaultResponseParser(
         }
         if (ipAddressParameterName is not null)
         {
-            var value = App.GetClientIpAddress(context.Request);
+            var value = context.Request.GetClientIpAddress();
             replacements.Add(ipAddressParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
         }
         if (customClaims is not null)

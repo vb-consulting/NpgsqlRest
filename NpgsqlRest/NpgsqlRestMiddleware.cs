@@ -13,7 +13,6 @@ using static NpgsqlRest.ParameterParser;
 
 using NpgsqlRest.Auth;
 using NpgsqlRest.UploadHandlers;
-using NpgsqlRest.Extensions;
 
 namespace NpgsqlRest;
 
@@ -294,7 +293,42 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                             parameter.Value = options.AuthenticationOptions.PasswordHasher?.HashPassword(hashValueQueryDict) as object ?? DBNull.Value;
                         }
                     }
-                    if (parameter.UploadMetadata is true)
+                    if (endpoint.UseUserParameters is true)
+                    {
+                        if (parameter.IsUserId is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserIdDbParam(options);
+                            }
+                        }
+                        else if (parameter.IsUserName is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserNameDbParam(options);
+                            }
+                        }
+                        else if (parameter.IsUserRoles is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserRolesDbParam(options);
+                            }
+                        }
+                        else if (parameter.IsIpAddress is true)
+                        {
+                            parameter.Value = context.Request.GetClientIpAddressDbParam();
+                        }
+                        else if (parameter.IsUserClaims is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserClaimsDbParam();
+                            }
+                        }
+                    }
+                    if (parameter.IsUploadMetadata is true)
                     {
                         //uploadMetaParamIndex = i;
                         uploadMetaParamIndex = command.Parameters.Count; // the last one added
@@ -725,7 +759,42 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                             parameter.Value = options.AuthenticationOptions.PasswordHasher?.HashPassword(hashValueBodyDict) as object ?? DBNull.Value;
                         }
                     }
-                    if (parameter.UploadMetadata is true)
+                    if (endpoint.UseUserParameters is true)
+                    {
+                        if (parameter.IsUserId is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserIdDbParam(options);
+                            }
+                        }
+                        else if (parameter.IsUserName is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserNameDbParam(options);
+                            }
+                        }
+                        else if (parameter.IsUserRoles is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserRolesDbParam(options);
+                            }
+                        }
+                        else if (parameter.IsIpAddress is true)
+                        {
+                            parameter.Value = context.Request.GetClientIpAddressDbParam();
+                        }
+                        else if (parameter.IsUserClaims is true)
+                        {
+                            if (context.User?.Identity?.IsAuthenticated is true)
+                            {
+                                parameter.Value = context.User.GetUserClaimsDbParam();
+                            }
+                        }
+                    }
+                    if (parameter.IsUploadMetadata is true)
                     {
                         //uploadMetaParamIndex = i;
                         uploadMetaParamIndex = command.Parameters.Count; // the last one added
@@ -1065,6 +1134,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 }
             }
 
+            object? uploadMetadata = null;
             if (endpoint.Upload is true && uploadHandler is not null)
             {
                 if (connection.State != ConnectionState.Open)
@@ -1079,17 +1149,110 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 {
                     transaction = await connection.BeginTransactionAsync();
                 }
-                object? uploadMetadata = await uploadHandler.UploadAsync(connection, context, endpoint.CustomParameters);
-
+                uploadMetadata = await uploadHandler.UploadAsync(connection, context, endpoint.CustomParameters);
+                uploadMetadata ??= DBNull.Value;
                 if (uploadMetaParamIndex > -1)
                 {
-                    command.Parameters[uploadMetaParamIndex].Value = uploadMetadata ?? DBNull.Value;
+                    command.Parameters[uploadMetaParamIndex].Value = uploadMetadata;
                 }
+            }
+
+            if (
+                (endpoint.RequestHeadersMode == RequestHeadersMode.Context && headers is not null && options.RequestHeadersContextKey is not null) 
+                ||
+                (endpoint.UserContext is true && options.AuthenticationOptions.IpAddressContextKey is not null)
+                ||
+                (endpoint.UserContext is true && context.User?.Identity?.IsAuthenticated is true &&
+                    (options.AuthenticationOptions.UserIdContextKey is not null ||
+                    options.AuthenticationOptions.UserNameContextKey is not null ||
+                    options.AuthenticationOptions.UserRolesContextKey is not null ||
+                    options.AuthenticationOptions.UserClaimsContextKey is not null))
+                ||
+                (options.UploadOptions.UseDefaultUploadMetadataContextKey && 
+                    options.UploadOptions.DefaultUploadMetadataContextKey is not null && 
+                    endpoint.Upload is true && 
+                    uploadHandler is not null && 
+                    uploadMetadata is not null)
+                )
+            {
+                if (connection.State != ConnectionState.Open)
+                {
+                    if (options.BeforeConnectionOpen is not null)
+                    {
+                        options.BeforeConnectionOpen(connection, endpoint, context);
+                    }
+                    await connection.OpenAsync();
+                }
+                await using var batch = NpgsqlRestBatch.Create(connection);
+
+                if (endpoint.RequestHeadersMode == RequestHeadersMode.Context && headers is not null && options.RequestHeadersContextKey is not null)
+                {
+                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.RequestHeadersContextKey));
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(headers));
+                    batch.BatchCommands.Add(cmd);
+                }
+
+                if (endpoint.UserContext is true && context.User?.Identity?.IsAuthenticated is true)
+                {
+                    if (options.AuthenticationOptions.UserIdContextKey is not null)
+                    {
+                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserIdContextKey));
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserIdDbParam(options)));
+                        batch.BatchCommands.Add(cmd);
+                    }
+                    if (options.AuthenticationOptions.UserNameContextKey is not null)
+                    {
+                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserNameContextKey));
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserNameDbParam(options)));
+                        batch.BatchCommands.Add(cmd);
+                    }
+                    if (options.AuthenticationOptions.UserRolesContextKey is not null)
+                    {
+                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserRolesContextKey));
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserRolesTextDbParam(options)));
+                        batch.BatchCommands.Add(cmd);
+                    }
+                    if (options.AuthenticationOptions.UserClaimsContextKey is not null)
+                    {
+                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserClaimsContextKey));
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserClaimsDbParam()));
+                        batch.BatchCommands.Add(cmd);
+                    }
+                }
+
+                if (endpoint.UserContext is true)
+                {
+                    if (options.AuthenticationOptions.IpAddressContextKey is not null)
+                    {
+                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.IpAddressContextKey));
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.Request.GetClientIpAddressDbParam()));
+                        batch.BatchCommands.Add(cmd);
+                    }
+                }
+
+                if (options.UploadOptions.UseDefaultUploadMetadataContextKey &&
+                    options.UploadOptions.DefaultUploadMetadataContextKey is not null &&
+                    endpoint.Upload is true &&
+                    uploadHandler is not null &&
+                    uploadMetadata is not null)
+                {
+                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.UploadOptions.DefaultUploadMetadataContextKey));
+                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(uploadMetadata));
+                    batch.BatchCommands.Add(cmd);
+                }
+                await batch.ExecuteNonQueryAsync();
             }
 
             if (endpoint.Login is true)
             {
-                if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, false) is false)
+                if (await PrepareCommand(connection, command, commandText, context, endpoint, false) is false)
                 {
                     return;
                 }
@@ -1102,7 +1265,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
             if (endpoint.Logout is true)
             {
-                if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, true) is false)
+                if (await PrepareCommand(connection, command, commandText, context, endpoint, true) is false)
                 {
                     return;
                 }
@@ -1112,7 +1275,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
 
             if (routine.IsVoid)
             {
-                if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, true) is false)
+                if (await PrepareCommand(connection, command, commandText, context, endpoint, true) is false)
                 {
                     return;
                 }
@@ -1132,7 +1295,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     {
                         if (options.DefaultRoutineCache.Get(endpoint, cacheKeys?.ToString()!, out valueResult) is false)
                         {
-                            if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, true) is false)
+                            if (await PrepareCommand(connection, command, commandText, context, endpoint, true) is false)
                             {
                                 return;
                             }
@@ -1165,7 +1328,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     else
                     { 
-                        if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, true) is false)
+                        if (await PrepareCommand(connection, command, commandText, context, endpoint, true) is false)
                         {
                             return;
                         }
@@ -1257,7 +1420,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 }
                 else // end if (routine.ReturnsRecord == false)
                 {
-                    if (await PrepareCommand(connection, command, commandText, context, endpoint, headers, true) is false)
+                    if (await PrepareCommand(connection, command, commandText, context, endpoint, true) is false)
                     {
                         return;
                     }
@@ -1553,8 +1716,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         NpgsqlCommand command,
         string commandText,
         HttpContext context, 
-        RoutineEndpoint endpoint, 
-        string? headers,
+        RoutineEndpoint endpoint,
         bool unknownResults)
     {
         if (connection.State != ConnectionState.Open)
@@ -1565,59 +1727,13 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             }
             await connection.OpenAsync();
         }
-
-        if (
-            (endpoint.RequestHeadersMode == RequestHeadersMode.Context && headers is not null && options.RequestHeadersContextKey is not null) ||
-            (endpoint.UserContext is true && context.User.Identity?.IsAuthenticated is true &&
-                (options.AuthenticationOptions.UserIdContextKey is not null ||
-                options.AuthenticationOptions.UserNameContextKey is not null ||
-                options.AuthenticationOptions.UserRolesContextKey is not null))
-            )
-        {
-            await using var batch = NpgsqlRestBatch.Create(connection);
-
-            if (endpoint.RequestHeadersMode == RequestHeadersMode.Context && headers is not null && options.RequestHeadersContextKey is not null)
-            {
-                var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.RequestHeadersContextKey));
-                cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(headers));
-                batch.BatchCommands.Add(cmd);
-            }
-
-            if (endpoint.UserContext is true && context.User.Identity?.IsAuthenticated is true)
-            {
-                if (options.AuthenticationOptions.UserIdContextKey is not null)
-                {
-                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserIdContextKey));
-                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserId()));
-                    batch.BatchCommands.Add(cmd);
-                }
-                if (options.AuthenticationOptions.UserNameContextKey is not null)
-                {
-                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserNameContextKey));
-                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserName()));
-                    batch.BatchCommands.Add(cmd);
-                }
-                if (options.AuthenticationOptions.UserRolesContextKey is not null)
-                {
-                    var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(options.AuthenticationOptions.UserRolesContextKey));
-                    cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserRoles(options)));
-                    batch.BatchCommands.Add(cmd);
-                }
-            }
-
-            await batch.ExecuteNonQueryAsync();
-        }
         command.CommandText = commandText;
         
         if (endpoint.CommandTimeout.HasValue)
         {
             command.CommandTimeout = endpoint.CommandTimeout.Value;
         }
-        //command callback
+
         if (options.CommandCallbackAsync is not null)
         {
             await options.CommandCallbackAsync(endpoint, command, context);

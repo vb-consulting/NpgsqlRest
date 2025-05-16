@@ -5,7 +5,7 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
-public class FileSystemUploadHandler(UploadHandlerOptions options, ILogger? logger) : IUploadHandler
+public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
 {
     private readonly string[] _parameters = [
         "included_mime_types",
@@ -30,14 +30,14 @@ public class FileSystemUploadHandler(UploadHandlerOptions options, ILogger? logg
 
     public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        string[]? includedMimeTypePatterns = options.FileSystemIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.FileSystemExcludedMimeTypePatterns;
+        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.FileSystemIncludedMimeTypePatterns;
+        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.FileSystemExcludedMimeTypePatterns;
 
-        var basePath = options.FileSystemHandlerPath;
-        var useUniqueFileName = options.FileSystemHandlerUseUniqueFileName;
-        var bufferSize = options.FileSystemHandlerBufferSize;
+        var basePath = options.DefaultUploadHandlerOptions.FileSystemHandlerPath;
+        var useUniqueFileName = options.DefaultUploadHandlerOptions.FileSystemHandlerUseUniqueFileName;
+        var bufferSize = options.DefaultUploadHandlerOptions.FileSystemHandlerBufferSize;
         string? newFileName = null;
-        bool createPathIfNotExists = options.FileSystemHandlerCreatePathIfNotExists;
+        bool createPathIfNotExists = options.DefaultUploadHandlerOptions.FileSystemHandlerCreatePathIfNotExists;
 
         if (parameters is not null)
         {

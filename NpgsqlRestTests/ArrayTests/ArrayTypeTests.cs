@@ -109,6 +109,26 @@ begin
     ];
 end;
 $$;
+
+create function case_return_empty_text_array() 
+returns text[]
+language plpgsql
+as 
+$$
+begin
+    return array[]::text[];
+end;
+$$;
+
+create function case_return_empty_int_array() 
+returns int[]
+language plpgsql
+as 
+$$
+begin
+    return array[]::int[];
+end;
+$$;
 """"");
     }
 }
@@ -116,6 +136,28 @@ $$;
 [Collection("TestFixture")]
 public class ArrayTypeTests(TestFixture test)
 {
+    [Fact]
+    public async Task Test_case_return_empty_text_array()
+    {
+        using var result = await test.Client.PostAsync("/api/case-return-empty-text-array/", null);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        response.Should().Be("[]");
+    }
+
+    [Fact]
+    public async Task Test_case_return_empty_int_array()
+    {
+        using var result = await test.Client.PostAsync("/api/case-return-empty-int-array/", null);
+        var response = await result.Content.ReadAsStringAsync();
+
+        result?.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+        response.Should().Be("[]");
+    }
+
     [Fact]
     public async Task Test_case_return_int_array()
     {

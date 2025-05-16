@@ -192,6 +192,15 @@ internal static class DefaultCommentParser
         "user-context",
     ];
 
+    private static readonly string[] userParemetersKey = [
+        "userparameters",
+        "userparams",
+        "user_parameters",
+        "user_params",
+        "user-parameters",
+        "user-params",
+    ];
+
     private const string UploadKey = "upload";
 
     private static readonly string[] parameterKey = [
@@ -818,6 +827,21 @@ internal static class DefaultCommentParser
                     }
                 }
 
+                // userparameters
+                // userparams
+                // user_parameters
+                // user_params
+                // user-parameters
+                // user-params
+                else if (haveTag is true && StrEqualsToArray(words[0], userParemetersKey))
+                {
+                    routineEndpoint.UseUserParameters = true;
+                    if (options.LogAnnotationSetInfo)
+                    {
+                        logger?.CommentUserParameters(description);
+                    }
+                }
+
                 // cached
                 // cached [ param1, param2, param3 [, ...] ]
                 else if (haveTag is true && StrEquals(words[0], CacheKey))
@@ -904,7 +928,7 @@ internal static class DefaultCommentParser
                 // upload param_name as metadata
                 else if (haveTag is true && StrEquals(words[0], UploadKey))
                 {
-                    if (options.UploadHandlers is null || options.UploadHandlers.Count == 0)
+                    if (options.UploadOptions.UploadHandlers is null || options.UploadOptions.UploadHandlers.Count == 0)
                     {
                         logger?.CommentUploadNoHandlers(description);
                     }
@@ -928,7 +952,7 @@ internal static class DefaultCommentParser
                         }
                         if (len >= 3 && StrEquals(words[1], "for"))
                         {
-                            HashSet<string> existingHandlers = options.UploadHandlers?.Keys.ToHashSet() ?? [];
+                            HashSet<string> existingHandlers = options.UploadOptions.UploadHandlers?.Keys.ToHashSet() ?? [];
                             var handlers = words[2..]
                                 .Select(w =>
                                 {
@@ -950,7 +974,7 @@ internal static class DefaultCommentParser
                             {
                                 if (handlers.Length == 0)
                                 {
-                                    var first = options.UploadHandlers?.Keys.FirstOrDefault();
+                                    var first = options.UploadOptions.UploadHandlers?.Keys.FirstOrDefault();
                                     logger?.CommentUploadFirstAvaialbleHandler(description, first);
                                 }
                                 if (handlers.Length == 1)
@@ -976,7 +1000,7 @@ internal static class DefaultCommentParser
                             }
                             else
                             {
-                                param.UploadMetadata = true;
+                                param.IsUploadMetadata = true;
                                 if (options.LogAnnotationSetInfo)
                                 {
                                     logger?.CommentUploadMetadataParam(description, paramName);
@@ -1075,7 +1099,7 @@ internal static class DefaultCommentParser
                         }
                         else
                         {
-                            param.UploadMetadata = true;
+                            param.IsUploadMetadata = true;
                             if (options.LogAnnotationSetInfo)
                             {
                                 logger?.CommentUploadMetadataParam(description, paramName);
@@ -1158,6 +1182,13 @@ internal static class DefaultCommentParser
             if (bool.TryParse(value, out var parserUserContext))
             {
                 endpoint.UserContext = parserUserContext;
+            }
+        }
+        else if (StrEqualsToArray(name, userParemetersKey))
+        {
+            if (bool.TryParse(value, out var parserUserParameters))
+            {
+                endpoint.UseUserParameters = parserUserParameters;
             }
         }
     }

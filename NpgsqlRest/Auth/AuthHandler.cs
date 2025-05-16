@@ -122,7 +122,7 @@ internal static class AuthHandler
                     {
                         userName = null;
                     }
-                    else if (string.Equals(claimType, ClaimTypes.NameIdentifier, StringComparison.Ordinal))
+                    else if (string.Equals(claimType, options.AuthenticationOptions.DefaultUserIdClaimType, StringComparison.Ordinal))
                     {
                         userId = null;
                     }
@@ -143,7 +143,7 @@ internal static class AuthHandler
                     {
                         userName = value;
                     }
-                    else if (string.Equals(claimType, ClaimTypes.NameIdentifier, StringComparison.Ordinal))
+                    else if (string.Equals(claimType, options.AuthenticationOptions.DefaultUserIdClaimType, StringComparison.Ordinal))
                     {
                         userId = value;
                     }

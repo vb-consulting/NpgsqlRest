@@ -6,7 +6,7 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers;
 
-public class LargeObjectUploadHandler(UploadHandlerOptions options, ILogger? logger) : IUploadHandler
+public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
 {
     private readonly string[] _parameters = [
         "included_mime_types",
@@ -27,9 +27,9 @@ public class LargeObjectUploadHandler(UploadHandlerOptions options, ILogger? log
 
     public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        string[]? includedMimeTypePatterns = options.LargeObjectIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.LargeObjectExcludedMimeTypePatterns;
-        var bufferSize = options.LargeObjectHandlerBufferSize;
+        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectIncludedMimeTypePatterns;
+        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectExcludedMimeTypePatterns;
+        var bufferSize = options.DefaultUploadHandlerOptions.LargeObjectHandlerBufferSize;
         long? oid = null;
 
         if (parameters is not null)

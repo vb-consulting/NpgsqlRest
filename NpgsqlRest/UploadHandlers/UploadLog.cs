@@ -1,11 +1,5 @@
 ﻿namespace NpgsqlRest.UploadHandlers;
 
-/*
-
-
-                logger?.LogInformation("Uploaded file {FileName} ({ContentType}, {Length} bytes) to large object {resultOid}", 
-                    formFile.FileName, formFile.ContentType, formFile.Length, resultOid);
- */
 public static partial class UploadLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "File {fileName} ({contentType}, {length} bytes) is not a valid CSV file. Status: {status}")]

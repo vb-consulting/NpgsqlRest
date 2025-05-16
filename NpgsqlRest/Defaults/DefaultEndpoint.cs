@@ -39,7 +39,8 @@ internal static class DefaultEndpoint
                 bodyParameterName: null,
                 textResponseNullHandling: options.TextResponseNullHandling,
                 queryStringNullHandling: options.QueryStringNullHandling,
-                userContext: options.AuthenticationOptions.UseUserContext);
+                userContext: options.AuthenticationOptions.UseUserContext,
+                userParameters: options.AuthenticationOptions.UseUserParameters);
 
         if (options.LogCommands && logger != null)
         {

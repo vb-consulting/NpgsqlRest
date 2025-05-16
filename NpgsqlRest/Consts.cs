@@ -30,5 +30,7 @@ public static class Consts
     public const char At = '@';
     public const char Multiply = '*';
     public const char Question = '?';
+    public const string EmptyArray = "[]";
+    public const string EmptyObj = "{}";
     public const string SetContext = "select set_config($1,$2,false)";
 }

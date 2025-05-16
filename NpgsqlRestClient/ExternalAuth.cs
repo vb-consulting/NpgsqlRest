@@ -388,7 +388,7 @@ public static class ExternalAuth
                 {
                     if (string.IsNullOrEmpty(ExternalAuthConfig.ClientAnaliticsIpKey) is false)
                     {
-                        analyticsData[ExternalAuthConfig.ClientAnaliticsIpKey] = App.GetClientIpAddress(context.Request);
+                        analyticsData[ExternalAuthConfig.ClientAnaliticsIpKey] = context.Request.GetClientIpAddress();
                     }
                     command.Parameters.Add(new NpgsqlParameter()
                     {

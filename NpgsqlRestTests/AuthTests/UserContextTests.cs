@@ -5,7 +5,6 @@ public static partial class Database
     public static void UserContextTests()
     {
         script.Append("""
-
         create function user_context_login() 
         returns table (
             name_identifier int,
@@ -56,6 +55,21 @@ public static partial class Database
         user_context
         request_headers context
         ';
+
+        create function get_user_context_and_ip_and_full_claims() 
+        returns table (
+            ip_address text,
+            claims text
+        )
+        language sql as $$
+        select
+            current_setting('request.ip_address', true)::text,
+            current_setting('request.user_claims', true)::text
+        $$;
+        comment on function get_user_context_and_ip_and_full_claims() is '
+        authorize
+        user_context
+        ';
         """);
     }
 }
@@ -63,6 +77,22 @@ public static partial class Database
 [Collection("TestFixture")]
 public class UserContextTests(TestFixture test)
 {
+
+    [Fact]
+    public async Task Test_get_user_context_and_ip_and_full_claims()
+    {
+        using var client = test.Application.CreateClient();
+        client.Timeout = TimeSpan.FromHours(1);
+
+        using var login = await client.PostAsync("/api/user-context-login/", null);
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var response = await client.GetAsync("/api/get-user-context-and-ip-and-full-claims/");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\\\":\\\"123\\\",\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\\\":\\\"myname\\\",\\\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
+    }
+
     [Fact]
     public async Task Test_get_user_context1()
     {

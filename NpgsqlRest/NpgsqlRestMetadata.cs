@@ -41,7 +41,7 @@ public static class NpgsqlRestMetadataBuilder
         Dictionary<string, NpgsqlRestMetadataEntry> overloads = [];
 
         // Create default upload handlers from upload handler options
-        options.UploadHandlers ??= options.DefaultUploadHandlerOptions.CreateUploadHandlers();
+        options.UploadOptions.UploadHandlers ??= options.UploadOptions.CreateUploadHandlers();
 
         var hasLogin = false;
         if (builder is not null)
@@ -189,9 +189,9 @@ public static class NpgsqlRestMetadataBuilder
             }
         }
 
-        if (options.UploadHandlers is not null && options.UploadHandlers.ContainsKey(options.DefaultUploadHandler) is false)
+        if (options.UploadOptions.UploadHandlers is not null && options.UploadOptions.UploadHandlers.ContainsKey(options.UploadOptions.DefaultUploadHandler) is false)
         {
-            logger?.LogError("Default upload handler {defaultUploadHandler} not found in the list of upload handlers. Using upload endpoint with default handler may cause an error.", options.DefaultUploadHandler);
+            logger?.LogError("Default upload handler {defaultUploadHandler} not found in the list of upload handlers. Using upload endpoint with default handler may cause an error.", options.UploadOptions.DefaultUploadHandler);
         }
 
         if (options.EndpointsCreated is not null)

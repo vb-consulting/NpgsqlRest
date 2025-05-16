@@ -117,6 +117,10 @@ public static class PgConverters
         var len = value.Length;
         if (value.IsEmpty || len < 3 || value[0] != Consts.OpenBrace || value[^1] != Consts.CloseBrace)
         {
+            if (descriptor.IsArray is true)
+            {
+                return Consts.EmptyArray.AsSpan();
+            }
             return value;
         }
 
