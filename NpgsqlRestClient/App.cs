@@ -124,10 +124,86 @@ public static class App
             routine.Name.Trim(Consts.DoubleQuote).Trim('/'),
             "/");
 
-    public static Action<RoutineEndpoint?>? CreateEndpointCreatedHandler()
+    public static (NpgsqlRestAuthenticationOptions options, IConfigurationSection authCfg) CreateNpgsqlRestAuthenticationOptions()
     {
-        var loginPath = GetConfigStr("LoginPath", AuthCfg);
-        var logoutPath = GetConfigStr("LogoutPath", AuthCfg);
+        var authCfg = NpgsqlRestCfg.GetSection("AuthenticationOptions");
+        if (authCfg.Exists() is false)
+        {
+            return (new NpgsqlRestAuthenticationOptions(), authCfg);
+        }
+
+        return (new()
+        {
+            DefaultAuthenticationType = GetConfigStr("DefaultAuthenticationType", authCfg),
+
+            StatusColumnName = GetConfigStr("StatusColumnName", authCfg) ?? "status",
+            SchemeColumnName = GetConfigStr("SchemeColumnName", authCfg) ?? "scheme",
+            MessageColumnName = GetConfigStr("MessageColumnName", authCfg) ?? "message",
+            UseActiveDirectoryFederationServicesClaimTypes = GetConfigBool("UseActiveDirectoryFederationServicesClaimTypes", authCfg, true),
+            DefaultUserIdClaimType = GetConfigStr("DefaultUserIdClaimType", authCfg) ?? ClaimTypes.NameIdentifier,
+            DefaultNameClaimType = GetConfigStr("DefaultNameClaimType", authCfg) ?? ClaimTypes.Name,
+            DefaultRoleClaimType = GetConfigStr("DefaultRoleClaimType", authCfg) ?? ClaimTypes.Role,
+            SerializeAuthEndpointsResponse = GetConfigBool("SerializeAuthEndpointsResponse", authCfg, false),
+            ObfuscateAuthParameterLogValues = GetConfigBool("ObfuscateAuthParameterLogValues", authCfg, true),
+            HashColumnName = GetConfigStr("HashColumnName", authCfg) ?? "hash",
+            PasswordParameterNameContains = GetConfigStr("PasswordParameterNameContains", authCfg) ?? "pass",
+
+            PasswordVerificationFailedCommand = GetConfigStr("PasswordVerificationFailedCommand", authCfg),
+            PasswordVerificationSucceededCommand = GetConfigStr("PasswordVerificationSucceededCommand", authCfg),
+            UseUserContext = GetConfigBool("UseUserContext", authCfg, false),
+            UserIdContextKey = GetConfigStr("UserIdContextKey", authCfg) ?? "request.user_id",
+            UserNameContextKey = GetConfigStr("UserNameContextKey", authCfg) ?? "request.user_name",
+            UserRolesContextKey = GetConfigStr("UserRolesContextKey", authCfg) ?? "request.user_roles",
+            IpAddressContextKey = GetConfigStr("IpAddressContextKey", authCfg) ?? "request.ip_address",
+            UserClaimsContextKey = GetConfigStr("UserClaimsContextKey", authCfg) ?? "request.user_claims",
+
+            UseUserParameters = GetConfigBool("UseUserParameters", authCfg, false),
+            UserIdParameterName = GetConfigStr("UserIdParameterName", authCfg) ?? "_user_id",
+            UserNameParameterName = GetConfigStr("UserNameParameterName", authCfg) ?? "_user_name",
+            UserRolesParameterName = GetConfigStr("UserRolesParameterName", authCfg) ?? "_user_roles",
+            IpAddressParameterName = GetConfigStr("IpAddressParameterName", authCfg) ?? "_ip_address",
+            UserClaimsParameterName = GetConfigStr("UserClaimsParameterName", authCfg) ?? "_user_claims",
+        }, authCfg);
+    }
+
+    public static IResponseParser? CreateDefaultParser(IConfigurationSection authCfg, NpgsqlRestAuthenticationOptions options)
+    {
+        if (authCfg.Exists() is false)
+        {
+            return null;
+        }
+        if (GetConfigBool("UseUserParameters", authCfg, false) is false)
+        {
+            return null;
+        }
+
+
+        Dictionary<string, string?>? customParameters = null;
+        foreach (var section in NpgsqlRestCfg.GetSection("CustomParameterMappings").GetChildren())
+        {
+            customParameters ??= [];
+            customParameters.Add(section.Key, section.Value);
+        }
+
+        return new DefaultResponseParser(
+            options.UserIdParameterName,
+            options.UserNameParameterName,
+            options.UserRolesParameterName,
+            options.IpAddressParameterName,
+            null,
+            null,
+            null,
+            customParameters);
+    }
+
+    public static Action<RoutineEndpoint?>? CreateEndpointCreatedHandler(IConfigurationSection authCfg)
+    {
+        if (authCfg.Exists() is false)
+        {
+            return null;
+        }
+        var loginPath = GetConfigStr("LoginPath", authCfg);
+        var logoutPath = GetConfigStr("LogoutPath", authCfg);
         if (loginPath is null && logoutPath is null)
         {
             return null;
@@ -147,99 +223,6 @@ public static class App
                 endpoint.Login = true;
             }
         };
-    }
-
-    public static (Action<ParameterValidationValues>? paramHandler, IResponseParser? defaultParser) CreateParametersHandlers()
-    {
-        var userIdParameterName = GetConfigStr("UserIdParameterName", AuthCfg);
-        var userNameParameterName = GetConfigStr("UserNameParameterName", AuthCfg);
-        var userRolesParameterName = GetConfigStr("UserRolesParameterName", AuthCfg);
-        var ipAddressParameterName = GetConfigStr("IpAddressParameterName", AuthCfg);
-
-        Dictionary<string, StringValues>? customClaims = null;
-        foreach (var section in AuthCfg.GetSection("CustomParameterNameToClaimMappings").GetChildren())
-        {
-            customClaims ??= [];
-            customClaims.Add(section.Key, section.Value);
-        }
-
-        Dictionary<string, string?>? customParameters = null;
-        foreach (var section in NpgsqlRestCfg.GetSection("CustomParameterMappings").GetChildren())
-        {
-            customParameters ??= [];
-            customParameters.Add(section.Key, section.Value);
-        }
-
-        if (userIdParameterName is null
-            && userNameParameterName is null
-            && userRolesParameterName is null
-            && ipAddressParameterName is null
-            && customClaims is null
-            && customParameters is null)
-        {
-            return (null, null);
-        }
-
-        var bindParameters = GetConfigBool("BindParameters", AuthCfg);
-        var parseResponse = GetConfigBool("ParseResponse", AuthCfg);
-
-        Action<ParameterValidationValues>? paramHandler = null;
-        if (bindParameters is true)
-        {
-            paramHandler = p =>
-            {
-                if (userIdParameterName is not null && string.Equals(p.Parameter.ActualName, userIdParameterName, StringComparison.OrdinalIgnoreCase))
-                {
-                    p.Parameter.Value = p.Context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value as object ?? DBNull.Value;
-                }
-                else if (userNameParameterName is not null && string.Equals(p.Parameter.ActualName, userNameParameterName, StringComparison.OrdinalIgnoreCase))
-                {
-                    p.Parameter.Value = p.Context.User.Identity?.Name as object ?? DBNull.Value;
-                }
-                else if (userRolesParameterName is not null && string.Equals(p.Parameter.ActualName, userRolesParameterName, StringComparison.OrdinalIgnoreCase))
-                {
-                    p.Parameter.Value = p.Context.User
-                        .FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?
-                        .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
-                }
-                else if (ipAddressParameterName is not null && string.Equals(p.Parameter.ActualName, ipAddressParameterName, StringComparison.OrdinalIgnoreCase))
-                {
-                    p.Parameter.Value = p.Context.Request.GetClientIpAddressDbParam();
-                }
-                else if (customClaims is not null && customClaims.TryGetValue(p.Parameter.ActualName, out var claimName))
-                {
-                    if (p.Parameter.TypeDescriptor.IsArray)
-                    {
-                        p.Parameter.Value = p.Context.User
-                            .FindAll(c => string.Equals(c.Type, claimName, StringComparison.Ordinal))?
-                            .Select(r => r.Value).ToArray() as object ?? DBNull.Value;
-                    }
-                    else
-                    {
-                        p.Parameter.Value = p.Context.User.FindFirst(claimName!)?.Value as object ?? DBNull.Value;
-                    }
-                }
-                else if (customParameters is not null && customParameters.TryGetValue(p.Parameter.ActualName, out var paramValue))
-                {
-                    p.Parameter.Value = paramValue is null ? DBNull.Value : paramValue;
-                }
-            };
-        }
-
-        IResponseParser? defaultParser = null;
-        if (parseResponse is true)
-        {
-            defaultParser = new DefaultResponseParser(userIdParameterName,
-                userNameParameterName,
-                userRolesParameterName,
-                ipAddressParameterName,
-                null,
-                null,
-                customClaims,
-                customParameters);
-        }
-
-        return (paramHandler, defaultParser);
     }
 
     public static Dictionary<string, int> CreatePostgreSqlErrorCodeToHttpStatusCodeMapping()
@@ -442,7 +425,11 @@ public static class App
         {
             Enabled = GetConfigBool("Enabled", uploadCfg, true),
             LogUploadEvent = GetConfigBool("LogUploadEvent", uploadCfg, true),
-            DefaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadCfg) ?? "large_object"
+            DefaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadCfg) ?? "large_object",
+            UseDefaultUploadMetadataParameter = GetConfigBool("UseDefaultUploadMetadataParameter", uploadCfg, false),
+            DefaultUploadMetadataParameterName = GetConfigStr("DefaultUploadMetadataParameterName", uploadCfg) ?? "_upload_metadata",
+            UseDefaultUploadMetadataContextKey = GetConfigBool("UseDefaultUploadMetadataContextKey", uploadCfg, false),
+            DefaultUploadMetadataContextKey = GetConfigStr("DefaultUploadMetadataContextKey", uploadCfg) ?? "request.upload_metadata",
         };
 
         var uploadHandlersCfg = uploadCfg.GetSection("UploadHandlers");
@@ -495,45 +482,4 @@ public static class App
         }
         return result;
     }
-
-    //public static (string defaultUploadHandler, Dictionary<string, Func<Microsoft.Extensions.Logging.ILogger?, IUploadHandler>>? uploadHandlers) CreateUploadHandlers()
-    //{
-    //    var uploadHandlersCfg = NpgsqlRestCfg.GetSection("UploadHandlers");
-    //    if (uploadHandlersCfg.Exists() is false)
-    //    {
-    //        return ("large_object", new UploadHandlerOptions().CreateUploadHandlers());
-    //    }
-
-    //    string defaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadHandlersCfg) ?? "large_object";
-    //    var options = new UploadHandlerOptions
-    //    {
-    //        LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
-    //        LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-    //        LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-    //        LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object",
-    //        LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192,
-
-    //        FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true),
-    //        FileSystemIncludedMimeTypePatterns = GetConfigStr("FileSystemIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-    //        FileSystemExcludedMimeTypePatterns = GetConfigStr("FileSystemExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-    //        FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system",
-    //        FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads",
-    //        FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true),
-    //        FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true),
-    //        FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192,
-
-    //        CsvUploadEnabled = GetConfigBool("CsvUploadEnabled", uploadHandlersCfg, true),
-    //        CsvUploadIncludedMimeTypePatterns = GetConfigStr("CsvUploadIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-    //        CsvUploadExcludedMimeTypePatterns = GetConfigStr("CsvUploadExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-    //        CsvUploadCheckFileStatus = GetConfigBool("CsvUploadCheckFileStatus", uploadHandlersCfg, true),
-    //        CsvUploadTestBufferSize = GetConfigInt("CsvUploadTestBufferSize", uploadHandlersCfg) ?? 4096,
-    //        CsvUploadNonPrintableThreshold = GetConfigInt("CsvUploadNonPrintableThreshold", uploadHandlersCfg) ?? 5,
-    //        CsvUploadDelimiterChars = GetConfigStr("CsvUploadDelimiterChars", uploadHandlersCfg) ?? ",",
-    //        CsvUploadHasFieldsEnclosedInQuotes = GetConfigBool("CsvUploadHasFieldsEnclosedInQuotes", uploadHandlersCfg, true),
-    //        CsvUploadSetWhiteSpaceToNull = GetConfigBool("CsvUploadSetWhiteSpaceToNull", uploadHandlersCfg, true),
-    //        CsvUploadRowCommand = GetConfigStr("CsvUploadRowCommand", uploadHandlersCfg) ?? "call process_csv_row($1,$2,$3,$4)",
-    //    };
-
-    //    return (defaultUploadHandler, options.CreateUploadHandlers());
-    //}
 }

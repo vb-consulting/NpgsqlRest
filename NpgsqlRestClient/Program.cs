@@ -68,7 +68,8 @@ var refreshOptionsCfg = NpgsqlRestCfg.GetSection("RefreshOptions");
 await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 var logConnectionNoticeEventsMode = GetConfigEnum<PostgresConnectionNoticeLoggingMode?>("LogConnectionNoticeEventsMode", NpgsqlRestCfg) ?? PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
 
-var (paramHandler, defaultParser) = CreateParametersHandlers();
+//var (paramHandler, defaultParser) = CreateParametersHandlers();
+var (authenticationOptions, authCfg) = CreateNpgsqlRestAuthenticationOptions();
 
 NpgsqlRestOptions options = new()
 {
@@ -104,20 +105,12 @@ NpgsqlRestOptions options = new()
     RequestHeadersContextKey = GetConfigStr("RequestHeadersContextKey", NpgsqlRestCfg) ?? "request.headers",
     RequestHeadersParameterName = GetConfigStr("RequestHeadersParameterName", NpgsqlRestCfg) ?? "_headers",
 
-    EndpointCreated = CreateEndpointCreatedHandler(),
-    ValidateParameters = paramHandler,
+    EndpointCreated = CreateEndpointCreatedHandler(authCfg),
+    ValidateParameters = null,
     ReturnNpgsqlExceptionMessage = GetConfigBool("ReturnNpgsqlExceptionMessage", NpgsqlRestCfg, true),
     PostgreSqlErrorCodeToHttpStatusCodeMapping = CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
     BeforeConnectionOpen = BeforeConnectionOpen(connectionString),
-
-    AuthenticationOptions = new()
-    {
-        DefaultAuthenticationType = GetConfigStr("DefaultAuthenticationType", AuthCfg) ?? GetConfigStr("ApplicationName", Cfg),
-        PasswordVerificationFailedCommand = GetConfigStr("PasswordVerificationFailedCommand", AuthCfg),
-        PasswordVerificationSucceededCommand = GetConfigStr("PasswordVerificationSucceededCommand", AuthCfg),
-        UseUserContext = GetConfigBool("UseUserContext", AuthCfg),
-    },
-
+    AuthenticationOptions = authenticationOptions,
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
     CustomRequestHeaders = GetCustomHeaders(),
 
@@ -125,7 +118,7 @@ NpgsqlRestOptions options = new()
     RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),
     RefreshPath = GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
     RefreshMethod = GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
-    DefaultResponseParser = defaultParser,
+    DefaultResponseParser = CreateDefaultParser(authCfg, authenticationOptions),
     UploadOptions = CreateUploadOptions(),
 };
 

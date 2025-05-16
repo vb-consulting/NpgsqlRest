@@ -9,7 +9,6 @@ public static class Config
     public static IConfigurationSection NpgsqlRestCfg { get; private set; } = null!;
     public static IConfigurationSection ConnectionSettingsCfg { get; private set; } = null!;
     public static bool UseConnectionApplicationNameWithUsername { get; private set; }
-    public static IConfigurationSection AuthCfg { get; private set; } = null!;
     public static string CurrentDir => Directory.GetCurrentDirectory();
 
     public static void Build(string[] args)
@@ -73,7 +72,6 @@ public static class Config
         }
 
         NpgsqlRestCfg = Cfg.GetSection("NpgsqlRest");
-        AuthCfg = NpgsqlRestCfg.GetSection("AuthenticationOptions");
         ConnectionSettingsCfg = Cfg.GetSection("ConnectionSettings");
 
         UseConnectionApplicationNameWithUsername = GetConfigBool("UseJsonApplicationName", ConnectionSettingsCfg);

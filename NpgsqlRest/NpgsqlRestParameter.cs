@@ -17,9 +17,9 @@ public class NpgsqlRestParameter : NpgsqlParameter
     public NpgsqlRestParameter? HashOf { get; set; } = null;
 
     public bool IsUploadMetadata { get; set; } = false;
-    public bool IsUserId { get; private set; } = false;
-    public bool IsUserName { get; private set; } = false;
-    public bool IsUserRoles { get; private set; } = false;
+    public bool IsUserId { get; set; } = false;
+    public bool IsUserName { get; set; } = false;
+    public bool IsUserRoles { get; set; } = false;
     public bool IsIpAddress { get; private set; } = false;
     public bool IsUserClaims { get; private set; } = false;
 
