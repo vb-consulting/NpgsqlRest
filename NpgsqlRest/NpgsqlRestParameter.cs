@@ -20,8 +20,8 @@ public class NpgsqlRestParameter : NpgsqlParameter
     public bool IsUserId { get; set; } = false;
     public bool IsUserName { get; set; } = false;
     public bool IsUserRoles { get; set; } = false;
-    public bool IsIpAddress { get; private set; } = false;
-    public bool IsUserClaims { get; private set; } = false;
+    public bool IsIpAddress { get; set; } = false;
+    public bool IsUserClaims { get; set; } = false;
 
     public NpgsqlRestParameter(
         NpgsqlRestOptions options, 

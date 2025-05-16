@@ -1,8 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using System.Xml.Linq;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest.Defaults;
@@ -209,9 +205,9 @@ internal static class DefaultCommentParser
     ];
 
     public static RoutineEndpoint? Parse(
-        Routine routine, 
-        RoutineEndpoint routineEndpoint, 
-        NpgsqlRestOptions options, 
+        Routine routine,
+        RoutineEndpoint routineEndpoint,
+        NpgsqlRestOptions options,
         ILogger? logger)
     {
         if (options.CommentsMode == CommentsMode.Ignore)
@@ -1103,6 +1099,121 @@ internal static class DefaultCommentParser
                             if (options.LogAnnotationSetInfo)
                             {
                                 logger?.CommentUploadMetadataParam(description, paramName);
+                            }
+                        }
+                    }
+
+                    // param param_name1 is user_id
+                    if (len >= 4 && (
+                        StrEquals(words[2], "is") && StrEquals(words[3], "user_id")
+                        ))
+                    {
+                        var paramName = words[1];
+                        NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                        if (param is null)
+                        {
+                            logger?.CommentWrongUserIdParam(description, paramName);
+                        }
+                        else
+                        {
+                            param.IsUserId = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUserIdParam(description, paramName);
+                            }
+                        }
+                    }
+
+                    // param param_name1 is user_name
+                    if (len >= 4 && (
+                        StrEquals(words[2], "is") && StrEquals(words[3], "user_name")
+                        ))
+                    {
+                        var paramName = words[1];
+                        NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                        if (param is null)
+                        {
+                            logger?.CommentWrongUserNameParam(description, paramName);
+                        }
+                        else
+                        {
+                            param.IsUserName = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUserNameParam(description, paramName);
+                            }
+                        }
+                    }
+
+                    // param param_name1 is user_roles
+                    if (len >= 4 && (
+                        StrEquals(words[2], "is") && StrEquals(words[3], "user_roles")
+                        ))
+                    {
+                        var paramName = words[1];
+                        NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                        if (param is null)
+                        {
+                            logger?.CommentWrongUserRolesParam(description, paramName);
+                        }
+                        else
+                        {
+                            param.IsUserRoles = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUserRolesParam(description, paramName);
+                            }
+                        }
+                    }
+
+                    // param param_name1 is ip_address
+                    if (len >= 4 && (
+                        StrEquals(words[2], "is") && StrEquals(words[3], "ip_address")
+                        ))
+                    {
+                        var paramName = words[1];
+                        NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                        if (param is null)
+                        {
+                            logger?.CommentWrongIpAddressParam(description, paramName);
+                        }
+                        else
+                        {
+                            param.IsIpAddress = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentIpAddressParam(description, paramName);
+                            }
+                        }
+                    }
+
+                    // param param_name1 is user_claims
+                    if (len >= 4 && (
+                        StrEquals(words[2], "is") && StrEquals(words[3], "user_claims")
+                        ))
+                    {
+                        var paramName = words[1];
+                        NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
+                                string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
+                                string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
+                        if (param is null)
+                        {
+                            logger?.CommentWrongUserClaimsParam(description, paramName);
+                        }
+                        else
+                        {
+                            param.IsUserClaims = true;
+                            if (options.LogAnnotationSetInfo)
+                            {
+                                logger?.CommentUserClaimsParam(description, paramName);
                             }
                         }
                     }

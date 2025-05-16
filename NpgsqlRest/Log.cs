@@ -190,4 +190,37 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER PARAMETERS to TRUE by the comment annotation.")]
     public static partial void CommentUserParameters(this ILogger logger, string description);
+
+
+
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{description} parameter name {param} does not exists in parameter collection either as original or translated name. USER ID could not be set by the comment annotation.")]
+    public static partial void CommentWrongUserIdParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER ID to {param} by the comment annotation.")]
+    public static partial void CommentUserIdParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{description} parameter name {param} does not exists in parameter collection either as original or translated name. USER NAME could not be set by the comment annotation.")]
+    public static partial void CommentWrongUserNameParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER NAME to {param} by the comment annotation.")]
+    public static partial void CommentUserNameParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{description} parameter name {param} does not exists in parameter collection either as original or translated name. USER ROLES could not be set by the comment annotation.")]
+    public static partial void CommentWrongUserRolesParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER ROLES to {param} by the comment annotation.")]
+    public static partial void CommentUserRolesParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{description} parameter name {param} does not exists in parameter collection either as original or translated name. IP ADDRESS could not be set by the comment annotation.")]
+    public static partial void CommentWrongIpAddressParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER CLAIMS to {param} by the comment annotation.")]
+    public static partial void CommentIpAddressParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{description} parameter name {param} does not exists in parameter collection either as original or translated name. IP ADDRESS could not be set by the comment annotation.")]
+    public static partial void CommentWrongUserClaimsParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER CLAIMS to {param} by the comment annotation.")]
+    public static partial void CommentUserClaimsParam(this ILogger logger, string description, string param);
 }
