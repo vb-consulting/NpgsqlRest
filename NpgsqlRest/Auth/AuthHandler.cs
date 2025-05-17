@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Security.Claims;
-using System.Xml.Linq;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
 

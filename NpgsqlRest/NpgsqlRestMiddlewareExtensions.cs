@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Linq;
 using System.Net;
 using static System.Net.Mime.MediaTypeNames;
 

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Net;
-using System.Text;
 using BenchmarkDotNet.Attributes;
 using Npgsql;
 

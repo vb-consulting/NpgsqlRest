@@ -1,5 +1,4 @@
-﻿using Npgsql;
-
+using Npgsql;
 namespace NpgsqlRest;
 
 public interface IEndpointCreateHandler

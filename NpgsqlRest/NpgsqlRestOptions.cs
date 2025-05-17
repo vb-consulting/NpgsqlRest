@@ -104,7 +104,7 @@ public class NpgsqlRestOptions
     public string? UrlPathPrefix { get; set; } = "/api";
 
     /// <summary>
-    /// Custom function delegate that receives routine and options parameters and returns constructed URL path string for routine. Default the default URL builder that transforms snake case names to kebab case names.
+    /// Custom function delegate that receives routine and options parameters and returns constructed URL path string for routine. Default is the default URL builder that transforms snake case names to kebab case names.
     /// </summary>
     public Func<Routine, NpgsqlRestOptions, string> UrlPathBuilder { get; set; } = DefaultUrlBuilder.CreateUrl;
 
@@ -181,7 +181,7 @@ public class NpgsqlRestOptions
     public Method? DefaultHttpMethod { get; set; }
 
     /// <summary>
-    /// When not null, sets the request parameter position (request parameter types) for all created endpoints. Values are `QueryString` (parameters are sent using query string) or `BodyJson` (paremeters are sent using JSON request body). When this value is null (default), request parameter type is `QueryString` for all `GET` and `DELETE` endpoints, otherwise, request parameter type is `BodyJson`. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
+    /// When not null, sets the request parameter position (request parameter types) for all created endpoints. Values are `QueryString` (parameters are sent using query string) or `BodyJson` (parameters are sent using JSON request body). When this value is null (default), request parameter type is `QueryString` for all `GET` and `DELETE` endpoints, otherwise, request parameter type is `BodyJson`. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
     /// </summary>
     public RequestParamType? DefaultRequestParamType { get; set; }
 
@@ -191,7 +191,7 @@ public class NpgsqlRestOptions
     public Action<ParameterValidationValues>? ValidateParameters { get; set; }
 
     /// <summary>
-    /// Custom parameter validation method, asynchrounous version. When this callback option is not null, it will be executed for every database parameter created. The input structure will contain a current HTTP context that offers the opportunity to alter the response and cancel the request: If the current HTTP response reference has started or the status code is different than 200 OK, command execution will be canceled and the response will be returned.
+    /// Custom parameter validation method, asynchronous version. When this callback option is not null, it will be executed for every database parameter created. The input structure will contain a current HTTP context that offers the opportunity to alter the response and cancel the request: If the current HTTP response reference has started or the status code is different than 200 OK, command execution will be canceled and the response will be returned.
     /// </summary>
     public Func<ParameterValidationValues, Task>? ValidateParametersAsync { get; set; }
 
@@ -201,7 +201,7 @@ public class NpgsqlRestOptions
     public CommentsMode CommentsMode { get; set; } = CommentsMode.OnlyWithHttpTag;
 
     /// <summary>
-    /// Configure how to send request headers to PostgreSQL routines execution. `Ignore` (default) don't send any request headers to routines. `Context` sets a context variable for the current session `context.headers` containing JSON string with current request headers. This executes `set_config('context.headers', headers, false)` before any routine executions. `Parameter` sends request headers to the routine parameter defined with the `RequestHeadersParameterName` option. Paremeter with this name must exist, must be one of the JSON or text types and must have the default value defined. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
+    /// Configure how to send request headers to PostgreSQL routines execution. `Ignore` (default) doesn't send any request headers to routines. `Context` sets a context variable for the current session `context.headers` containing JSON string with current request headers. This executes `set_config('context.headers', headers, false)` before any routine executions. `Parameter` sends request headers to the routine parameter defined with the `RequestHeadersParameterName` option. Parameter with this name must exist, must be one of the JSON or text types and must have the default value defined. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
     /// </summary>
     public RequestHeadersMode RequestHeadersMode { get; set; } = RequestHeadersMode.Ignore;
 
@@ -314,7 +314,7 @@ public class NpgsqlRestOptions
     public IRoutineCache DefaultRoutineCache { get; set; } = new RoutineCache();
 
     /// <summary>
-    /// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entires). Default is 1 minute.
+    /// When cache is enabled, this value sets the interval in minutes for cache pruning (removing expired entries). Default is 1 minute.
     /// </summary>
     public int CachePruneIntervalMin { get; set; } = 1;
 
@@ -365,7 +365,7 @@ public class NpgsqlRestUploadOptions
 
     /// <summary>
     /// Name of the default upload metadata parameter. 
-    /// This parameter is will be automatically assigned with the upload metadata JSON string when the upload is completed if UseDefaultUploadMetadataParameter is set to true.
+    /// This parameter will be automatically assigned with the upload metadata JSON string when the upload is completed if UseDefaultUploadMetadataParameter is set to true.
     /// </summary>
     public string DefaultUploadMetadataParameterName { get; set; } = "_upload_metadata";
 
@@ -397,23 +397,23 @@ public class NpgsqlRestAuthenticationOptions
     public string? DefaultAuthenticationType { get; set; } = null;
 
     /// <summary>
-    /// The default column name to in the data reader which will be used to read the value to determine the success or failure of the login operation.
+    /// The default column name in the data reader which will be used to read the value to determine the success or failure of the login operation.
     /// 
     /// - If this column is not present, the success is when the endpoint returns any records.
-    /// - If this column is not present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
+    /// - If this column is present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
     /// - If this column is present and retrieves a numeric value, that value is assigned to the HTTP Status Code and the login will authenticate only when this value is 200.
     /// </summary>
     public string? StatusColumnName { get; set; } = "status";
 
     /// <summary>
-    /// The default column name to in the data reader which will be used to read the value of the authentication scheme of the login process.
+    /// The default column name in the data reader which will be used to read the value of the authentication scheme of the login process.
     /// 
     /// If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
     /// </summary>
     public string? SchemeColumnName { get; set; } = "scheme";
 
     /// <summary>
-    /// The default column name to in the data reader which will return a text message with the login status.
+    /// The default column name in the data reader which will return a text message with the login status.
     /// </summary>
     public string? MessageColumnName { get; set; } = "message";
 
@@ -471,7 +471,7 @@ public class NpgsqlRestAuthenticationOptions
     public bool ObfuscateAuthParameterLogValues { get; set; } = true;
 
     /// <summary>
-    /// The default column name to in the data reader which will be used to read the value of the hash of the password.
+    /// The default column name in the data reader which will be used to read the value of the hash of the password.
     /// If this column is present, the value will be used to verify the password from the password parameter.
     /// Password parameter is the first parameter which name contains the value of PasswordParameterNameContains.
     /// If verification fails, the login will fail and the HTTP Status Code will be set to 404 Not Found.
