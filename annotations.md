@@ -5,26 +5,21 @@ This guide describes all available annotations that can be used in PostgreSQL fu
 ## AllowAnonymous
 
 ```console
-allowanonymous
 allow_anonymous
-allow-anonymous
 anonymous
+allow_anon
 anon
 ```
 
 Allow anonymous access with no authorization to this endpoint.
 
-## Authorize (RequiresAuthorization)
+## Authorize
 
 ```console
-requiresauthorization
 authorize
 requires_authorization
-requires-authorization
-requiresauthorization [role1, role2, role3 [, ...]]
 authorize [role1, role2, role3 [, ...]]
 requires_authorization [role1, role2, role3 [, ...]]
-requires-authorization [role1, role2, role3 [, ...]]
 ```
 
 Require authorization for this endpoint.
@@ -35,31 +30,23 @@ Require authorization for this endpoint.
 ## BodyParameterName
 
 ```console
-bodyparametername name
-body-parameter-name name
 body_parameter_name name
-bodyparamname name
-body-param-name name
 body_param_name name
 ```
 
-Set the name of the existing parameter which is sent as body content. When the `BodyParameterName` is set, all other parameters are sent by the query string.
+Set the name of the existing parameter which is sent as body content. When the `body_parameter_name` is set, all other parameters are sent by the query string.
 
 ## BufferRows
 
 ```console
-bufferrows number
 buffer_rows number
-buffer-rows number
 buffer number
 ```
 
 Sets the buffered amount of rows before they are written to the response for this endpoint.
 
 This value can also be set using custom parameters by setting number values to parameters with same name:
-- `bufferrows`
 - `buffer_rows`
-- `buffer-rows`
 - `buffer`
 
 ## Cached
@@ -75,10 +62,6 @@ If the routine returns a single value of any type, result will be cached in memo
 ## CacheExpiresIn
 
 ```console
-cacheexpires [time_span_value]
-cacheexpiresin [time_span_value]
-cache-expires [time_span_value]
-cache-expires-in [time_span_value]
 cache_expires [time_span_value]
 cache_expires_in [time_span_value]
 ```
@@ -97,25 +80,23 @@ Value is a simplified PostgreSQL interval value, for example `10s` or `10sec` fo
 ## ColumnNames
 
 ```console
-columnnames
+columns
+names
 column_names
-column-names
 ```
 
 If this option is set to true - and if the endpoint is in the "raw" mode - the endpoint will contain header names. If separators are applied, they will be used also.
 
 This value can also be set using custom parameters by setting true or false value to parameters with these names:
-- `columnnames`
+- `columns`
+- `names`
 - `column_names`
-- `column-names`
 
 ## CommandTimeout
 
 ```console
-commandtimeout seconds
-command_timeout seconds
-command-timeout seconds
-timeout seconds
+command_timeout [seconds]
+timeout [seconds]
 ```
 
 Set the command execution timeout in seconds.
@@ -124,18 +105,25 @@ Set the command execution timeout in seconds.
 
 ```console
 connection [name]
-connectionname [name]
 connection_name [name]
-connection-name [name]
 ```
 
 Defines an alternative connection name. The name must be an existing key in a `ConnectionStrings` dictionary option. This is useful when some routines have to read from read-only replicas. However, the same routine also has to exist on the primary connection to be able to build the necessary metadata.
 
 This value can also be set using custom parameters by setting text value to parameters with these names:
 - `connection`
-- `connectionname`
 - `connection_name`
-- `connection-name`
+
+## ContentType
+
+```console
+content-type: [content_type_value]
+content_type: [content_type_value]
+```
+
+Sets the content type header for the response. This uses the header format with a colon separator.
+
+Example: `content-type: application/json`
 
 ## Custom Parameters
 
@@ -185,10 +173,10 @@ The endpoint is enabled. Optional tag list enabled only for tags in the argument
 ## HTTP
 
 ```console
-HTTP
-HTTP [GET | POST | PUT | DELETE]
-HTTP [GET | POST | PUT | DELETE] path
-HTTP path
+http
+http [GET | POST | PUT | DELETE]
+http [GET | POST | PUT | DELETE] path
+http path
 ```
 
 HTTP settings:
@@ -224,25 +212,21 @@ For more information on the login and the logout see the [login endpoints docume
 ## NewLine
 
 ```console
-newline [newline_value]
 new_line [newline_value]
-new-line [newline_value]
-rawnewline [newline_value]
 raw_new_line [newline_value]
-raw-new-line [newline_value]
 ```
 
 Defines a standard separator between raw value rows. It only applies when `raw` is on.
 
 This value can also be set using custom parameters by setting text value to parameters with these names:
-- `newline`
 - `new_line`
-- `new-line`
-- `rawnewline`
 - `raw_new_line`
-- `raw-new-line`
 
-## Parameter Hash
+## Parameter Annotations
+
+The following annotations can be used to set special parameter behaviors:
+
+### Parameter Hash
 
 ```console
 param param_name1 is hash of param_name2
@@ -250,7 +234,7 @@ param param_name1 is hash of param_name2
 
 Hashes value of the `param_name1` with the value of `param_name2` parameter by using default hasher.
 
-## Parameter Upload Metadata
+### Parameter Upload Metadata
 
 ```console
 param param_name is upload metadata
@@ -259,13 +243,51 @@ upload param_name as metadata
 
 Set the upload metadata parameter name.
 
+### Parameter User ID
+
+```console
+param param_name is user_id
+```
+
+Marks a parameter to be populated with the current user's ID from authentication claims.
+
+### Parameter User Name
+
+```console
+param param_name is user_name
+```
+
+Marks a parameter to be populated with the current user's name from authentication claims.
+
+### Parameter User Roles
+
+```console
+param param_name is user_roles
+```
+
+Marks a parameter to be populated with the current user's roles from authentication claims.
+
+### Parameter IP Address
+
+```console
+param param_name is ip_address
+```
+
+Marks a parameter to be populated with the current client's IP address.
+
+### Parameter User Claims
+
+```console
+param param_name is user_claims
+```
+
+Marks a parameter to be populated with the current user's complete claims information from authentication.
+
 ## ParseResponse
 
 ```console
 parse
-parseresponse
 parse_response
-parse-response
 ```
 
 Enable response parsing for this routine. Requires injecting a default parser. See the `DefaultResponseParser` option.
@@ -273,7 +295,7 @@ Enable response parsing for this routine. Requires injecting a default parser. S
 ## Path
 
 ```console
-PATH path
+path path
 ```
 
 Sets the custom HTTP path.
@@ -281,27 +303,24 @@ Sets the custom HTTP path.
 ## QueryStringNullHandling
 
 ```console
-querystringnullhandling [emptystring | nullliteral | ignore]
-query_string_null_handling [emptystring | nullliteral | ignore]
-query-string-null-handling [emptystring | nullliteral | ignore]
+query_string_null_handling [empty_string | empty | null_literal | null | ignore]
+query_null_handling [empty_string | empty | null_literal | null | ignore]
+query_string_null [empty_string | empty | null_literal | null | ignore]
+query_null [empty_string | empty | null_literal | null | ignore]
 ```
 
 Sets the response NULL handling option for the query string parameters:
 
-- `EmptyString`: Empty query string is interpreted as the NULL value parameter.
-- `NullLiteral`: The literal value `null` (case insensitive) in the query string is interpreted as the NULL value parameter.
-- `Ignore`: Doesn't handle NULL parameters in query strings. This is the default.
+- `empty_string` or `empty`: Empty query string is interpreted as the NULL value parameter.
+- `null_literal` or `null`: The literal value `null` (case insensitive) in the query string is interpreted as the NULL value parameter.
+- `ignore`: Doesn't handle NULL parameters in query strings. This is the default.
 
 ## Raw
 
 ```console
 raw
-rawmode
 raw_mode
-raw-mode
-rawresults
 raw_results
-raw-results
 ```
 
 Sets response to a "raw" mode. HTTP response is written exactly as it is received from PostgreSQL (raw mode).
@@ -323,7 +342,7 @@ sub (n, d, b, t)
 $$;
 comment on function raw_csv_response1() is '
 raw
-Content-Type: text/csv
+content-type: text/csv
 ';
 ```
 
@@ -343,51 +362,36 @@ Transfer-Encoding: chunked
 
 This value can also be set using custom parameters by setting true or false value to parameters with these names:
 - `raw`
-- `rawmode`
 - `raw_mode`
-- `raw-mode`
-- `rawresults`
 - `raw_results`
-- `raw-results`
 
 ## RequestHeadersMode
 
 ```console
-requestheadersmode [ignore | context | parameter]
 request_headers_mode [ignore | context | parameter]
-request-headers-mode [ignore | context | parameter]
-requestheaders [ignore | context | parameter]
 request_headers [ignore | context | parameter]
-request-headers [ignore | context | parameter]
 ```
 
 Set how request parameters are handled:
-- Ignore: do not send request headers.
-- Context: Request headers are set as the session variable under `request.headers` key.
-- Parameter: Request headers are set as a default parameter defined with `RequestHeadersParameterName`.
+- `ignore`: do not send request headers.
+- `context`: Request headers are set as the session variable under `request.headers` key.
+- `parameter`: Request headers are set as a default parameter defined with `request_headers_parameter_name`.
 
 ## RequestHeadersParameterName
 
 ```console
-requestheadersparametername name
-requestheadersparamname name
 request_headers_parameter_name name
 request_headers_param_name name
-request-headers-parameter-name name
 request-headers-param-name name
 ```
 
-When `RequestHeadersMode` is set to send request headers as a parameter, set the existing parameter name. The default is `headers`.
+When `request_headers_mode` is set to send request headers as a parameter, set the existing parameter name. The default is `headers`.
 
 ## RequestParamType
 
 ```console
-requestparamtype [[querystring | query_string | query-string | query] | [bodyjson | body_json | body-json | json | body]]
-paramtype [[querystring | query_string | query-string | query] | [bodyjson | body_json | body-json | json | body]]
-request_param_type [[querystring | query_string | query-string | query] | [bodyjson | body_json | body-json | json | body]]
-param_type [[querystring | query_string | query-string | query] | [bodyjson | body_json | body-json | json | body]]
-request-param-type [[querystring | query_string | query-string | query] | [bodyjson | body_json | body-json | json | body]]
-param-type [[querystring | query_string | query-string | query] | [bodyjson | body_json | body-json | json | body]]
+request_param_type [[query_string | query] | [body_json | body]]
+param_type [[query_string | query] | [body_json | body]]
 ```
 
 Set how request parameters are sent - query string or JSON body.
@@ -398,32 +402,29 @@ Set how request parameters are sent - query string or JSON body.
 key: value
 ```
 
-Any line containing `:` character is interpreted as the request header key and value where the key is the left side and the value is the right side string. For example: `Content-Type: text/html`
+Any line containing `:` character is interpreted as the request header key and value where the key is the left side and the value is the right side string. For example: `content-type: text/html`
 
 To be valid header key, key part must consist of alphanumerics or `_`, `-` characters.
 
 ## ResponseNullHandling
 
 ```console
-responsenullhandling [emptystring | nullliteral | nocontent]
-response_null_handling [emptystring | nullliteral | nocontent]
-response-null-handling [emptystring | nullliteral | nocontent]
+response_null_handling [empty_string | empty | null_literal | null | no_content | 204 | 204_no_content]
+response_null [empty_string | empty | null_literal | null | no_content | 204 | 204_no_content]
 ```
 
 Sets the response NULL handling option for a single function results other than JSON (text, number, etc...):
 
-- `EmptyString`: Empty content response. This is the default.
-- `NullLiteral`: Content is the `null` string.
-- `NoContent`: Response is `HTTP 204 No Content` status response code.
+- `empty_string` or `empty`: Empty content response. This is the default.
+- `null_literal` or `null`: Content is the `null` string.
+- `no_content`, `204`, or `204_no_content`: Response is `HTTP 204 No Content` status response code.
 
 ## SecuritySensitive
 
 ```console
-securitysensitive
 sensitive
 security
 security_sensitive
-security-sensitive
 ```
 
 Marks the endpoint as security sensitive which will obfuscate any parameters before sending it to log.
@@ -432,18 +433,14 @@ Marks the endpoint as security sensitive which will obfuscate any parameters bef
 
 ```console
 separator [separator_value]
-rawseparator [separator_value]
 raw_separator [separator_value]
-raw-separator [separator_value]
 ```
 
 Defines a standard separator between raw value columns. It only applies when `raw` is on.
 
 This value can also be set using custom parameters by setting text value to parameters with these names:
 - `separator`
-- `rawseparator`
 - `raw_separator`
-- `raw-separator`
 
 ## Tags
 
@@ -470,25 +467,21 @@ Optionally, set handler name (or multiple handlers names) - or set the upload me
 ## UserContext
 
 ```console
-usercontext
 user_context
-user-context
+user_settings
+user_config
 ```
 
-Enables user context for this endpoint.
+Enables user context for this endpoint. This allows access to user-specific settings and configuration.
 
 ## UserParameters
 
 ```console
-userparameters
-userparams
 user_parameters
 user_params
-user-parameters
-user-params
 ```
 
-Enables user parameters for this endpoint.
+Enables user parameters for this endpoint. This allows passing additional user-specific parameters to the routine.
 
 # Tags
 
@@ -519,8 +512,6 @@ This source generates tags based on routine volatility:
 
 - `update`
 - `post`
-- `updatereturning`
-- `update-returning`
 - `update_returning`
 - `returning`
 
@@ -531,8 +522,6 @@ This source generates tags based on routine volatility:
 ### Delete Returning Routines
 
 - `delete`
-- `deletereturning`
-- `delete-returning`
 - `delete_returning`
 - `returning`
 
@@ -547,30 +536,18 @@ This source generates tags based on routine volatility:
 - `insert`
 - `put`
 - `create`
-- `insertonconflictdonothing`
-- `insert-on-conflict-do-nothing`
 - `insert_on_conflict_do_nothing`
-- `onconflictdonothing`
-- `on-conflict-do-nothing`
 - `on_conflict_do_nothing`
-- `onconflict`
 - `on_conflict`
-- `on-conflict`
 
 ### Insert On Conflict Do Nothing Returning Routines
 
 - `insert`
 - `put`
 - `create`
-- `insertonconflictdonothingreturning`
-- `insert-on-conflict-do-nothing-returning`
-- `insert_on_conflict_do_nothing-returning`
-- `onconflictdonothing`
-- `on-conflict-do-nothing`
+- `insert_on_conflict_do_nothing_returning`
 - `on_conflict_do_nothing`
-- `onconflict`
 - `on_conflict`
-- `on-conflict`
 - `returning`
 
 ### Insert On Conflict Do Update Routines
@@ -578,14 +555,8 @@ This source generates tags based on routine volatility:
 - `insert`
 - `put`
 - `create`
-- `insertonconflictdoupdate`
-- `insert-on-conflict-do-update`
 - `insert_on_conflict_do_update`
-- `onconflictdoupdate`
-- `onconflict`
 - `on_conflict`
-- `on-conflict`
-- `on-conflict-do-update`
 - `on_conflict_do_update`
 
 ### Insert On Conflict Do Update Returning Routines
@@ -593,13 +564,7 @@ This source generates tags based on routine volatility:
 - `insert`
 - `put`
 - `create`
-- `insertonconflictdoupdatereturning`
-- `insert-on-conflict-do-update-returning`
 - `insert_on_conflict_do_update_returning`
-- `onconflictdoupdate`
-- `on-conflict-do-update`
 - `on_conflict_do_update`
-- `onconflict`
 - `on_conflict`
-- `on-conflict`
 - `returning`

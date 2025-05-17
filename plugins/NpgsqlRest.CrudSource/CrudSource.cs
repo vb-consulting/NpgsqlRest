@@ -127,79 +127,59 @@ public class CrudSource(
     private readonly string[] _selectTags = ["select", "read", "get"];
     private readonly string[] _updateTags = ["update", "post"];
     private readonly string[] _updateReturningTags = [
-        "update", "post",
-        "updatereturning",
-        "update-returning",
+        "update", 
+        "post",
         "update_returning",
-        "returning"];
+        "returning"
+    ];
     private readonly string[] _deleteTags = ["delete"];
     private readonly string[] _deleteReturningTags = [
         "delete",
-        "deletereturning",
-        "delete-returning",
         "delete_returning",
-        "returning"];
+        "returning"
+    ];
     private readonly string[] _insertTags = ["insert", "put", "create"];
     private readonly string[] _insertReturningTags = [
-        "insert", "put", "create",
-        "insertreturning",
-        "insert-returning",
+        "insert", 
+        "put", 
+        "create",
         "insert_returning",
-        "returning"];
+        "returning"
+    ];
     private readonly string[] _insertOnConflictDoNothingTags = [
         "insert", 
         "put", 
         "create",
-        "insertonconflictdonothing",
-        "insert-on-conflict-do-nothing",
         "insert_on_conflict_do_nothing",
-        "onconflictdonothing",
-        "on-conflict-do-nothing",
         "on_conflict_do_nothing",
-        "onconflict",
         "on_conflict",
-        "on-conflict"];
+    ];
     private readonly string[] _insertOnConflictDoNothingReturningTags = [
         "insert", 
         "put", 
         "create",
-        "insertonconflictdonothingreturning",
-        "insert-on-conflict-do-nothing-returning",
-        "insert_on_conflict_do_nothing-returning",
-        "onconflictdonothing",
-        "on-conflict-do-nothing",
+        "insert_on_conflict_do_nothing_returning",
         "on_conflict_do_nothing",
-        "onconflict",
         "on_conflict",
-        "on-conflict",
-        "returning"];
+        "returning"
+    ];
     private readonly string[] _insertOnConflictDoUpdateTags = [
         "insert", 
         "put", 
         "create",
-        "insertonconflictdoupdate",
-        "insert-on-conflict-do-update",
         "insert_on_conflict_do_update",
-        "onconflictdoupdate",
-        "onconflict",
         "on_conflict",
-        "on-conflict",
-        "on-conflict-do-update",
-        "on_conflict_do_update"];
+        "on_conflict_do_update"
+    ];
     private readonly string[] _insertOnConflictDoUpdateReturningTags = [
         "insert", 
         "put", 
         "create",
-        "insertonconflictdoupdatereturning",
-        "insert-on-conflict-do-update-returning",
         "insert_on_conflict_do_update_returning",
-        "onconflictdoupdate",
-        "on-conflict-do-update",
         "on_conflict_do_update",
-        "onconflict",
         "on_conflict",
-        "on-conflict",
-        "returning"];
+        "returning"
+    ];
     private bool Select { get => (CrudTypes & CrudCommandType.Select) == CrudCommandType.Select; }
     private bool Update { get => (CrudTypes & CrudCommandType.Update) == CrudCommandType.Update; }
     private bool UpdateReturning { get => (CrudTypes & CrudCommandType.UpdateReturning) == CrudCommandType.UpdateReturning; }

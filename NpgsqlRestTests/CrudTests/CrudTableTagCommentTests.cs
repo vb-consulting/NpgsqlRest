@@ -17,7 +17,7 @@ public static partial class Database
         authorize
         for returning
         disabled
-        for InsertOnConflictDoUpdate, InsertOnConflictDoNothing
+        for insert_on_conflict_do_update, insert_on_conflict_do_nothing
         disabled
         ';
 
@@ -40,7 +40,7 @@ public static partial class Database
         comment on table crud_commented_table_on_conflict1 is 'This is a commented table
         HTTP
         disabled
-        for on-conflict
+        for on_conflict
         enabled
         ';
         """);
