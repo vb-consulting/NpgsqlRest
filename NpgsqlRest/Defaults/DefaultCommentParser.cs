@@ -12,72 +12,52 @@ internal static class DefaultCommentParser
     private const string PathKey = "path";
 
     private static readonly string[] paramTypeKey = [
-        "requestparamtype",
-        "paramtype",
         "request_param_type",
         "param_type",
-        "request-param-type",
-        "param-type"
     ];
     private static readonly string[] queryKey = [
-        "querystring",
         "query_string",
-        "query-string",
         "query"
     ];
     private static readonly string[] jsonKey = [
-        "bodyjson",
         "body_json",
-        "body-json",
-        "json",
         "body"
     ];
     private static readonly string[] authorizeKey = [
-        "requiresauthorization",
         "authorize",
-        "requires_authorization",
-        "requires-authorization"
+        "requires_authorization"
     ];
     private static readonly string[] allowAnonymousKey = [
-        "allowanonymous",
         "allow_anonymous",
-        "allow-anonymous",
         "anonymous",
+        "allow_anon",
         "anon"
     ];
     private static readonly string[] timeoutKey = [
-        "commandtimeout",
         "command_timeout",
-        "command-timeout",
         "timeout"
     ];
-    private const string ContentTypeKey = "content-type";
-    private static readonly string[] requestHeadersModeKey = [
-        "requestheadersmode",
-        "request_headers_mode",
-        "request-headers-mode",
-        "requestheaders",
-        "request_headers",
-        "request-headers"
+    private static readonly string[] ContentTypeKey = [
+        "content-type", // content-type is header key
+        "content_type",
     ];
+    //private const string ContentTypeKey = "content-type";
+    private static readonly string[] requestHeadersModeKey = [
+        "request_headers_mode",
+        "request_headers",
+    ];
+
     private const string RequestHeaderModeIgnoreKey = "ignore";
     private const string RequestHeaderModeContextKey = "context";
     private const string RequestHeaderModeParameterKey = "parameter";
 
     private static readonly string[] requestHeadersParameterNameKey = [
-        "requestheadersparametername",
-        "requestheadersparamname",
         "request_headers_parameter_name",
         "request_headers_param_name",
-        "request-headers-parameter-name",
         "request-headers-param-name",
     ];
     private static readonly string[] bodyParameterNameKey = [
-        "bodyparametername",
-        "body-parameter-name",
         "body_parameter_name",
-        "bodyparamname",
-        "body-param-name",
         "body_param_name"
     ];
     private static readonly string[] tagsKey = ["for", "tags", "tag"];
@@ -86,18 +66,31 @@ internal static class DefaultCommentParser
     private const string EnabledKey = "enabled";
 
     private static readonly string[] textResponseNullHandlingKey = [
-        "responsenullhandling",
         "response_null_handling",
-        "response-null-handling",
+        "response_null",
     ];
-    private const string EmptyStringKey = "emptystring";
-    private const string NullLiteral = "nullliteral";
-    private const string NoContentKey = "nocontent";
+
+    private static readonly string[] emptyStringKey = [
+        "empty",
+        "empty_string"
+    ];
+
+    private static readonly string[] nullLiteral = [
+        "null_literal",
+        "null"
+    ];
+
+    private static readonly string[] noContentKey = [
+        "204",
+        "204_no_content",
+        "no_content",
+    ];
 
     private static readonly string[] queryStringNullHandlingKey = [
-        "querystringnullhandling",
-        "query-string-null-handling",
         "query_string_null_handling",
+        "query_null_handling",
+        "query_string_null",
+        "query_null",
     ];
 
     private static readonly string[] LoginKey = [
@@ -111,90 +104,64 @@ internal static class DefaultCommentParser
     ];
 
     private static readonly string[] bufferRowsKey = [
-        "bufferrows",
         "buffer_rows",
-        "buffer-rows",
         "buffer"
     ];
 
     private static readonly string[] rawKey = [
         "raw",
-        "rawmode",
         "raw_mode",
-        "raw-mode",
-        "rawresults",
         "raw_results",
-        "raw-results",
     ];
 
     private static readonly string[] separatorKey = [
         "separator",
-        "rawseparator",
         "raw_separator",
-        "raw-separator",
     ];
 
     private static readonly string[] newLineKey = [
-        "newline",
         "new_line",
-        "new-line",
-        "rawnewline",
         "raw_new_line",
-        "raw-new-line"
     ];
 
     private static readonly string[] columnNamesKey = [
-        "columnnames",
+        "columns",
+        "names",
         "column_names",
-        "column-names"
     ];
 
     private const string CacheKey = "cached";
 
     private static readonly string[] parseResponseKey = [
         "parse",
-        "parseresponse",
         "parse_response",
-        "parse-response"
     ];
 
     private static readonly string[] cacheExpiresInKey = [
-        "cacheexpires",
-        "cacheexpiresin",
-        "cache-expires",
-        "cache-expires-in",
         "cache_expires",
         "cache_expires_in",
     ];
 
     private static readonly string[] connectionNameKey = [
         "connection",
-        "connectionname",
         "connection_name",
-        "connection-name"
     ];
 
     private static readonly string[] securitySensitiveKey = [
-        "securitysensitive",
         "sensitive",
         "security",
         "security_sensitive",
-        "security-sensitive"
     ];
 
     private static readonly string[] userContextKey = [
-        "usercontext",
         "user_context",
-        "user-context",
+        "user_settings",
+        "user_config"
     ];
 
     private static readonly string[] userParemetersKey = [
-        "userparameters",
-        "userparams",
         "user_parameters",
         "user_params",
-        "user-parameters",
-        "user-params",
     ];
 
     private const string UploadKey = "upload";
@@ -293,7 +260,7 @@ internal static class DefaultCommentParser
                     {
                         routineEndpoint.HeadersNeedParsing = true;
                     }
-                    if (StrEquals(headerName, ContentTypeKey))
+                    if (StrEqualsToArray(headerName, ContentTypeKey))
                     {
                         if (!string.Equals(routineEndpoint.ResponseContentType, headerValue))
                         {
@@ -459,12 +426,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // requestparamtype [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-                // paramtype  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-                // request_param_type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-                // param_type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-                // request-param-type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
-                // param-type  [ [ querystring | query_string | query-string | query ] | [ bodyjson | body_json | body-json | json | body ] ]
+                // request_param_type  [ [ query_string | query ] | [ body_json |  body ] ]
+                // param_type  [ [ query_string | query ] | [ body_json | body ] ]
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], paramTypeKey))
                 {
                     if (StrEqualsToArray(words[1], queryKey))
@@ -489,10 +452,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // requiresauthorization
                 // authorize
                 // requires_authorization
-                // requires-authorization
                 else if (haveTag is true && StrEqualsToArray(words[0], authorizeKey))
                 {
                     routineEndpoint.RequiresAuthorization = true;
@@ -513,10 +474,9 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // allowanonymous
                 // allow_anonymous
-                // allow-anonymous
                 // anonymous
+                // allow_anon
                 // anon
                 else if (haveTag is true && StrEqualsToArray(words[0], allowAnonymousKey))
                 {
@@ -527,9 +487,7 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // commandtimeout seconds
                 // command_timeout seconds
-                // command-timeout seconds
                 // timeout seconds
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], timeoutKey))
                 {
@@ -550,12 +508,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // requestheadersmode [ ignore | context | parameter ]
                 // request_headers_mode [ ignore | context | parameter ]
-                // request-headers-mode [ ignore | context | parameter ]
-                // requestheaders [ ignore | context | parameter ]
                 // request_headers [ ignore | context | parameter ]
-                // request-headers [ ignore | context | parameter ]
                 else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersModeKey))
                 {
                     if (StrEquals(words[1], RequestHeaderModeIgnoreKey))
@@ -583,12 +537,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // requestheadersparametername name
-                // requestheadersparamname name
                 // request_headers_parameter_name name
                 // request_headers_param_name name
-                // request-headers-parameter-name name
-                // request-headers-param-name name
                 else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersParameterNameKey))
                 {
                     if (len == 2)
@@ -604,11 +554,7 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // bodyparametername name
-                // body-parameter-name name
                 // body_parameter_name name
-                // bodyparamname name
-                // body-param-name name
                 // body_param_name name
                 else if (haveTag is true && StrEqualsToArray(words[0], bodyParameterNameKey))
                 {
@@ -625,20 +571,19 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // responsenullhandling [ emptystring | nullliteral | nocontent ]
-                // response_null_handling [ emptystring | nullliteral | nocontent ]
-                // response-null-handling [ emptystring | nullliteral | nocontent ]
+                // response_null_handling [ empty_string | empty | null_literal | null | no_content | 204 | 204_no_content ]
+                // response_null [ empty_string | empty | null_literal | null |  no_content | 204 | 204_no_content ]
                 else if (haveTag is true && StrEqualsToArray(words[0], textResponseNullHandlingKey))
                 {
-                    if (StrEquals(words[1], EmptyStringKey))
+                    if (StrEqualsToArray(words[1], emptyStringKey))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.EmptyString;
                     }
-                    else if (StrEquals(words[1], NullLiteral))
+                    else if (StrEqualsToArray(words[1], nullLiteral))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NullLiteral;
                     }
-                    else if (StrEquals(words[1], NoContentKey))
+                    else if (StrEqualsToArray(words[1], noContentKey))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NoContent;
                     }
@@ -655,16 +600,17 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // querystringnullhandling [ emptystring | nullliteral | ignore ]
-                // query_string_null_handling [ emptystring | nullliteral | ignore ]
-                // query-string-null-handling [ emptystring | nullliteral | ignore ]
+                // query_string_null_handling [ empty_string | empty | null_literal | null |  ignore ]
+                // query_null_handling [ empty_string | empty |null_literal | null |  ignore ]
+                // query_string_null [ empty_string | empty |null_literal | null |  ignore ]
+                // query_null [ empty_string | empty | null_literal | null |  ignore ]
                 else if (haveTag is true && StrEqualsToArray(words[0], queryStringNullHandlingKey))
                 {
-                    if (StrEquals(words[1], EmptyStringKey))
+                    if (StrEqualsToArray(words[1], emptyStringKey))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.EmptyString;
                     }
-                    else if (StrEquals(words[1], NullLiteral))
+                    else if (StrEqualsToArray(words[1], nullLiteral))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.NullLiteral;
                     }
@@ -707,9 +653,7 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // bufferrows number
                 // buffer_rows number
-                // buffer-rows number
                 // buffer number
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], bufferRowsKey))
                 {
@@ -731,12 +675,8 @@ internal static class DefaultCommentParser
                 }
 
                 // raw
-                // rawmode
                 // raw_mode
-                // raw-mode
-                // rawresults
                 // raw_results
-                // raw-results
                 else if (haveTag is true && StrEqualsToArray(words[0], rawKey))
                 {
                     logger?.CommentSetRawMode(description);
@@ -744,9 +684,7 @@ internal static class DefaultCommentParser
                 }
 
                 // separator [ value ]
-                // rawseparator [ value ]
                 // raw_separator [ value ]
-                // raw-separator [ value ]
                 else if (haveTag is true && line.StartsWith(string.Concat(separatorKey[0], " ")))
                 //else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], separatorKey))
                 {
@@ -755,12 +693,8 @@ internal static class DefaultCommentParser
                     routineEndpoint.RawValueSeparator = Regex.Unescape(sep);
                 }
 
-                // newline [ value ]
                 // new_line [ value ]
-                // new-line [ value ]
-                // rawnewline [ value ]
                 // raw_new_line [ value ]
-                // raw-new-line [ value ]
                 else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(newLineKey[0], " ")))
                 //else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], newLineKey))
                 {
@@ -769,9 +703,9 @@ internal static class DefaultCommentParser
                     routineEndpoint.RawNewLineSeparator = Regex.Unescape(nl);
                 }
 
-                // columnnames
+                // columns
+                // names
                 // column_names
-                // column-names
                 else if (haveTag is true && StrEqualsToArray(words[0], columnNamesKey))
                 {
                     routineEndpoint.RawColumnNames = true;
@@ -782,9 +716,7 @@ internal static class DefaultCommentParser
                 }
 
                 // parse
-                // parseresponse
                 // parse_response
-                // parse-response
                 else if (haveTag is true && StrEqualsToArray(words[0], parseResponseKey))
                 {
                     if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
@@ -798,10 +730,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // securitysensitive
                 // sensitive
                 // security_sensitive
-                // security-sensitive
                 else if (haveTag is true && StrEqualsToArray(words[0], securitySensitiveKey))
                 {
                     routineEndpoint.SecuritySensitive = true;
@@ -811,9 +741,9 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // usercontext
                 // user_context
-                // user-context
+                // user_settings
+                // user_config
                 else if (haveTag is true && StrEqualsToArray(words[0], userContextKey))
                 {
                     routineEndpoint.UserContext = true;
@@ -823,12 +753,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // userparameters
-                // userparams
                 // user_parameters
                 // user_params
-                // user-parameters
-                // user-params
                 else if (haveTag is true && StrEqualsToArray(words[0], userParemetersKey))
                 {
                     routineEndpoint.UseUserParameters = true;
@@ -872,11 +798,8 @@ internal static class DefaultCommentParser
                     }
                 }
 
-                // cacheexpires
-                // cacheexpiresin
-                // cache-expires
-                // cache-expires-in
                 // cache_expires
+                // cache_expires_in
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], cacheExpiresInKey))
                 {
                     var value = Parser.ParsePostgresInterval(string.Join(Consts.Space, words[1..]));
@@ -895,9 +818,7 @@ internal static class DefaultCommentParser
                 }
 
                 // connection
-                // connectionname
                 // connection_name
-                // connection-name
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], connectionNameKey))
                 {
                     var name = string.Join(Consts.Space, words[1..]);

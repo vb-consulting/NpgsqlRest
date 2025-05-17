@@ -23,7 +23,7 @@ from pg_stat_activity
 where pid = pg_backend_pid();
 $$;
 
-comment on function get_conn1_connection_name() is 'ConnectionName conn1';
+comment on function get_conn1_connection_name() is 'connection_name conn1';
 
 create function get_conn2_connection_name() 
 returns text 
@@ -34,7 +34,7 @@ from pg_stat_activity
 where pid = pg_backend_pid();
 $$;
 
-comment on function get_conn2_connection_name() is 'ConnectionName conn2';
+comment on function get_conn2_connection_name() is 'connection_name conn2';
 
 create function get_conn3_connection_name() 
 returns text 
@@ -45,7 +45,7 @@ from pg_stat_activity
 where pid = pg_backend_pid();
 $$;
 
-comment on function get_conn3_connection_name() is 'ConnectionName conn3';
+comment on function get_conn3_connection_name() is 'connection_name conn3';
 ");
     }
 }

@@ -8,25 +8,25 @@ public static partial class Database
 create function comment_param_type_query1(_t text) returns text language sql as 'select _t';
 comment on function comment_param_type_query1(text) is '
 HTTP
-RequestParamType QueryString
+request_param_type query_string
 ';
 
 create function comment_param_type_query2(_t text) returns text language sql as 'select _t';
 comment on function comment_param_type_query2(text) is '
 HTTP
-ParamType Query
+param_type query
 ';
 
 create function comment_get_param_type_json1(_t text) returns text language sql as 'select _t';
 comment on function comment_get_param_type_json1(text) is '
 HTTP
-RequestParamType BodyJson
+request_param_type body_json
 ';
 
 create function comment_get_param_type_json2(_t text) returns text language sql as 'select _t';
 comment on function comment_get_param_type_json2(text) is '
 HTTP
-ParamType Json
+param_type BODY
 ';
 ");
     }

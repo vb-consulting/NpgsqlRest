@@ -72,7 +72,7 @@ public static partial class Database
         $$;
         comment on function raw_csv_separators_with_headers_response2() is '
         raw=true
-        raw-separator=,
+        raw_separator=,
         raw_new_line=\n
         column_names=true
         Content-Type: text/csv

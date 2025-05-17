@@ -23,7 +23,7 @@ public static partial class Database
         comment on function header_template_response1(text, text) is '
         raw
         separator ,
-        newline \n
+        new_line \n
         Content-Type: {_type}
         Content-Disposition: attachment; filename={_file}
         ';
@@ -45,7 +45,7 @@ public static partial class Database
         comment on function header_template_response2(text, text) is '
         raw
         separator ,
-        newline \n
+        new_line \n
         Content-Type: {type}
         Content-Disposition: attachment; filename={file}
         ';

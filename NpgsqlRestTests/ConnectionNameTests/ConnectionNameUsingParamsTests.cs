@@ -36,7 +36,7 @@ from pg_stat_activity
 where pid = pg_backend_pid();
 $$;
 
-comment on function get_conn3_connection_name_p() is 'connection-name=conn3';
+comment on function get_conn3_connection_name_p() is 'connection_name=conn3';
 ");
     }
 }

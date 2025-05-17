@@ -10,33 +10,33 @@ create function get_req_headers_ignore() returns text language sql as 'select cu
 create function get_req_headers_context() returns text language sql as 'select current_setting(''request.headers'', true)';
 comment on function get_req_headers_context() is '
 HTTP
-RequestHeaders Context
+request_headers context
 ';
 
 create function get_req_headers_parameter1(_headers text = null) returns text language sql as 'select _headers';
 comment on function get_req_headers_parameter1(text) is '
 HTTP
-request-headers parameter
+request_headers parameter
 ';
 
 create function get_req_headers_parameter2(headers text = null) returns text language sql as 'select headers';
 comment on function get_req_headers_parameter2(text) is '
 HTTP
-request-headers parameter
+request_headers parameter
 ';
 
 create function get_req_headers_parameter3(h text = null) returns text language sql as 'select h';
 comment on function get_req_headers_parameter3(text) is '
 HTTP
-request-headers parameter
-request-headers-parameter-name h
+request_headers parameter
+request_headers_parameter_name h
 ';
 
 create function get_req_headers_param_not_default(_not_default text) returns text language sql as 'select _not_default';
 comment on function get_req_headers_param_not_default(text) is '
 HTTP
-request-headers parameter
-request-headers-parameter-name _not_default
+request_headers parameter
+request_headers_parameter_name _not_default
 ';
 
 create function req_headers_parameter1(_headers text = null) returns text language sql as 'select _headers';
@@ -54,15 +54,15 @@ request_headers parameter
 create function req_headers_parameter3(h text = null) returns text language sql as 'select h';
 comment on function req_headers_parameter3(text) is '
 HTTP
-request-headers parameter
+request_headers parameter
 request_headers_parameter_name h
 ';
 
 create function req_headers_param_not_default(_not_default text) returns text language sql as 'select _not_default';
 comment on function req_headers_param_not_default(text) is '
 HTTP
-request-headers parameter
-request-headers-parameter-name _not_default
+request_headers parameter
+request_headers_parameter_name _not_default
 ';
 ");
     }

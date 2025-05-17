@@ -53,7 +53,7 @@ public static partial class Database
         comment on function raw_csv_separators_response1() is '
         raw
         separator ,
-        newline \n
+        new_line \n
         Content-Type: text/csv
         ';
 
@@ -73,7 +73,7 @@ public static partial class Database
         comment on function raw_csv_separators_with_headers_response1() is '
         raw
         separator ,
-        newline \n
+        new_line \n
         column_names
         Content-Type: text/csv
         ';

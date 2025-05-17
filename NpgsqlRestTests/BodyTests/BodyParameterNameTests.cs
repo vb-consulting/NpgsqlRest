@@ -9,21 +9,21 @@ create function body_param_name_1p(_p text)
 returns text language sql as 'select _p';
 comment on function body_param_name_1p(text) is '
 HTTP
-body-param-name p
+body_param_name p
 ';
 
 create function body_param_name_2p(_i int, _p text) 
 returns text language sql as 'select _i::text || '' '' || _p';
 comment on function body_param_name_2p(int, text) is '
 HTTP
-body-param-name _p
+body_param_name _p
 ';
 
 create function body_param_name_int(_int int) 
 returns text language sql as 'select _int';
 comment on function body_param_name_int(int) is '
 HTTP
-body-param-name int';
+body_param_name int';
 ");
     }
 }

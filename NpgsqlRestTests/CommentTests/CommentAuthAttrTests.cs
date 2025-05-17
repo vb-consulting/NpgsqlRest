@@ -11,7 +11,7 @@ Authorize';
 
 create function comment_authorize2() returns text language sql as 'select ''authorize2''';
 comment on function comment_authorize2() is 'HTTP
-RequiresAuthorization';
+requires_authorization';
 
 create function comment_authorize3() returns text language sql as 'select ''authorize3''';
 comment on function comment_authorize3() is '

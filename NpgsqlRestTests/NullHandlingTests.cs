@@ -9,33 +9,33 @@ public static partial class Database
         create function get_null1() returns text language sql as 'select null';
 
         create function get_null2() returns text language sql as 'select null';
-        comment on function get_null2() is 'response-null-handling emptystring';
+        comment on function get_null2() is 'response_null_handling empty_string';
 
         create function get_null3() returns text language sql as 'select null';
-        comment on function get_null3() is 'response-null-handling nullliteral';
+        comment on function get_null3() is 'response_null_handling null_literal';
 
         create function get_null4() returns text language sql as 'select null';
-        comment on function get_null4() is 'response-null-handling nocontent';
+        comment on function get_null4() is 'response_null_handling no_content';
 
         create function get_nullable_param1(_t text) returns text language sql as 'select _t';
-        comment on function get_nullable_param1(text) is 'response-null-handling nocontent';
+        comment on function get_nullable_param1(text) is 'response_null_handling no_content';
 
         create function get_nullable_param2(_t text) returns text language sql as 'select _t';
         comment on function get_nullable_param2(text) is '
-        response-null-handling nocontent
-        query-string-null-handling ignore
+        response_null_handling no_content
+        query_string_null_handling ignore
         ';
 
         create function get_nullable_param3(_t text) returns text language sql as 'select _t';
         comment on function get_nullable_param3(text) is '
-        response-null-handling nocontent
-        query-string-null-handling EmptyString
+        response_null_handling no_content
+        query_string_null_handling empty_string
         ';
 
         create function get_nullable_param4(_t text) returns text language sql as 'select _t';
         comment on function get_nullable_param4(text) is '
-        response-null-handling nocontent
-        query-string-null-handling NullLiteral
+        response_null_handling no_content
+        query_string_null_handling null_literal
         ';
         """);
     }
