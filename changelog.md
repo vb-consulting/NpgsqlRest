@@ -4,51 +4,539 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
-"StaticFiles": {
-//
-// List of static file patterns that will require authorization.
-// File paths are relative to the RootPath property and pattern matching is case-insensitive.
-// Pattern can include wildcards or question marks. For example: *.html, /user/*, etc
-// 
-"AutorizePaths": [],
-"UnauthorizedRedirectPath": "/",
-"UnauthorizedReturnToQueryParameter": "return_to",
-- Done!
+## Version [2.27.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.27.0) (2025-05-19)
 
-Add no cache headers to static files
-"StaticFiles": {
-    "ParseContentOptions": {
-          "Headers": [ "Cache-Control: no-store, no-cache, must-revalidate", "Pragma: no-cache", "Expires: 0" ],
-- Done!
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.27.0...2.26.0)
 
+This is a big release that features several important changes.
 
-- Add NpgsqlRestAuthenticationOptions.PasswordVerificationSucceededCommand that will with NpgsqlRestAuthenticationOptions.PasswordVerificationFailedCommand 
-- Done!
+### AuthenticationOptions Changes
 
-Change:
-- Commands NpgsqlRestAuthenticationOptions.PasswordVerificationFailedCommand and NpgsqlRestAuthenticationOptions.PasswordVerificationFailedCommand 
-have flipped username and userid paramaters
+Authentication options have been expanded to include new parameters. Specifically, to be able to bind user claims to parameters (user id, user name, user roles or custom) or to send them as PostgreSQL context.
 
-Now, the order is:
+Another important change is that beside `PasswordVerificationFailedCommand` option, there is also `PasswordVerificationSucceededCommand`. And both of these options contain a command expression that receives three optional text parameters:
+- Authentication scheme used for the login
+- User id used for the login.
+- User name used for the login.
 
-1) scheme (text)
-2) user id (text)
-3) user name (text)
+Parameters are positional: first is scheme, second is user id, and third is user name. User id and user name have switched places from the last version, since user id is usually more important.
 
+Class `NpgsqlRestAuthenticationOptions` now looks like this:
 
-Change:
-- New option: public string RequestHeadersContextKey { get; set; } = "request.headers";
-
-Optimization: fast command creation with MemberwiseClone cached instance
-
-doing:
-if (endpoint.RequestHeadersMode == RequestHeadersMode.Context)
+```csharp
+/// <summary>
+/// Authentication options for the NpgsqlRest middleware.
+/// </summary>
+public class NpgsqlRestAuthenticationOptions
 {
-    command.CommandText = string.Concat("select set_config('request.headers','", headers, "',false)");
-    command.ExecuteNonQuery();
-}
-- To this for user_id too
+    /// <summary>
+    /// Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
+    ///
+    /// This value must be set to non-null when using login endpoints, otherwise, the following error will raise: `SignInAsync when principal.Identity.IsAuthenticated is false is not allowed when AuthenticationOptions.RequireAuthenticatedSignIn is true.`
+    /// 
+    /// If the value is not set and the login endpoint is present, it will automatically get the database name from the connection string.
+    /// </summary>
+    public string? DefaultAuthenticationType { get; set; } = null;
 
+    /// <summary>
+    /// The default column name in the data reader which will be used to read the value to determine the success or failure of the login operation.
+    /// 
+    /// - If this column is not present, the success is when the endpoint returns any records.
+    /// - If this column is present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
+    /// - If this column is present and retrieves a numeric value, that value is assigned to the HTTP Status Code and the login will authenticate only when this value is 200.
+    /// </summary>
+    public string? StatusColumnName { get; set; } = "status";
+
+    /// <summary>
+    /// The default column name in the data reader which will be used to read the value of the authentication scheme of the login process.
+    /// 
+    /// If this column is not present in the login response the default authentication scheme is used. Return new value to use a different authentication scheme with the login endpoint.
+    /// </summary>
+    public string? SchemeColumnName { get; set; } = "scheme";
+
+    /// <summary>
+    /// The default column name in the data reader which will return a text message with the login status.
+    /// </summary>
+    public string? MessageColumnName { get; set; } = "message";
+
+    /// <summary>
+    /// Any columns retrieved from the reader during login, which don't have a name in `StatusColumnName` or `SchemeColumnName` will be used to create a new identity  `Claim`:
+    /// 
+    /// Column name will be interpreted as the claim type and the associated reader value for that column will be the claim value.
+    /// 
+    /// When this value is set to true (default) column name will try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value.
+    /// 
+    /// For example, column name `NameIdentifier` or `name_identifier` (when transformed by the default name transformer) will match the key `NameIdentifier` which translates to this: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
+    /// </summary>
+    public bool UseActiveDirectoryFederationServicesClaimTypes { get; set; } = true;
+
+    /// <summary>
+    /// Default claim type for user id.
+    /// </summary>
+    public string DefaultUserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
+
+    private string _defaultNameClaimType = ClaimTypes.Name;
+    internal bool UsingDefaultNameClaimType = true;
+
+    /// <summary>
+    /// Default claim type for user name.
+    /// </summary>
+    public string DefaultNameClaimType
+    {
+        get => _defaultNameClaimType;
+        set
+        {
+            _defaultNameClaimType = value;
+            UsingDefaultNameClaimType = string.Equals(value, ClaimTypes.Name, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>
+    /// Default claim type for user roles.
+    /// </summary>
+    public string DefaultRoleClaimType { get; set; } = ClaimTypes.Role;
+
+    /// <summary>
+    /// If true, return any response from auth endpoints (login and logout) if response hasn't been written by auth handler.
+    /// For cookie auth, this will return full record to response as returned by the routine.
+    /// For bearer token auth, this will be ignored because bearer token auth writes it's own response (with tokens).
+    /// This option will also be ignored if message column is present (see MessageColumnName option).
+    /// Default is false.
+    /// </summary>
+    public bool SerializeAuthEndpointsResponse { get; set; } = false;
+
+    /// <summary>
+    /// Don't write real parameter values when logging parameters from auth endpoints and obfuscate instead.
+    /// This prevents user credentials including password to end up in application logs.
+    /// Default is true.
+    /// </summary>
+    public bool ObfuscateAuthParameterLogValues { get; set; } = true;
+
+    /// <summary>
+    /// The default column name in the data reader which will be used to read the value of the hash of the password.
+    /// If this column is present, the value will be used to verify the password from the password parameter.
+    /// Password parameter is the first parameter which name contains the value of PasswordParameterNameContains.
+    /// If verification fails, the login will fail and the HTTP Status Code will be set to 404 Not Found.
+    /// </summary>
+    public string HashColumnName { get; set; } = "hash";
+
+    /// <summary>
+    /// The default name of the password parameter. The first parameter which name contains this value will be used as the password parameter.
+    /// This is used to verify the password from the password parameter when login endpoint returns a hash of the password (see HashColumnName).
+    /// </summary>
+    public string PasswordParameterNameContains { get; set; } = "pass";
+
+    /// <summary>
+    /// Default password hasher object. Inject custom password hasher object to add default password hasher.
+    /// </summary>
+    public IPasswordHasher? PasswordHasher { get; set; } = new PasswordHasher();
+
+    /// <summary>
+    /// Command that is executed when the password verification fails. There are three text parameters:
+    ///     - authentication scheme used for the login (if exists)
+    ///     - user id used for the login (if exists)
+    ///     - user name used for the login (if exists)
+    /// Please use PostgreSQL parameter placeholders for the parameters ($1, $2, $3).
+    /// </summary>
+    public string? PasswordVerificationFailedCommand { get; set; } = null;
+
+    /// <summary>
+    /// Command that is executed when the password verification succeeds. There are three text parameters:
+    ///     - authentication scheme used for the login (if exists)
+    ///     - user id used for the login (if exists)
+    ///     - user name used for the login (if exists)
+    /// Please use PostgreSQL parameter placeholders for the parameters ($1, $2, $3).
+    /// </summary>
+    public string? PasswordVerificationSucceededCommand { get; set; } = null;
+
+    /// <summary>
+    /// Set user context to true for all requests. 
+    /// When this is set to true, user information (user id, user name and user roles) will be set to the context variables.
+    /// You can set this individually for each request.
+    /// </summary>
+    public bool UseUserContext { get; set; } = false;
+
+    /// <summary>
+    /// User id context key that is used to set context variable for the user id.
+    /// </summary>
+    public string? UserIdContextKey { get; set; } = "request.user_id";
+
+    /// <summary>
+    /// User name context key that is used to set context variable for the user name.
+    /// </summary>
+    public string? UserNameContextKey { get; set; } = "request.user_name";
+
+    /// <summary>
+    /// User roles context key that is used to set context variable for the user roles.
+    /// </summary>
+    public string? UserRolesContextKey { get; set; } = "request.user_roles";
+
+    /// <summary>
+    /// IP address context key that is used to set context variable for the IP address.
+    /// </summary>
+    public string? IpAddressContextKey { get; set; } = "request.ip_address";
+
+    /// <summary>
+    /// When this value is set and user context is used, all user claims will be serialized to JSON value and set to the context variable with this name.
+    /// </summary>
+    public string? UserClaimsContextKey { get; set; } = null;
+
+    /// <summary>
+    /// Set user parameters to true for all requests. 
+    /// When this is set to true, user information (user id, user name and user roles) will be set to the matching parameter names if available.
+    /// You can set this individually for each request.
+    /// </summary>
+    public bool UseUserParameters { get; set; } = false;
+
+    /// <summary>
+    /// User id parameter name that is used to set parameter value for the user id.
+    /// Parameter name can be original or converted and it has to be the text type.
+    /// </summary>
+    public string? UserIdParameterName { get; set; } = "_user_id";
+
+    /// <summary>
+    /// User name parameter name that is used to set parameter value for the user name.
+    /// Parameter name can be original or converted and it has to be the text type.
+    /// </summary>
+    public string? UserNameParameterName { get; set; } = "_user_name";
+
+    /// <summary>
+    /// User roles parameter name that is used to set parameter value for the user roles.
+    /// Parameter name can be original or converted and it has to be the text array type.
+    /// </summary>
+    public string? UserRolesParameterName { get; set; } = "_user_roles";
+
+    /// <summary>
+    /// IP address parameter name that is used to set parameter value for the IP address.
+    /// Parameter name can be original or converted and it has to be the text type.
+    /// </summary>
+    public string? IpAddressParameterName { get; set; } = "_ip_address";
+
+    /// <summary>
+    /// All user claims will be serialized to JSON value and set to the parameter with this name.
+    /// </summary>
+    public string? UserClaimsParameterName { get; set; } = "_user_claims";
+}
+```
+
+Previously, this logic was handled only in client application and inefficiently so. That means that there is a new configuration section in the client application for handling authentication:
+
+```jsonc
+{
+  // ...
+  "NpgsqlRest": {
+    // ...
+
+    //
+    // Authentication options for NpgsqlRest endpoints
+    //
+    "AuthenticationOptions": {
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsdefaultauthenticationtype
+      //
+      "DefaultAuthenticationType": null,
+
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsstatuscolumnname
+      //
+      "StatusColumnName": "status",
+
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsschemecolumnname
+      //
+      "SchemeColumnName": "scheme",
+
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsmessagecolumnname
+      //
+      "MessageColumnName": "message",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes
+      //
+      "UseActiveDirectoryFederationServicesClaimTypes": true,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsdefaultuseridclaimtype
+      //
+      "DefaultUserIdClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsdefaultnameclaimtype
+      //
+      "DefaultNameClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsdefaultroleclaimtype
+      //
+      "DefaultRoleClaimType": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsserializeauthendpointsresponse
+      //
+      "SerializeAuthEndpointsResponse": false,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsobfuscateauthparameterlogvalues
+      //
+      "ObfuscateAuthParameterLogValues": true,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionshashcolumnname
+      //
+      "HashColumnName": "hash",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionspasswordparameternamecontains
+      //
+      "PasswordParameterNameContains": "pass",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionspasswordverificationfailedcommand
+      //
+      "PasswordVerificationFailedCommand": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionspasswordverificationsucceededcommand
+      //
+      "PasswordVerificationSucceededCommand": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseusercontext
+      //
+      "UseUserContext": false,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseridcontextkey
+      //
+      "UserIdContextKey": "request.user_id",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsusernamecontextkey
+      //
+      "UserNameContextKey": "request.user_name",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuserrolescontextkey
+      //
+      "UserRolesContextKey": "request.user_roles",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsipaddresscontextkey
+      //
+      "IpAddressContextKey": "request.ip_address",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuserclaimscontextkey
+      //
+      "UserClaimsContextKey": null,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseruserparameters
+      //
+      "UseUserParameters": false,
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseridparametername
+      //
+      "UserIdParameterName": "_user_id",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsusernameparametername
+      //
+      "UserNameParameterName": "_user_name",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuserrolesparametername
+      //
+      "UserRolesParameterName": "_user_roles",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsipaddressparametername
+      //
+      "IpAddressParameterName": "_ip_address",
+      //
+      // See https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuserclaimsparametername
+      //
+      "UserClaimsParameterName": "_user_claims",
+      //
+      // Url path that will be used for the login endpoint. If NULL, the login endpoint will not be created.
+      // See more on login endpoints at https://vb-consulting.github.io/npgsqlrest/login-endpoints
+      //
+      "LoginPath": null,
+      //
+      // Url path that will be used for the logout endpoint. If NULL, the logout endpoint will not be created.
+      // See more on logout endpoints at https://vb-consulting.github.io/npgsqlrest/annotations/#logout
+      //
+      "LogoutPath": null,
+      //
+      // Routines that have this values set to true, will parse the response before it is returned to the client by using name placeholders from this section.
+      //
+      // Use curly braces to define the name placeholders in the response. For example, {user_id} will be replaced. 
+      // The replacement value in this example is the value that would be assigned to he UserIdParameterName parameter if UseUserParameters was used. That means user id.
+      //
+      "ParseResponseUsingUserParameters": false
+    }
+
+    // ...
+}
+```
+
+### UploadOptions Changes
+
+Upload options in core library have also been improved. New options include:
+- `LogUploadEvent` - should we log upload events.
+- `DefaultUploadMetadataParameterName` and `UseDefaultUploadMetadataParameter` - set the default upload metadata parameter once for all.
+- `DefaultUploadMetadataContextKey` and `UseDefaultUploadMetadataContextKey` - set metadata with PostgreSQL context first instead of parameter.
+
+Here is the new `NpgsqlRestUploadOptions` class:
+
+```csharp
+/// <summary>
+/// Upload options for the NpgsqlRest middleware.
+/// </summary>
+public class NpgsqlRestUploadOptions
+{
+    public bool Enabled { get; set; } = true;
+    public bool LogUploadEvent { get; set; } = true;
+
+    /// <summary>
+    /// Default upload handler name. This value is used when the upload handlers are not specified.
+    /// </summary>
+    public string DefaultUploadHandler { get; set; } = "large_object";
+
+    /// <summary>
+    /// Default upload handler options. 
+    /// Set this option to null to disable upload handlers or use this to modify upload handler options.
+    /// </summary>
+    public UploadHandlerOptions DefaultUploadHandlerOptions { get; set; } = new UploadHandlerOptions();
+
+    /// <summary>
+    /// Upload handlers dictionary map. 
+    /// When the endpoint has set Upload to true, this dictionary will be used to find the upload handlers for the current request. 
+    /// Handler will be located by the key values from the endpoint UploadHandlers string array property if set or by the default upload handler (DefaultUploadHandler option).
+    /// Set this option to null to use default upload handler from the UploadHandlerOptions property.
+    /// Set this option to empty dictionary to disable upload handlers.
+    /// Set this option to a dictionary with one or more upload handlers to enable your own custom upload handlers.
+    /// </summary>
+    public Dictionary<string, Func<ILogger?, IUploadHandler>>? UploadHandlers { get; set; } = null;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the default upload metadata parameter should be used.
+    /// </summary>
+    public bool UseDefaultUploadMetadataParameter { get; set; } = false;
+
+    /// <summary>
+    /// Name of the default upload metadata parameter. 
+    /// This parameter will be automatically assigned with the upload metadata JSON string when the upload is completed if UseDefaultUploadMetadataParameter is set to true.
+    /// </summary>
+    public string DefaultUploadMetadataParameterName { get; set; } = "_upload_metadata";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the default upload metadata context key should be used.
+    /// </summary>
+    public bool UseDefaultUploadMetadataContextKey { get; set; } = false;
+
+    /// <summary>
+    /// Name of the default upload metadata context key.
+    /// This context key will be automatically assigned to context with the upload metadata JSON string when the upload is completed if UseDefaultUploadMetadataContextKey is set to true.
+    /// </summary>
+    public string DefaultUploadMetadataContextKey { get; set; } = "request.upload_metadata";
+}
+```
+
+This also required change in client application configuration:
+
+```jsonc
+{
+  // ...
+  "NpgsqlRest": {
+    // ...
+
+    "UploadOptions": {
+      "Enabled": true,
+      "LogUploadEvent": true,
+      //
+      // Handler that will be used when upload handler or handlers are not specified.
+      //
+      "DefaultUploadHandler": "large_object",
+      //
+      // Gets or sets a value indicating whether the default upload metadata parameter should be used.
+      //
+      "UseDefaultUploadMetadataParameter": false,
+      //
+      // Name of the default upload metadata parameter. This parameter is used to pass metadata to the upload handler. The metadata is passed as a JSON object.
+      //
+      "DefaultUploadMetadataParameterName": "_upload_metadata",
+      //
+      // Gets or sets a value indicating whether the default upload metadata context key should be used.
+      //
+      "UseDefaultUploadMetadataContextKey": false,
+      //
+      // Name of the default upload metadata context key. This key is used to pass the metadata to the upload handler. The metadata is passed as a JSON object.
+      //
+      "DefaultUploadMetadataContextKey": "request.upload_metadata",
+      //
+      // Upload handlers specific settings.
+      //
+      "UploadHandlers": {
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uses PostgreSQL Large Objects API
+        //
+        "LargeObjectEnabled": true,
+        // csv string containing mime type patters, set to null to ignore
+        "LargeObjectIncludedMimeTypePatterns": null,
+        // csv string containing mime type patters, set to null to ignore
+        "LargeObjectExcludedMimeTypePatterns": null,
+        "LargeObjectKey": "large_object",
+        "LargeObjectHandlerBufferSize": 8192,
+
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uses file system
+        //
+        "FileSystemEnabled": true,
+        // csv string containing mime type patters, set to null to ignore
+        "FileSystemIncludedMimeTypePatterns": null,
+        // csv string containing mime type patters, set to null to ignore
+        "FileSystemExcludedMimeTypePatterns": null,
+        "FileSystemKey": "file_system",
+        "FileSystemHandlerPath": "/tmp/uploads",
+        "FileSystemHandlerUseUniqueFileName": true,
+        "FileSystemHandlerCreatePathIfNotExists": true,
+        "FileSystemHandlerBufferSize": 8192,
+
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uploads CSV files to a row command
+        //
+        "CsvUploadEnabled": true,
+        // csv string containing mime type patters, set to null to ignore
+        "CsvUploadIncludedMimeTypePatterns": null,
+        // csv string containing mime type patters, set to null to ignore
+        "CsvUploadExcludedMimeTypePatterns": null,
+        "CsvUploadCheckFileStatus": true,
+        "CsvUploadTestBufferSize": 4096,
+        "CsvUploadNonPrintableThreshold": 5,
+        "CsvUploadDelimiterChars": ",",
+        "CsvUploadHasFieldsEnclosedInQuotes": true,
+        "CsvUploadSetWhiteSpaceToNull": true,
+        //
+        // $1 - row index (1-based), $2 - parsed value text array, $3 - result of previous row command, $4 - json metadata for upload
+        //
+        "CsvUploadRowCommand": "call process_csv_row($1,$2,$3,$4)"
+      }
+    }
+
+    // ...
+}
+```
+
+### NpgsqlRest Client App Static File Parser
+
+This is basically conceptual fix to the Client application static file parser. Files being parsed that are cached are defining the purpose so cache needs to be disabled. This is done with new static file configuration setting in the Client application:
+
+```jsonc
+{
+    //...
+    "StaticFiles": {
+        //...
+        "ParseContentOptions": {
+            //...
+            "Headers": [ "Cache-Control: no-store, no-cache, must-revalidate", "Pragma: no-cache", "Expires: 0" ],
+        }
+    }
+    //...
+}
+```
+
+### Comment Annotation System Changes
+
+Comment annotation has seen some big changes. Added new parameters and annotations to reflect changes in Authentication and Upload options.
+
+Breaking change: Comment annotations now support only snake_case naming. This is consistent with PostgreSQL naming convention and it reduces the number of annotations needed to support. 
+
+### Fixes and Other Improvements
+
+- Fixed a bug when endpoint was returning empty JSON array. Adequate parser wasn't invoked in case of JSON empty array and it returned `{}`. This is fixed to return `[]`.
+- All commands and parameters are now using `MemberwiseClone` performance trick to reduce unnecessary allocations.
 
 ## Version [2.26.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.26.0) (2025-05-11)
 
