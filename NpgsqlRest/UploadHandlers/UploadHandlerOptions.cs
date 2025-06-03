@@ -4,6 +4,8 @@ public class UploadHandlerOptions
 {
     public int TextTestBufferSize { get; set; } = 4096;
     public int TextNonPrintableThreshold { get; set; } = 5;
+    public AllowedImageTypes AllowedImageTypes { get; set; } = 
+        AllowedImageTypes.Jpeg | AllowedImageTypes.Png | AllowedImageTypes.Gif | AllowedImageTypes.Bmp | AllowedImageTypes.Tiff | AllowedImageTypes.Webp;
 
     public bool LargeObjectEnabled { get; set; } = true;
     public string LargeObjectKey { get; set; } = "large_object";

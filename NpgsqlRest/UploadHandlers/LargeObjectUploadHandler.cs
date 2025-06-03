@@ -37,6 +37,8 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
         int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
 
+        AllowedImageTypes allowedImage = options.DefaultUploadHandlerOptions.AllowedImageTypes;
+
         if (parameters is not null)
         {
             if (parameters.TryGetValue(OidParam, out var oidStr) && long.TryParse(oidStr, out var oidParsed))
@@ -48,10 +50,17 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
             {
                 checkText = checkTextParamParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr)
-                && bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
+            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr))
             {
-                checkImage = checkImageParamParsed;
+                if (bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
+                {
+                    checkImage = checkImageParamParsed;
+                }
+                else
+                {
+                    checkImage = true;
+                    allowedImage = checkImageParamStr.ParseImageTypes(logger);
+                }
             }
             if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
             {
@@ -69,11 +78,6 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
-            //if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
-            //{
-            //    continue;
-            //}
-
             if (fileId > 0)
             {
                 result.Append(',');
@@ -108,9 +112,9 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
                 }
                 if (status == UploadFileStatus.Ok && checkImage is true)
                 {
-                    if (await formFile.IsImage() is false)
+                    if (await formFile.IsImage(allowedImage) is false)
                     {
-                        status = UploadFileStatus.NotAnImage;
+                        status = UploadFileStatus.InvalidImage;
                     }
                 }
             }

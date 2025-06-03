@@ -42,6 +42,24 @@ public static partial class Database
         param _meta is upload metadata
         check_image = true 
         ';
+
+        create function fs_check_jpg_and_gif_upload(
+            _meta json
+        )
+        returns json 
+        language plpgsql
+        as 
+        $$
+        begin
+            return _meta;
+        end;
+        $$;
+
+        comment on function fs_check_jpg_and_gif_upload(json) is '
+        upload for file_system
+        param _meta is upload metadata
+        check_image = jpg, gif 
+        ';
 ");
     }
 }
@@ -52,12 +70,12 @@ public class UploadFileChecksTests(TestFixture test)
     [Fact]
     public async Task Test_fs_check_text_upload_text_test1()
     {
-        var fileName = "test-data.csv";
+        var fileName = "test.txt";
         var sb = new StringBuilder();
-        sb.AppendLine("Text");
-        sb.AppendLine("1,Item 1,100");
-        sb.AppendLine("2,Item 2,200");
-        sb.AppendLine("3,Item 3,300");
+        sb.AppendLine("Text Line1");
+        sb.AppendLine("Text Line2");
+        sb.AppendLine("Text Line3");
+        sb.AppendLine("Text Line4");
 
         var contentBytes = Encoding.UTF8.GetBytes(sb.ToString());
         using var formData = new MultipartFormDataContent();
@@ -103,7 +121,7 @@ public class UploadFileChecksTests(TestFixture test)
         using var result = await test.Client.PostAsync("/api/fs-check-image-upload/", formData);
         result.StatusCode.Should().Be(HttpStatusCode.OK);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().EndWith(",\"success\":false,\"status\":\"NotAnImage\"}]");
+        response.Should().EndWith(",\"success\":false,\"status\":\"InvalidImage\"}]");
     }
 
     [Fact]
@@ -244,5 +262,86 @@ public class UploadFileChecksTests(TestFixture test)
         result.StatusCode.Should().Be(HttpStatusCode.OK);
         var response = await result.Content.ReadAsStringAsync();
         response.Should().EndWith(",\"success\":true,\"status\":\"Ok\"}]");
+    }
+
+    [Fact]
+    public async Task Test_fs_check_jpg_and_gif_upload_test_binary()
+    {
+        var fileName = "test-binary.dat";
+        var binaryData = new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB };
+
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(binaryData);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        formData.Add(byteContent, "file", fileName);
+
+        using var result = await test.Client.PostAsync("/api/fs-check-jpg-and-gif-upload/", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().EndWith(",\"success\":false,\"status\":\"InvalidImage\"}]");
+    }
+
+    [Fact]
+    public async Task Test_fs_check_jpg_and_gif_upload_test_jpeg()
+    {
+        var fileName = "test-binary.jpg";
+        var binaryData = new byte[] {
+            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+            0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xD9
+        };
+
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(binaryData);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        formData.Add(byteContent, "file", fileName);
+
+        using var result = await test.Client.PostAsync("/api/fs-check-jpg-and-gif-upload/", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().EndWith(",\"success\":true,\"status\":\"Ok\"}]");
+    }
+
+    [Fact]
+    public async Task Test_fs_check_jpg_and_gif_upload_test_gif()
+    {
+        var fileName = "test-binary.gif";
+        var binaryData = new byte[] {
+            0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02,
+            0x02, 0x44, 0x01, 0x00, 0x3B
+        };
+
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(binaryData);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        formData.Add(byteContent, "file", fileName);
+
+        using var result = await test.Client.PostAsync("/api/fs-check-jpg-and-gif-upload/", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().EndWith(",\"success\":true,\"status\":\"Ok\"}]");
+    }
+
+    [Fact]
+    public async Task Test_fs_check_jpg_and_gif_upload_test_bmp()
+    {
+        var fileName = "test-binary.bmp";
+        var binaryData = new byte[] {
+            0x42, 0x4D, 0x3A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x00,
+            0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x00, 0x01, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x00
+        };
+
+        using var formData = new MultipartFormDataContent();
+        using var byteContent = new ByteArrayContent(binaryData);
+        byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        formData.Add(byteContent, "file", fileName);
+
+        using var result = await test.Client.PostAsync("/api/fs-check-jpg-and-gif-upload/", formData);
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        var response = await result.Content.ReadAsStringAsync();
+        response.Should().EndWith(",\"success\":false,\"status\":\"InvalidImage\"}]");
     }
 }

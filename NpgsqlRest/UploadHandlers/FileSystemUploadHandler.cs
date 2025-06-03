@@ -44,6 +44,8 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
         int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
 
+        AllowedImageTypes allowedImage = options.DefaultUploadHandlerOptions.AllowedImageTypes;
+
         if (parameters is not null)
         {
             if (parameters.TryGetValue(PathParam, out var path) && !string.IsNullOrEmpty(path))
@@ -69,10 +71,17 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
             {
                 checkText = checkTextParamParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr)
-                && bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
+            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr))
             {
-                checkImage = checkImageParamParsed;
+                if (bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
+                {
+                    checkImage = checkImageParamParsed;
+                }
+                else
+                {
+                    checkImage = true;
+                    allowedImage = checkImageParamStr.ParseImageTypes(logger);
+                }
             }
             if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
             {
@@ -144,9 +153,9 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
                 }
                 if (status == UploadFileStatus.Ok && checkImage is true)
                 {
-                    if (await formFile.IsImage() is false)
+                    if (await formFile.IsImage(allowedImage) is false)
                     {
-                        status = UploadFileStatus.NotAnImage;
+                        status = UploadFileStatus.InvalidImage;
                     }
                 }
             }

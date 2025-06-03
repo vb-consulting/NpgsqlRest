@@ -1,5 +1,8 @@
 ﻿namespace NpgsqlRest.UploadHandlers;
 
+[Flags]
+public enum AllowedImageTypes { Jpeg = 1, Png = 2, Gif = 4, Bmp = 8, Tiff = 16, Webp = 32 }
+
 public static class FileCheckExtensions
 {
     public const string CheckTextParam = "check_text";
@@ -112,7 +115,7 @@ public static class FileCheckExtensions
         }
     }
 
-    public static async Task<bool> IsImage(this IFormFile file)
+    public static async Task<bool> IsImage(this IFormFile file, AllowedImageTypes allowedTypes)
     {
         if (file == null || file.Length == 0)
             return false;
@@ -121,8 +124,50 @@ public static class FileCheckExtensions
         var buffer = new byte[12];
         int bytesRead = await fileStream.ReadAsync(buffer);
 
-        return IsJpeg(buffer, bytesRead) || IsPng(buffer, bytesRead) || IsGif(buffer, bytesRead) ||
-               IsBmp(buffer, bytesRead) || IsTiff(buffer, bytesRead) || IsWebp(buffer, bytesRead);
+        return (allowedTypes.HasFlag(AllowedImageTypes.Jpeg) && IsJpeg(buffer, bytesRead)) ||
+                (allowedTypes.HasFlag(AllowedImageTypes.Png) && IsPng(buffer, bytesRead)) ||
+                (allowedTypes.HasFlag(AllowedImageTypes.Gif) && IsGif(buffer, bytesRead)) ||
+                (allowedTypes.HasFlag(AllowedImageTypes.Bmp) && IsBmp(buffer, bytesRead)) ||
+                (allowedTypes.HasFlag(AllowedImageTypes.Tiff) && IsTiff(buffer, bytesRead)) ||
+                (allowedTypes.HasFlag(AllowedImageTypes.Webp) && IsWebp(buffer, bytesRead));
+    }
+
+    public static AllowedImageTypes ParseImageTypes(this string csvInput, ILogger? logger)
+    {
+        if (string.IsNullOrWhiteSpace(csvInput))
+        {
+            return 0;
+        }
+        AllowedImageTypes result = 0;
+        foreach (string type in csvInput.ToLowerInvariant().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            switch (type)
+            {
+                case "jpeg":
+                case "jpg":
+                    result |= AllowedImageTypes.Jpeg;
+                    break;
+                case "png":
+                    result |= AllowedImageTypes.Png;
+                    break;
+                case "gif":
+                    result |= AllowedImageTypes.Gif;
+                    break;
+                case "bmp":
+                    result |= AllowedImageTypes.Bmp;
+                    break;
+                case "tiff":
+                    result |= AllowedImageTypes.Tiff;
+                    break;
+                case "webp":
+                    result |= AllowedImageTypes.Webp;
+                    break;
+                default:
+                    logger?.LogWarning("Unknown image type: {Type}", type);
+                    break;
+            }
+        }
+        return result;
     }
 
     private static bool IsJpeg(byte[] buffer, int bytesRead)
