@@ -371,8 +371,6 @@ public static class ExternalAuth
             Value = name is not null ? name : DBNull.Value,
             NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text
         });
-        //emailContent
-        
         if (paramCount >= 4) command.Parameters.Add(new NpgsqlParameter()
         {
             Value = infoNode is not null ? infoContent.ToString() : DBNull.Value,

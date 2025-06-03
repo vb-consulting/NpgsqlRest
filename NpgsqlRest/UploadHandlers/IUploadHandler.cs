@@ -23,7 +23,7 @@ public interface IUploadHandler
     /// JSON string with upload metadata that is passed to the upload metadata parameter. 
     /// It can be array of filename, mime type, size, etc. It depends on implementation.
     /// </returns>
-    Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters);
+    Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters);
 
     /// <summary>
     /// Connection in Upload call will be under transaction yes or no.

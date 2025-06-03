@@ -1,5 +1,4 @@
-﻿using System.Net.Mime;
-using System.Text;
+﻿using System.Text;
 using Npgsql;
 using static NpgsqlRest.PgConverters;
 
@@ -7,20 +6,19 @@ namespace NpgsqlRest.UploadHandlers;
 
 public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
 {
-    private readonly string[] _parameters = [
-        "included_mime_types",
-        "excluded_mime_types",
-        "path",
-        "file",
-        "unique_name",
-        "create_path",
-        "buffer_size"
-    ];
     private string? _type = null;
     private string[]? _uploadedFiles = null;
 
+    private const string PathParam = "path";
+    private const string FileParam = "file";
+    private const string UniqueNameParam = "unique_name";
+    private const string CreatePathParam = "create_path";
+
     public bool RequiresTransaction => false;
-    public string[] Parameters => _parameters;
+    public string[] Parameters => [
+        UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam, UploadExtensions.BufferSize,
+        PathParam, FileParam, UniqueNameParam, CreatePathParam
+    ];
 
     public IUploadHandler SetType(string type)
     {
@@ -28,48 +26,34 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
         return this;
     }
 
-    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
+    public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.FileSystemIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.FileSystemExcludedMimeTypePatterns;
+        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = options.ParseSharedParameters(parameters);
 
         var basePath = options.DefaultUploadHandlerOptions.FileSystemHandlerPath;
         var useUniqueFileName = options.DefaultUploadHandlerOptions.FileSystemHandlerUseUniqueFileName;
-        var bufferSize = options.DefaultUploadHandlerOptions.FileSystemHandlerBufferSize;
         string? newFileName = null;
         bool createPathIfNotExists = options.DefaultUploadHandlerOptions.FileSystemHandlerCreatePathIfNotExists;
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(_parameters[0], out var includedMimeTypeStr) && includedMimeTypeStr is not null)
-            {
-                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(_parameters[1], out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
-            {
-                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(_parameters[2], out var path) && !string.IsNullOrEmpty(path))
+            if (parameters.TryGetValue(PathParam, out var path) && !string.IsNullOrEmpty(path))
             {
                 basePath = path;
             }
-            if (parameters.TryGetValue(_parameters[3], out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
+            if (parameters.TryGetValue(FileParam, out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
             {
                 newFileName = newFileNameStr;
             }
-            if (parameters.TryGetValue(_parameters[4], out var useUniqueFileNameStr) 
+            if (parameters.TryGetValue(UniqueNameParam, out var useUniqueFileNameStr) 
                 && bool.TryParse(useUniqueFileNameStr, out var useUniqueFileNameParsed))
             {
                 useUniqueFileName = useUniqueFileNameParsed;
             }
-            if (parameters.TryGetValue(_parameters[5], out var createPathIfNotExistsStr)
+            if (parameters.TryGetValue(CreatePathParam, out var createPathIfNotExistsStr)
                 && bool.TryParse(createPathIfNotExistsStr, out var createPathIfNotExistsParsed))
             {
                 createPathIfNotExists = createPathIfNotExistsParsed;
-            }
-            if (parameters.TryGetValue(_parameters[6], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
-            {
-                bufferSize = bufferSizeParsed;
             }
         }
 

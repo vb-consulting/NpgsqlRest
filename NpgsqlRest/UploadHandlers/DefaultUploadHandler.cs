@@ -1,4 +1,6 @@
-﻿using Npgsql;
+﻿using System.Text;
+using Microsoft.Extensions.Primitives;
+using Npgsql;
 
 namespace NpgsqlRest.UploadHandlers;
 
@@ -17,13 +19,29 @@ public class DefaultUploadHandler(params IUploadHandler[] handlers) : IUploadHan
         }
     }
 
-    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
+    public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        object[] results = new object[_handlers.Length];
+        StringBuilder result = new(100);
         for (int i = 0; i < _handlers.Length; i++)
         {
-            results[i] = await _handlers[i].UploadAsync(connection, context, parameters);
+            var segment = await _handlers[i].UploadAsync(connection, context, parameters);
+            if (i == 0 && _handlers.Length == 1)
+            {
+                result.Append(segment);
+            }
+            else if (i == 0 && _handlers.Length > 1)
+            {
+                result.Append(segment[..^1]).Append(',');
+            }
+            else if (i > 0 && i < _handlers.Length - 1)
+            {
+                result.Append(segment[1..^1]).Append(',');
+            }
+            else if (i > 0 && i == _handlers.Length - 1)
+            {
+                result.Append(segment[1..]);
+            }
         }
-        return results;
+        return result.ToString();
     }
 }

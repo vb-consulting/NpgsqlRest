@@ -1,5 +1,4 @@
-﻿using System.Net.Mime;
-using System.Text;
+﻿using System.Text;
 using Npgsql;
 using NpgsqlTypes;
 using static NpgsqlRest.PgConverters;
@@ -8,16 +7,13 @@ namespace NpgsqlRest.UploadHandlers;
 
 public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
 {
-    private readonly string[] _parameters = [
-        "included_mime_types",
-        "excluded_mime_types",
-        "oid",
-        "buffer_size"
-    ];
+    private const string OidParam = "oid";
     private string? _type = null;
 
     public bool RequiresTransaction => true;
-    public string[] Parameters => _parameters;
+    public string[] Parameters => [
+        UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam, UploadExtensions.BufferSize, OidParam
+    ];
 
     public IUploadHandler SetType(string type)
     {
@@ -25,30 +21,16 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
         return this;
     }
 
-    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
+    public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectExcludedMimeTypePatterns;
-        var bufferSize = options.DefaultUploadHandlerOptions.LargeObjectHandlerBufferSize;
+        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = options.ParseSharedParameters(parameters);
         long? oid = null;
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(_parameters[0], out var includedMimeTypeStr) && includedMimeTypeStr is not null)
-            {
-                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(_parameters[1], out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
-            {
-                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(_parameters[2], out var oidStr) && long.TryParse(oidStr, out var oidParsed))
+            if (parameters.TryGetValue(OidParam, out var oidStr) && long.TryParse(oidStr, out var oidParsed))
             {
                 oid = oidParsed;
-            }
-            if (parameters.TryGetValue(_parameters[3], out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
-            {
-                bufferSize = bufferSizeParsed;
             }
         }
 

@@ -2,6 +2,9 @@
 
 public class UploadHandlerOptions
 {
+    public int TextTestBufferSize { get; set; } = 4096;
+    public int TextNonPrintableThreshold { get; set; } = 5;
+
     public bool LargeObjectEnabled { get; set; } = true;
     public string LargeObjectKey { get; set; } = "large_object";
     public string[]? LargeObjectIncludedMimeTypePatterns { get; set; } = null;
@@ -22,8 +25,6 @@ public class UploadHandlerOptions
     public string[]? CsvUploadIncludedMimeTypePatterns { get; set; } = null;
     public string[]? CsvUploadExcludedMimeTypePatterns { get; set; } = null;
     public bool CsvUploadCheckFileStatus { get; set; } = true;
-    public int CsvUploadTestBufferSize { get; set; } = 4096;
-    public int CsvUploadNonPrintableThreshold { get; set; } = 5;
     public string CsvUploadDelimiterChars { get; set; } = ",";
     public bool CsvUploadHasFieldsEnclosedInQuotes { get; set; } = true;
     public bool CsvUploadSetWhiteSpaceToNull { get; set; } = true;

@@ -1,7 +1,5 @@
 ﻿namespace NpgsqlRest.UploadHandlers;
 
-public enum UploadFileStatus { Empty, ProbablyBinary, NoNewLines, Ok }
-
 public static class UploadExtensions
 {
     public static Dictionary<string, Func<ILogger?, IUploadHandler>>? CreateUploadHandlers(this NpgsqlRestUploadOptions options)
@@ -64,7 +62,19 @@ public static class UploadExtensions
         else
         {
             // all handlers defined
-            return new DefaultUploadHandler(options.UploadOptions.UploadHandlers?.Select(h => h.Value(logger).SetType(h.Key)).ToArray() ?? []);
+            List<IUploadHandler> handlers = new(endpoint.UploadHandlers.Length);
+            foreach (var handlerName in endpoint.UploadHandlers)
+            {
+                if (options.UploadOptions.UploadHandlers is not null && options.UploadOptions.UploadHandlers.TryGetValue(handlerName, out var handler))
+                {
+                    handlers.Add(handler(logger).SetType(handlerName));
+                }
+                else
+                {
+                    throw new Exception($"Upload handler '{handlerName}' not found.");
+                }
+            }
+            return new DefaultUploadHandler([.. handlers]);
         }
     }
 
@@ -77,107 +87,35 @@ public static class UploadExtensions
         return type.Split(',', ' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
     }
 
-    public static bool CheckMimeTypes(this string contentType, string[]? includedMimeTypePatterns, string[]? excludedMimeTypePatterns)
+    public const string IncludedMimeTypeParam = "included_mime_types";
+    public const string ExcludedMimeTypeParam = "excluded_mime_types";
+    public const string BufferSize = "buffer_size";
+
+    public static (
+        string[]? includedMimeTypePatterns, 
+        string[]? excludedMimeTypePatterns, 
+        int bufferSize) ParseSharedParameters(this NpgsqlRestUploadOptions options, Dictionary<string, string>? parameters)
     {
-        // File must match AT LEAST ONE included pattern
-        if (includedMimeTypePatterns is not null && includedMimeTypePatterns.Length > 0)
-        {
-            bool matchesAny = false;
-            for (int j = 0; j < includedMimeTypePatterns.Length; j++)
-            {
-                if (Parser.IsPatternMatch(contentType, includedMimeTypePatterns[j]))
-                {
-                    matchesAny = true;
-                    break;
-                }
-            }
+        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectIncludedMimeTypePatterns;
+        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectExcludedMimeTypePatterns;
+        var bufferSize = options.DefaultUploadHandlerOptions.LargeObjectHandlerBufferSize;
 
-            if (!matchesAny)
-            {
-                return false;
-            }
-        }
-
-        // File must NOT match ANY excluded patterns
-        if (excludedMimeTypePatterns is not null)
+        if (parameters is not null)
         {
-            for (int j = 0; j < excludedMimeTypePatterns.Length; j++)
+            if (parameters.TryGetValue(IncludedMimeTypeParam, out var includedMimeTypeStr) && includedMimeTypeStr is not null)
             {
-                if (Parser.IsPatternMatch(contentType, excludedMimeTypePatterns[j]))
-                {
-                    return false;
-                }
+                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
+            }
+            if (parameters.TryGetValue(ExcludedMimeTypeParam, out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
+            {
+                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
+            }
+            if (parameters.TryGetValue(BufferSize, out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
+            {
+                bufferSize = bufferSizeParsed;
             }
         }
 
-        return true;
-    }
-
-    public static async Task<UploadFileStatus> CheckFileStatus(
-        this IFormFile formFile,
-        int testBufferSize = 4096,
-        int nonPrintableThreshold = 5,
-        bool checkNewLines = true)
-    {
-        int length = formFile.Length < testBufferSize ? (int)formFile.Length : testBufferSize;
-
-        if (length == 0)
-        {
-            return UploadFileStatus.Empty;
-        }
-
-        using var fileStream = formFile.OpenReadStream();
-        byte[] buffer = new byte[length];
-        int bytesRead = await fileStream.ReadAsync(buffer.AsMemory(0, length));
-
-        if (bytesRead == 0)
-        {
-            return UploadFileStatus.Empty;
-        }
-
-        int nonPrintableCount = 0;
-        int newLineCount = 0;
-
-        for (int i = 0; i < bytesRead; i++)
-        {
-            // Check for null byte - immediate binary indicator
-            if (buffer[i] == 0)
-            {
-                return UploadFileStatus.ProbablyBinary;
-            }
-
-            // Count newlines (LF character) if we're checking for them
-            if (checkNewLines && buffer[i] == 10) // ASCII LF (Line Feed)
-            {
-                newLineCount++;
-            }
-
-            // Count non-printable characters
-            else if (buffer[i] < 32 && buffer[i] != 9 && buffer[i] != 13)
-            {
-                nonPrintableCount++;
-            }
-        }
-
-        // Check if binary based on non-printable characters
-        if (nonPrintableCount > nonPrintableThreshold)
-        {
-            return UploadFileStatus.ProbablyBinary;
-        }
-
-        // Only check for newlines if the parameter is true
-        if (checkNewLines)
-        {
-            if (newLineCount > 0)
-            {
-                return UploadFileStatus.Ok;
-            }
-            return UploadFileStatus.NoNewLines;
-        }
-        else
-        {
-            // If we're not checking for newlines, consider it OK if it passes binary checks
-            return UploadFileStatus.Ok;
-        }
+        return (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize);
     }
 }

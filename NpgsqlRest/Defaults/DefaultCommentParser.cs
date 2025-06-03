@@ -41,7 +41,7 @@ internal static class DefaultCommentParser
         "content-type", // content-type is header key
         "content_type",
     ];
-    //private const string ContentTypeKey = "content-type";
+
     private static readonly string[] requestHeadersModeKey = [
         "request_headers_mode",
         "request_headers",

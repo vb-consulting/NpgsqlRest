@@ -361,29 +361,29 @@ public static class App
 
     public static List<IRoutineSource> CreateRoutineSources()
     {
+        var sources = new List<IRoutineSource>(2);
+
         var source = new RoutineSource();
         var routineOptionsCfg = NpgsqlRestCfg.GetSection("RoutineOptions");
-        if (routineOptionsCfg.Exists() is false)
+        if (routineOptionsCfg.Exists() is true)
         {
-            return [source];
+            var customTypeParameterSeparator = GetConfigStr("CustomTypeParameterSeparator", routineOptionsCfg);
+            if (customTypeParameterSeparator is not null)
+            {
+                source.CustomTypeParameterSeparator = customTypeParameterSeparator;
+            }
+            var includeLanguagues = GetConfigEnumerable("IncludeLanguagues", routineOptionsCfg);
+            if (includeLanguagues is not null)
+            {
+                source.IncludeLanguagues = [.. includeLanguagues];
+            }
+            var excludeLanguagues = GetConfigEnumerable("ExcludeLanguagues", routineOptionsCfg);
+            if (excludeLanguagues is not null)
+            {
+                source.ExcludeLanguagues = [.. excludeLanguagues];
+            }
+            sources.Add(source);
         }
-        var customTypeParameterSeparator = GetConfigStr("CustomTypeParameterSeparator", routineOptionsCfg);
-        if (customTypeParameterSeparator is not null)
-        {
-            source.CustomTypeParameterSeparator = customTypeParameterSeparator;
-        }
-        var includeLanguagues = GetConfigEnumerable("IncludeLanguagues", routineOptionsCfg);
-        if (includeLanguagues is not null)
-        {
-            source.IncludeLanguagues = [.. includeLanguagues];
-        }
-        var excludeLanguagues = GetConfigEnumerable("ExcludeLanguagues", routineOptionsCfg);
-        if (excludeLanguagues is not null)
-        {
-            source.ExcludeLanguagues = [.. excludeLanguagues];
-        }
-
-        var sources = new List<IRoutineSource>() { source };
 
         var crudSourceCfg = NpgsqlRestCfg.GetSection("CrudSource");
         if (crudSourceCfg.Exists() is false || GetConfigBool("Enabled", crudSourceCfg) is false)
@@ -442,6 +442,9 @@ public static class App
         {
             uploadHandlerOptions = new()
             {
+                TextTestBufferSize = GetConfigInt("TextTestBufferSize", uploadHandlersCfg) ?? 4096,
+                TextNonPrintableThreshold = GetConfigInt("TextNonPrintableThreshold", uploadHandlersCfg) ?? 5,
+
                 LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
                 LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
@@ -461,8 +464,6 @@ public static class App
                 CsvUploadIncludedMimeTypePatterns = GetConfigStr("CsvUploadIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 CsvUploadExcludedMimeTypePatterns = GetConfigStr("CsvUploadExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 CsvUploadCheckFileStatus = GetConfigBool("CsvUploadCheckFileStatus", uploadHandlersCfg, true),
-                CsvUploadTestBufferSize = GetConfigInt("CsvUploadTestBufferSize", uploadHandlersCfg) ?? 4096,
-                CsvUploadNonPrintableThreshold = GetConfigInt("CsvUploadNonPrintableThreshold", uploadHandlersCfg) ?? 5,
                 CsvUploadDelimiterChars = GetConfigStr("CsvUploadDelimiterChars", uploadHandlersCfg) ?? ",",
                 CsvUploadHasFieldsEnclosedInQuotes = GetConfigBool("CsvUploadHasFieldsEnclosedInQuotes", uploadHandlersCfg, true),
                 CsvUploadSetWhiteSpaceToNull = GetConfigBool("CsvUploadSetWhiteSpaceToNull", uploadHandlersCfg, true),

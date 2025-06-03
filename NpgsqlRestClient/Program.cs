@@ -9,12 +9,6 @@ using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
 using static NpgsqlRestClient.App;
 using Npgsql;
-using NpgsqlRest.UploadHandlers;
-
-if (Arguments.Parse(args) is false)
-{
-    return;
-}
 
 Stopwatch sw = new();
 sw.Start();

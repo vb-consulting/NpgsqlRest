@@ -97,13 +97,13 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
                     """
                     const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
-                        .map(key => {{
-                            const value = query[key] != null ? query[key] : "";
-                            if (Array.isArray(value)) {{
-                                return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
-                            }}
-                            return `${{key}}=${{encodeURIComponent(value)}}`;
-                        }})
+                        .map(key => {
+                            const value = (query[key] != null ? query[key] : "") as string;
+                            if (Array.isArray(value)) {
+                                return value.map((s: string) => s ? `${key}=${encodeURIComponent(s)}` : `${key}=`).join("&");
+                            }
+                            return `${key}=${encodeURIComponent(value)}`;
+                        })
                         .join("&");
                     """);
             }
@@ -114,13 +114,13 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
                     """
                     const parseQuery = query => "?" + Object.keys(query)
-                        .map(key => {{
+                        .map(key => {
                             const value = query[key] != null ? query[key] : "";
-                            if (Array.isArray(value)) {{
-                                return value.map(s => s ? `${{key}}=${{encodeURIComponent(s)}}` : `${{key}}=`).join("&");
-                            }}
-                            return `${{key}}=${{encodeURIComponent(value)}}`;
-                        }})
+                            if (Array.isArray(value)) {
+                                return value.map(s => s ? `${key}=${encodeURIComponent(s)}` : `${key}=`).join("&");
+                            }
+                            return `${key}=${encodeURIComponent(value)}`;
+                        })
                         .join("&");
                     """);
             }

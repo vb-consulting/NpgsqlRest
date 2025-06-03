@@ -1,17 +1,15 @@
 ﻿using System.Collections.Frozen;
-using System.Data.Common;
 using System.IO.Compression;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Npgsql;
-using NpgsqlRest;
 using Serilog;
 
 using static NpgsqlRestClient.Config;
@@ -174,36 +172,6 @@ public static class Builder
         }
     }
 
-    /*
-      //
-      // Data protection settings. Encryption keys for Auth Cookies and Antiforgery tokens.
-      //
-      "DataProtection": {
-        "Enabled": true,
-        //
-        // Set to null to use the current "ApplicationName"
-        //
-        "CustomApplicationName": null,
-        //
-        // Data protection location: "FileSystem" or "Database"
-        //
-        "Storage": "FileSystem",
-        "DefaultKeyLifetimeDays": 90,
-        //
-        // FileSystem storage path. Use null to use the default path.
-        //
-        "FileSystemPath": null,
-        //
-        // GetAllElements database command. Expected to rows with two columns: unique name and data of type text.
-        //
-        "GetAllElementsCommand": "select data from get_all_data_protection_elements()",
-        //
-        // StoreElement database command. Receives two parameters: name and data of type text. Doesn't return anything.
-        //
-        "StoreElementCommand": "call store_data_protection_element($1,$2)"
-      },
-     */
-
     public enum DataProtectionStorage
     {
         Default,
@@ -219,6 +187,17 @@ public static class Builder
             return;
         }
         var dataProtectionBuilder = Instance.Services.AddDataProtection();
+
+        var encryptionCfg = dataProtectionCfg.GetSection("UseCryptographicAlgorithms");
+        if (encryptionCfg.Exists() is true && GetConfigBool("Enabled", encryptionCfg) is true)
+        {
+            dataProtectionBuilder.UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration
+            {
+                EncryptionAlgorithm = GetConfigEnum<EncryptionAlgorithm?>("EncryptionAlgorithm", encryptionCfg) ?? EncryptionAlgorithm.AES_256_CBC,
+                ValidationAlgorithm = GetConfigEnum<ValidationAlgorithm?>("ValidationAlgorithm", encryptionCfg) ?? ValidationAlgorithm.HMACSHA256
+            });
+        }
+
         DirectoryInfo? dirInfo = null;
         var storage = GetConfigEnum<DataProtectionStorage?>("Storage", dataProtectionCfg) ?? DataProtectionStorage.Default;
         if (storage == DataProtectionStorage.FileSystem)
@@ -375,37 +354,56 @@ public static class Builder
             if (allowedOrigins.Contains("*"))
             {
                 builder = builder.AllowAnyOrigin();
-                Logger?.Information("Allowed any origins.");
+                Logger?.Information("CORS policy allows any origins.");
             }
             else
             {
                 builder = builder.WithOrigins(allowedOrigins);
-                Logger?.Information("Allowed origins: {0}", allowedOrigins);
+                Logger?.Information("CORS policy allows origins: {0}", allowedOrigins);
             }
 
             if (allowedMethods.Contains("*"))
             {
                 builder = builder.AllowAnyMethod();
-                Logger?.Information("Allowed any methods.");
+                Logger?.Information("CORS policy allows any methods.");
             }
             else
             {
                 builder = builder.WithMethods(allowedMethods);
-                Logger?.Information("Allowed methods: {0}", allowedMethods);
+                Logger?.Information("CORS policy allows methods: {0}", allowedMethods);
             }
 
             if (allowedHeaders.Contains("*"))
             {
                 builder = builder.AllowAnyHeader();
-                Logger?.Information("Allowed any headers.");
+                Logger?.Information("CORS policy allows any headers.");
             }
             else
             {
                 builder = builder.WithHeaders(allowedHeaders);
-                Logger?.Information("Allowed headers: {0}", allowedHeaders);
+                Logger?.Information("CORS policy allows headers: {0}", allowedHeaders);
             }
 
-            builder.AllowCredentials();
+            if (GetConfigBool("AllowCredentials", corsCfg, true) is true)
+            {
+                Logger?.Information("CORS policy allows credentials.");
+                builder.AllowCredentials();
+            }
+            else
+            {
+                Logger?.Information("CORS policy does not allow credentials.");
+            }
+            
+            var preflightMaxAge = GetConfigInt("PreflightMaxAgeSeconds", corsCfg) ?? 600;
+            if (preflightMaxAge > 0)
+            {
+                Logger?.Information("CORS policy preflight max age is set to {0} seconds.", preflightMaxAge);
+                builder.SetPreflightMaxAge(TimeSpan.FromSeconds(preflightMaxAge));
+            }
+            else
+            {
+                Logger?.Information("CORS policy preflight max age is not set.");
+            }
         }));
         return true;
     }

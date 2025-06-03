@@ -1,0 +1,186 @@
+﻿namespace NpgsqlRest.UploadHandlers;
+
+public enum UploadFileStatus { Empty, ProbablyBinary, NotImage, NoNewLines, Ok }
+
+public static class FileCheckExtensions
+{
+    private const string CheckTextParam = "check_text";
+    private const string CheckImageParam = "check_image";
+
+    public const string TestBufferSizeParam = "test_buffer_size";
+    public const string NonPrintableThresholdParam = "non_printable_threshold";
+
+    public static bool CheckMimeTypes(this string contentType, string[]? includedMimeTypePatterns, string[]? excludedMimeTypePatterns)
+    {
+        // File must match AT LEAST ONE included pattern
+        if (includedMimeTypePatterns is not null && includedMimeTypePatterns.Length > 0)
+        {
+            bool matchesAny = false;
+            for (int j = 0; j < includedMimeTypePatterns.Length; j++)
+            {
+                if (Parser.IsPatternMatch(contentType, includedMimeTypePatterns[j]))
+                {
+                    matchesAny = true;
+                    break;
+                }
+            }
+
+            if (!matchesAny)
+            {
+                return false;
+            }
+        }
+
+        // File must NOT match ANY excluded patterns
+        if (excludedMimeTypePatterns is not null)
+        {
+            for (int j = 0; j < excludedMimeTypePatterns.Length; j++)
+            {
+                if (Parser.IsPatternMatch(contentType, excludedMimeTypePatterns[j]))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static async Task<UploadFileStatus> CheckFileStatus(
+        this IFormFile formFile,
+        int testBufferSize = 4096,
+        int nonPrintableThreshold = 5,
+        bool checkNewLines = true)
+    {
+        int length = formFile.Length < testBufferSize ? (int)formFile.Length : testBufferSize;
+
+        if (length == 0)
+        {
+            return UploadFileStatus.Empty;
+        }
+
+        using var fileStream = formFile.OpenReadStream();
+        byte[] buffer = new byte[length];
+        int bytesRead = await fileStream.ReadAsync(buffer.AsMemory(0, length));
+
+        if (bytesRead == 0)
+        {
+            return UploadFileStatus.Empty;
+        }
+
+        int nonPrintableCount = 0;
+        int newLineCount = 0;
+
+        for (int i = 0; i < bytesRead; i++)
+        {
+            // Check for null byte - immediate binary indicator
+            if (buffer[i] == 0)
+            {
+                return UploadFileStatus.ProbablyBinary;
+            }
+
+            // Count newlines (LF character) if we're checking for them
+            if (checkNewLines && buffer[i] == 10) // ASCII LF (Line Feed)
+            {
+                newLineCount++;
+            }
+
+            // Count non-printable characters
+            else if (buffer[i] < 32 && buffer[i] != 9 && buffer[i] != 13)
+            {
+                nonPrintableCount++;
+            }
+        }
+
+        // Check if binary based on non-printable characters
+        if (nonPrintableCount > nonPrintableThreshold)
+        {
+            return UploadFileStatus.ProbablyBinary;
+        }
+
+        // Only check for newlines if the parameter is true
+        if (checkNewLines)
+        {
+            if (newLineCount > 0)
+            {
+                return UploadFileStatus.Ok;
+            }
+            return UploadFileStatus.NoNewLines;
+        }
+        else
+        {
+            // If we're not checking for newlines, consider it OK if it passes binary checks
+            return UploadFileStatus.Ok;
+        }
+    }
+
+    public static async Task<bool> IsImage(this IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return false;
+
+        using var fileStream = file.OpenReadStream();
+        var buffer = new byte[12];
+        int bytesRead = await fileStream.ReadAsync(buffer);
+
+        return IsJpeg(buffer, bytesRead) || IsPng(buffer, bytesRead) || IsGif(buffer, bytesRead) ||
+               IsBmp(buffer, bytesRead) || IsTiff(buffer, bytesRead) || IsWebp(buffer, bytesRead);
+    }
+
+    private static bool IsJpeg(byte[] buffer, int bytesRead)
+    {
+        if (bytesRead < 3)
+        {
+            return false;
+        }
+        return buffer[0] == 0xFF && buffer[1] == 0xD8 && buffer[2] == 0xFF;
+    }
+
+    private static bool IsPng(byte[] buffer, int bytesRead)
+    {
+        if (bytesRead < 4)
+        {
+            return false;
+        }
+        return buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47;
+    }
+
+    private static bool IsGif(byte[] buffer, int bytesRead)
+    {
+        if (bytesRead < 6)
+        {
+            return false;
+        }
+        return buffer[0] == 0x47 && buffer[1] == 0x49 && buffer[2] == 0x46 && buffer[3] == 0x38 &&
+            (buffer[4] == 0x37 || buffer[4] == 0x39) && buffer[5] == 0x61; // GIF87a or GIF89a
+    }
+
+    private static bool IsBmp(byte[] buffer, int bytesRead)
+    {
+        if (bytesRead < 2)
+        {
+            return false;
+        }
+        return buffer[0] == 0x42 && buffer[1] == 0x4D;
+    }
+
+    private static bool IsTiff(byte[] buffer, int bytesRead)
+    {
+        if (bytesRead < 4)
+        {
+            return false;
+        }
+        return (buffer[0] == 0x49 && buffer[1] == 0x49 && buffer[2] == 0x2A && buffer[3] == 0x00) || // Little-endian
+            (buffer[0] == 0x4D && buffer[1] == 0x4D && buffer[2] == 0x00 && buffer[3] == 0x2A);   // Big-endian
+    }
+
+    private static bool IsWebp(byte[] buffer, int bytesRead)
+    {
+        if (bytesRead < 12)
+        {
+            return false;
+        }
+        return buffer[0] == 0x52 && buffer[1] == 0x49 && buffer[2] == 0x46 && buffer[3] == 0x46 && // "RIFF"
+               buffer[8] == 0x57 && buffer[9] == 0x45 && buffer[10] == 0x42 && buffer[11] == 0x50;  // "WEBP"
+    }
+}

@@ -8,22 +8,20 @@ namespace NpgsqlRest.UploadHandlers;
 
 public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
 {
-    public bool RequiresTransaction => true;
-    public string[] Parameters => _parameters;
-
-    private readonly string[] _parameters = [
-        "included_mime_types",
-        "excluded_mime_types",
-        "check_file",
-        "test_buffer_size",
-        "non_printable_threshold",
-        "delimiters",
-        "has_fields_enclosed_in_quotes",
-        "set_white_space_to_null",
-        "row_command",
-    ];
+    private const string CheckFileParam = "check_csv";
+    private const string DelimitersParam = "delimiters";
+    private const string HasFieldsEnclosedInQuotesParam = "has_fields_enclosed_in_quotes";
+    private const string SetWhiteSpaceToNullParam = "set_white_space_to_null";
+    private const string RowCommandParam = "row_command";
 
     private string? _type = null;
+
+    public bool RequiresTransaction => true;
+    public string[] Parameters => [
+        UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam,
+        CheckFileParam, FileCheckExtensions.TestBufferSizeParam, FileCheckExtensions.NonPrintableThresholdParam, DelimitersParam,
+        HasFieldsEnclosedInQuotesParam, SetWhiteSpaceToNullParam, RowCommandParam
+    ];
 
     public IUploadHandler SetType(string type)
     {
@@ -31,14 +29,13 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
         return this;
     }
 
-    public async Task<object> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
+    public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.CsvUploadIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.CsvUploadExcludedMimeTypePatterns;
+        var (includedMimeTypePatterns, excludedMimeTypePatterns, _) = options.ParseSharedParameters(parameters);
 
         bool checkFileStatus = options.DefaultUploadHandlerOptions.CsvUploadCheckFileStatus;
-        int testBufferSize = options.DefaultUploadHandlerOptions.CsvUploadTestBufferSize;
-        int nonPrintableThreshold = options.DefaultUploadHandlerOptions.CsvUploadNonPrintableThreshold;
+        int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
+        int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
         string delimiters = options.DefaultUploadHandlerOptions.CsvUploadDelimiterChars;
         bool hasFieldsEnclosedInQuotes = options.DefaultUploadHandlerOptions.CsvUploadHasFieldsEnclosedInQuotes;
         bool setWhiteSpaceToNull = options.DefaultUploadHandlerOptions.CsvUploadSetWhiteSpaceToNull;
@@ -46,39 +43,31 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(_parameters[0], out var includedMimeTypeStr) && includedMimeTypeStr is not null)
-            {
-                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(_parameters[1], out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
-            {
-                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(_parameters[2], out var checkFileStatusStr) && bool.TryParse(checkFileStatusStr, out var checkFileStatusParsed))
+            if (parameters.TryGetValue(CheckFileParam, out var checkFileStatusStr) && bool.TryParse(checkFileStatusStr, out var checkFileStatusParsed))
             {
                 checkFileStatus = checkFileStatusParsed;
             }
-            if (parameters.TryGetValue(_parameters[3], out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
+            if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
             {
                 testBufferSize = testBufferSizeParsed;
             }
-            if (parameters.TryGetValue(_parameters[4], out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
+            if (parameters.TryGetValue(FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
             {
                 nonPrintableThreshold = nonPrintableThresholdParsed;
             }
-            if (parameters.TryGetValue(_parameters[5], out var delimitersStr) && delimitersStr is not null)
+            if (parameters.TryGetValue(DelimitersParam, out var delimitersStr) && delimitersStr is not null)
             {
                 delimiters = delimitersStr!;
             }
-            if (parameters.TryGetValue(_parameters[6], out var hasFieldsEnclosedInQuotesStr) && bool.TryParse(hasFieldsEnclosedInQuotesStr, out var hasFieldsEnclosedInQuotesParsed))
+            if (parameters.TryGetValue(HasFieldsEnclosedInQuotesParam, out var hasFieldsEnclosedInQuotesStr) && bool.TryParse(hasFieldsEnclosedInQuotesStr, out var hasFieldsEnclosedInQuotesParsed))
             {
                 hasFieldsEnclosedInQuotes = hasFieldsEnclosedInQuotesParsed;
             }
-            if (parameters.TryGetValue(_parameters[7], out var setWhiteSpaceToNullStr) && bool.TryParse(setWhiteSpaceToNullStr, out var setWhiteSpaceToNullParsed))
+            if (parameters.TryGetValue(SetWhiteSpaceToNullParam, out var setWhiteSpaceToNullStr) && bool.TryParse(setWhiteSpaceToNullStr, out var setWhiteSpaceToNullParsed))
             {
                 setWhiteSpaceToNull = setWhiteSpaceToNullParsed;
             }
-            if (parameters.TryGetValue(_parameters[8], out var rowCommandStr) && rowCommandStr is not null)
+            if (parameters.TryGetValue(RowCommandParam, out var rowCommandStr) && rowCommandStr is not null)
             {
                 rowCommand = rowCommandStr;
             }
