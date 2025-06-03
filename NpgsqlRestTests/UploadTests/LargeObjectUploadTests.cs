@@ -209,6 +209,9 @@ public class LargeObjectUploadTests(TestFixture test)
         rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
         rootElement.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Number, "because oid should be a number");
         rootElement.GetProperty("oid").TryGetInt32(out _).Should().BeTrue("because oid should be a valid integer");
+
+        rootElement.GetProperty("success").GetBoolean().Should().Be(true);
+        rootElement.GetProperty("status").GetString().Should().Be("Ok");
     }
 
     [Fact]
@@ -239,6 +242,9 @@ public class LargeObjectUploadTests(TestFixture test)
         rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
         rootElement.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Number, "because oid should be a number");
         rootElement.GetProperty("oid").TryGetInt32(out _).Should().BeTrue("because oid should be a valid integer");
+
+        rootElement.GetProperty("success").GetBoolean().Should().Be(true);
+        rootElement.GetProperty("status").GetString().Should().Be("Ok");
 
         var oid = rootElement.GetProperty("oid").GetInt32();
         using var connection = Database.CreateConnection();

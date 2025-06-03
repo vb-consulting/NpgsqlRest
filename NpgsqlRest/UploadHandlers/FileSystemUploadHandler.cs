@@ -17,7 +17,12 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
     public bool RequiresTransaction => false;
     public string[] Parameters => [
         UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam, UploadExtensions.BufferSize,
-        PathParam, FileParam, UniqueNameParam, CreatePathParam
+        PathParam, FileParam, UniqueNameParam, CreatePathParam,
+        //!
+        FileCheckExtensions.CheckTextParam, 
+        FileCheckExtensions.CheckImageParam,
+        FileCheckExtensions.TestBufferSizeParam, 
+        FileCheckExtensions.NonPrintableThresholdParam
     ];
 
     public IUploadHandler SetType(string type)
@@ -34,6 +39,10 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
         var useUniqueFileName = options.DefaultUploadHandlerOptions.FileSystemHandlerUseUniqueFileName;
         string? newFileName = null;
         bool createPathIfNotExists = options.DefaultUploadHandlerOptions.FileSystemHandlerCreatePathIfNotExists;
+        bool checkText = false;
+        bool checkImage = false;
+        int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
+        int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
 
         if (parameters is not null)
         {
@@ -55,6 +64,24 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
             {
                 createPathIfNotExists = createPathIfNotExistsParsed;
             }
+            if (parameters.TryGetValue(FileCheckExtensions.CheckTextParam, out var checkTextParamStr)
+                && bool.TryParse(checkTextParamStr, out var checkTextParamParsed))
+            {
+                checkText = checkTextParamParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr)
+                && bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
+            {
+                checkImage = checkImageParamParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
+            {
+                testBufferSize = testBufferSizeParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
+            {
+                nonPrintableThreshold = nonPrintableThresholdParsed;
+            }
         }
 
         if (createPathIfNotExists is true && Directory.Exists(basePath) is false)
@@ -70,16 +97,11 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
-            {
-                continue;
-            }
 
             if (fileId > 0)
             {
                 result.Append(',');
             }
-
             string fileName = newFileName ?? formFile.FileName;
             if (useUniqueFileName)
             {
@@ -88,18 +110,6 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
             }
 
             var currentFilePath = Path.Combine(basePath, fileName);
-            using (var fileStream = new FileStream(currentFilePath, FileMode.Create))
-            {
-                byte[] buffer = new byte[bufferSize];
-                int bytesRead;
-                using var sourceStream = formFile.OpenReadStream();
-
-                while ((bytesRead = await sourceStream.ReadAsync(buffer)) > 0)
-                {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-                }
-            }
-            _uploadedFiles[i] = currentFilePath;
 
             // Build the result JSON
             if (_type is not null)
@@ -120,7 +130,51 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
             result.Append(formFile.Length);
             result.Append(",\"filePath\":");
             result.Append(SerializeString(currentFilePath));
+
+            UploadFileStatus status = UploadFileStatus.Ok;
+            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            {
+                status = UploadFileStatus.InvalidMimeType;
+            }
+            if (status == UploadFileStatus.Ok && (checkText is true || checkImage is true))
+            {
+                if (checkText is true)
+                {
+                    status = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: false);
+                }
+                if (status == UploadFileStatus.Ok && checkImage is true)
+                {
+                    if (await formFile.IsImage() is false)
+                    {
+                        status = UploadFileStatus.NotAnImage;
+                    }
+                }
+            }
+            result.Append(",\"success\":");
+            result.Append(status == UploadFileStatus.Ok ? "true" : "false");
+            result.Append(",\"status\":");
+            result.Append(SerializeString(status.ToString()));
             result.Append('}');
+            if (status != UploadFileStatus.Ok)
+            {
+                logger?.FileUploadFailed(_type, formFile.FileName, formFile.ContentType, formFile.Length, status);
+                fileId++;
+                continue;
+            }
+
+            using (var fileStream = new FileStream(currentFilePath, FileMode.Create))
+            {
+                byte[] buffer = new byte[bufferSize];
+                int bytesRead;
+                using var sourceStream = formFile.OpenReadStream();
+
+                while ((bytesRead = await sourceStream.ReadAsync(buffer)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                }
+            }
+            _uploadedFiles[i] = currentFilePath;
+
             if (options.LogUploadEvent)
             {
                 logger?.UploadedFileToFileSystem(formFile.FileName, formFile.ContentType, formFile.Length, currentFilePath);

@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Npgsql;
 using NpgsqlRest.UploadHandlers;
 
 namespace NpgsqlRestTests;
@@ -127,6 +126,9 @@ public class FileSystemUploadTests(TestFixture test)
         rootElement.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
         rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
 
+        rootElement.GetProperty("success").GetBoolean().Should().Be(true);
+        rootElement.GetProperty("status").GetString().Should().Be("Ok");
+
         var filePath = rootElement.GetProperty("filePath").GetString();
 
         var fileExtension = Path.GetExtension(filePath);
@@ -174,6 +176,9 @@ public class FileSystemUploadTests(TestFixture test)
         rootElement.GetProperty("size").GetInt32().Should().BeOneOf(53, 57);
         rootElement.GetProperty("filePath").GetString().Should()
             .BeOneOf("./test/test-data.csv", "./test\\test-data.csv");
+
+        rootElement.GetProperty("success").GetBoolean().Should().Be(true);
+        rootElement.GetProperty("status").GetString().Should().Be("Ok");
 
         var filePath = rootElement.GetProperty("filePath").GetString();
 
@@ -226,6 +231,10 @@ public class FileSystemUploadTests(TestFixture test)
         rootElement1.GetProperty("type").GetString().Should().Be("file_system", "because the type should match the expected value");
         rootElement1.GetProperty("fileName").GetString().Should().Be(fileName1, "because the fileName should match the expected value");
         rootElement1.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
+
+        rootElement1.GetProperty("success").GetBoolean().Should().Be(true);
+        rootElement1.GetProperty("status").GetString().Should().Be("Ok");
+
         var filePath1 = rootElement1.GetProperty("filePath").GetString();
         File.ReadAllText(filePath1!).Should().Be(csvContent1, "because the file content should match the original content");
 
@@ -234,6 +243,10 @@ public class FileSystemUploadTests(TestFixture test)
         rootElement2.GetProperty("type").GetString().Should().Be("file_system", "because the type should match the expected value");
         rootElement2.GetProperty("fileName").GetString().Should().Be(fileName2, "because the fileName should match the expected value");
         rootElement2.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
+
+        rootElement2.GetProperty("success").GetBoolean().Should().Be(true);
+        rootElement2.GetProperty("status").GetString().Should().Be("Ok");
+
         var filePath2 = rootElement2.GetProperty("filePath").GetString();
         File.ReadAllText(filePath2!).Should().Be(csvContent2, "because the file content should match the original content");
     }
@@ -277,7 +290,6 @@ public class FileSystemUploadTests(TestFixture test)
             .Should().BeFalse("because the file should not exist at the specified path");
     }
 
-
     [Fact]
     public async Task Test_fs_upload_include_mime_type1()
     {
@@ -297,6 +309,8 @@ public class FileSystemUploadTests(TestFixture test)
         using var result = await test.Client.PostAsync("/api/fs-upload-include-mime-type/", formData);
         result.StatusCode.Should().Be(HttpStatusCode.OK);
         var response = await result.Content.ReadAsStringAsync();
-        response.Should().Be("[]", "because the file should not be uploaded due to mime type exclusion");
+
+        response.Should().StartWith("[{\"type\":\"file_system\",\"fileName\":\"test-data.csv\",\"contentType\":\"text/csv\",\"size\":");
+        response.Should().EndWith(",\"success\":false,\"status\":\"InvalidMimeType\"}]");
     }
 }

@@ -1,11 +1,9 @@
 ﻿namespace NpgsqlRest.UploadHandlers;
 
-public enum UploadFileStatus { Empty, ProbablyBinary, NotImage, NoNewLines, Ok }
-
 public static class FileCheckExtensions
 {
-    private const string CheckTextParam = "check_text";
-    private const string CheckImageParam = "check_image";
+    public const string CheckTextParam = "check_text";
+    public const string CheckImageParam = "check_image";
 
     public const string TestBufferSizeParam = "test_buffer_size";
     public const string NonPrintableThresholdParam = "non_printable_threshold";

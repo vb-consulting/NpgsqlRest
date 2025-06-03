@@ -12,7 +12,14 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
 
     public bool RequiresTransaction => true;
     public string[] Parameters => [
-        UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam, UploadExtensions.BufferSize, OidParam
+        UploadExtensions.IncludedMimeTypeParam, 
+        UploadExtensions.ExcludedMimeTypeParam, 
+        UploadExtensions.BufferSize, 
+        OidParam,
+        FileCheckExtensions.CheckTextParam,
+        FileCheckExtensions.CheckImageParam,
+        FileCheckExtensions.TestBufferSizeParam,
+        FileCheckExtensions.NonPrintableThresholdParam
     ];
 
     public IUploadHandler SetType(string type)
@@ -25,12 +32,34 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
     {
         var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = options.ParseSharedParameters(parameters);
         long? oid = null;
+        bool checkText = false;
+        bool checkImage = false;
+        int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
+        int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
 
         if (parameters is not null)
         {
             if (parameters.TryGetValue(OidParam, out var oidStr) && long.TryParse(oidStr, out var oidParsed))
             {
                 oid = oidParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.CheckTextParam, out var checkTextParamStr)
+                && bool.TryParse(checkTextParamStr, out var checkTextParamParsed))
+            {
+                checkText = checkTextParamParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr)
+                && bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
+            {
+                checkImage = checkImageParamParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
+            {
+                testBufferSize = testBufferSizeParsed;
+            }
+            if (parameters.TryGetValue(FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
+            {
+                nonPrintableThreshold = nonPrintableThresholdParsed;
             }
         }
 
@@ -40,10 +69,10 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
-            {
-                continue;
-            }
+            //if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            //{
+            //    continue;
+            //}
 
             if (fileId > 0)
             {
@@ -65,8 +94,39 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
             result.Append(SerializeString(formFile.ContentType));
             result.Append(",\"size\":");
             result.Append(formFile.Length);
-            result.Append(",\"oid\":");
 
+            UploadFileStatus status = UploadFileStatus.Ok;
+            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            {
+                status = UploadFileStatus.InvalidMimeType;
+            }
+            if (status == UploadFileStatus.Ok && (checkText is true || checkImage is true))
+            {
+                if (checkText is true)
+                {
+                    status = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: false);
+                }
+                if (status == UploadFileStatus.Ok && checkImage is true)
+                {
+                    if (await formFile.IsImage() is false)
+                    {
+                        status = UploadFileStatus.NotAnImage;
+                    }
+                }
+            }
+            result.Append(",\"success\":");
+            result.Append(status == UploadFileStatus.Ok ? "true" : "false");
+            result.Append(",\"status\":");
+            result.Append(SerializeString(status.ToString()));
+            if (status != UploadFileStatus.Ok)
+            {
+                logger?.FileUploadFailed(_type, formFile.FileName, formFile.ContentType, formFile.Length, status);
+                result.Append(",\"oid\":null}");
+                fileId++;
+                continue;
+            }
+
+            result.Append(",\"oid\":");
             using var command = new NpgsqlCommand(oid is null ? "select lo_create(0)" : string.Concat("select lo_create(", oid.ToString(), ")"), connection);
             var resultOid = await command.ExecuteScalarAsync();
             

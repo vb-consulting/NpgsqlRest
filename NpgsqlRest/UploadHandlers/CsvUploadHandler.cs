@@ -87,11 +87,6 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
-            {
-                continue;
-            }
-
             if (fileId > 0)
             {
                 result.Append(',');
@@ -114,24 +109,25 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
             fileJson.Append(",\"size\":");
             fileJson.Append(formFile.Length);
 
-            if (checkFileStatus is true)
+            UploadFileStatus status = UploadFileStatus.Ok;
+            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
             {
-                var fileStatus = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: true);
-                fileJson.Append(",\"status\":");
-                fileJson.Append(SerializeString(fileStatus.ToString()));
-                fileJson.Append('}');
-                if (fileStatus != UploadFileStatus.Ok)
-                {
-                    logger?.NotValidCsvFile(formFile.FileName, formFile.ContentType, formFile.Length, fileStatus.ToString());
-                    fileId++;
-                    continue;
-                }
+                status = UploadFileStatus.InvalidMimeType;
             }
-            else
+            if (status == UploadFileStatus.Ok && checkFileStatus is true)
             {
-                fileJson.Append(",\"status\":");
-                fileJson.Append(SerializeString(UploadFileStatus.Ok.ToString()));
-                fileJson.Append('}');
+                status = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: true);
+            }
+            fileJson.Append(",\"success\":");
+            fileJson.Append(status == UploadFileStatus.Ok ? "true" : "false");
+            fileJson.Append(",\"status\":");
+            fileJson.Append(SerializeString(status.ToString()));
+            fileJson.Append('}');
+            if (status != UploadFileStatus.Ok)
+            {
+                logger?.FileUploadFailed(_type, formFile.FileName, formFile.ContentType, formFile.Length, status);
+                fileId++;
+                continue;
             }
 
             using var fileStream = formFile.OpenReadStream();
