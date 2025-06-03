@@ -80,7 +80,7 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
                 else
                 {
                     checkImage = true;
-                    allowedImage = checkImageParamStr.ParseImageTypes(logger);
+                    allowedImage = checkImageParamStr.ParseImageTypes(logger) ?? options.DefaultUploadHandlerOptions.AllowedImageTypes;
                 }
             }
             if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))

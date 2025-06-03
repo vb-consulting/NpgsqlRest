@@ -445,6 +445,9 @@ public static class App
                 TextTestBufferSize = GetConfigInt("TextTestBufferSize", uploadHandlersCfg) ?? 4096,
                 TextNonPrintableThreshold = GetConfigInt("TextNonPrintableThreshold", uploadHandlersCfg) ?? 5,
 
+                //AllowedImageTypes = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg)?.ParseImageTypes(null) ?? 
+                //    AllowedImageTypes.Jpeg | AllowedImageTypes.Png | AllowedImageTypes.Gif | AllowedImageTypes.Bmp | AllowedImageTypes.Tiff | AllowedImageTypes.Webp,
+
                 LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
                 LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
@@ -469,6 +472,11 @@ public static class App
                 CsvUploadSetWhiteSpaceToNull = GetConfigBool("CsvUploadSetWhiteSpaceToNull", uploadHandlersCfg, true),
                 CsvUploadRowCommand = GetConfigStr("CsvUploadRowCommand", uploadHandlersCfg) ?? "call process_csv_row($1,$2,$3,$4)",
             };
+            var imageTypes = GetConfigStr("AllowedImageTypes", uploadHandlersCfg)?.ParseImageTypes(null);
+            if (imageTypes is not null)
+            {
+                uploadHandlerOptions.AllowedImageTypes = imageTypes.Value;
+            }
         }
         result.DefaultUploadHandlerOptions = uploadHandlerOptions;
 

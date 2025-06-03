@@ -132,11 +132,11 @@ public static class FileCheckExtensions
                 (allowedTypes.HasFlag(AllowedImageTypes.Webp) && IsWebp(buffer, bytesRead));
     }
 
-    public static AllowedImageTypes ParseImageTypes(this string csvInput, ILogger? logger)
+    public static AllowedImageTypes? ParseImageTypes(this string csvInput, ILogger? logger)
     {
         if (string.IsNullOrWhiteSpace(csvInput))
         {
-            return 0;
+            return null;
         }
         AllowedImageTypes result = 0;
         foreach (string type in csvInput.ToLowerInvariant().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
