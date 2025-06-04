@@ -425,6 +425,7 @@ public static class App
         {
             Enabled = GetConfigBool("Enabled", uploadCfg, true),
             LogUploadEvent = GetConfigBool("LogUploadEvent", uploadCfg, true),
+            LogUploadParameters = GetConfigBool("LogUploadParameters", uploadCfg, false),
             DefaultUploadHandler = GetConfigStr("DefaultUploadHandler", uploadCfg) ?? "large_object",
             UseDefaultUploadMetadataParameter = GetConfigBool("UseDefaultUploadMetadataParameter", uploadCfg, false),
             DefaultUploadMetadataParameterName = GetConfigStr("DefaultUploadMetadataParameterName", uploadCfg) ?? "_upload_metadata",
@@ -444,9 +445,6 @@ public static class App
             {
                 TextTestBufferSize = GetConfigInt("TextTestBufferSize", uploadHandlersCfg) ?? 4096,
                 TextNonPrintableThreshold = GetConfigInt("TextNonPrintableThreshold", uploadHandlersCfg) ?? 5,
-
-                //AllowedImageTypes = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg)?.ParseImageTypes(null) ?? 
-                //    AllowedImageTypes.Jpeg | AllowedImageTypes.Png | AllowedImageTypes.Gif | AllowedImageTypes.Bmp | AllowedImageTypes.Tiff | AllowedImageTypes.Webp,
 
                 LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
                 LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
@@ -486,7 +484,7 @@ public static class App
             Logger?.Information("Using {0} upload handlers where {1} is default.", result.UploadHandlers.Keys, result.DefaultUploadHandler);
             foreach (var uploadHandler in result.UploadHandlers)
             {
-                Logger?.Information("Upload handler {0} has following parameters: {1}", uploadHandler.Key, uploadHandler.Value(null!).Parameters);
+                Logger?.Information("Upload handler {0} has following parameters: {1}", uploadHandler.Key, uploadHandler.Value(null!).SetType(uploadHandler.Key).Parameters);
             }
         }
         return result;

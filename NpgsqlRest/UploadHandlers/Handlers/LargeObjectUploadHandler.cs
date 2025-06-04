@@ -3,54 +3,47 @@ using Npgsql;
 using NpgsqlTypes;
 using static NpgsqlRest.PgConverters;
 
-namespace NpgsqlRest.UploadHandlers;
+namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
+public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
 {
     private const string OidParam = "oid";
-    private string? _type = null;
+    protected override IEnumerable<string> GetParameters()
+    {
+        yield return IncludedMimeTypeParam;
+        yield return ExcludedMimeTypeParam;
+        yield return BufferSize;
+        yield return OidParam;
+        yield return FileCheckExtensions.CheckTextParam;
+        yield return FileCheckExtensions.CheckImageParam;
+        yield return FileCheckExtensions.TestBufferSizeParam;
+        yield return FileCheckExtensions.NonPrintableThresholdParam;
+    }
 
     public bool RequiresTransaction => true;
-    public string[] Parameters => [
-        UploadExtensions.IncludedMimeTypeParam, 
-        UploadExtensions.ExcludedMimeTypeParam, 
-        UploadExtensions.BufferSize, 
-        OidParam,
-        FileCheckExtensions.CheckTextParam,
-        FileCheckExtensions.CheckImageParam,
-        FileCheckExtensions.TestBufferSizeParam,
-        FileCheckExtensions.NonPrintableThresholdParam
-    ];
-
-    public IUploadHandler SetType(string type)
-    {
-        _type = type;
-        return this;
-    }
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = options.ParseSharedParameters(parameters);
+        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = ParseSharedParameters(options, parameters);
         long? oid = null;
         bool checkText = false;
         bool checkImage = false;
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
         int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
-
         AllowedImageTypes allowedImage = options.DefaultUploadHandlerOptions.AllowedImageTypes;
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(OidParam, out var oidStr) && long.TryParse(oidStr, out var oidParsed))
+            if (TryGetParam(parameters, OidParam, out var oidStr) && long.TryParse(oidStr, out var oidParsed))
             {
                 oid = oidParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.CheckTextParam, out var checkTextParamStr)
+            if (TryGetParam(parameters, FileCheckExtensions.CheckTextParam, out var checkTextParamStr)
                 && bool.TryParse(checkTextParamStr, out var checkTextParamParsed))
             {
                 checkText = checkTextParamParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr))
+            if (TryGetParam(parameters, FileCheckExtensions.CheckImageParam, out var checkImageParamStr))
             {
                 if (bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
                 {
@@ -62,14 +55,20 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
                     allowedImage = checkImageParamStr.ParseImageTypes(logger) ?? options.DefaultUploadHandlerOptions.AllowedImageTypes;
                 }
             }
-            if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
+            if (TryGetParam(parameters, FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
             {
                 testBufferSize = testBufferSizeParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
+            if (TryGetParam(parameters, FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
             {
                 nonPrintableThreshold = nonPrintableThresholdParsed;
             }
+        }
+
+        if (options.LogUploadParameters is true)
+        {
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, oid={oid}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}", 
+                _type, includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize, oid, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
         }
 
         StringBuilder result = new(context.Request.Form.Files.Count*100);

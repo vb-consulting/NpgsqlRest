@@ -4,34 +4,34 @@ using Npgsql;
 using NpgsqlTypes;
 using static NpgsqlRest.PgConverters;
 
-namespace NpgsqlRest.UploadHandlers;
+namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
+public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
 {
     private const string CheckFileParam = "check_csv";
     private const string DelimitersParam = "delimiters";
     private const string HasFieldsEnclosedInQuotesParam = "has_fields_enclosed_in_quotes";
     private const string SetWhiteSpaceToNullParam = "set_white_space_to_null";
     private const string RowCommandParam = "row_command";
-
-    private string? _type = null;
+    
+    protected override IEnumerable<string> GetParameters()
+    {
+        yield return IncludedMimeTypeParam;
+        yield return ExcludedMimeTypeParam;
+        yield return CheckFileParam;
+        yield return FileCheckExtensions.TestBufferSizeParam;
+        yield return FileCheckExtensions.NonPrintableThresholdParam;
+        yield return DelimitersParam;
+        yield return HasFieldsEnclosedInQuotesParam;
+        yield return SetWhiteSpaceToNullParam;
+        yield return RowCommandParam;
+    }
 
     public bool RequiresTransaction => true;
-    public string[] Parameters => [
-        UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam,
-        CheckFileParam, FileCheckExtensions.TestBufferSizeParam, FileCheckExtensions.NonPrintableThresholdParam, DelimitersParam,
-        HasFieldsEnclosedInQuotesParam, SetWhiteSpaceToNullParam, RowCommandParam
-    ];
-
-    public IUploadHandler SetType(string type)
-    {
-        _type = type;
-        return this;
-    }
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, _) = options.ParseSharedParameters(parameters);
+        var (includedMimeTypePatterns, excludedMimeTypePatterns, _) = ParseSharedParameters(options, parameters);
 
         bool checkFileStatus = options.DefaultUploadHandlerOptions.CsvUploadCheckFileStatus;
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
@@ -43,34 +43,40 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(CheckFileParam, out var checkFileStatusStr) && bool.TryParse(checkFileStatusStr, out var checkFileStatusParsed))
+            if (TryGetParam(parameters, CheckFileParam, out var checkFileStatusStr) && bool.TryParse(checkFileStatusStr, out var checkFileStatusParsed))
             {
                 checkFileStatus = checkFileStatusParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
+            if (TryGetParam(parameters, FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
             {
                 testBufferSize = testBufferSizeParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
+            if (TryGetParam(parameters, FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
             {
                 nonPrintableThreshold = nonPrintableThresholdParsed;
             }
-            if (parameters.TryGetValue(DelimitersParam, out var delimitersStr) && delimitersStr is not null)
+            if (TryGetParam(parameters, DelimitersParam, out var delimitersStr) && delimitersStr is not null)
             {
                 delimiters = delimitersStr!;
             }
-            if (parameters.TryGetValue(HasFieldsEnclosedInQuotesParam, out var hasFieldsEnclosedInQuotesStr) && bool.TryParse(hasFieldsEnclosedInQuotesStr, out var hasFieldsEnclosedInQuotesParsed))
+            if (TryGetParam(parameters, HasFieldsEnclosedInQuotesParam, out var hasFieldsEnclosedInQuotesStr) && bool.TryParse(hasFieldsEnclosedInQuotesStr, out var hasFieldsEnclosedInQuotesParsed))
             {
                 hasFieldsEnclosedInQuotes = hasFieldsEnclosedInQuotesParsed;
             }
-            if (parameters.TryGetValue(SetWhiteSpaceToNullParam, out var setWhiteSpaceToNullStr) && bool.TryParse(setWhiteSpaceToNullStr, out var setWhiteSpaceToNullParsed))
+            if (TryGetParam(parameters, SetWhiteSpaceToNullParam, out var setWhiteSpaceToNullStr) && bool.TryParse(setWhiteSpaceToNullStr, out var setWhiteSpaceToNullParsed))
             {
                 setWhiteSpaceToNull = setWhiteSpaceToNullParsed;
             }
-            if (parameters.TryGetValue(RowCommandParam, out var rowCommandStr) && rowCommandStr is not null)
+            if (TryGetParam(parameters, RowCommandParam, out var rowCommandStr) && rowCommandStr is not null)
             {
                 rowCommand = rowCommandStr;
             }
+        }
+
+        if (options.LogUploadParameters is true)
+        {
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}, delimiters={delimiters}, hasFieldsEnclosedInQuotes={hasFieldsEnclosedInQuotes}, setWhiteSpaceToNull={setWhiteSpaceToNull}, rowCommand={rowCommand}",
+                _type, includedMimeTypePatterns, excludedMimeTypePatterns, checkFileStatus, testBufferSize, nonPrintableThreshold, delimiters, hasFieldsEnclosedInQuotes, setWhiteSpaceToNull, rowCommand);
         }
 
         string[] delimitersArr = [.. delimiters.Select(c => c.ToString())];

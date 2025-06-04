@@ -33,7 +33,7 @@ public interface IUploadHandler
     /// <summary>
     /// List of parameters that are used in the upload handler.
     /// </summary>
-    string[] Parameters => default!;
+    IEnumerable<string> Parameters => default!;
 
     /// <summary>
     /// Runs is the subsequent command fails.

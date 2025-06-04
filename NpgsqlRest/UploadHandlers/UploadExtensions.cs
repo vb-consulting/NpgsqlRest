@@ -1,4 +1,6 @@
-﻿namespace NpgsqlRest.UploadHandlers;
+﻿using NpgsqlRest.UploadHandlers.Handlers;
+
+namespace NpgsqlRest.UploadHandlers;
 
 public static class UploadExtensions
 {
@@ -85,37 +87,5 @@ public static class UploadExtensions
             return null;
         }
         return type.Split(',', ' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-    }
-
-    public const string IncludedMimeTypeParam = "included_mime_types";
-    public const string ExcludedMimeTypeParam = "excluded_mime_types";
-    public const string BufferSize = "buffer_size";
-
-    public static (
-        string[]? includedMimeTypePatterns, 
-        string[]? excludedMimeTypePatterns, 
-        int bufferSize) ParseSharedParameters(this NpgsqlRestUploadOptions options, Dictionary<string, string>? parameters)
-    {
-        string[]? includedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectIncludedMimeTypePatterns;
-        string[]? excludedMimeTypePatterns = options.DefaultUploadHandlerOptions.LargeObjectExcludedMimeTypePatterns;
-        var bufferSize = options.DefaultUploadHandlerOptions.LargeObjectHandlerBufferSize;
-
-        if (parameters is not null)
-        {
-            if (parameters.TryGetValue(IncludedMimeTypeParam, out var includedMimeTypeStr) && includedMimeTypeStr is not null)
-            {
-                includedMimeTypePatterns = includedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(ExcludedMimeTypeParam, out var excludedMimeTypeStr) && excludedMimeTypeStr is not null)
-            {
-                excludedMimeTypePatterns = excludedMimeTypeStr.SplitParameter();
-            }
-            if (parameters.TryGetValue(BufferSize, out var bufferSizeStr) && int.TryParse(bufferSizeStr, out var bufferSizeParsed))
-            {
-                bufferSize = bufferSizeParsed;
-            }
-        }
-
-        return (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize);
     }
 }

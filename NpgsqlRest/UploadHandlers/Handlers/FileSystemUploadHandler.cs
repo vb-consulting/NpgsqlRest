@@ -2,38 +2,36 @@
 using Npgsql;
 using static NpgsqlRest.PgConverters;
 
-namespace NpgsqlRest.UploadHandlers;
+namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : IUploadHandler
+public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
 {
-    private string? _type = null;
     private string[]? _uploadedFiles = null;
 
     private const string PathParam = "path";
     private const string FileParam = "file";
     private const string UniqueNameParam = "unique_name";
     private const string CreatePathParam = "create_path";
+    protected override IEnumerable<string> GetParameters()
+    {
+        yield return IncludedMimeTypeParam;
+        yield return ExcludedMimeTypeParam;
+        yield return BufferSize;
+        yield return PathParam;
+        yield return FileParam;
+        yield return UniqueNameParam;
+        yield return CreatePathParam;
+        yield return FileCheckExtensions.CheckTextParam;
+        yield return FileCheckExtensions.CheckImageParam;
+        yield return FileCheckExtensions.TestBufferSizeParam;
+        yield return FileCheckExtensions.NonPrintableThresholdParam;
+    }
 
     public bool RequiresTransaction => false;
-    public string[] Parameters => [
-        UploadExtensions.IncludedMimeTypeParam, UploadExtensions.ExcludedMimeTypeParam, UploadExtensions.BufferSize,
-        PathParam, FileParam, UniqueNameParam, CreatePathParam,
-        //!
-        FileCheckExtensions.CheckTextParam, 
-        FileCheckExtensions.CheckImageParam,
-        FileCheckExtensions.TestBufferSizeParam, 
-        FileCheckExtensions.NonPrintableThresholdParam
-    ];
-
-    public IUploadHandler SetType(string type)
-    {
-        _type = type;
-        return this;
-    }
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = options.ParseSharedParameters(parameters);
+        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = ParseSharedParameters(options, parameters);
 
         var basePath = options.DefaultUploadHandlerOptions.FileSystemHandlerPath;
         var useUniqueFileName = options.DefaultUploadHandlerOptions.FileSystemHandlerUseUniqueFileName;
@@ -48,30 +46,30 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
 
         if (parameters is not null)
         {
-            if (parameters.TryGetValue(PathParam, out var path) && !string.IsNullOrEmpty(path))
+            if (TryGetParam(parameters, PathParam, out var path) && !string.IsNullOrEmpty(path))
             {
                 basePath = path;
             }
-            if (parameters.TryGetValue(FileParam, out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
+            if (TryGetParam(parameters, FileParam, out var newFileNameStr) && !string.IsNullOrEmpty(newFileNameStr))
             {
                 newFileName = newFileNameStr;
             }
-            if (parameters.TryGetValue(UniqueNameParam, out var useUniqueFileNameStr) 
+            if (TryGetParam(parameters, UniqueNameParam, out var useUniqueFileNameStr) 
                 && bool.TryParse(useUniqueFileNameStr, out var useUniqueFileNameParsed))
             {
                 useUniqueFileName = useUniqueFileNameParsed;
             }
-            if (parameters.TryGetValue(CreatePathParam, out var createPathIfNotExistsStr)
+            if (TryGetParam(parameters, CreatePathParam, out var createPathIfNotExistsStr)
                 && bool.TryParse(createPathIfNotExistsStr, out var createPathIfNotExistsParsed))
             {
                 createPathIfNotExists = createPathIfNotExistsParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.CheckTextParam, out var checkTextParamStr)
+            if (TryGetParam(parameters, FileCheckExtensions.CheckTextParam, out var checkTextParamStr)
                 && bool.TryParse(checkTextParamStr, out var checkTextParamParsed))
             {
                 checkText = checkTextParamParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.CheckImageParam, out var checkImageParamStr))
+            if (TryGetParam(parameters, FileCheckExtensions.CheckImageParam, out var checkImageParamStr))
             {
                 if (bool.TryParse(checkImageParamStr, out var checkImageParamParsed))
                 {
@@ -83,14 +81,20 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
                     allowedImage = checkImageParamStr.ParseImageTypes(logger) ?? options.DefaultUploadHandlerOptions.AllowedImageTypes;
                 }
             }
-            if (parameters.TryGetValue(FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
+            if (TryGetParam(parameters, FileCheckExtensions.TestBufferSizeParam, out var testBufferSizeStr) && int.TryParse(testBufferSizeStr, out var testBufferSizeParsed))
             {
                 testBufferSize = testBufferSizeParsed;
             }
-            if (parameters.TryGetValue(FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
+            if (TryGetParam(parameters, FileCheckExtensions.NonPrintableThresholdParam, out var nonPrintableThresholdStr) && int.TryParse(nonPrintableThresholdStr, out var nonPrintableThresholdParsed))
             {
                 nonPrintableThreshold = nonPrintableThresholdParsed;
             }
+        }
+
+        if (options.LogUploadParameters is true)
+        {
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, basePath={basePath}, useUniqueFileName={useUniqueFileName}, newFileName={newFileName}, createPathIfNotExists={createPathIfNotExists}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}",
+                _type, includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize, basePath, useUniqueFileName, newFileName, createPathIfNotExists, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
         }
 
         if (createPathIfNotExists is true && Directory.Exists(basePath) is false)

@@ -336,6 +336,7 @@ public class NpgsqlRestUploadOptions
 {
     public bool Enabled { get; set; } = true;
     public bool LogUploadEvent { get; set; } = true;
+    public bool LogUploadParameters { get; set; } = false;
 
     /// <summary>
     /// Default upload handler name. This value is used when the upload handlers are not specified.
