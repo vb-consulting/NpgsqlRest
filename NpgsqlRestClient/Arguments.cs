@@ -81,7 +81,7 @@ public static class Arguments
                 {
                     nextIsOptional = true;
                 }
-                else if (arg.StartsWith("--") && arg.Contains("="))
+                else if (arg.StartsWith("--") && arg.Contains('='))
                 {
                     commandLineArgs.Add(arg);
                 }

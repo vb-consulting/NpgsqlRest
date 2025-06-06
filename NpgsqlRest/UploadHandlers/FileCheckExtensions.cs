@@ -47,7 +47,7 @@ public static class FileCheckExtensions
         return true;
     }
 
-    public static async Task<UploadFileStatus> CheckFileStatus(
+    public static async Task<UploadFileStatus> CheckTextContentStatus(
         this IFormFile formFile,
         int testBufferSize = 4096,
         int nonPrintableThreshold = 5,

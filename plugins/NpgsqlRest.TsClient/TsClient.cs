@@ -647,8 +647,8 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     {0}
                     */
                     export async function {1}(
+                        files: FileList | null,
                     {2},
-                        files: File[] = [],
                         progress?: (loaded: number, total: number) => void,{3}
                     ): Promise<{4}> {{
                         return new Promise((resolve, reject) => {{
@@ -743,8 +743,8 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     {0}
                     */
                     export async function {1}(
-                    {2},
                         files,
+                    {2},
                         progress,{3}
                     ) {{
                         return new Promise((resolve, reject) => {{

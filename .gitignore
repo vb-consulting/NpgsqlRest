@@ -406,3 +406,4 @@ appsettings.Development.json
 */k6/*.csv
 */k6/*.text
 /*.DotSettings
+dist/

@@ -93,8 +93,10 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
 
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, basePath={basePath}, useUniqueFileName={useUniqueFileName}, newFileName={newFileName}, createPathIfNotExists={createPathIfNotExists}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}",
+#pragma warning disable CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, bufferSize={3}, basePath={4}, useUniqueFileName={5}, newFileName={6}, createPathIfNotExists={7}, checkText={8}, checkImage={9}, allowedImage={10}, testBufferSize={11}, nonPrintableThreshold={12}",
                 _type, includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize, basePath, useUniqueFileName, newFileName, createPathIfNotExists, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
+#pragma warning disable CA2253 // Named placeholders should not be numeric values
         }
 
         if (createPathIfNotExists is true && Directory.Exists(basePath) is false)
@@ -153,7 +155,7 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
             {
                 if (checkText is true)
                 {
-                    status = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: false);
+                    status = await formFile.CheckTextContentStatus(testBufferSize, nonPrintableThreshold, checkNewLines: false);
                 }
                 if (status == UploadFileStatus.Ok && checkImage is true)
                 {

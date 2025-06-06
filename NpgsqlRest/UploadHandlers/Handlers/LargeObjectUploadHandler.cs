@@ -67,8 +67,10 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
 
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, oid={oid}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}", 
+#pragma warning disable CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, bufferSize={3}, oid={4}, checkText={5}, checkImage={6}, allowedImage={7}, testBufferSize={8}, nonPrintableThreshold={9}", 
                 _type, includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize, oid, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
+#pragma warning disable CA2253 // Named placeholders should not be numeric values
         }
 
         StringBuilder result = new(context.Request.Form.Files.Count*100);
@@ -107,7 +109,7 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
             {
                 if (checkText is true)
                 {
-                    status = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: false);
+                    status = await formFile.CheckTextContentStatus(testBufferSize, nonPrintableThreshold, checkNewLines: false);
                 }
                 if (status == UploadFileStatus.Ok && checkImage is true)
                 {

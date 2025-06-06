@@ -1648,9 +1648,11 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 } // end if (routine.ReturnsRecord == true)
             } // end if (routine.IsVoid is false)
         }
-        catch (NpgsqlException exception)
+        catch (Exception exception)
         {
-            if (options.PostgreSqlErrorCodeToHttpStatusCodeMapping.TryGetValue(exception.SqlState ?? "", out var code))
+            string? sqlState = exception is NpgsqlException npgsqlEx ? npgsqlEx.SqlState : null;
+
+            if (options.PostgreSqlErrorCodeToHttpStatusCodeMapping.TryGetValue(sqlState ?? "", out var code))
             {
                 context.Response.StatusCode = code;
             }
@@ -1665,7 +1667,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     ReadOnlySpan<char> msg;
                     if (context.Response.StatusCode == 400)
                     {
-                        msg = exception.Message.Replace(string.Concat(exception.SqlState, ": "), "").AsSpan();
+                        msg = exception.Message.Replace(string.Concat(sqlState, ": "), "").AsSpan();
                     }
                     else
                     {

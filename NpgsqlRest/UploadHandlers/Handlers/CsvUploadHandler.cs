@@ -75,8 +75,10 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
 
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}, delimiters={delimiters}, hasFieldsEnclosedInQuotes={hasFieldsEnclosedInQuotes}, setWhiteSpaceToNull={setWhiteSpaceToNull}, rowCommand={rowCommand}",
+#pragma warning disable CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, checkFileStatus={3}, testBufferSize={4}, nonPrintableThreshold={5}, delimiters={6}, hasFieldsEnclosedInQuotes={7}, setWhiteSpaceToNull={8}, rowCommand={9}",
                 _type, includedMimeTypePatterns, excludedMimeTypePatterns, checkFileStatus, testBufferSize, nonPrintableThreshold, delimiters, hasFieldsEnclosedInQuotes, setWhiteSpaceToNull, rowCommand);
+#pragma warning disable CA2253 // Named placeholders should not be numeric values
         }
 
         string[] delimitersArr = [.. delimiters.Select(c => c.ToString())];
@@ -122,7 +124,7 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
             }
             if (status == UploadFileStatus.Ok && checkFileStatus is true)
             {
-                status = await formFile.CheckFileStatus(testBufferSize, nonPrintableThreshold, checkNewLines: true);
+                status = await formFile.CheckTextContentStatus(testBufferSize, nonPrintableThreshold, checkNewLines: true);
             }
             fileJson.Append(",\"success\":");
             fileJson.Append(status == UploadFileStatus.Ok ? "true" : "false");
@@ -132,6 +134,7 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
             if (status != UploadFileStatus.Ok)
             {
                 logger?.FileUploadFailed(_type, formFile.FileName, formFile.ContentType, formFile.Length, status);
+                result.Append(fileJson);
                 fileId++;
                 continue;
             }

@@ -479,7 +479,23 @@ public static class App
         result.DefaultUploadHandlerOptions = uploadHandlerOptions;
 
         result.UploadHandlers = result.CreateUploadHandlers();
-        if (result.UploadHandlers is not null && result.UploadHandlers.Count > 1)
+
+        if (GetConfigBool("ExcelUploadEnabled", uploadHandlersCfg, true))
+        {
+            ExcelUploadOptions.Instance.ExcelUploadCheckFileStatus = GetConfigBool("ExcelUploadCheckFileStatus", uploadHandlersCfg, true);
+
+            ExcelUploadOptions.Instance.ExcelSheetName = GetConfigStr("ExcelSheetName", uploadHandlersCfg) ?? null;
+            ExcelUploadOptions.Instance.ExcelAllSheets = GetConfigBool("ExcelAllSheets", uploadHandlersCfg, false);
+            ExcelUploadOptions.Instance.ExcelTimeFormat = GetConfigStr("ExcelTimeFormat", uploadHandlersCfg) ?? "HH:mm:ss";
+            ExcelUploadOptions.Instance.ExcelDateFormat = GetConfigStr("ExcelDateFormat", uploadHandlersCfg) ?? "yyyy-MM-dd";
+            ExcelUploadOptions.Instance.ExcelDateTimeFormat = GetConfigStr("ExcelDateTimeFormat", uploadHandlersCfg) ?? "yyyy-MM-dd HH:mm:ss";
+            ExcelUploadOptions.Instance.ExcelRowDataAsJson = GetConfigBool("ExcelRowDataAsJson", uploadHandlersCfg, false);
+            ExcelUploadOptions.Instance.ExcelUploadRowCommand = GetConfigStr("ExcelUploadRowCommand", uploadHandlersCfg) ?? "call process_excel_row($1,$2,$3,$4)";
+
+            result?.UploadHandlers?.Add(GetConfigStr("ExcelKey", uploadHandlersCfg) ?? "excel", logger => new ExcelUploadHandler(result, logger));
+        }
+
+        if (result?.UploadHandlers is not null && result.UploadHandlers.Count > 1)
         {
             Logger?.Information("Using {0} upload handlers where {1} is default.", result.UploadHandlers.Keys, result.DefaultUploadHandler);
             foreach (var uploadHandler in result.UploadHandlers)
@@ -487,6 +503,6 @@ public static class App
                 Logger?.Information("Upload handler {0} has following parameters: {1}", uploadHandler.Key, uploadHandler.Value(null!).SetType(uploadHandler.Key).Parameters);
             }
         }
-        return result;
+        return result!;
     }
 }

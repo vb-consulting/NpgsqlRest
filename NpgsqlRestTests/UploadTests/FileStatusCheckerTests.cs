@@ -13,7 +13,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile([], "empty.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.Empty);
@@ -27,7 +27,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(content, "binary.bin");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.ProbablyBinary);
@@ -44,7 +44,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(content.ToArray(), "binary-nonprint.bin");
 
         // Act
-        var result = await formFile.CheckFileStatus(nonPrintableThreshold: 5);
+        var result = await formFile.CheckTextContentStatus(nonPrintableThreshold: 5);
 
         // Assert
         result.Should().Be(UploadFileStatus.ProbablyBinary);
@@ -58,7 +58,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "text.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -72,7 +72,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "singleline.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.NoNewLines);
@@ -86,7 +86,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "singleline.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus(checkNewLines: false);
+        var result = await formFile.CheckTextContentStatus(checkNewLines: false);
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -100,7 +100,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "crlf.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -114,7 +114,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "cr-only.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.NoNewLines);
@@ -133,7 +133,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(content.ToArray(), "few-nonprint.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus(nonPrintableThreshold: 5);
+        var result = await formFile.CheckTextContentStatus(nonPrintableThreshold: 5);
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -154,7 +154,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "large.txt");
 
         // Act - use a smaller buffer size
-        var result = await formFile.CheckFileStatus(testBufferSize: 1024);
+        var result = await formFile.CheckTextContentStatus(testBufferSize: 1024);
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -168,7 +168,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "utf8.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -182,7 +182,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(Encoding.UTF8.GetBytes(content), "data.csv");
 
         // Act
-        var result = await formFile.CheckFileStatus();
+        var result = await formFile.CheckTextContentStatus();
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);
@@ -204,7 +204,7 @@ public class FileStatusCheckerTests
         var formFile = CreateFormFile(content, "threshold-test.txt");
 
         // Act
-        var result = await formFile.CheckFileStatus(nonPrintableThreshold: 20);
+        var result = await formFile.CheckTextContentStatus(nonPrintableThreshold: 20);
 
         // Assert
         result.Should().Be(UploadFileStatus.Ok);

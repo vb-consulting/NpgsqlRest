@@ -27,19 +27,19 @@ public static class PgConverters
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    internal static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+    public static string SerializeString(string value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
 
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
     Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
     Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    internal static string SerializeObject(object? value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
+    public static string SerializeObject(object? value) => JsonSerializer.Serialize(value, PlainTextSerializerOptions);
 
     [UnconditionalSuppressMessage("Aot", "IL2026:RequiresUnreferencedCode",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
     [UnconditionalSuppressMessage("Aot", "IL3050:RequiresDynamic",
         Justification = "Serializes only string type that have AOT friendly TypeInfoResolver")]
-    internal static string SerializeString(ref ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
+    public static string SerializeString(ref ReadOnlySpan<char> value) => JsonSerializer.Serialize(value.ToString(), PlainTextSerializerOptions);
 
     internal static ReadOnlySpan<char> PgUnknownToJsonArray(ref ReadOnlySpan<char> value)
     {
