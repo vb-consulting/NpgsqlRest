@@ -1,8 +1,7 @@
 ﻿using System.Text;
-using Microsoft.Extensions.Primitives;
 using Npgsql;
 
-namespace NpgsqlRest.UploadHandlers;
+namespace NpgsqlRest.UploadHandlers.Handlers;
 
 public class DefaultUploadHandler(params IUploadHandler[] handlers) : IUploadHandler
 {

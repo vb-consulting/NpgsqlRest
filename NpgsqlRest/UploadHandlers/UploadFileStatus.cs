@@ -2,11 +2,12 @@
 
 public enum UploadFileStatus
 { 
-    Empty, 
-    ProbablyBinary, 
-    InvalidImage, 
-    InvalidFileFormat, 
-    NoNewLines, 
-    InvalidMimeType, 
+    Empty,
+    ProbablyBinary,
+    InvalidImage,
+    InvalidFormat,
+    NoNewLines,
+    InvalidMimeType,
+    Ignored,
     Ok 
 }

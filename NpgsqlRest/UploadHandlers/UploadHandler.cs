@@ -43,6 +43,7 @@ public abstract class UploadHandler
         }
     }
 
+    public const string SingleUploadParam = "single_upload";
     public const string IncludedMimeTypeParam = "included_mime_types";
     public const string ExcludedMimeTypeParam = "excluded_mime_types";
     public const string BufferSize = "buffer_size";
