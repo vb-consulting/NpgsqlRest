@@ -58,7 +58,7 @@ public class Program
     public static void Main()
     {
         var uploadHandlerOptions = new UploadHandlerOptions();
-        var files = Directory.GetFiles(uploadHandlerOptions.FileSystemHandlerPath, "*.csv");
+        var files = Directory.GetFiles(uploadHandlerOptions.FileSystemPath, "*.csv");
         foreach (var file in files)
         {
             try

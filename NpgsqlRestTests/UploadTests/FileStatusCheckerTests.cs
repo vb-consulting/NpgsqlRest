@@ -41,7 +41,7 @@ public class FileStatusCheckerTests
         content.AddRange(Encoding.ASCII.GetBytes("Hello World"));
         content.AddRange(new byte[] { 1, 2, 3, 4, 5, 6 }); // Add non-printable characters
 
-        var formFile = CreateFormFile(content.ToArray(), "binary-nonprint.bin");
+        var formFile = CreateFormFile([.. content], "binary-nonprint.bin");
 
         // Act
         var result = await formFile.CheckTextContentStatus(nonPrintableThreshold: 5);
@@ -130,7 +130,7 @@ public class FileStatusCheckerTests
         // Add a few non-printable characters (but below threshold)
         content.AddRange(new byte[] { 1, 2 });
 
-        var formFile = CreateFormFile(content.ToArray(), "few-nonprint.txt");
+        var formFile = CreateFormFile([.. content], "few-nonprint.txt");
 
         // Act
         var result = await formFile.CheckTextContentStatus(nonPrintableThreshold: 5);

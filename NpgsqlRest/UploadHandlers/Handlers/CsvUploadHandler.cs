@@ -6,7 +6,7 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
+public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : BaseUploadHandler, IUploadHandler
 {
     private const string CheckFileParam = "check_csv";
     private const string DelimitersParam = "delimiters";
@@ -31,8 +31,6 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, _) = ParseSharedParameters(options, parameters);
-
         bool checkFileStatus = options.DefaultUploadHandlerOptions.CsvUploadCheckFileStatus;
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
         int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
@@ -75,10 +73,8 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
 
         if (options.LogUploadParameters is true)
         {
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
-            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, checkFileStatus={3}, testBufferSize={4}, nonPrintableThreshold={5}, delimiters={6}, hasFieldsEnclosedInQuotes={7}, setWhiteSpaceToNull={8}, rowCommand={9}",
-                _type, includedMimeTypePatterns, excludedMimeTypePatterns, checkFileStatus, testBufferSize, nonPrintableThreshold, delimiters, hasFieldsEnclosedInQuotes, setWhiteSpaceToNull, rowCommand);
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}, delimiters={delimiters}, hasFieldsEnclosedInQuotes={hasFieldsEnclosedInQuotes}, setWhiteSpaceToNull={setWhiteSpaceToNull}, rowCommand={rowCommand}",
+                _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, checkFileStatus, testBufferSize, nonPrintableThreshold, delimiters, hasFieldsEnclosedInQuotes, setWhiteSpaceToNull, rowCommand);
         }
 
         string[] delimitersArr = [.. delimiters.Select(c => c.ToString())];
@@ -118,7 +114,11 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
             fileJson.Append(formFile.Length);
 
             UploadFileStatus status = UploadFileStatus.Ok;
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            if (_stopAfterFirstSuccess is true && _skipFileNames.Contains(formFile.FileName, StringComparer.OrdinalIgnoreCase))
+            {
+                status = UploadFileStatus.Ignored;
+            }
+            if (status == UploadFileStatus.Ok && this.CheckMimeTypes(formFile.ContentType) is false)
             {
                 status = UploadFileStatus.InvalidMimeType;
             }
@@ -137,6 +137,10 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
                 result.Append(fileJson);
                 fileId++;
                 continue;
+            }
+            if (_stopAfterFirstSuccess is true)
+            {
+                _skipFileNames.Add(formFile.FileName);
             }
 
             using var fileStream = formFile.OpenReadStream();

@@ -6,13 +6,17 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using Npgsql;
 using NpgsqlRest;
 using NpgsqlRest.UploadHandlers;
+using NpgsqlRest.UploadHandlers.Handlers;
 using NpgsqlTypes;
 
 namespace NpgsqlRestClient;
 
 public class ExcelUploadOptions
 {
-    public bool ExcelUploadCheckFileStatus { get; set; } = true;
+    private static readonly ExcelUploadOptions _instance = new();
+    public static ExcelUploadOptions Instance => _instance;
+
+    public bool ExcelCheckFileStatus { get; set; } = true;
     public string? ExcelSheetName { get; set; } = null;
     public bool ExcelAllSheets { get; set; } = false;
     public string ExcelTimeFormat { get; set; } = "HH:mm:ss";
@@ -20,11 +24,9 @@ public class ExcelUploadOptions
     public string ExcelDateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
     public bool ExcelRowDataAsJson { get; set; } = false;
     public string ExcelUploadRowCommand { get; set; } = "call process_excel_row($1,$2,$3,$4)";
-
-    public static ExcelUploadOptions Instance = new();
 }
 
-public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
+public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : BaseUploadHandler, IUploadHandler
 {
     private const string CheckFileParam = "check_excel";
     private const string SheetNameParam = "sheet_name";
@@ -57,8 +59,7 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, _) = ParseSharedParameters(options, parameters);
-        bool checkFileStatus = ExcelUploadOptions.Instance.ExcelUploadCheckFileStatus;
+        bool checkFileStatus = ExcelUploadOptions.Instance.ExcelCheckFileStatus;
         string rowCommand = ExcelUploadOptions.Instance.ExcelUploadRowCommand;
         string? targetSheetName = ExcelUploadOptions.Instance.ExcelSheetName;
         bool allSheets = ExcelUploadOptions.Instance.ExcelAllSheets;
@@ -102,10 +103,8 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
 
         if (options.LogUploadParameters is true)
         {
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
-            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, checkFileStatus={3}, targetSheetName={4}, allSheets={5}, timeFormat={6}, dateFormat={7}, dateTimeFormat={8}, rowCommand={9}",
-                _type, includedMimeTypePatterns, excludedMimeTypePatterns, checkFileStatus, targetSheetName, allSheets, _timeFormat, _dateFormat, _dateTimeFormat, rowCommand);
-#pragma warning restore CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
+                _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, checkFileStatus, targetSheetName, allSheets, _timeFormat, _dateFormat, _dateTimeFormat, rowCommand);
         }
 
         using var command = new NpgsqlCommand(rowCommand, connection);
@@ -150,7 +149,11 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             fileJson.Append(formFile.Length);
 
             UploadFileStatus status = UploadFileStatus.Ok;
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            if (_stopAfterFirstSuccess is true && _skipFileNames.Contains(formFile.FileName, StringComparer.OrdinalIgnoreCase))
+            {
+                status = UploadFileStatus.Ignored;
+            }
+            if (status == UploadFileStatus.Ok && this.CheckMimeTypes(formFile.ContentType) is false)
             {
                 status = UploadFileStatus.InvalidMimeType;
             }
@@ -171,6 +174,10 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
                 result.Append(fileJson);
                 fileId++;
                 continue;
+            }
+            if (_stopAfterFirstSuccess is true)
+            {
+                _skipFileNames.Add(formFile.FileName);
             }
 
             using var stream = formFile.OpenReadStream();

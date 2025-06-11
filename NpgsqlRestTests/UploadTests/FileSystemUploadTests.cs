@@ -283,10 +283,10 @@ public class FileSystemUploadTests(TestFixture test)
         using var result = await test.Client.PostAsync("/api/fs-upload1/?raiseError=true", formData);
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        File.Exists(Path.Combine(new UploadHandlerOptions().FileSystemHandlerPath, fileName1))
+        File.Exists(Path.Combine(new UploadHandlerOptions().FileSystemPath, fileName1))
             .Should().BeFalse("because the file should not exist at the specified path");
 
-        File.Exists(Path.Combine(new UploadHandlerOptions().FileSystemHandlerPath, fileName2))
+        File.Exists(Path.Combine(new UploadHandlerOptions().FileSystemPath, fileName2))
             .Should().BeFalse("because the file should not exist at the specified path");
     }
 

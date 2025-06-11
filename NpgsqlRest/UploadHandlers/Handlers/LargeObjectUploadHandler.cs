@@ -5,14 +5,14 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
+public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : BaseUploadHandler, IUploadHandler
 {
     private const string OidParam = "oid";
     protected override IEnumerable<string> GetParameters()
     {
         yield return IncludedMimeTypeParam;
         yield return ExcludedMimeTypeParam;
-        yield return BufferSize;
+        yield return BufferSizeParam;
         yield return OidParam;
         yield return FileCheckExtensions.CheckTextParam;
         yield return FileCheckExtensions.CheckImageParam;
@@ -24,10 +24,9 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = ParseSharedParameters(options, parameters);
         long? oid = null;
-        bool checkText = false;
-        bool checkImage = false;
+        bool checkText = options.DefaultUploadHandlerOptions.LargeObjectCheckText;
+        bool checkImage = options.DefaultUploadHandlerOptions.LargeObjectCheckImage;
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
         int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
         AllowedImageTypes allowedImage = options.DefaultUploadHandlerOptions.AllowedImageTypes;
@@ -67,10 +66,8 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
 
         if (options.LogUploadParameters is true)
         {
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
-            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, bufferSize={3}, oid={4}, checkText={5}, checkImage={6}, allowedImage={7}, testBufferSize={8}, nonPrintableThreshold={9}", 
-                _type, includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize, oid, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, oid={oid}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}", 
+                _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, _bufferSize, oid, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
         }
 
         StringBuilder result = new(context.Request.Form.Files.Count*100);
@@ -101,7 +98,11 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
             result.Append(formFile.Length);
 
             UploadFileStatus status = UploadFileStatus.Ok;
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            if (_stopAfterFirstSuccess is true && _skipFileNames.Contains(formFile.FileName, StringComparer.OrdinalIgnoreCase))
+            {
+                status = UploadFileStatus.Ignored;
+            }
+            if (status == UploadFileStatus.Ok && this.CheckMimeTypes(formFile.ContentType) is false)
             {
                 status = UploadFileStatus.InvalidMimeType;
             }
@@ -130,6 +131,10 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
                 fileId++;
                 continue;
             }
+            if (_stopAfterFirstSuccess is true)
+            {
+                _skipFileNames.Add(formFile.FileName);
+            }
 
             result.Append(",\"oid\":");
             using var command = new NpgsqlCommand(oid is null ? "select lo_create(0)" : string.Concat("select lo_create(", oid.ToString(), ")"), connection);
@@ -145,7 +150,7 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
             command.Parameters.Add(NpgsqlRestParameter.CreateParamWithType(NpgsqlDbType.Bytea));
 
             using var fileStream = formFile.OpenReadStream();
-            byte[] buffer = new byte[bufferSize];
+            byte[] buffer = new byte[_bufferSize];
             int bytesRead;
             long offset = 0;
             while ((bytesRead = await fileStream.ReadAsync(buffer)) > 0)

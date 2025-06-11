@@ -4,7 +4,7 @@ using static NpgsqlRest.PgConverters;
 
 namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : UploadHandler, IUploadHandler
+public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : BaseUploadHandler, IUploadHandler
 {
     private string[]? _uploadedFiles = null;
 
@@ -16,7 +16,7 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
     {
         yield return IncludedMimeTypeParam;
         yield return ExcludedMimeTypeParam;
-        yield return BufferSize;
+        yield return BufferSizeParam;
         yield return PathParam;
         yield return FileParam;
         yield return UniqueNameParam;
@@ -31,14 +31,12 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
 
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        var (includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize) = ParseSharedParameters(options, parameters);
-
-        var basePath = options.DefaultUploadHandlerOptions.FileSystemHandlerPath;
-        var useUniqueFileName = options.DefaultUploadHandlerOptions.FileSystemHandlerUseUniqueFileName;
+        var basePath = options.DefaultUploadHandlerOptions.FileSystemPath;
+        var useUniqueFileName = options.DefaultUploadHandlerOptions.FileSystemUseUniqueFileName;
         string? newFileName = null;
-        bool createPathIfNotExists = options.DefaultUploadHandlerOptions.FileSystemHandlerCreatePathIfNotExists;
-        bool checkText = false;
-        bool checkImage = false;
+        bool createPathIfNotExists = options.DefaultUploadHandlerOptions.FileSystemCreatePathIfNotExists;
+        bool checkText = options.DefaultUploadHandlerOptions.FileSystemCheckText;
+        bool checkImage = options.DefaultUploadHandlerOptions.FileSystemCheckImage;
         int testBufferSize = options.DefaultUploadHandlerOptions.TextTestBufferSize;
         int nonPrintableThreshold = options.DefaultUploadHandlerOptions.TextNonPrintableThreshold;
 
@@ -93,10 +91,8 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
 
         if (options.LogUploadParameters is true)
         {
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
-            logger?.LogInformation("Upload for {0}: includedMimeTypePatterns={1}, excludedMimeTypePatterns={2}, bufferSize={3}, basePath={4}, useUniqueFileName={5}, newFileName={6}, createPathIfNotExists={7}, checkText={8}, checkImage={9}, allowedImage={10}, testBufferSize={11}, nonPrintableThreshold={12}",
-                _type, includedMimeTypePatterns, excludedMimeTypePatterns, bufferSize, basePath, useUniqueFileName, newFileName, createPathIfNotExists, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
-#pragma warning disable CA2253 // Named placeholders should not be numeric values
+            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, basePath={basePath}, useUniqueFileName={useUniqueFileName}, newFileName={newFileName}, createPathIfNotExists={createPathIfNotExists}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}",
+                _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, _bufferSize, basePath, useUniqueFileName, newFileName, createPathIfNotExists, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
         }
 
         if (createPathIfNotExists is true && Directory.Exists(basePath) is false)
@@ -147,7 +143,11 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
             result.Append(SerializeString(currentFilePath));
 
             UploadFileStatus status = UploadFileStatus.Ok;
-            if (formFile.ContentType.CheckMimeTypes(includedMimeTypePatterns, excludedMimeTypePatterns) is false)
+            if (_stopAfterFirstSuccess is true && _skipFileNames.Contains(formFile.FileName, StringComparer.OrdinalIgnoreCase))
+            {
+                status = UploadFileStatus.Ignored;
+            }
+            if (status == UploadFileStatus.Ok && this.CheckMimeTypes(formFile.ContentType) is false)
             {
                 status = UploadFileStatus.InvalidMimeType;
             }
@@ -176,10 +176,14 @@ public class FileSystemUploadHandler(NpgsqlRestUploadOptions options, ILogger? l
                 fileId++;
                 continue;
             }
+            if (_stopAfterFirstSuccess is true)
+            {
+                _skipFileNames.Add(formFile.FileName);
+            }
 
             using (var fileStream = new FileStream(currentFilePath, FileMode.Create))
             {
-                byte[] buffer = new byte[bufferSize];
+                byte[] buffer = new byte[_bufferSize];
                 int bytesRead;
                 using var sourceStream = formFile.OpenReadStream();
 

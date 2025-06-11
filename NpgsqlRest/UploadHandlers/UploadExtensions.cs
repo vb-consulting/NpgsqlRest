@@ -42,7 +42,7 @@ public static class UploadExtensions
         {
             if (options.UploadOptions.UploadHandlers is not null && options.UploadOptions.UploadHandlers.TryGetValue(options.UploadOptions.DefaultUploadHandler, out var handler))
             {
-                return handler(logger).SetType(options.UploadOptions.DefaultUploadHandler);
+                return new DefaultUploadHandler(options.UploadOptions, [handler(logger).SetType(options.UploadOptions.DefaultUploadHandler)]);
             }
             else
             {
@@ -54,7 +54,7 @@ public static class UploadExtensions
             var handlerName = endpoint.UploadHandlers[0];
             if (options.UploadOptions.UploadHandlers is not null && options.UploadOptions.UploadHandlers.TryGetValue(handlerName, out var handler))
             {
-                return handler(logger).SetType(handlerName);
+                return new DefaultUploadHandler(options.UploadOptions, [handler(logger).SetType(handlerName)]);
             }
             else
             {
@@ -76,7 +76,7 @@ public static class UploadExtensions
                     throw new Exception($"Upload handler '{handlerName}' not found.");
                 }
             }
-            return new DefaultUploadHandler([.. handlers]);
+            return new DefaultUploadHandler(options.UploadOptions, [.. handlers]);
         }
     }
 

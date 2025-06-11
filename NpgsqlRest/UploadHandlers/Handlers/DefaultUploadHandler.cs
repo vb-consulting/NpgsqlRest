@@ -3,8 +3,9 @@ using Npgsql;
 
 namespace NpgsqlRest.UploadHandlers.Handlers;
 
-public class DefaultUploadHandler(params IUploadHandler[] handlers) : IUploadHandler
+public class DefaultUploadHandler(NpgsqlRestUploadOptions options, IUploadHandler[] handlers) : IUploadHandler
 {
+    private readonly NpgsqlRestUploadOptions _options = options;
     private readonly IUploadHandler[] _handlers = handlers;
     private readonly bool _requiresTransaction = handlers.Any(h => h.RequiresTransaction);
 
@@ -23,7 +24,18 @@ public class DefaultUploadHandler(params IUploadHandler[] handlers) : IUploadHan
         StringBuilder result = new(100);
         for (int i = 0; i < _handlers.Length; i++)
         {
-            var segment = await _handlers[i].UploadAsync(connection, context, parameters);
+            var handler = _handlers[i];
+            if (handler is BaseUploadHandler baseHandler)
+            {
+                baseHandler.ParseSharedParameters(_options, parameters);
+                if (i > 0 && baseHandler.StopAfterFirst is true && _handlers[i - 1] is BaseUploadHandler prevHandler)
+                {
+                    baseHandler.SetSkipFileNames(prevHandler.GetSkipFileNames);
+                }
+            }
+
+            var segment = await handler.UploadAsync(connection, context, parameters);
+
             if (i == 0 && _handlers.Length == 1)
             {
                 result.Append(segment);

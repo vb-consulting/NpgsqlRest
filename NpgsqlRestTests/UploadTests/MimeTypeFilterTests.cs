@@ -1,6 +1,21 @@
-﻿using NpgsqlRest.UploadHandlers;
+﻿using NpgsqlRest.UploadHandlers.Handlers;
 
 namespace NpgsqlRestTests.UploadTests;
+
+public class UploadHandler : BaseUploadHandler
+{
+    protected override IEnumerable<string> GetParameters()
+    {
+        throw new NotImplementedException();
+    }
+    
+    public bool CheckMimeTypes(string contentType, string[]? includedMimeTypePatterns, string[]? excludedMimeTypePatterns)
+    {
+        _includedMimeTypePatterns = includedMimeTypePatterns;
+        _excludedMimeTypePatterns = excludedMimeTypePatterns;
+        return CheckMimeTypes(contentType);
+    }
+}
 
 public class MimeTypeFilterTests
 {
@@ -11,7 +26,7 @@ public class MimeTypeFilterTests
         string contentType = "image/jpeg";
 
         // Act
-        var result = contentType.CheckMimeTypes(null, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, null, null);
 
         // Assert
         result.Should().BeTrue("because null patterns should not restrict mime types");
@@ -26,7 +41,7 @@ public class MimeTypeFilterTests
         string[] excludedPatterns = [];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, excludedPatterns);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, excludedPatterns);
 
         // Assert
         result.Should().BeTrue("because empty pattern arrays should not restrict mime types");
@@ -40,7 +55,7 @@ public class MimeTypeFilterTests
         string[] includedPatterns = ["image/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, null);
 
         // Assert
         result.Should().BeTrue("because the mime type matches the included pattern");
@@ -54,7 +69,7 @@ public class MimeTypeFilterTests
         string[] includedPatterns = ["application/*", "image/*", "text/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, null);
 
         // Assert
         result.Should().BeTrue("because the mime type matches at least one of the included patterns");
@@ -68,7 +83,7 @@ public class MimeTypeFilterTests
         string[] includedPatterns = ["application/*", "text/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, null);
 
         // Assert
         result.Should().BeFalse("because the mime type does not match any included pattern");
@@ -82,7 +97,7 @@ public class MimeTypeFilterTests
         string[] excludedPatterns = ["image/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(null, excludedPatterns);
+        var result = new UploadHandler().CheckMimeTypes(contentType, null, excludedPatterns);
 
         // Assert
         result.Should().BeFalse("because the mime type matches an excluded pattern");
@@ -96,7 +111,7 @@ public class MimeTypeFilterTests
         string[] excludedPatterns = ["application/*", "image/*", "text/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(null, excludedPatterns);
+        var result = new UploadHandler().CheckMimeTypes(contentType, null, excludedPatterns);
 
         // Assert
         result.Should().BeFalse("because the mime type matches at least one excluded pattern");
@@ -110,7 +125,7 @@ public class MimeTypeFilterTests
         string[] excludedPatterns = ["application/*", "text/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(null, excludedPatterns);
+        var result = new UploadHandler().CheckMimeTypes(contentType, null, excludedPatterns);
 
         // Assert
         result.Should().BeTrue("because the mime type does not match any excluded pattern");
@@ -125,7 +140,7 @@ public class MimeTypeFilterTests
         string[] excludedPatterns = ["image/jpeg"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, excludedPatterns);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, excludedPatterns);
 
         // Assert
         result.Should().BeFalse("because the exclusion pattern takes precedence over inclusion");
@@ -140,7 +155,7 @@ public class MimeTypeFilterTests
         string[] excludedPatterns = ["application/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, excludedPatterns);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, excludedPatterns);
 
         // Assert
         result.Should().BeTrue("because it matches an included pattern and no excluded patterns");
@@ -154,7 +169,7 @@ public class MimeTypeFilterTests
         string[] includedPatterns = ["image/jpeg"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, null);
 
         // Assert
         result.Should().BeTrue("because exact pattern matching should work");
@@ -169,7 +184,7 @@ public class MimeTypeFilterTests
         string[] includedPatterns = ["image/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, null);
 
         // Assert - The result depends on Parser.IsPatternMatch implementation
         // This test documents the expected behavior rather than asserting it
@@ -185,7 +200,7 @@ public class MimeTypeFilterTests
         string[] includedPatterns = ["image/*"];
 
         // Act
-        var result = contentType.CheckMimeTypes(includedPatterns, null);
+        var result = new UploadHandler().CheckMimeTypes(contentType, includedPatterns, null);
 
         // Assert
         result.Should().BeFalse("because an empty content type should not match any pattern");
@@ -201,7 +216,7 @@ public class MimeTypeFilterTests
         // Act & Assert
         // This test checks if the method handles null ContentType without throwing
         // Actual behavior depends on Parser.IsPatternMatch implementation
-        Action act = () => contentType.CheckMimeTypes(includedPatterns, includedPatterns);
+        Action act = () => new UploadHandler().CheckMimeTypes(contentType, includedPatterns, includedPatterns);
         act.Should().NotThrow("because the method should handle null content types gracefully");
     }
 }

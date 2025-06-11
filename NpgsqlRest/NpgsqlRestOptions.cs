@@ -3,6 +3,7 @@ using Microsoft.Extensions.Primitives;
 using Npgsql;
 using NpgsqlRest.Defaults;
 using NpgsqlRest.UploadHandlers;
+using NpgsqlRest.UploadHandlers.Handlers;
 
 namespace NpgsqlRest;
 

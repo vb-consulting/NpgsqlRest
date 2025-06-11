@@ -2,30 +2,40 @@
 
 public class UploadHandlerOptions
 {
+    // General settings for upload handlers.
+
+    public bool StopAfterFirstSuccess { get; set; } = false;
+    public string[]? IncludedMimeTypePatterns { get; set; } = null;
+    public string[]? ExcludedMimeTypePatterns { get; set; } = null;
+    public int BufferSize { get; set; } = 8192;
     public int TextTestBufferSize { get; set; } = 4096;
     public int TextNonPrintableThreshold { get; set; } = 5;
     public AllowedImageTypes AllowedImageTypes { get; set; } = 
         AllowedImageTypes.Jpeg | AllowedImageTypes.Png | AllowedImageTypes.Gif | AllowedImageTypes.Bmp | AllowedImageTypes.Tiff | AllowedImageTypes.Webp;
-    
+
+
+    // large_object settings for upload handlers.
+
     public bool LargeObjectEnabled { get; set; } = true;
     public string LargeObjectKey { get; set; } = "large_object";
-    public string[]? LargeObjectIncludedMimeTypePatterns { get; set; } = null;
-    public string[]? LargeObjectExcludedMimeTypePatterns { get; set; } = null;
-    public int LargeObjectHandlerBufferSize { get; set; } = 8192;
+    public bool LargeObjectCheckText { get; set; } = false;
+    public bool LargeObjectCheckImage { get; set; } = false;
+
+
+    // file_system settings for upload handlers.
 
     public bool FileSystemEnabled { get; set; } = true;
     public string FileSystemKey { get; set; } = "file_system";
-    public string[]? FileSystemIncludedMimeTypePatterns { get; set; } = null;
-    public string[]? FileSystemExcludedMimeTypePatterns { get; set; } = null;
-    public string FileSystemHandlerPath { get; set; } = "./";
-    public bool FileSystemHandlerUseUniqueFileName { get; set; } = true;
-    public bool FileSystemHandlerCreatePathIfNotExists { get; set; } = false;
-    public int FileSystemHandlerBufferSize { get; set; } = 8192;
+    public string FileSystemPath { get; set; } = "./";
+    public bool FileSystemUseUniqueFileName { get; set; } = true;
+    public bool FileSystemCreatePathIfNotExists { get; set; } = false;
+    public bool FileSystemCheckText { get; set; } = false;
+    public bool FileSystemCheckImage { get; set; } = false;
+
+    // csv settings for upload handlers.
 
     public bool CsvUploadEnabled { get; set; } = true;
     public string CsvUploadKey { get; set; } = "csv";
-    public string[]? CsvUploadIncludedMimeTypePatterns { get; set; } = null;
-    public string[]? CsvUploadExcludedMimeTypePatterns { get; set; } = null;
     public bool CsvUploadCheckFileStatus { get; set; } = true;
     public string CsvUploadDelimiterChars { get; set; } = ",";
     public bool CsvUploadHasFieldsEnclosedInQuotes { get; set; } = true;

@@ -13,6 +13,7 @@ using static NpgsqlRest.ParameterParser;
 
 using NpgsqlRest.Auth;
 using NpgsqlRest.UploadHandlers;
+using NpgsqlRest.UploadHandlers.Handlers;
 
 namespace NpgsqlRest;
 

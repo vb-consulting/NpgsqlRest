@@ -1,6 +1,6 @@
 ﻿using Npgsql;
 
-namespace NpgsqlRest.UploadHandlers;
+namespace NpgsqlRest.UploadHandlers.Handlers;
 
 public interface IUploadHandler
 {

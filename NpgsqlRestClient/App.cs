@@ -443,27 +443,27 @@ public static class App
         {
             uploadHandlerOptions = new()
             {
+                StopAfterFirstSuccess = GetConfigBool("StopAfterFirstSuccess", uploadHandlersCfg, false),
+                IncludedMimeTypePatterns = GetConfigStr("IncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                ExcludedMimeTypePatterns = GetConfigStr("ExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
+                BufferSize = GetConfigInt("BufferSize", uploadHandlersCfg) ?? 8192,
                 TextTestBufferSize = GetConfigInt("TextTestBufferSize", uploadHandlersCfg) ?? 4096,
                 TextNonPrintableThreshold = GetConfigInt("TextNonPrintableThreshold", uploadHandlersCfg) ?? 5,
 
                 LargeObjectEnabled = GetConfigBool("LargeObjectEnabled", uploadHandlersCfg, true),
-                LargeObjectIncludedMimeTypePatterns = GetConfigStr("LargeObjectIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-                LargeObjectExcludedMimeTypePatterns = GetConfigStr("LargeObjectExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 LargeObjectKey = GetConfigStr("LargeObjectKey", uploadHandlersCfg) ?? "large_object",
-                LargeObjectHandlerBufferSize = GetConfigInt("LargeObjectHandlerBufferSize", uploadHandlersCfg) ?? 8192,
+                LargeObjectCheckText = GetConfigBool("LargeObjectCheckText", uploadHandlersCfg, false),
+                LargeObjectCheckImage = GetConfigBool("LargeObjectCheckImage", uploadHandlersCfg, false),
 
                 FileSystemEnabled = GetConfigBool("FileSystemEnabled", uploadHandlersCfg, true),
-                FileSystemIncludedMimeTypePatterns = GetConfigStr("FileSystemIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-                FileSystemExcludedMimeTypePatterns = GetConfigStr("FileSystemExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 FileSystemKey = GetConfigStr("FileSystemKey", uploadHandlersCfg) ?? "file_system",
-                FileSystemHandlerPath = GetConfigStr("FileSystemHandlerPath", uploadHandlersCfg) ?? "/tmp/uploads",
-                FileSystemHandlerUseUniqueFileName = GetConfigBool("FileSystemHandlerUseUniqueFileName", uploadHandlersCfg, true),
-                FileSystemHandlerCreatePathIfNotExists = GetConfigBool("FileSystemHandlerCreatePathIfNotExists", uploadHandlersCfg, true),
-                FileSystemHandlerBufferSize = GetConfigInt("FileSystemHandlerBufferSize", uploadHandlersCfg) ?? 8192,
+                FileSystemPath = GetConfigStr("FileSystemPath", uploadHandlersCfg) ?? "/tmp/uploads",
+                FileSystemUseUniqueFileName = GetConfigBool("FileSystemUseUniqueFileName", uploadHandlersCfg, true),
+                FileSystemCreatePathIfNotExists = GetConfigBool("FileSystemCreatePathIfNotExists", uploadHandlersCfg, true),
+                FileSystemCheckText = GetConfigBool("FileSystemCheckText", uploadHandlersCfg, false),
+                FileSystemCheckImage = GetConfigBool("FileSystemCheckImage", uploadHandlersCfg, false),
 
                 CsvUploadEnabled = GetConfigBool("CsvUploadEnabled", uploadHandlersCfg, true),
-                CsvUploadIncludedMimeTypePatterns = GetConfigStr("CsvUploadIncludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
-                CsvUploadExcludedMimeTypePatterns = GetConfigStr("CsvUploadExcludedMimeTypePatterns", uploadHandlersCfg).SplitParameter(),
                 CsvUploadCheckFileStatus = GetConfigBool("CsvUploadCheckFileStatus", uploadHandlersCfg, true),
                 CsvUploadDelimiterChars = GetConfigStr("CsvUploadDelimiterChars", uploadHandlersCfg) ?? ",",
                 CsvUploadHasFieldsEnclosedInQuotes = GetConfigBool("CsvUploadHasFieldsEnclosedInQuotes", uploadHandlersCfg, true),
@@ -482,7 +482,7 @@ public static class App
 
         if (GetConfigBool("ExcelUploadEnabled", uploadHandlersCfg, true))
         {
-            ExcelUploadOptions.Instance.ExcelUploadCheckFileStatus = GetConfigBool("ExcelUploadCheckFileStatus", uploadHandlersCfg, true);
+            ExcelUploadOptions.Instance.ExcelCheckFileStatus = GetConfigBool("ExcelCheckFileStatus", uploadHandlersCfg, true);
 
             ExcelUploadOptions.Instance.ExcelSheetName = GetConfigStr("ExcelSheetName", uploadHandlersCfg) ?? null;
             ExcelUploadOptions.Instance.ExcelAllSheets = GetConfigBool("ExcelAllSheets", uploadHandlersCfg, false);

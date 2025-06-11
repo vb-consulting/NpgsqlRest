@@ -11,42 +11,6 @@ public static class FileCheckExtensions
     public const string TestBufferSizeParam = "test_buffer_size";
     public const string NonPrintableThresholdParam = "non_printable_threshold";
 
-    public static bool CheckMimeTypes(this string contentType, string[]? includedMimeTypePatterns, string[]? excludedMimeTypePatterns)
-    {
-        // File must match AT LEAST ONE included pattern
-        if (includedMimeTypePatterns is not null && includedMimeTypePatterns.Length > 0)
-        {
-            bool matchesAny = false;
-            for (int j = 0; j < includedMimeTypePatterns.Length; j++)
-            {
-                if (Parser.IsPatternMatch(contentType, includedMimeTypePatterns[j]))
-                {
-                    matchesAny = true;
-                    break;
-                }
-            }
-
-            if (!matchesAny)
-            {
-                return false;
-            }
-        }
-
-        // File must NOT match ANY excluded patterns
-        if (excludedMimeTypePatterns is not null)
-        {
-            for (int j = 0; j < excludedMimeTypePatterns.Length; j++)
-            {
-                if (Parser.IsPatternMatch(contentType, excludedMimeTypePatterns[j]))
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
     public static async Task<UploadFileStatus> CheckTextContentStatus(
         this IFormFile formFile,
         int testBufferSize = 4096,
