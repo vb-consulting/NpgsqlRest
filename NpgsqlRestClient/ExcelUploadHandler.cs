@@ -1,8 +1,9 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
+using System.Data;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using ExcelDataReader;
 using Npgsql;
 using NpgsqlRest;
 using NpgsqlRest.UploadHandlers;
@@ -53,17 +54,19 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
 
     public bool RequiresTransaction => true;
 
-    private string _timeFormat = ExcelUploadOptions.Instance.ExcelTimeFormat;
-    private string _dateFormat = ExcelUploadOptions.Instance.ExcelDateFormat;
-    private string _dateTimeFormat = ExcelUploadOptions.Instance.ExcelDateTimeFormat;
-
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
+        // Initialize ExcelDataReader encoding provider
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
         bool checkFileStatus = ExcelUploadOptions.Instance.ExcelCheckFileStatus;
-        string rowCommand = ExcelUploadOptions.Instance.ExcelUploadRowCommand;
         string? targetSheetName = ExcelUploadOptions.Instance.ExcelSheetName;
         bool allSheets = ExcelUploadOptions.Instance.ExcelAllSheets;
+        string timeFormat = ExcelUploadOptions.Instance.ExcelTimeFormat;
+        string dateFormat = ExcelUploadOptions.Instance.ExcelDateFormat;
+        string dateTimeFormat = ExcelUploadOptions.Instance.ExcelDateTimeFormat;
         bool dataAsJson = ExcelUploadOptions.Instance.ExcelRowDataAsJson;
+        string rowCommand = ExcelUploadOptions.Instance.ExcelUploadRowCommand;
 
         if (parameters is not null)
         {
@@ -71,7 +74,7 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             {
                 checkFileStatus = checkFileStatusParsed;
             }
-            if (TryGetParam(parameters, SheetNameParam, out var sheetNameStr) && sheetNameStr is not null)
+            if (TryGetParam(parameters, SheetNameParam, out var sheetNameStr))
             {
                 targetSheetName = sheetNameStr;
             }
@@ -79,32 +82,34 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             {
                 allSheets = allSheetsParsed;
             }
-            if (TryGetParam(parameters, TimeFormatParam, out var timeFormatStr) && timeFormatStr is not null)
+            if (TryGetParam(parameters, TimeFormatParam, out var timeFormatStr))
             {
-                _timeFormat = timeFormatStr;
+                timeFormat = timeFormatStr;
             }
-            if (TryGetParam(parameters, DateFormatParam, out var dateFormatStr) && dateFormatStr is not null)
+            if (TryGetParam(parameters, DateFormatParam, out var dateFormatStr))
             {
-                _dateFormat = dateFormatStr;
+                dateFormat = dateFormatStr;
             }
-            if (TryGetParam(parameters, DateTimeFormatParam, out var dateTimeFormatStr) && dateTimeFormatStr is not null)
+            if (TryGetParam(parameters, DateTimeFormatParam, out var dateTimeFormatStr))
             {
-                _dateTimeFormat = dateTimeFormatStr;
+                dateTimeFormat = dateTimeFormatStr;
             }
-            if (TryGetParam(parameters, JsonRowDataParam, out var jsonRowDataStr) && bool.TryParse(jsonRowDataStr, out var jsonRowDataParsed))
+            if (TryGetParam(parameters, JsonRowDataParam, out var dataAsJsonStr) && bool.TryParse(dataAsJsonStr, out var dataAsJsonParsed))
             {
-                dataAsJson = jsonRowDataParsed;
+                dataAsJson = dataAsJsonParsed;
             }
-            if (TryGetParam(parameters, RowCommandParam, out var rowCommandStr) && rowCommandStr is not null)
+            if (TryGetParam(parameters, RowCommandParam, out var rowCommandStr))
             {
                 rowCommand = rowCommandStr;
             }
         }
 
+        ParseSharedParameters(options, parameters);
+
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
-                _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, checkFileStatus, targetSheetName, allSheets, _timeFormat, _dateFormat, _dateTimeFormat, rowCommand);
+            logger?.LogInformation("Upload for Excel: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
+                _includedMimeTypePatterns, _excludedMimeTypePatterns, checkFileStatus, targetSheetName, allSheets, timeFormat, dateFormat, dateTimeFormat, rowCommand);
         }
 
         using var command = new NpgsqlCommand(rowCommand, connection);
@@ -127,6 +132,7 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
         StringBuilder result = new(context.Request.Form.Files.Count * 100);
         result.Append('[');
         int fileId = 0;
+
         for (int i = 0; i < context.Request.Form.Files.Count; i++)
         {
             IFormFile formFile = context.Request.Form.Files[i];
@@ -172,7 +178,7 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
                 fileJson.Append('}');
                 logger?.FileUploadFailed(_type, formFile.FileName, formFile.ContentType, formFile.Length, status);
                 result.Append(fileJson);
-                fileId++;
+                if (i < context.Request.Form.Files.Count - 1) result.Append(',');
                 continue;
             }
             if (_stopAfterFirstSuccess is true)
@@ -180,171 +186,72 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
                 _skipFileNames.Add(formFile.FileName);
             }
 
-            using var stream = formFile.OpenReadStream();
-            using var document = SpreadsheetDocument.Open(stream, false);
-
-            Memory<string> stringTableList =
-                (document.WorkbookPart?.SharedStringTablePart?.SharedStringTable ?? [])
-                .Select(item => item.InnerText)
-                .ToArray()
-                .AsMemory();
-
-            FrozenSet<uint> dateFormatStyleIndices = BuildDateFormatCache(document.WorkbookPart?.WorkbookStylesPart?.Stylesheet);
-
-            foreach (var (worksheet, sheetName) in EnumerateWorksheets(document.WorkbookPart, targetSheetName, allSheets))
+            try
             {
-                if (fileId > 0)
+                using var stream = formFile.OpenReadStream();
+                using var reader = ExcelReaderFactory.CreateReader(stream);
+                var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration()
                 {
-                    result.Append(',');
-                }
-
-                var rowMeta = string.Concat(fileJson.ToString(),
-                    ",\"sheet\":",
-                    PgConverters.SerializeDatbaseObject(sheetName));
-
-                if (worksheet is null)
-                {
-                    status = UploadFileStatus.InvalidFormat;
-                    fileJson.Append(",\"success\":false,\"status\":");
-                    fileJson.Append(PgConverters.SerializeString(status.ToString()));
-                    fileJson.Append('}');
-                    result.Append(fileJson);
-                    fileId++;
-                    continue;
-                }
-
-                SheetData? sheetData = worksheet?.Worksheet.GetFirstChild<SheetData>();
-                if (sheetData is null)
-                {
-                    logger?.LogWarning("No worksheet data found in the worksheet.");
-                    status = UploadFileStatus.InvalidFormat;
-                    fileJson.Append(",\"success\":false,\"status\":");
-                    fileJson.Append(PgConverters.SerializeString(status.ToString()));
-                    fileJson.Append('}');
-                    result.Append(fileJson);
-                    fileId++;
-                    continue;
-                }
-
-                int rowIndex = 1;
-                object? commandResult = null;
-                int maxColumnIndexFirstRow = 0;
-
-                foreach (var row in sheetData.Elements<Row>())
-                {
-                    var span = stringTableList.Span;
-                    object? values = null;
-
-                    if (dataAsJson is true)
+                    ConfigureDataTable = _ => new ExcelDataTableConfiguration()
                     {
-                        StringBuilder rowJson = new(100);
-                        rowJson.Append('{');
-                        foreach (var cell in row.Elements<Cell>())
+                        UseHeaderRow = false
+                    }
+                });
+
+                var sheetsToProcess = GetSheetsToProcess(dataSet, targetSheetName, allSheets);
+
+                foreach (var (table, sheetName) in sheetsToProcess)
+                {
+                    if (fileId > 0) result.Append(',');
+
+                    var rowMeta = string.Concat(fileJson.ToString(),
+                        ",\"sheet\":",
+                        PgConverters.SerializeDatbaseObject(sheetName));
+
+                    int rowIndex = 1;
+                    object? commandResult = null;
+
+                    foreach (DataRow row in table.Rows)
+                    {
+                        object? values = null;
+
+                        if (dataAsJson is true)
                         {
-                            if (rowJson.Length > 1)
-                            {
-                                rowJson.Append(',');
-                            }
-                            if (cell.CellReference?.Value is not null)
-                            {
-                                rowJson.Append('"');
-                                rowJson.Append(cell.CellReference?.Value);
-                                rowJson.Append('"');
-                                rowJson.Append(':');
-                                var value = GetCellValue(cell, span, dateFormatStyleIndices);
-                                if (value is null)
-                                {
-                                    rowJson.Append("null");
-                                }
-                                else if (value.Length == 0)
-                                {
-                                    rowJson.Append("\"\"");
-                                }
-                                else
-                                {
-                                    rowJson.Append(PgConverters.SerializeString(value));
-                                }
-                            }
+                            values = SerializeRowAsJson(row);
                         }
-                        rowJson.Append('}');
-                        values = rowJson.ToString();
-                    }
-                    else
-                    {
-                        var cells = row.Elements<Cell>().ToArray();
-                        if (cells.Length > 0)
+                        else
                         {
-                            var maxColumnIndex = GetColumnIndex(cells[^1].CellReference?.Value);
-                            if (rowIndex == 1)
-                            {
-                                maxColumnIndexFirstRow = maxColumnIndex;
-                            }
-                            else
-                            {
-                                if (maxColumnIndexFirstRow > maxColumnIndex)
-                                {
-                                    maxColumnIndex = maxColumnIndexFirstRow;
-                                }
-                            }
-                            if (maxColumnIndex > 0)
-                            {
-                                bool hasNonNull = false;
-                                string?[] array = new string?[maxColumnIndex];
-                                for (int j = 0; j < cells.Length; j++)
-                                {
-                                    var cell = cells[j];
-                                    int columnIndex = GetColumnIndex(cell.CellReference?.Value);
-                                    if (columnIndex > 0 && columnIndex <= maxColumnIndex)
-                                    {
-                                        array[columnIndex - 1] = GetCellValue(cell, span, dateFormatStyleIndices);
-                                        if (array[columnIndex - 1] is not null)
-                                        {
-                                            hasNonNull = true;
-                                        }
-                                    }
-                                }
-                                if (hasNonNull is false)
-                                {
-                                    continue; // Skip empty rows
-                                }
-                                values = array;
-                            }
+                            values = SerializeRowAsArray(row, timeFormat, dateFormat, dateTimeFormat);
                         }
+
+                        if (paramCount >= 1) command.Parameters[0].Value = rowIndex;
+                        if (paramCount >= 2) command.Parameters[1].Value = values;
+                        if (paramCount >= 3) command.Parameters[2].Value = sheetName;
+                        if (paramCount >= 4) command.Parameters[3].Value = rowMeta;
+
+                        commandResult = await command.ExecuteScalarAsync();
+                        rowIndex++;
                     }
 
-                    if (paramCount >= 1)
-                    {
-                        command.Parameters[0].Value = rowIndex;
-                    }
-                    if (paramCount >= 2)
-                    {
-                        command.Parameters[1].Value = values ?? (object)DBNull.Value;
-                    }
-                    if (paramCount >= 3)
-                    {
-                        command.Parameters[2].Value = commandResult ?? DBNull.Value;
-                    }
-                    if (paramCount >= 4)
-                    {
-                        command.Parameters[3].Value = string.Concat(rowMeta, ",\"rowIndex\":", row.RowIndex, '}');
-                    }
-                    commandResult = await command.ExecuteScalarAsync();
+                    var finalJson = string.Concat(rowMeta,
+                        ",\"success\":true,\"rows\":",
+                        rowIndex - 1,
+                        ",\"result\":",
+                        PgConverters.SerializeDatbaseObject(commandResult),
+                        '}');
 
-                    rowIndex++;
+                    result.Append(finalJson);
+                    fileId++;
                 }
-
-                if (options.LogUploadEvent)
-                {
-                    logger?.LogInformation("Uploaded file {fileName} ({contentType}, {length} bytes) from Excel sheet {sheetName} as Excel using command {command}",
-                        formFile.FileName, formFile.ContentType, formFile.Length, sheetName, rowCommand);
-                }
-
-                result.Append(string.Concat(
-                    rowMeta, 
-                    ",\"lastResult\":", 
-                    PgConverters.SerializeDatbaseObject(commandResult),
-                    '}'));
-                fileId++;
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Error processing Excel file {fileName}", formFile.FileName);
+                fileJson.Append(",\"success\":false,\"status\":\"Error\",\"error\":");
+                fileJson.Append(PgConverters.SerializeString(ex.Message));
+                fileJson.Append('}');
+                result.Append(fileJson);
+                if (i < context.Request.Form.Files.Count - 1) result.Append(',');
             }
         }
 
@@ -356,241 +263,122 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
     {
     }
 
-    private IEnumerable<(WorksheetPart? worksheet, string name)> EnumerateWorksheets(
-        WorkbookPart? book, 
-        string? targetSheetName, 
-        bool allSheets)
+    private static IEnumerable<(DataTable table, string name)> GetSheetsToProcess(DataSet dataSet, string? targetSheetName, bool allSheets)
     {
-        if (book?.Workbook.Sheets is null)
+        if (allSheets)
         {
-            yield break;
+            foreach (DataTable table in dataSet.Tables)
+            {
+                yield return (table, table.TableName);
+            }
         }
-        if (allSheets is false)
+        else
         {
             if (string.IsNullOrEmpty(targetSheetName))
             {
-                var worksheet = book?.WorksheetParts.FirstOrDefault();
-                if (worksheet is null)
+                if (dataSet.Tables.Count > 0)
                 {
-                    logger?.LogWarning("No worksheet parts found in the document.");
-                    yield return (null, null!);
-                    yield break; // No worksheets available
+                    yield return (dataSet.Tables[0], dataSet.Tables[0].TableName);
                 }
-                string relationshipId = book!.GetIdOfPart(worksheet);
-
-                string name =
-                    (book.Workbook?.Sheets?.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Id?.Value, relationshipId, StringComparison.Ordinal))?.Name ??
-                    relationshipId ??
-                    "sheet")!;
-                yield return (worksheet, name);
             }
             else
             {
-                var sheet = book.Workbook.Sheets.Elements<Sheet>()
-                    .FirstOrDefault(s => string.Equals(s.Name?.Value, targetSheetName, StringComparison.OrdinalIgnoreCase));
-                if (sheet?.Id?.Value == null)
+                var table = dataSet.Tables[targetSheetName];
+                if (table != null)
                 {
-                    logger?.LogWarning("Sheet {targetSheetName} not found in the document.", targetSheetName);
-                    yield return (null, null!);
-                    yield break; // No worksheets available
+                    yield return (table, targetSheetName);
                 }
-                var worksheetPart = (WorksheetPart?)book.GetPartById(sheet.Id.Value);
-                if (worksheetPart is null)
-                {
-                    logger?.LogWarning("Worksheet part for sheet {targetSheetName} not found in the document.", targetSheetName);
-                    yield return (null, null!);
-                    yield break; // No worksheet part available
-                }
-                yield return (worksheetPart, sheet.Name?.Value ?? targetSheetName);
             }
-        }
-        else foreach (var sheet in book.Workbook?.Sheets?.Elements<Sheet>() ?? [])
-        {
-            if (sheet.Id?.Value == null)
-            {
-                continue;
-            }
-            var worksheetPart = (WorksheetPart?)book.GetPartById(sheet.Id.Value);
-            if (worksheetPart is null)
-            {
-                logger?.LogWarning("Worksheet part for sheet id='{id}' not found in the document.", sheet.Id.Value);
-                yield return (null, null!);
-            }
-            yield return (worksheetPart, sheet.Name?.Value ?? string.Empty);
         }
     }
 
-    private bool IsValidExcelFile(IFormFile formFile)
+    private static bool IsValidExcelFile(IFormFile formFile)
     {
-        using var stream = formFile.OpenReadStream();
         try
         {
-            using var document = SpreadsheetDocument.Open(stream, false);
-
-            if (document.WorkbookPart == null)
-            {
-                return false;
-            }
-            var worksheetParts = document.WorkbookPart.WorksheetParts;
-            if (!worksheetParts.Any())
-            {
-                return false;
-            }
-            var contentType = document.DocumentType;
-            if (contentType != SpreadsheetDocumentType.Workbook &&
-                contentType != SpreadsheetDocumentType.Template &&
-                contentType != SpreadsheetDocumentType.MacroEnabledWorkbook &&
-                contentType != SpreadsheetDocumentType.MacroEnabledTemplate)
-            {
-                return false;
-            }
-            return true;
+            using var stream = formFile.OpenReadStream();
+            using var reader = ExcelReaderFactory.CreateReader(stream);
+            return reader != null;
         }
-        catch (Exception e)
+        catch
         {
-            logger?.LogWarning(e, "Could not open file with Excel handler {fileName}: {message}", formFile.FileName, e.Message);
             return false;
         }
     }
 
-    private string? GetCellValue(Cell cell, Span<string> stringTable, FrozenSet<uint> dateFormatStyleIndices)
+    private static string SerializeRowAsJson(DataRow row)
     {
-        if (cell.CellValue?.Text == null)
+        var sb = new StringBuilder();
+        sb.Append('{');
+        
+        for (int i = 0; i < row.Table.Columns.Count; i++)
         {
-            return null;
-        }
-        string value = cell.CellValue.Text;
-
-        if (cell.DataType?.Value == CellValues.SharedString)
-        {
-            if (int.TryParse(value, out var index))
+            if (i > 0) sb.Append(',');
+            
+            var columnName = GetColumnName(i);
+            var value = row[i];
+            
+            sb.Append('"');
+            sb.Append(columnName);
+            sb.Append("\":");
+            
+            if (value == DBNull.Value)
             {
-                if (index < 0 || index >= stringTable.Length)
-                {
-                    return value;
-                }
-                return stringTable[index];
-            }
-        }
-        else if (cell.DataType?.Value == CellValues.Boolean)
-        {
-            return value;
-        }
-        else if (cell.DataType?.Value == CellValues.Date)
-        {
-            if (double.TryParse(value, out var dateValue))
-            {
-                return DateTime.FromOADate(dateValue).ToString(_dateTimeFormat);
-            }
-        }
-
-        if (cell.DataType == null && double.TryParse(value, out var numericValue))
-        {
-            if (cell.StyleIndex?.Value != null && dateFormatStyleIndices.Contains(cell.StyleIndex.Value))
-            {
-                try
-                {
-                    var dateTime = DateTime.FromOADate(numericValue);
-                    if (numericValue < 1.0)
-                    {
-                        return dateTime.ToString(_timeFormat);
-                    }
-                    else if (numericValue % 1 != 0)
-                    {
-                        return dateTime.ToString(_dateTimeFormat);
-                    }
-                    else
-                    {
-                        return dateTime.ToString(_dateFormat);
-                    }
-                }
-                catch
-                {
-                    return value;
-                }
-            }
-            return value;
-        }
-
-        return value;
-    }
-
-    private static int GetColumnIndex(ReadOnlySpan<char> cellReference)
-    {
-        if (cellReference.IsEmpty)
-        {
-            return 0;
-        }
-        int columnIndex = 0;
-        foreach (char c in cellReference)
-        {
-            if (c >= 'A' && c <= 'Z')
-            {
-                columnIndex = columnIndex * 26 + (c - 'A' + 1);
-            }
-            else if (c >= 'a' && c <= 'z')
-            {
-                columnIndex = columnIndex * 26 + (c - 'a' + 1);
+                sb.Append("null");
             }
             else
             {
-                break; // Hit number portion
+                sb.Append(PgConverters.SerializeString(value.ToString() ?? ""));
             }
         }
-        return columnIndex;
+        
+        sb.Append('}');
+        return sb.ToString();
     }
 
-    private static readonly string[] DateFormatTokens =
-    [
-       "yyyy", "mmmm", "mmm", "am/pm", "mm", "dd", "hh", "ss", "h:", "m:", "s:", "yy"
-    ];
-
-    private static FrozenSet<uint> BuildDateFormatCache(Stylesheet? stylesheet)
+    private static string[] SerializeRowAsArray(DataRow row, string timeFormat, string dateFormat, string dateTimeFormat)
     {
-        var result = new HashSet<uint>();
-        if (stylesheet?.CellFormats == null)
+        var values = new string[row.Table.Columns.Count];
+        
+        for (int i = 0; i < row.ItemArray.Length; i++)
         {
-            return result.ToFrozenSet();
-        }
-        uint styleIndex = 0;
-        Dictionary<uint, NumberingFormat> numberingFormatDict = stylesheet.NumberingFormats?.Elements<NumberingFormat>()
-            .Where(nf => nf.NumberFormatId?.Value != null)
-            .ToDictionary(nf => nf.NumberFormatId!.Value, nf => nf) ?? [];
-        foreach (var cellFormat in stylesheet.CellFormats.Elements<CellFormat>())
-        {
-            if (cellFormat?.NumberFormatId?.Value != null)
+            var value = row[i];
+            if (value == DBNull.Value || value == null)
             {
-                uint numberFormatId = cellFormat.NumberFormatId.Value;
-                if ((numberFormatId >= 14 && numberFormatId <= 22) || (numberFormatId >= 176 && numberFormatId <= 182))
+                values[i] = string.Empty;
+            }
+            else if (value is DateTime dateTime)
+            {
+                if (dateTime.TimeOfDay == TimeSpan.Zero)
                 {
-                    result.Add(styleIndex);
+                    values[i] = dateTime.ToString(dateFormat);
                 }
-                else if (numberFormatId >= 164)
+                else if (dateTime.Date == DateTime.MinValue.Date)
                 {
-                    if (numberingFormatDict.TryGetValue(numberFormatId, out var numberingFormat) && numberingFormat.FormatCode?.Value != null)
-                    {
-                        if (ContainsAnyDateToken(numberingFormat.FormatCode.Value.ToLowerInvariant()))
-                        {
-                            result.Add(styleIndex);
-                        }
-                    }
+                    values[i] = dateTime.ToString(timeFormat);
+                }
+                else
+                {
+                    values[i] = dateTime.ToString(dateTimeFormat);
                 }
             }
-            styleIndex++;
+            else
+            {
+                values[i] = value.ToString() ?? string.Empty;
+            }
         }
-        return result.ToFrozenSet();
+        
+        return values;
     }
 
-    private static bool ContainsAnyDateToken(ReadOnlySpan<char> formatCode)
+    private static string GetColumnName(int columnIndex)
     {
-        for (int i = 0; i < DateFormatTokens.Length; i++)
+        string columnName = "";
+        while (columnIndex >= 0)
         {
-            string? token = DateFormatTokens[i];
-            if (formatCode.Contains(token, StringComparison.Ordinal))
-            {
-                return true;
-            }
+            columnName = (char)('A' + columnIndex % 26) + columnName;
+            columnIndex = columnIndex / 26 - 1;
         }
-        return false;
+        return columnName;
     }
 }

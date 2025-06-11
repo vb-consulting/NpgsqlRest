@@ -50,7 +50,7 @@ public static class Arguments
                 (versions[0], versions[1]),
                 ("Client Build", System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-"),
                 ("System.Text.Json", System.Reflection.Assembly.GetAssembly(typeof(System.Text.Json.JsonCommentHandling))?.GetName()?.Version?.ToString() ?? "-"),
-                ("DocumentFormat.OpenXml", System.Reflection.Assembly.GetAssembly(typeof(DocumentFormat.OpenXml.ByteValue))?.GetName()?.Version?.ToString() ?? "-"),
+                ("ExcelDataReader", System.Reflection.Assembly.GetAssembly(typeof(ExcelDataReader.IExcelDataReader))?.GetName()?.Version?.ToString() ?? "-"),
                 ("Serilog.AspNetCore", System.Reflection.Assembly.GetAssembly(typeof(Serilog.AspNetCore.RequestLoggingOptions))?.GetName()?.Version?.ToString() ?? "-"),
                 ("Npgsql", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlConnection))?.GetName()?.Version?.ToString() ?? "-"),
                 ("NpgsqlRest", System.Reflection.Assembly.GetAssembly(typeof(NpgsqlRestOptions))?.GetName()?.Version?.ToString() ?? "-"),
