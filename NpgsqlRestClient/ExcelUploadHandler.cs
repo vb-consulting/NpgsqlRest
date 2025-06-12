@@ -1,8 +1,4 @@
-using System.Collections.Frozen;
-using System.Data;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
 using ExcelDataReader;
 using Npgsql;
 using NpgsqlRest;
@@ -17,7 +13,6 @@ public class ExcelUploadOptions
     private static readonly ExcelUploadOptions _instance = new();
     public static ExcelUploadOptions Instance => _instance;
 
-    public bool ExcelCheckFileStatus { get; set; } = true;
     public string? ExcelSheetName { get; set; } = null;
     public bool ExcelAllSheets { get; set; } = false;
     public string ExcelTimeFormat { get; set; } = "HH:mm:ss";
@@ -29,20 +24,18 @@ public class ExcelUploadOptions
 
 public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : BaseUploadHandler, IUploadHandler
 {
-    private const string CheckFileParam = "check_excel";
     private const string SheetNameParam = "sheet_name";
     private const string AllSheetsParam = "all_sheets";
     private const string TimeFormatParam = "time_format";
     private const string DateFormatParam = "date_format";
     private const string DateTimeFormatParam = "datetime_format";
-    private const string JsonRowDataParam = "json_row_data";
+    private const string JsonRowDataParam = "row_is_json";
     private const string RowCommandParam = "row_command";
 
     protected override IEnumerable<string> GetParameters()
     {
         yield return IncludedMimeTypeParam;
         yield return ExcludedMimeTypeParam;
-        yield return CheckFileParam;
         yield return SheetNameParam;
         yield return AllSheetsParam;
         yield return TimeFormatParam;
@@ -54,26 +47,23 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
 
     public bool RequiresTransaction => true;
 
+    private string _timeFormat = default!;
+    private string _dateFormat = default!;
+    private string _dateTimeFormat = default!;
+
     public async Task<string> UploadAsync(NpgsqlConnection connection, HttpContext context, Dictionary<string, string>? parameters)
     {
-        // Initialize ExcelDataReader encoding provider
-        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-
-        bool checkFileStatus = ExcelUploadOptions.Instance.ExcelCheckFileStatus;
         string? targetSheetName = ExcelUploadOptions.Instance.ExcelSheetName;
         bool allSheets = ExcelUploadOptions.Instance.ExcelAllSheets;
-        string timeFormat = ExcelUploadOptions.Instance.ExcelTimeFormat;
-        string dateFormat = ExcelUploadOptions.Instance.ExcelDateFormat;
-        string dateTimeFormat = ExcelUploadOptions.Instance.ExcelDateTimeFormat;
         bool dataAsJson = ExcelUploadOptions.Instance.ExcelRowDataAsJson;
         string rowCommand = ExcelUploadOptions.Instance.ExcelUploadRowCommand;
 
+        _timeFormat = ExcelUploadOptions.Instance.ExcelTimeFormat;
+        _dateFormat = ExcelUploadOptions.Instance.ExcelDateFormat;
+        _dateTimeFormat = ExcelUploadOptions.Instance.ExcelDateTimeFormat;
+
         if (parameters is not null)
         {
-            if (TryGetParam(parameters, CheckFileParam, out var checkFileStatusStr) && bool.TryParse(checkFileStatusStr, out var checkFileStatusParsed))
-            {
-                checkFileStatus = checkFileStatusParsed;
-            }
             if (TryGetParam(parameters, SheetNameParam, out var sheetNameStr))
             {
                 targetSheetName = sheetNameStr;
@@ -84,15 +74,15 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             }
             if (TryGetParam(parameters, TimeFormatParam, out var timeFormatStr))
             {
-                timeFormat = timeFormatStr;
+                _timeFormat = timeFormatStr;
             }
             if (TryGetParam(parameters, DateFormatParam, out var dateFormatStr))
             {
-                dateFormat = dateFormatStr;
+                _dateFormat = dateFormatStr;
             }
             if (TryGetParam(parameters, DateTimeFormatParam, out var dateTimeFormatStr))
             {
-                dateTimeFormat = dateTimeFormatStr;
+                _dateTimeFormat = dateTimeFormatStr;
             }
             if (TryGetParam(parameters, JsonRowDataParam, out var dataAsJsonStr) && bool.TryParse(dataAsJsonStr, out var dataAsJsonParsed))
             {
@@ -104,12 +94,10 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             }
         }
 
-        ParseSharedParameters(options, parameters);
-
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for Excel: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
-                _includedMimeTypePatterns, _excludedMimeTypePatterns, checkFileStatus, targetSheetName, allSheets, timeFormat, dateFormat, dateTimeFormat, rowCommand);
+            logger?.LogInformation("Upload for Excel: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
+                _includedMimeTypePatterns, _excludedMimeTypePatterns, targetSheetName, allSheets, _timeFormat, _dateFormat, _dateTimeFormat, rowCommand);
         }
 
         using var command = new NpgsqlCommand(rowCommand, connection);
@@ -163,13 +151,6 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             {
                 status = UploadFileStatus.InvalidMimeType;
             }
-            if (status == UploadFileStatus.Ok && checkFileStatus is true)
-            {
-                if (IsValidExcelFile(formFile) is false)
-                {
-                    status = UploadFileStatus.InvalidFormat;
-                }
-            }
 
             if (status != UploadFileStatus.Ok)
             {
@@ -189,48 +170,61 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
             try
             {
                 using var stream = formFile.OpenReadStream();
-                using var reader = ExcelReaderFactory.CreateReader(stream);
-                var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration()
+                using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
+
+                do
                 {
-                    ConfigureDataTable = _ => new ExcelDataTableConfiguration()
+                    string sheetName = reader.Name;
+
+                    if (allSheets is false && 
+                        string.IsNullOrEmpty(targetSheetName) is false && 
+                        string.Equals(sheetName, targetSheetName, StringComparison.OrdinalIgnoreCase) is false)
                     {
-                        UseHeaderRow = false
+                        continue; // Skip this sheet
                     }
-                });
 
-                var sheetsToProcess = GetSheetsToProcess(dataSet, targetSheetName, allSheets);
-
-                foreach (var (table, sheetName) in sheetsToProcess)
-                {
-                    if (fileId > 0) result.Append(',');
+                    if (fileId > 0)
+                    {
+                        result.Append(',');
+                    }
 
                     var rowMeta = string.Concat(fileJson.ToString(),
                         ",\"sheet\":",
                         PgConverters.SerializeDatbaseObject(sheetName));
 
-                    int rowIndex = 1;
                     object? commandResult = null;
+                    int excelRowIndex = 0, rowIndex = 0;
 
-                    foreach (DataRow row in table.Rows)
+                    while (reader.Read())
                     {
-                        object? values = null;
+                        excelRowIndex++;
+                        object? values = dataAsJson is true ? GetJsonFromReader(reader, excelRowIndex) : GetValuesFromReader(reader);
 
-                        if (dataAsJson is true)
+                        if (values is null)
                         {
-                            values = SerializeRowAsJson(row);
-                        }
-                        else
-                        {
-                            values = SerializeRowAsArray(row, timeFormat, dateFormat, dateTimeFormat);
+                            continue;
                         }
 
-                        if (paramCount >= 1) command.Parameters[0].Value = rowIndex;
-                        if (paramCount >= 2) command.Parameters[1].Value = values;
-                        if (paramCount >= 3) command.Parameters[2].Value = sheetName;
-                        if (paramCount >= 4) command.Parameters[3].Value = rowMeta;
+                        rowIndex++;
+
+                        if (paramCount >= 1)
+                        {
+                            command.Parameters[0].Value = rowIndex;
+                        }
+                        if (paramCount >= 2)
+                        {
+                            command.Parameters[1].Value = values ?? DBNull.Value;
+                        }
+                        if (paramCount >= 3)
+                        {
+                            command.Parameters[2].Value = commandResult ?? DBNull.Value;
+                        }
+                        if (paramCount >= 4)
+                        {
+                            command.Parameters[3].Value = string.Concat(rowMeta, ",\"rowIndex\":", excelRowIndex, '}');
+                        }
 
                         commandResult = await command.ExecuteScalarAsync();
-                        rowIndex++;
                     }
 
                     var finalJson = string.Concat(rowMeta,
@@ -242,16 +236,26 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
 
                     result.Append(finalJson);
                     fileId++;
-                }
+
+                    if (allSheets is false &&
+                        string.IsNullOrEmpty(targetSheetName) is true)
+                    {
+                        break; // Only process the first sheet if not all sheets are requested
+                    }
+
+                } while (reader.NextResult());
             }
             catch (Exception ex)
             {
                 logger?.LogError(ex, "Error processing Excel file {fileName}", formFile.FileName);
-                fileJson.Append(",\"success\":false,\"status\":\"Error\",\"error\":");
-                fileJson.Append(PgConverters.SerializeString(ex.Message));
+                fileJson.Append(",\"success\":false,\"status\":");
+                fileJson.Append(PgConverters.SerializeString(UploadFileStatus.InvalidFormat.ToString()));
                 fileJson.Append('}');
                 result.Append(fileJson);
-                if (i < context.Request.Form.Files.Count - 1) result.Append(',');
+                if (fileId < context.Request.Form.Files.Count - 1)
+                {
+                    result.Append(',');
+                }
             }
         }
 
@@ -263,115 +267,78 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
     {
     }
 
-    private static IEnumerable<(DataTable table, string name)> GetSheetsToProcess(DataSet dataSet, string? targetSheetName, bool allSheets)
+    private string GetJsonFromReader(IExcelDataReader reader, int rowIndex)
     {
-        if (allSheets)
-        {
-            foreach (DataTable table in dataSet.Tables)
-            {
-                yield return (table, table.TableName);
-            }
-        }
-        else
-        {
-            if (string.IsNullOrEmpty(targetSheetName))
-            {
-                if (dataSet.Tables.Count > 0)
-                {
-                    yield return (dataSet.Tables[0], dataSet.Tables[0].TableName);
-                }
-            }
-            else
-            {
-                var table = dataSet.Tables[targetSheetName];
-                if (table != null)
-                {
-                    yield return (table, targetSheetName);
-                }
-            }
-        }
-    }
-
-    private static bool IsValidExcelFile(IFormFile formFile)
-    {
-        try
-        {
-            using var stream = formFile.OpenReadStream();
-            using var reader = ExcelReaderFactory.CreateReader(stream);
-            return reader != null;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static string SerializeRowAsJson(DataRow row)
-    {
-        var sb = new StringBuilder();
+        StringBuilder sb = new(100);
         sb.Append('{');
-        
-        for (int i = 0; i < row.Table.Columns.Count; i++)
+        bool first = true;
+        for (int i = 0; i < reader.FieldCount; i++)
         {
-            if (i > 0) sb.Append(',');
-            
-            var columnName = GetColumnName(i);
-            var value = row[i];
-            
-            sb.Append('"');
-            sb.Append(columnName);
-            sb.Append("\":");
-            
-            if (value == DBNull.Value)
+            if (reader.IsDBNull(i))
             {
-                sb.Append("null");
+                continue; // Skip null values
+            }
+            if (first)
+            {
+                first = false;
             }
             else
             {
-                sb.Append(PgConverters.SerializeString(value.ToString() ?? ""));
+                sb.Append(',');
             }
+            sb.Append('"');
+            sb.Append(GetColumnLetter(i));
+            sb.Append(rowIndex);
+            sb.Append('"');
+            sb.Append(':');
+            sb.Append(PgConverters.SerializeDatbaseObject(GetValueFromReader(reader, i)));
         }
-        
+        if (first)
+        {
+            return null!;
+        }
         sb.Append('}');
         return sb.ToString();
     }
 
-    private static string[] SerializeRowAsArray(DataRow row, string timeFormat, string dateFormat, string dateTimeFormat)
+    private string?[]? GetValuesFromReader(IExcelDataReader reader)
     {
-        var values = new string[row.Table.Columns.Count];
-        
-        for (int i = 0; i < row.ItemArray.Length; i++)
+        var values = new string?[reader.FieldCount];
+        int nullCount = 0;
+        for (int i = 0; i < reader.FieldCount; i++)
         {
-            var value = row[i];
-            if (value == DBNull.Value || value == null)
+            if (reader.IsDBNull(i))
             {
-                values[i] = string.Empty;
-            }
-            else if (value is DateTime dateTime)
-            {
-                if (dateTime.TimeOfDay == TimeSpan.Zero)
-                {
-                    values[i] = dateTime.ToString(dateFormat);
-                }
-                else if (dateTime.Date == DateTime.MinValue.Date)
-                {
-                    values[i] = dateTime.ToString(timeFormat);
-                }
-                else
-                {
-                    values[i] = dateTime.ToString(dateTimeFormat);
-                }
+                values[i] = null;
+                nullCount++;
             }
             else
             {
-                values[i] = value.ToString() ?? string.Empty;
+                values[i] = GetValueFromReader(reader, i);
             }
         }
-        
-        return values;
+        return nullCount == reader.FieldCount ? null : values;
     }
 
-    private static string GetColumnName(int columnIndex)
+    private string? GetValueFromReader(IExcelDataReader reader, int i)
+    {
+        if (reader.GetFieldType(i) == typeof(DateTime))
+        {
+            var date = reader.GetDateTime(i);
+            if (date.TimeOfDay == TimeSpan.Zero)
+            {
+                return date.ToString(_dateFormat);
+            }
+            if (date.Year == 1899 && date.Month == 12 && date.Day == 31)
+            {
+                return date.ToString(_timeFormat);
+            }
+            return date.ToString(_dateTimeFormat);
+        }
+        return reader.GetValue(i)?.ToString();
+    }
+
+    private static string GetColumnLetter(int columnIndex)
     {
         string columnName = "";
         while (columnIndex >= 0)

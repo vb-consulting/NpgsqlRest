@@ -482,7 +482,8 @@ public static class App
 
         if (GetConfigBool("ExcelUploadEnabled", uploadHandlersCfg, true))
         {
-            ExcelUploadOptions.Instance.ExcelCheckFileStatus = GetConfigBool("ExcelCheckFileStatus", uploadHandlersCfg, true);
+            // Initialize ExcelDataReader encoding provider
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             ExcelUploadOptions.Instance.ExcelSheetName = GetConfigStr("ExcelSheetName", uploadHandlersCfg) ?? null;
             ExcelUploadOptions.Instance.ExcelAllSheets = GetConfigBool("ExcelAllSheets", uploadHandlersCfg, false);

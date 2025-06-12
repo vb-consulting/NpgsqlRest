@@ -390,7 +390,25 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
             if (isVoid is false)
             {
-                if (returnsSet == false && columnCount == 1 && returnsRecordType is false)
+                if (endpoint.Upload is true)
+                {
+                    responseName = $"I{pascal}Response";
+                    StringBuilder resp = new();
+
+                    resp.AppendLine($"interface {responseName} {{");
+                    resp.AppendLine("      type: string;");
+                    resp.AppendLine("      fileName: string;");
+                    resp.AppendLine("      contentType: string;");
+                    resp.AppendLine("      size: number;");
+                    resp.AppendLine("      success: boolean;");
+                    resp.AppendLine("      status: string;");
+                    resp.AppendLine("      [key: string]: string | number | boolean;");
+                    resp.AppendLine("}");
+                    resp.AppendLine();
+                    interfaces.Append(resp);
+                    responseName = string.Concat(responseName, "[]");
+                }
+                else if (returnsSet == false && columnCount == 1 && returnsRecordType is false)
                 {
                     var descriptor = columnsTypeDescriptor[0];
                     responseName = GetTsType(descriptor, true);
@@ -630,16 +648,17 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
             if (endpoint.Upload is true)
             {
-                returnExp = returnExp?
-                    .Replace("return ", "")
-                    .Replace(";", "")
-                    .Replace("        ", "                    ")
-                    .Replace("    }", "                }")
-                    .Replace("response.status", "this.status")
-                    .Replace("await response.text()", "this.responseText")
-                    .Replace("await response.json()", "JSON.parse(this.responseText)");
+                //returnExp = returnExp?
+                //    .Replace("return ", "")
+                //    .Replace(";", "")
+                //    .Replace("        ", "                    ")
+                //    .Replace("    }", "                }")
+                //    .Replace("response.status", "this.status")
+                //    .Replace("await response.text()", "this.responseText")
+                //    .Replace("await response.json()", "JSON.parse(this.responseText)");
                 if (options.SkipTypes is false)
                 {
+                    returnExp = $"{{status: this.status, response: JSON.parse(this.responseText) as {responseName}}}";
                     parameters = parameters.Trim('\n', '\r').Replace("RequestInit", "XMLHttpRequest");
                     content.AppendLine(string.Format(
                     """
@@ -674,12 +693,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                 if (this.status >= 200 && this.status < 300) {{
                                     resolve({5});
                                 }} else {{
-                                    reject({{
-                                        xhr: this, 
-                                        status: this.status,
-                                        statusText: this.statusText || 'Request failed',
-                                        response: this.response
-                                    }});
+                                    resolve({{status: this.status, response: this.response}});
                                 }}
                             }};
 
@@ -736,6 +750,8 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }
                 else
                 {
+                    resultType = "{status: number, response: object[] | string}";
+                    returnExp = "{status: this.status, response: JSON.parse(this.responseText)}";
                     parameters = parameters.Trim('\n', '\r');
                     content.AppendLine(string.Format(
                     """
@@ -770,12 +786,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                 if (this.status >= 200 && this.status < 300) {{
                                     resolve({4});
                                 }} else {{
-                                    reject({{
-                                        xhr: this, 
-                                        status: this.status,
-                                        statusText: this.statusText || 'Request failed',
-                                        response: this.response
-                                    }});
+                                    resolve({{status: this.status, response: this.response}});
                                 }}
                             }};
 
