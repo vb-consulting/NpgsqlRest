@@ -1,19 +1,18 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Npgsql;
-using NpgsqlTypes;
-using Microsoft.Extensions.Primitives;
 using Microsoft.AspNetCore.Http.Extensions;
-
-using static System.Net.Mime.MediaTypeNames;
-using static NpgsqlRest.ParameterParser;
-
+using Microsoft.Extensions.Primitives;
+using Npgsql;
 using NpgsqlRest.Auth;
 using NpgsqlRest.UploadHandlers;
 using NpgsqlRest.UploadHandlers.Handlers;
+using NpgsqlTypes;
+using static System.Net.Mime.MediaTypeNames;
+using static NpgsqlRest.ParameterParser;
 
 namespace NpgsqlRest;
 
@@ -1651,31 +1650,38 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         }
         catch (Exception exception)
         {
-            string? sqlState = exception is NpgsqlException npgsqlEx ? npgsqlEx.SqlState : null;
+            if (exception is NpgsqlException npgsqlEx)
+            {
+                string? sqlState = npgsqlEx.SqlState;
 
-            if (options.PostgreSqlErrorCodeToHttpStatusCodeMapping.TryGetValue(sqlState ?? "", out var code))
-            {
-                context.Response.StatusCode = code;
+                if (options.PostgreSqlErrorCodeToHttpStatusCodeMapping.TryGetValue(sqlState ?? "", out var code))
+                {
+                    context.Response.StatusCode = code;
+                }
+                if (options.ReturnNpgsqlExceptionMessage && context.Response.HasStarted is false)
+                {
+                    if (context.Response.StatusCode == 200)
+                    {
+                        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    }
+                    if (context.Response.StatusCode != 205) // 205 forbids writing
+                    {
+                        ReadOnlySpan<char> msg;
+                        if (context.Response.StatusCode == 400)
+                        {
+                            msg = exception.Message.Replace(string.Concat(sqlState, ": "), "").AsSpan();
+                        }
+                        else
+                        {
+                            msg = exception.Message.AsSpan();
+                        }
+                        writer.Advance(Encoding.UTF8.GetBytes(msg, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(msg.Length))));
+                    }
+                }
             }
-            if (options.ReturnNpgsqlExceptionMessage && context.Response.HasStarted is false)
+            else
             {
-                if (context.Response.StatusCode == 200)
-                {
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                }
-                if (context.Response.StatusCode != 205) // 205 forbids writing
-                {
-                    ReadOnlySpan<char> msg;
-                    if (context.Response.StatusCode == 400)
-                    {
-                        msg = exception.Message.Replace(string.Concat(sqlState, ": "), "").AsSpan();
-                    }
-                    else
-                    {
-                        msg = exception.Message.AsSpan();
-                    }
-                    writer.Advance(Encoding.UTF8.GetBytes(msg, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(msg.Length))));
-                }
+                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             }
 
             if (endpoint.Upload is true)
@@ -1683,10 +1689,9 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 uploadHandler?.OnError(connection, context, exception);
             }
 
-            if (context.Response.StatusCode != 200 || context.Response.HasStarted)
+            if (context.Response.StatusCode != 200 && context.Response.StatusCode != 205 && context.Response.StatusCode != 400)
             {
                 logger?.LogError(exception, "Error executing command: {commandText} mapped to endpoint: {Url}", commandText, endpoint.Url);
-                return;
             }
         }
         finally
