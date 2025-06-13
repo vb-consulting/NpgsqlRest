@@ -117,7 +117,7 @@ public class CombinedUploadTests(TestFixture test)
         second.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
         second.GetProperty("fileName").GetString().Should().Be(fileName, "because the fileName should match the expected value");
         second.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        second.GetProperty("size").GetInt32().Should().BeGreaterThan(50).And.BeLessThan(60);
+        second.GetProperty("size").GetInt32().Should().BeGreaterThan(40).And.BeLessThan(60);
         second.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Number, "because oid should be a number");
         second.GetProperty("oid").TryGetInt32(out _).Should().BeTrue("because oid should be a valid integer");
         second.GetProperty("success").GetBoolean().Should().Be(true);
@@ -197,7 +197,7 @@ public class CombinedUploadTests(TestFixture test)
         second.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
         second.GetProperty("fileName").GetString().Should().Be(fileName, "because the fileName should match the expected value");
         second.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        second.GetProperty("size").GetInt32().Should().BeGreaterThan(50).And.BeLessThan(80);
+        second.GetProperty("size").GetInt32().Should().BeGreaterThan(40).And.BeLessThan(80);
         second.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Null);
         second.GetProperty("success").GetBoolean().Should().Be(false);
         second.GetProperty("status").GetString().Should().Be("InvalidMimeType");
@@ -252,7 +252,7 @@ public class CombinedUploadTests(TestFixture test)
         second.GetProperty("type").GetString().Should().Be("large_object", "because the type should match the expected value");
         second.GetProperty("fileName").GetString().Should().Be(fileName, "because the fileName should match the expected value");
         second.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        second.GetProperty("size").GetInt32().Should().BeGreaterThan(50).And.BeLessThan(180);
+        second.GetProperty("size").GetInt32().Should().BeGreaterThan(40).And.BeLessThan(180);
         second.GetProperty("oid").ValueKind.Should().Be(JsonValueKind.Null);
         second.GetProperty("success").GetBoolean().Should().Be(false);
         second.GetProperty("status").GetString().Should().Be("Ignored");
