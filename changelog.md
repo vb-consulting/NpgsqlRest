@@ -4,9 +4,289 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+## Version [2.28.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.28.0) (2025-06-12)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.27.0...2.28.0)
+
+### Core Library
+
+#### Improved error handling.
+
+- All errors are handled properly now. Non-PostgreSQL errors will return 501 and all relevant data will be sent to the default logger.
+
+#### Big Improvements in Upload Handlers
+
+- All Upload Handlers will always return a JSON metadata which will be array of objects. Each object have following signature:
+
+```ts
+interface UploadMetadata {
+  type: string; // handler key: large_object, file_system or csv
+  fileName: string;
+  contentType: string;
+  size: number;
+  success: boolean; // will be true for only for status=Ok
+  status: string; // Empty, ProbablyBinary, InvalidImage, InvalidFormat, NoNewLines, InvalidMimeType, Ignored, Ok
+  [key: string]: string | number | boolean; // depends on a handler type
+}
+```
+
+There are 8 shared parameters:
+
+- `stop_after_first_success`: Set to true to stop the upload after the first succesuful upload when multiple handlers are used. Subsequent files will be ignored (status: `Ignored`). Default is false.
+- `included_mime_types`: CSV string containing mime type patters to include, set to null to ignore. Default is null.
+- `excluded_mime_types`: CSV string containing mime type patters to exclude, set to null to ignore. Default is null.
+- `buffer_size`: Size of a buffer in bytes when uploading a raw content to handlers like `large_object` and `file_system`. Default is null.
+- `check_text`: Boolean value to check is a file a valid textual file or a binary. Set to true to accpet only text file. Default is false.
+- `check_image`: Boolean value to check is a file a valid image. Set to true to accpet only images. It can also be a CSV text with allowed image types, such as `jpg`, `png`, `gif`, `bmp`, `tiff` or `webp`. Default is false.
+- `test_buffer_size`: Buffer size in bytes when checking text files. Default is 4096.
+- `non_printable_threshold`: Maximum count of non prinatble charactes allowed in test buffer to consider a valid text file. Default is 5.
+
+Upload handler `large_object` accepts the following parameters:
+
+- `stop_after_first_success`
+- `included_mime_types`
+- `excluded_mime_types`
+- `buffer_size`
+- `oid`
+- `check_text`
+- `check_image`
+- `test_buffer_size`
+- `non_printable_threshold`
+- `large_object_included_mime_types`
+- `large_object_excluded_mime_types`
+- `large_object_buffer_size`
+- `large_object_oid`
+- `large_object_check_text`
+- `large_object_check_image`
+- `large_object_test_buffer_size`
+- `large_object_non_printable_threshold`
+
+Upload handler `file_system` accepts the following parameters:
+
+- `stop_after_first_success`
+- `included_mime_types`
+- `excluded_mime_types`
+- `buffer_size`
+- `path`
+- `file`
+- `unique_name`
+- `create_path`
+- `check_text`
+- `check_image`
+- `test_buffer_size`
+- `non_printable_threshold`
+- `file_system_included_mime_types`
+- `file_system_excluded_mime_types`
+- `file_system_buffer_size`
+- `file_system_path`
+- `file_system_file`
+- `file_system_unique_name`
+- `file_system_create_path`
+- `file_system_check_text`
+- `file_system_check_image`
+- `file_system_test_buffer_size`
+- `file_system_non_printable_threshold`
+
+Upload handler `csv` accepts the following parameters:
+
+- `stop_after_first_success`
+- `included_mime_types`
+- `excluded_mime_types`
+- `check_format`
+- `test_buffer_size`
+- `non_printable_threshold`
+- `delimiters`
+- `has_fields_enclosed_in_quotes`
+- `set_white_space_to_null`
+- `row_command`
+- `csv_included_mime_types`
+- `csv_excluded_mime_types`
+- `csv_check_format`
+- `csv_test_buffer_size`
+- `csv_non_printable_threshold`
+- `csv_delimiters`
+- `csv_has_fields_enclosed_in_quotes`
+- `csv_set_white_space_to_null`
+- `csv_row_command`
+
+### NpgsqlRest Client
+
+#### Added UseCryptographicAlgorithms option to DataProtection
+
+```jsonc
+{
+  // ...
+
+  //
+  // Data protection settings. Encryption keys for Auth Cookies and Antiforgery tokens.
+  //
+  "DataProtection": {
+
+    // ...
+
+    //
+    // When disabled, data protection keys will be stored in an unencrypted form
+    //
+    "UseCryptographicAlgorithms": {
+      "Enabled": false,
+      // AES_128_CBC, AES_192_CBC, AES_256_CBC, AES_128_GCM, AES_192_GCM, AES_256_GCM
+      "EncryptionAlgorithm": "AES_256_CBC",
+      // HMACSHA256, HMACSHA512
+      "ValidationAlgorithm": "HMACSHA256"
+    }
+  },
+
+  // ...
+}
+```
+
+#### Improved CORS Handling 
+
+- Two more options: `"AllowCredentials": true` and `"PreflightMaxAgeSeconds": 600`
+
+#### Excel Upload Handler 
+
+Excel Upload Handler Implemented only in the Client Application. It is using a lightwieght ExcelDataReader library to handle Excel files.
+
+It can accept any of these parameters:
+
+- `stop_after_first_success`
+- `included_mime_types`
+- `excluded_mime_types`
+- `sheet_name`
+- `all_sheets`
+- `time_format`
+- `date_format`
+- `datetime_format`
+- `row_is_json`
+- `row_command`
+- `excel_included_mime_types`
+- `excel_excluded_mime_types`
+- `excel_sheet_name`
+- `excel_all_sheets`
+- `excel_time_format`
+- `excel_date_format`
+- `excel_datetime_format`
+- `excel_row_is_json`
+- `excel_row_command`
+
+#### New Upload Options
+
+- Defualt configuration now looks like this:
+
+```jsonc
+{
+  // ...
+
+  //
+  // Data protection settings. Encryption keys for Auth Cookies and Antiforgery tokens.
+  //
+  "NpgsqlRest": {
+
+    // ...
+
+    "UploadOptions": {
+      "Enabled": false,
+      "LogUploadEvent": true,
+      "LogUploadParameters": false,
+      //
+      // Handler that will be used when upload handler or handlers are not specified.
+      //
+      "DefaultUploadHandler": "large_object",
+      //
+      // Gets or sets a value indicating whether the default upload metadata parameter should be used.
+      //
+      "UseDefaultUploadMetadataParameter": false,
+      //
+      // Name of the default upload metadata parameter. This parameter is used to pass metadata to the upload handler. The metadata is passed as a JSON object.
+      //
+      "DefaultUploadMetadataParameterName": "_upload_metadata",
+      //
+      // Gets or sets a value indicating whether the default upload metadata context key should be used.
+      //
+      "UseDefaultUploadMetadataContextKey": false,
+      //
+      // Name of the default upload metadata context key. This key is used to pass the metadata to the upload handler. The metadata is passed as a JSON object.
+      //
+      "DefaultUploadMetadataContextKey": "request.upload_metadata",
+      //
+      // Upload handlers specific settings.
+      //
+      "UploadHandlers": {
+        //
+        // General settings for all upload handlers
+        //
+        "StopAfterFirstSuccess": false,
+        // csv string containing mime type patters, set to null to ignore
+        "IncludedMimeTypePatterns": null,
+        // csv string containing mime type patters, set to null to ignore
+        "ExcludedMimeTypePatterns": null,
+        "BufferSize": 8192, // Buffer size for the upload handlers file_system and large_object, in bytes. Default is 8192 bytes (8 KB).
+        "TextTestBufferSize": 4096, // Buffer sample size for testing textual content, in bytes. Default is 4096 bytes (4 KB).
+        "TextNonPrintableThreshold": 5, // Threshold for non-printable characters in the text buffer. Default is 5 non-printable characters.
+        "AllowedImageTypes": "jpeg, png, gif, bmp, tiff, webp", // Comma-separated list of allowed image types when checking images".
+
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uses PostgreSQL Large Objects API
+        //
+        "LargeObjectEnabled": true,
+        "LargeObjectKey": "large_object",
+        "LargeObjectCheckText": false,
+        "LargeObjectCheckImage": false,
+
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uses file system
+        //
+        "FileSystemEnabled": true,
+        "FileSystemKey": "file_system",
+        "FileSystemPath": "/tmp/uploads",
+        "FileSystemUseUniqueFileName": true,
+        "FileSystemCreatePathIfNotExists": true,
+        "FileSystemCheckText": false,
+        "FileSystemCheckImage": false,
+
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uploads CSV files to a row command
+        //
+        "CsvUploadEnabled": true,
+        "CsvUploadCheckFileStatus": true,
+        "CsvUploadDelimiterChars": ",",
+        "CsvUploadHasFieldsEnclosedInQuotes": true,
+        "CsvUploadSetWhiteSpaceToNull": true,
+        //
+        // $1 - row index (1-based), $2 - parsed value text array, $3 - result of previous row command, $4 - json metadata for upload
+        //
+        "CsvUploadRowCommand": "call process_csv_row($1,$2,$3,$4)",
+
+        //
+        // Enables upload handlers for the NpgsqlRest endpoints that uploads Excel files to a row command
+        //
+        "ExcelUploadEnabled": true,
+        "ExcelKey": "excel",
+        "ExcelSheetName": null, // null to use the first available
+        "ExcelAllSheets": false,
+        "ExcelTimeFormat": "HH:mm:ss",
+        "ExcelDateFormat": "yyyy-MM-dd",
+        "ExcelDateTimeFormat": "yyyy-MM-dd HH:mm:ss",
+        "ExcelRowDataAsJson": false,
+        //
+        // $1 - row index (1-based), $2 - parsed value text array, $3 - result of previous row command, $4 - json metadata for upload
+        //
+        "ExcelUploadRowCommand": "call process_excel_row($1,$2,$3,$4)"
+      }
+    },
+
+    // ...
+  },
+
+  // ...
+}
+```
+
+
 ## Version [2.27.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.27.0) (2025-05-19)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.27.0...2.26.0)
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.26.0...2.27.0)
 
 This is a big release that features several important changes.
 
@@ -540,7 +820,7 @@ Breaking change: Comment annotations now support only snake_case naming. This is
 
 ## Version [2.26.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.26.0) (2025-05-11)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.26.0...2.25.0)
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.25.0...2.26.0)
 
 ### Core NpgsqlRest Library
 
@@ -754,7 +1034,7 @@ Also, if endpoint is returning 400 Bad Request due the exception (raise exceptio
 
 ## Version [2.25.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.25.0) (2025-05-06)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.25.0...2.24.0)
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.24.0...2.25.0)
 
 ### Core NpgsqlRest Library
 
@@ -981,7 +1261,7 @@ Content-Disposition: attachment; filename={file}
 
 ## Version [2.24.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.24.0) (2025-04-29)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.24.0...2.23.0)
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.23.0...2.24.0)
 
 ### Core NpgsqlRest Library
 
@@ -997,7 +1277,7 @@ Content-Disposition: attachment; filename={file}
 
 ## Version [2.23.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.23.0) (2025-04-28)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.23.0...2.22.0)
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.22.0...2.23.0)
 
 ### TsClient Plugin Fixes
 

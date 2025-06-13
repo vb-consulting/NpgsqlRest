@@ -125,33 +125,6 @@ Sets the content type header for the response. This uses the header format with 
 
 Example: `content-type: application/json`
 
-## Custom Parameters
-
-```console
-name = value
-```
-
-Any line containing `=` character is interpreted as the parameter name and value where the name is the left side and the value is the right side string. 
-
-For example: `path = ./my_path`
-
-To be custom parameter name, name part must consist of alphanumerics or `_`, `-` characters.
-
-Custom parameters are used in different handlers that execute various code, depending on the request. Currently, only upload handlers are using custom parameters system:
-
-- `large_object` upload handler have following parameters:
-
-1) `oid`: set the custom `oid` number to be used. By default, new `oid` is assigned on each upload.
-2) `buffer_size`: set the custom buffer size. Default is 8192 or 8K buffer size
-
-- `file_system` upload handler have following parameters:
-
-1) `path`: set the custom path for upload. Default is current path `./`
-2) `file`: set the custom file name for upload. Default is whatever name is received in request.
-3) `unique_name`: boolean field that, if true, will automatically set file name to be unique (name is GUID and extension is the same). Can only have true or false values (case insensitive). Default is true.
-4) `create_path`: boolean field that, if true, will check if the path exists, and create it if it doesn't. Can only have true or false values (case insensitive). Default is false.
-5) `buffer_size`: set the custom buffer size. Default is 8192 or 8K buffer size.
-
 ## Disabled
 
 ```console
@@ -482,6 +455,121 @@ user_params
 ```
 
 Enables user parameters for this endpoint. This allows passing additional user-specific parameters to the routine.
+
+# Custom Parameters
+
+```console
+name = value
+```
+
+Any line containing `=` character is interpreted as the parameter name and value where the name is the left side and the value is the right side string. 
+
+For example: `path = ./my_path`
+
+To be a valid custom parameter name, name part must consist of alphanumerics or `_`, `-` characters. Custom parameters are used to set different parameters for the generated endpoint. 
+
+## General Parameters
+
+- `buffer_rows = number`: Sets the buffered amount of rows before they are written to the response for this endpoint.
+- `buffer = number`: Sets the buffered amount of rows before they are written to the response for this endpoint.
+- `columns = true|false`: If set to true, and if the endpoint is in "raw" mode, the endpoint will contain header names.
+- `names = true|false`: If set to true, and if the endpoint is in "raw" mode, the endpoint will contain header names.
+- `column_names = true|false`: If set to true, and if the endpoint is in "raw" mode, the endpoint will contain header names.
+- `connection = name`: Defines an alternative connection name that must exist in the ConnectionStrings dictionary.
+- `connection_name = name`: Defines an alternative connection name that must exist in the ConnectionStrings dictionary.
+- `new_line = character(s)`: Defines the separator between raw value rows when raw mode is enabled.
+- `raw_new_line = character(s)`: Defines the separator between raw value rows when raw mode is enabled.
+- `raw = true|false`: Sets response to "raw" mode where HTTP response is written exactly as received from PostgreSQL.
+- `raw_mode = true|false`: Sets response to "raw" mode where HTTP response is written exactly as received from PostgreSQL.
+- `raw_results = true|false`: Sets response to "raw" mode where HTTP response is written exactly as received from PostgreSQL.
+- `separator = character(s)`: Defines the separator between raw value columns when raw mode is enabled.
+- `raw_separator = character(s)`: Defines the separator between raw value columns when raw mode is enabled.
+
+## Upload Handlers Parameters
+
+### Shared Parameters
+
+- `stop_after_first_success = true|false`: When true, stops processing after the first successful upload handler.
+- `included_mime_types = pattern or csv patterns`: Comma-separated list of MIME type patterns to include for upload processing.
+- `excluded_mime_types = pattern or csv patterns`: Comma-separated list of MIME type patterns to exclude from upload processing.
+
+### LargeObject Upload Handler Parameters
+
+- `buffer_size = number`: Size of the buffer used for reading/writing large object data.
+- `check_text = true|false`: When true, checks if the uploaded content is text format.
+- `check_image = true|false`: When true, checks if the uploaded content is an image format.
+- `test_buffer_size = number`: Size of the buffer used for testing file content type.
+- `non_printable_threshold = number`: Threshold for determining if content contains non-printable characters.
+- `oid = number`: PostgreSQL large object OID to use for storage.
+- `large_object_included_mime_types = pattern or csv patterns`: MIME type patterns to include for large object upload processing.
+- `large_object_excluded_mime_types = pattern or csv patterns`: MIME type patterns to exclude from large object upload processing.
+- `large_object_buffer_size = number`: Buffer size specifically for large object operations.
+- `large_object_oid = number`: Specific PostgreSQL large object OID for this handler.
+- `large_object_check_text = true|false`: Enable text content checking for large object uploads.
+- `large_object_check_image = true|false`: Enable image content checking for large object uploads.
+- `large_object_test_buffer_size = number`: Test buffer size for large object content type detection.
+- `large_object_non_printable_threshold = number`: Non-printable character threshold for large object content.
+
+### FileSystem Upload Handler Parameters
+
+- `buffer_size = number`: Size of the buffer used for reading/writing file system data.
+- `check_text = true|false`: When true, checks if the uploaded content is text format.
+- `check_image = true|false`: When true, checks if the uploaded content is an image format.
+- `test_buffer_size = number`: Size of the buffer used for testing file content type.
+- `non_printable_threshold = number`: Threshold for determining if content contains non-printable characters.
+- `path = name`: File system path where uploaded files will be stored.
+- `file = name`: Specific file name to use for the uploaded content.
+- `unique_name = true|false`: When true, generates unique file names to avoid conflicts.
+- `create_path = true|false`: When true, creates the directory path if it doesn't exist.
+- `file_system_included_mime_types = pattern or csv patterns`: MIME type patterns to include for file system upload processing.
+- `file_system_excluded_mime_types = pattern or csv patterns`: MIME type patterns to exclude from file system upload processing.
+- `file_system_buffer_size = number`: Buffer size specifically for file system operations.
+- `file_system_path = name`: Specific file system path for this handler.
+- `file_system_file = name`: Specific file name for this handler.
+- `file_system_unique_name = true|false`: Enable unique file naming for this handler.
+- `file_system_create_path = true|false`: Enable automatic path creation for this handler.
+- `file_system_check_text = true|false`: Enable text content checking for file system uploads.
+- `file_system_check_image = true|false`: Enable image content checking for file system uploads.
+- `file_system_test_buffer_size = number`: Test buffer size for file system content type detection.
+- `file_system_non_printable_threshold = number`: Non-printable character threshold for file system content.
+
+### CSV Upload Handler Parameters
+
+- `test_buffer_size = number`: Size of the buffer used for testing CSV content type.
+- `non_printable_threshold = number`: Threshold for determining if content contains non-printable characters.
+- `check_format = true|false`: When true, validates the CSV format before processing.
+- `delimiters = character(s)`: Characters used as field delimiters in CSV files (e.g., comma, semicolon).
+- `has_fields_enclosed_in_quotes = true|false`: When true, expects CSV fields to be enclosed in quotes.
+- `set_white_space_to_null = true|false`: When true, converts whitespace-only fields to NULL values.
+- `row_command = command`: SQL command to execute for each CSV row during processing.
+- `csv_included_mime_types = pattern or csv patterns`: MIME type patterns to include for CSV upload processing.
+- `csv_excluded_mime_types = pattern or csv patterns`: MIME type patterns to exclude from CSV upload processing.
+- `csv_check_format = true|false`: Enable CSV format validation for this handler.
+- `csv_test_buffer_size = number`: Test buffer size for CSV content type detection.
+- `csv_non_printable_threshold = number`: Non-printable character threshold for CSV content.
+- `csv_delimiters = character(s)`: Field delimiters specifically for this CSV handler.
+- `csv_has_fields_enclosed_in_quotes = true|false`: Quote handling for this CSV handler.
+- `csv_set_white_space_to_null = true|false`: Whitespace to NULL conversion for this CSV handler.
+- `csv_row_command = command`: Row processing command for this CSV handler.
+
+### Excel Upload Handler Parameters
+
+- `sheet_name = name`: Name of the specific Excel worksheet to process.
+- `all_sheets = true|false`: When true, processes all worksheets in the Excel file.
+- `time_format = format string`: Format string for parsing time values from Excel cells.
+- `date_format = format string`: Format string for parsing date values from Excel cells.
+- `datetime_format = format string`: Format string for parsing datetime values from Excel cells.
+- `row_is_json = true|false`: When true, treats each Excel row as JSON data.
+- `row_command = command`: SQL command to execute for each Excel row during processing.
+- `excel_included_mime_types = pattern or csv patterns`: MIME type patterns to include for Excel upload processing.
+- `excel_excluded_mime_types = pattern or csv patterns`: MIME type patterns to exclude from Excel upload processing.
+- `excel_sheet_name = name`: Specific worksheet name for this Excel handler.
+- `excel_all_sheets = true|false`: Enable processing of all worksheets for this handler.
+- `excel_time_format = format string`: Time format specifically for this Excel handler.
+- `excel_date_format = format string`: Date format specifically for this Excel handler.
+- `excel_datetime_format = format string`: DateTime format specifically for this Excel handler.
+- `excel_row_is_json = true|false`: JSON row processing for this Excel handler.
+- `excel_row_command = command`: Row processing command for this Excel handler.
 
 # Tags
 
