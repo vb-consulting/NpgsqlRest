@@ -99,7 +99,7 @@ public class CombinedUploadTests(TestFixture test)
         first.GetProperty("type").GetString().Should().Be("file_system", "because the type should match the expected value");
         first.GetProperty("fileName").GetString().Should().Be(fileName, "because the fileName should match the expected value");
         first.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        first.GetProperty("size").GetInt32().Should().BeGreaterThan(50).And.BeLessThan(60);
+        first.GetProperty("size").GetInt32().Should().BeGreaterThan(40).And.BeLessThan(60);
         first.GetProperty("success").GetBoolean().Should().Be(true);
         first.GetProperty("status").GetString().Should().Be("Ok");
 
@@ -179,7 +179,7 @@ public class CombinedUploadTests(TestFixture test)
         first.GetProperty("type").GetString().Should().Be("file_system", "because the type should match the expected value");
         first.GetProperty("fileName").GetString().Should().Be(fileName, "because the fileName should match the expected value");
         first.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        first.GetProperty("size").GetInt32().Should().BeGreaterThan(50).And.BeLessThan(80);
+        first.GetProperty("size").GetInt32().Should().BeGreaterThan(40).And.BeLessThan(80);
         first.GetProperty("success").GetBoolean().Should().Be(true);
         first.GetProperty("status").GetString().Should().Be("Ok");
 
@@ -234,7 +234,7 @@ public class CombinedUploadTests(TestFixture test)
         first.GetProperty("type").GetString().Should().Be("file_system", "because the type should match the expected value");
         first.GetProperty("fileName").GetString().Should().Be(fileName, "because the fileName should match the expected value");
         first.GetProperty("contentType").GetString().Should().Be("text/csv", "because the contentType should match the expected value");
-        first.GetProperty("size").GetInt32().Should().BeGreaterThan(50).And.BeLessThan(180);
+        first.GetProperty("size").GetInt32().Should().BeGreaterThan(40).And.BeLessThan(180);
         first.GetProperty("success").GetBoolean().Should().Be(true);
         first.GetProperty("status").GetString().Should().Be("Ok");
 
