@@ -8,7 +8,7 @@ namespace NpgsqlRest.UploadHandlers.Handlers;
 
 public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) : BaseUploadHandler, IUploadHandler
 {
-    private const string CheckFileParam = "check_csv";
+    private const string CheckFileParam = "check_format";
     private const string DelimitersParam = "delimiters";
     private const string HasFieldsEnclosedInQuotesParam = "has_fields_enclosed_in_quotes";
     private const string SetWhiteSpaceToNullParam = "set_white_space_to_null";
