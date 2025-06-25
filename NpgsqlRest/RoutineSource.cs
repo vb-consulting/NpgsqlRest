@@ -87,8 +87,8 @@ public class RoutineSource(
             AddParameter(command, NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
             AddParameter(command, IncludeNames ?? options.IncludeNames, true); // $7
             AddParameter(command, ExcludeNames ?? options.ExcludeNames, true); // $8
-            AddParameter(command, IncludeLanguagues?.Select(l => l.ToLowerInvariant()), true); // $9
-            AddParameter(command, ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues.Select(l => l.ToLowerInvariant()), true); // $10
+            AddParameter(command, IncludeLanguagues, true); // $9
+            AddParameter(command, ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues, true); // $10
 
             connection.Open();
             using NpgsqlDataReader reader = command.ExecuteReader();

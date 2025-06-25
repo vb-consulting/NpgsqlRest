@@ -382,8 +382,9 @@ public static class App
             {
                 source.ExcludeLanguagues = [.. excludeLanguagues];
             }
-            sources.Add(source);
         }
+        sources.Add(source);
+        Logger?.Information("Using {name} PostrgeSQL Source", nameof(RoutineSource));
 
         var crudSourceCfg = NpgsqlRestCfg.GetSection("CrudSource");
         if (crudSourceCfg.Exists() is false || GetConfigBool("Enabled", crudSourceCfg) is false)
@@ -409,7 +410,7 @@ public static class App
             OnConflictDoUpdateUrlPattern = GetConfigStr("OnConflictDoUpdateUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-update",
             OnConflictDoUpdateReturningUrlPattern = GetConfigStr("OnConflictDoUpdateReturningUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-update/returning",
         });
-
+        Logger?.Information("Using {name} PostrgeSQL Source", nameof(CrudSource));
         return sources;
     }
 
