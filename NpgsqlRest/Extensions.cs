@@ -219,4 +219,23 @@ public static class Ext
     {
         return request.GetClientIpAddress() as object ?? DBNull.Value;
     }
+
+    private const string Info = "INFO";
+    private const string Notice = "NOTICE";
+    private const string Warning = "WARNING";
+
+    public static bool IsInfo(this PostgresNotice notice)
+    { 
+        return string.Equals(notice.Severity, Info, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsNotice(this PostgresNotice notice)
+    {
+        return string.Equals(notice.Severity, Notice, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsWarning(this PostgresNotice notice)
+    {
+        return string.Equals(notice.Severity, Warning, StringComparison.OrdinalIgnoreCase);
+    }
 }

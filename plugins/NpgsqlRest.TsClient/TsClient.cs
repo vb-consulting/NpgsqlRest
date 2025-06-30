@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.Tracing;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace NpgsqlRest.TsClient;
@@ -86,13 +87,13 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         if (endpoints.Where(e => e.RequestParamType == RequestParamType.QueryString).Any())
         {
             contentHeader.AppendLine(
-                options.ImportBaseUrlFrom is not null ? 
-                    string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) : 
+                options.ImportBaseUrlFrom is not null ?
+                    string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) :
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
 
             if (options.SkipTypes is false)
             {
-                contentHeader.AppendLine(options.ImportParseQueryFrom is not null ? 
+                contentHeader.AppendLine(options.ImportParseQueryFrom is not null ?
                     string.Format(
                     "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
                     """
@@ -131,6 +132,11 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 options.ImportBaseUrlFrom is not null ?
                     string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) :
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
+        }
+        if (endpoints.Where(e => e.InfoEventsStreamingPath is not null).Any())
+        {
+            contentHeader.AppendLine();
+            contentHeader.AppendLine("const instanceId = window.crypto.randomUUID();");
         }
         if (options.ExportUrls is true)
         {
@@ -558,7 +564,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     }
                     else
                     {
-                        parameters = string.Concat(parameters, "    parseUrl");
+                        parameters = string.Concat(parameters, "    parseUrl = url=>url");
                     }
                 }
                 if (options.IncludeParseRequestParam is true)
@@ -573,7 +579,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     }
                     else
                     {
-                        parameters = string.Concat(parameters, "    parseRequest");
+                        parameters = string.Concat(parameters, "    parseRequest = req=>req");
                     }
                 }
                 parameters = string.Concat(parameters, Environment.NewLine);
@@ -610,6 +616,16 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         endpoint.Url,
                         qs));
                 }
+            }
+            string? createEventSourceFunc = null;
+            if (endpoint.InfoEventsStreamingPath is not null)
+            {
+                createEventSourceFunc = string.Concat("create", pascal, "EventSource");
+                contentHeader.AppendLine(string.Format(
+                    "{0}const {1} = () => new EventSource(baseUrl + \"{2}?\" + instanceId);",
+                    options.ExportEventSources is true ? "export " : "",
+                    createEventSourceFunc,
+                    endpoint.InfoEventsStreamingPath));
             }
 
             if (body is null && bodyParameterName is not null)

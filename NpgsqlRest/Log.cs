@@ -20,8 +20,11 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Warning, Message = "Endpoint {method} {url} changed method to {now} because it is designated as the upload.")]
     public static partial void EndpointMethodChangedUpload(this ILogger logger, string method, string url, string now);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Created endpoint {method} {url}")]
-    public static partial void EndpointCreated(this ILogger logger, string method, string url);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created endpoint {urlInfo}")]
+    public static partial void EndpointCreated(this ILogger logger, string urlInfo);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Endpoint {urlInfo} has INFO notification streaming at path {eventPath}")]
+    public static partial void EndpointInfoStreamingPath(this ILogger logger, string urlInfo, string eventPath);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid URL path segment '{urlPathSegment}' in comment for {description}. Using default '{defaultUrl}'")]
     public static partial void InvalidUrlPathSegmentComment(this ILogger logger, string urlPathSegment, string description, string defaultUrl);
@@ -190,9 +193,6 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER PARAMETERS to TRUE by the comment annotation.")]
     public static partial void CommentUserParameters(this ILogger logger, string description);
-
-
-
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{description} parameter name {param} does not exists in parameter collection either as original or translated name. USER ID could not be set by the comment annotation.")]
     public static partial void CommentWrongUserIdParam(this ILogger logger, string description, string param);

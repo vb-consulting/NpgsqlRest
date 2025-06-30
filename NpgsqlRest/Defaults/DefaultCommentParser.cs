@@ -171,6 +171,13 @@ internal static class DefaultCommentParser
         "param",
     ];
 
+    private static readonly string[] infoEventsStreamingPathKey = [
+        "info_path",
+        "info_streaming_path",
+        "info_events_path",
+        "info_streaming_events_path",
+    ];
+
     public static RoutineEndpoint? Parse(
         Routine routine,
         RoutineEndpoint routineEndpoint,
@@ -1222,6 +1229,10 @@ internal static class DefaultCommentParser
             {
                 endpoint.UseUserParameters = parserUserParameters;
             }
+        }
+        else if (StrEqualsToArray(name, infoEventsStreamingPathKey))
+        {
+            endpoint.InfoEventsStreamingPath = value;
         }
     }
 

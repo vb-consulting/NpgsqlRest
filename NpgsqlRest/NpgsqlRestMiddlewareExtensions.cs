@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Net;
+﻿using System.Net;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace NpgsqlRest;
@@ -36,6 +35,13 @@ public static class NpgsqlRestMiddlewareExtensions
         }
         NpgsqlRestMiddleware.SetOptions(options);
         NpgsqlRestMiddleware.SetServiceProvider(builder.ApplicationServices);
+        bool streamingEventsItialized = false;
+
+        if (NpgsqlRestMiddleware.metadata.HasStreamingEvents is true)
+        {
+            builder.UseMiddleware<NpgsqlRestNoticeEventSource>();
+            streamingEventsItialized = true;
+        }
 
         if (options.RefreshEndpointEnabled)
         {
@@ -53,6 +59,12 @@ public static class NpgsqlRestMiddlewareExtensions
                         NpgsqlRestMiddleware.lookup = NpgsqlRestMiddleware.metadata.Entries.GetAlternateLookup<ReadOnlySpan<char>>();
                         context.Response.StatusCode = (int)HttpStatusCode.OK;
                         await context.Response.CompleteAsync();
+
+                        if (NpgsqlRestMiddleware.metadata.HasStreamingEvents is true && streamingEventsItialized is false)
+                        {
+                            builder.UseMiddleware<NpgsqlRestNoticeEventSource>();
+                            streamingEventsItialized = true;
+                        }
                     }
                     catch (Exception e)
                     {

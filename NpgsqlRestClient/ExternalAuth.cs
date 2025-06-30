@@ -347,7 +347,7 @@ public static class ExternalAuth
         {
             connection.Notice += (sender, args) =>
             {
-                NpgsqlRestLogger.LogConnectionNotice(logger, args, _loggingMode);
+                NpgsqlRestLogger.LogConnectionNotice(logger, args.Notice, _loggingMode);
             };
         }
 

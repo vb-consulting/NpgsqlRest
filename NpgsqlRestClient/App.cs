@@ -321,6 +321,7 @@ public static class App
                 SkipTypes = GetConfigBool("SkipTypes", tsClientCfg),
                 UniqueModels = GetConfigBool("UniqueModels", tsClientCfg),
                 XsrfTokenHeaderName = GetConfigStr("XsrfTokenHeaderName", tsClientCfg),
+                ExportEventSources = GetConfigBool("ExportEventSources", tsClientCfg, true),
             };
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);

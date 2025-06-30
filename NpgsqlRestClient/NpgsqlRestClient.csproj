@@ -25,4 +25,10 @@
     <ProjectReference Include="..\plugins\NpgsqlRest.TsClient\NpgsqlRest.TsClient.csproj" />
   </ItemGroup>
   
+  <ItemGroup>
+    <Folder Include="build\" />
+    <Folder Include="logs\" />
+    <Folder Include="src\" />
+  </ItemGroup>
+  
 </Project>

@@ -22,7 +22,8 @@ public class TsClientOptions(
     bool exportUrls = false,
     bool skipTypes = false,
     bool uniqueModels = false,
-    string? xsrfTokenHeaderName = null)
+    string? xsrfTokenHeaderName = null,
+    bool exportEventSources = true)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -146,4 +147,9 @@ public class TsClientOptions(
     /// Name of the header to use for XSRF token. Set to null to skip.
     /// </summary>
     public string? XsrfTokenHeaderName { get; set; } = xsrfTokenHeaderName;
+
+    /// <summary>
+    /// Export event sources create functions for streaming events.
+    /// </summary>
+    public bool ExportEventSources { get; set; } = exportEventSources;
 }

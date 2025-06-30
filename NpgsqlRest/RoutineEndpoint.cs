@@ -34,7 +34,8 @@ public class RoutineEndpoint(
     string[]? uploadHandlers = null,
     Dictionary<string, string>? customParameters = null,
     bool userContext = false,
-    bool userParameters = false)
+    bool userParameters = false,
+    string? infoEventsStreamingPath = null)
 {
     private string? _bodyParameterName = bodyParameterName;
 
@@ -85,4 +86,5 @@ public class RoutineEndpoint(
     public Dictionary<string, string>? CustomParameters { get; set; } = customParameters;
     public bool UserContext { get; set; } = userContext;
     public bool UseUserParameters { get; set; } = userParameters;
+    public string? InfoEventsStreamingPath { get; set; } = infoEventsStreamingPath;
 }

@@ -179,11 +179,33 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 return;
             }
 
-            if (options.LogConnectionNoticeEvents && logger != null)
+            if ( (options.LogConnectionNoticeEvents && logger != null) || endpoint.InfoEventsStreamingPath is not null)
             {
                 connection.Notice += (sender, args) =>
                 {
-                    NpgsqlRestLogger.LogConnectionNotice(logger, args, options.LogConnectionNoticeEventsMode);
+                    if (options.LogConnectionNoticeEvents && logger != null)
+                    {
+                        NpgsqlRestLogger.LogConnectionNotice(logger, args.Notice, options.LogConnectionNoticeEventsMode);
+                    }
+                    if (args.Notice.IsInfo())
+                    {
+                        if (endpoint.InfoEventsStreamingPath is not null)
+                        {
+                            if (NpgsqlRestNoticeEventSource.Subscribers.TryGetValue(endpoint.InfoEventsStreamingPath, out var broadcast))
+                            {
+                                broadcast.Write(new NoticeEvent(
+                                    args.Notice, 
+                                    endpoint, 
+                                    context.Request.Headers[options.RequestIdHeaderName].FirstOrDefault()));
+                            }
+                            else
+                            {
+                                logger?.LogError(
+                                    "Subscriber broadcast for event path {Path} not found. Ensure that the NpgsqlRestNoticeEventSource is configured properly..",
+                                    endpoint.InfoEventsStreamingPath);
+                            }
+                        }
+                    }
                 };
             }
             await using var command = NpgsqlRestCommand.Create(connection);
