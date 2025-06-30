@@ -70,6 +70,8 @@ var logConnectionNoticeEventsMode = GetConfigEnum<PostgresConnectionNoticeLoggin
 //var (paramHandler, defaultParser) = CreateParametersHandlers();
 var (authenticationOptions, authCfg) = CreateNpgsqlRestAuthenticationOptions();
 
+ConfigureThreadPool();
+
 NpgsqlRestOptions options = new()
 {
     DataSource = dataSource,

@@ -508,4 +508,39 @@ public static class App
         }
         return result!;
     }
+
+    public static void ConfigureThreadPool()
+    {
+        var threadPoolCfg = Cfg.GetSection("ThreadPool");
+        if (threadPoolCfg.Exists() is false)
+        {
+            return;
+        }
+
+        var minWorkerThreads = GetConfigInt("MinWorkerThreads", threadPoolCfg);
+        var minCompletionPortThreads = GetConfigInt("MinCompletionPortThreads", threadPoolCfg);
+        if (minWorkerThreads is not null || minCompletionPortThreads is not null)
+        {
+            if (minWorkerThreads is null || minCompletionPortThreads is null)
+            {
+                ThreadPool.GetMinThreads(out var minWorkerThreadsTmp, out var minCompletionPortThreadsTmp);
+                minWorkerThreads ??= minWorkerThreadsTmp;
+                minCompletionPortThreads ??= minCompletionPortThreadsTmp;
+            }
+            ThreadPool.SetMinThreads(workerThreads: minWorkerThreads.Value, completionPortThreads: minCompletionPortThreads.Value);
+        }
+
+        var maxWorkerThreads = GetConfigInt("MaxWorkerThreads", threadPoolCfg);
+        var maxCompletionPortThreads = GetConfigInt("MaxCompletionPortThreads", threadPoolCfg);
+        if (maxWorkerThreads is not null || maxCompletionPortThreads is not null)
+        {
+            if (maxWorkerThreads is null || maxCompletionPortThreads is null)
+            {
+                ThreadPool.GetMaxThreads(out var maxWorkerThreadsTmp, out var maxCompletionPortThreadsTmp);
+                maxWorkerThreads ??= maxWorkerThreadsTmp;
+                maxCompletionPortThreads ??= maxCompletionPortThreadsTmp;
+            }
+            ThreadPool.SetMaxThreads(workerThreads: maxWorkerThreads.Value, completionPortThreads: maxCompletionPortThreads.Value);
+        }
+    }
 }
