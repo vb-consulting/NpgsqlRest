@@ -45,10 +45,26 @@ public static class Builder
         Instance.WebHost.UseKestrelCore();
 
         var kestrelConfig = Cfg.GetSection("Kestrel");
-        Instance.WebHost.ConfigureKestrel((context, options) =>
+        if (kestrelConfig is not null && kestrelConfig.Exists())
         {
-            options.Configure(Cfg.GetSection("Kestrel"));
-        });
+            Instance.WebHost.ConfigureKestrel((context, options) =>
+            {
+                options.Configure(kestrelConfig);
+
+                options.DisableStringReuse = GetConfigBool("DisableStringReuse", kestrelConfig, options.DisableStringReuse);
+                options.AllowAlternateSchemes = GetConfigBool("AllowAlternateSchemes", kestrelConfig, options.AllowAlternateSchemes);
+                options.AllowSynchronousIO = GetConfigBool("AllowSynchronousIO", kestrelConfig, options.AllowSynchronousIO);
+                options.AllowResponseHeaderCompression = GetConfigBool("AllowResponseHeaderCompression", kestrelConfig, options.AllowResponseHeaderCompression);
+                options.AddServerHeader = GetConfigBool("AddServerHeader", kestrelConfig, options.AddServerHeader);
+                options.AllowHostHeaderOverride = GetConfigBool("AllowSynchronousIO", kestrelConfig, options.AllowHostHeaderOverride);
+
+                var limitsSection = kestrelConfig.GetSection("Limits");
+                if (limitsSection.Exists())
+                {
+                    limitsSection.Bind(options.Limits);
+                }
+            });
+        }
 
         var urls = GetConfigStr("Urls");
         if (urls is not null)
