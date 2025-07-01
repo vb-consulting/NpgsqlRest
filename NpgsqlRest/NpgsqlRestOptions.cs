@@ -329,5 +329,10 @@ public class NpgsqlRestOptions
     /// <summary>
     /// Name of the request ID header that will be used to track requests. This is used to correlate requests with streaming connection ids.
     /// </summary>
-    public string RequestIdHeaderName { get; set; } = "X-Request-ID";
+    public string ExecutionIdHeaderName { get; set; } = "X-NpgsqlRest-ID";
+
+    /// <summary>
+    /// Collection of custom server-sent events response headers that will be added to the response when connected to the endpoint that is configured to return server-sent events.
+    /// </summary>
+    public Dictionary<string, StringValues> CustomServerSentEventsResponseHeaders { get; set; } = [];
 }

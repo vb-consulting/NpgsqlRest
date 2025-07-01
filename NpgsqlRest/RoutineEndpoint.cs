@@ -35,7 +35,9 @@ public class RoutineEndpoint(
     Dictionary<string, string>? customParameters = null,
     bool userContext = false,
     bool userParameters = false,
-    string? infoEventsStreamingPath = null)
+    string? infoEventsStreamingPath = null,
+    InfoEventsScope infoEventsScope = InfoEventsScope.Self,
+    HashSet<string>? infoEventsRoles = null)
 {
     private string? _bodyParameterName = bodyParameterName;
 
@@ -87,4 +89,6 @@ public class RoutineEndpoint(
     public bool UserContext { get; set; } = userContext;
     public bool UseUserParameters { get; set; } = userParameters;
     public string? InfoEventsStreamingPath { get; set; } = infoEventsStreamingPath;
+    public InfoEventsScope InfoEventsScope { get; set; } = infoEventsScope;
+    public HashSet<string>? InfoEventsRoles { get; set; } = infoEventsRoles;
 }

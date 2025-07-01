@@ -114,6 +114,8 @@ NpgsqlRestOptions options = new()
     AuthenticationOptions = authenticationOptions,
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
     CustomRequestHeaders = GetCustomHeaders(),
+    ExecutionIdHeaderName = GetConfigStr("ExecutionIdHeaderName", NpgsqlRestCfg) ?? "X-NpgsqlRest-ID",
+    CustomServerSentEventsResponseHeaders = GetCustomServerSentEventsResponseHeaders(),
 
     RoutineSources = CreateRoutineSources(),
     RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),

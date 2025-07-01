@@ -741,4 +741,14 @@ public static class Builder
         }
         return result;
     }
+
+    public static Dictionary<string, StringValues> GetCustomServerSentEventsResponseHeaders()
+    {
+        var result = new Dictionary<string, StringValues>();
+        foreach (var section in NpgsqlRestCfg.GetSection("CustomServerSentEventsResponseHeaders").GetChildren())
+        {
+            result.Add(section.Key, section.Value);
+        }
+        return result;
+    }
 }

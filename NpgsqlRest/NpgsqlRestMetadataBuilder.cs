@@ -132,7 +132,9 @@ public static class NpgsqlRestMetadataBuilder
                             endpoint.Url.EndsWith('/') ? endpoint.Url[..^1] : endpoint.Url , "/", 
                             endpoint.InfoEventsStreamingPath.StartsWith('/') ? endpoint.InfoEventsStreamingPath[1..] : endpoint.InfoEventsStreamingPath);
                     }
-                    NpgsqlRestNoticeEventSource.Subscribers.Add(endpoint.InfoEventsStreamingPath, new Broadcast<NoticeEvent>());
+
+                    NpgsqlRestNoticeEventSource.Paths.Add(endpoint.InfoEventsStreamingPath);
+
                     if (hasStreamingEvents is false)
                     {
                         hasStreamingEvents = true;
@@ -187,11 +189,6 @@ public static class NpgsqlRestMetadataBuilder
                 app.Lifetime.ApplicationStopping.Register(() =>
                 {
                     RoutineCache.Shutdown();
-
-                    foreach (var subscriber in NpgsqlRestNoticeEventSource.Subscribers.Values)
-                    {
-                        subscriber.Dispose();
-                    }
                 });
             }
         }
