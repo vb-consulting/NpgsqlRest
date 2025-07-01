@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest.Defaults;
@@ -173,9 +174,20 @@ internal static class DefaultCommentParser
 
     private static readonly string[] infoEventsStreamingPathKey = [
         "info_path",
-        "info_streaming_path",
         "info_events_path",
-        "info_streaming_events_path",
+        "info_streaming_path"
+    ];
+
+    private static readonly string[] infoEventsStreamingScopeKey = [
+        "info_scope",
+        "info_events_scope",
+        "info_streaming_scope",
+    ];
+
+    private static readonly string[] infoEventsStreamingRolesKey = [
+        "info_roles",
+        "info_events_roles",
+        "info_streaming_roles",
     ];
 
     public static RoutineEndpoint? Parse(
@@ -252,7 +264,7 @@ internal static class DefaultCommentParser
                     {
                         routineEndpoint.CustomParamsNeedParsing = true;
                     }
-                    SetCustomParameter(routineEndpoint, customParamName, customParamValue);
+                    SetCustomParameter(routineEndpoint, customParamName, customParamValue, logger);
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentSetCustomParemeter(description, customParamName, customParamValue);
@@ -1164,20 +1176,20 @@ internal static class DefaultCommentParser
         return routineEndpoint;
     }
 
-    public static void SetCustomParameter(RoutineEndpoint endpoint, string name, string value)
+    public static void SetCustomParameter(RoutineEndpoint endpoint, string name, string value, ILogger? logger)
     {
         value = Regex.Unescape(value);
-        if (endpoint.CustomParameters is null)
-        {
-            endpoint.CustomParameters = new()
-            {
-                [name] = value
-            };
-        }
-        else
-        {
-            endpoint.CustomParameters[name] = value;
-        }
+        //if (endpoint.CustomParameters is null)
+        //{
+        //    endpoint.CustomParameters = new()
+        //    {
+        //        [name] = value
+        //    };
+        //}
+        //else
+        //{
+        //    endpoint.CustomParameters[name] = value;
+        //}
 
         if (StrEqualsToArray(name, bufferRowsKey))
         {
@@ -1233,6 +1245,54 @@ internal static class DefaultCommentParser
         else if (StrEqualsToArray(name, infoEventsStreamingPathKey))
         {
             endpoint.InfoEventsStreamingPath = value;
+        }
+
+        else if (StrEqualsToArray(name, infoEventsStreamingScopeKey))
+        {
+            if (Enum.TryParse<InfoEventsScope>(value, true, out var parsedScope))
+            {
+                endpoint.InfoEventsScope = parsedScope;
+            }
+            else
+            {
+                logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.", 
+                    name, string.Join(", ", Enum.GetNames<InfoEventsScope>()), value);
+            }
+        }
+
+        else if (StrEqualsToArray(name, infoEventsStreamingRolesKey))
+        {
+            var words = value.SplitWords();
+            if (words.Length > 0)
+            {
+                endpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var word in words)
+                {
+                    if (string.IsNullOrWhiteSpace(word) is false)
+                    {
+                        endpoint.InfoEventsRoles.Add(word);
+                    }
+                }
+            }
+            else
+            {
+                logger?.LogError("Could not recognize valid value for parameter key {key}. Value should be a comma-separated list of roles.", name);
+            }
+        }
+
+        else
+        {
+            if (endpoint.CustomParameters is null)
+            {
+                endpoint.CustomParameters = new()
+                {
+                    [name] = value
+                };
+            }
+            else
+            {
+                endpoint.CustomParameters[name] = value;
+            }
         }
     }
 
