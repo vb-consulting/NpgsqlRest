@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.Tracing;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -9,6 +10,12 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
     private IApplicationBuilder _builder = default!;
     private ILogger? _logger;
     private NpgsqlRestOptions? _npgsqlRestoptions;
+
+    private const string Module = "tsclient";
+    private const string InfoEvents = "tsclient_events";
+    private const string IncludeParseUrl = "tsclient_parse_url";
+    private const string IncludeParseRequest = "tsclient_parse_request";
+    private const string IncludeStatusCode = "tsclient_status_code";
 
     public TsClient(string filePath) : this(new TsClientOptions(filePath)) { }
 
@@ -78,25 +85,39 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         {
             return;
         }
+
+        RoutineEndpoint[] filtered = [.. endpoints.Where(e => e.CustomParameters.ParameterEnabled(Module) is not false)];
+
         Dictionary<string, string> modelsDict = [];
         Dictionary<string, int> names = [];
         StringBuilder contentHeader = new();
         StringBuilder content = new();
         StringBuilder interfaces = new();
 
-        if (endpoints.Where(e => e.RequestParamType == RequestParamType.QueryString).Any())
+        foreach (var import in options.CustomImports ?? [])
+        {
+            contentHeader.AppendLine(import);
+        }
+
+        if (filtered.Where(e => e.RequestParamType == RequestParamType.QueryString).Any())
         {
             contentHeader.AppendLine(
                 options.ImportBaseUrlFrom is not null ?
                     string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) :
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
 
-            if (options.SkipTypes is false)
+            bool haveParseQuery = filtered
+                .Where(e => e.RequestParamType == RequestParamType.QueryString && e.Routine.ParamCount > 0)
+                .Any();
+
+            if (haveParseQuery is true)
             {
-                contentHeader.AppendLine(options.ImportParseQueryFrom is not null ?
-                    string.Format(
-                    "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
-                    """
+                if (options.SkipTypes is false)
+                {
+                    contentHeader.AppendLine(options.ImportParseQueryFrom is not null ?
+                        string.Format(
+                        "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
+                        """
                     const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
                         .map(key => {
                             const value = (query[key] != null ? query[key] : "") as string;
@@ -107,13 +128,13 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         })
                         .join("&");
                     """);
-            }
-            else
-            {
-                contentHeader.AppendLine(options.ImportParseQueryFrom is not null ?
-                    string.Format(
-                    "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
-                    """
+                }
+                else
+                {
+                    contentHeader.AppendLine(options.ImportParseQueryFrom is not null ?
+                        string.Format(
+                        "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
+                        """
                     const parseQuery = query => "?" + Object.keys(query)
                         .map(key => {
                             const value = query[key] != null ? query[key] : "";
@@ -124,6 +145,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         })
                         .join("&");
                     """);
+                }
             }
         }
         else
@@ -133,18 +155,13 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     string.Format("import {{ baseUrl }} from \"{0}\";", options.ImportBaseUrlFrom) :
                     string.Format("const baseUrl = \"{0}\";", GetHost()));
         }
-        if (endpoints.Where(e => e.InfoEventsStreamingPath is not null).Any())
-        {
-            contentHeader.AppendLine();
-            contentHeader.AppendLine("const instanceId = window.crypto.randomUUID();");
-        }
         if (options.ExportUrls is true)
         {
             contentHeader.AppendLine();
         }
 
         bool handled = false;
-        foreach (var endpoint in endpoints
+        foreach (var endpoint in filtered
             .Where(e => e.Routine.Type == RoutineType.Table || e.Routine.Type == RoutineType.View)
             .OrderBy(e => e.Routine.Schema)
             .ThenBy(e => e.Routine.Type)
@@ -156,7 +173,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             }
         }
 
-        foreach (var endpoint in endpoints
+        foreach (var endpoint in filtered
             .Where(e => (e.Routine.Type == RoutineType.Table || e.Routine.Type == RoutineType.View) is false)
             .OrderBy(e => e.Routine.Schema)
             .ThenBy(e => e.Routine.Name))
@@ -169,6 +186,13 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
 
         if (handled is false)
         {
+            if (filtered.Length == 0 && options.FileOverwrite is true)
+            {
+                if (File.Exists(fileName))
+                {
+                    File.WriteAllText(fileName, content.ToString());
+                }
+            }
             return;
         }
 
@@ -237,6 +261,15 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         bool Handle(RoutineEndpoint endpoint)
         {
             Routine routine = endpoint.Routine;
+            var eventsStreamingEnabled = endpoint.InfoEventsStreamingPath is not null;
+            if (endpoint.CustomParameters.ParameterEnabled(InfoEvents) is false)
+            {
+                eventsStreamingEnabled = false;
+            }
+            var includeParseUrlParam = endpoint.CustomParameters.ParameterEnabled(IncludeParseUrl) ?? options.IncludeParseUrlParam;
+            var includeParseRequestParam = endpoint.CustomParameters.ParameterEnabled(IncludeParseRequest) ?? options.IncludeParseRequestParam;
+            var includeStatusCode = endpoint.CustomParameters.ParameterEnabled(IncludeStatusCode) ?? options.IncludeStatusCode;
+
             if (options.SkipRoutineNames.Contains(routine.Name))
             {
                 return false;
@@ -378,7 +411,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             string? returnExp = null;
             string GetReturnExp(string responseExp)
             {
-                if (options.IncludeStatusCode)
+                if (includeStatusCode)
                 {
                     //return string.Concat("return {status: response.status, response: ", responseExp, "};");
                     return string.Concat(
@@ -513,7 +546,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             }
             else
             {
-                if (options.IncludeStatusCode)
+                if (includeStatusCode)
                 {
                     returnExp = "return response.status;";
                 }
@@ -522,8 +555,43 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             string NewLine(string? input, int ident) =>
                 input is null ? "" : string.Concat(Environment.NewLine, string.Concat(Enumerable.Repeat("    ", ident)), input);
 
-            var headers = json ?
-                @"headers: { ""Content-Type"": ""application/json"" }," : null;
+            Dictionary<string, string> headersDict = [];
+            if (json)
+            {
+                headersDict.Add("Content-Type", "\"application/json\"");
+            }
+            if (eventsStreamingEnabled is true && _npgsqlRestoptions?.ExecutionIdHeaderName is not null)
+            {
+                headersDict.Add(_npgsqlRestoptions.ExecutionIdHeaderName, "executionId");
+            }
+            if (options.CustomHeaders.Count > 0)
+            {
+                foreach (var header in options.CustomHeaders)
+                {
+                    if (string.IsNullOrEmpty(header.Value))
+                    {
+                        headersDict.Remove(header.Key);
+                    }
+                    else
+                    {
+                        headersDict[header.Key] = header.Value;
+                    }
+                }
+            }
+            /*
+            string? headers;
+            if (eventsStreamingEnabled is false)
+            {
+                headers = json ?
+                    @"headers: { ""Content-Type"": ""application/json"" }," : null;
+            }
+            else
+            {
+                headers = json ?
+                    $"headers: {{ \"Content-Type\": \"application/json\", \"{_npgsqlRestoptions?.ExecutionIdHeaderName}\": executionId }}," :
+                    $"headers: {{ \"{_npgsqlRestoptions?.ExecutionIdHeaderName}\": executionId }},";
+            }
+            */
 
             var body = endpoint.RequestParamType == RequestParamType.BodyJson && requestName is not null ?
                 @"body: JSON.stringify(request)" : null;
@@ -533,68 +601,99 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     $" + parseQuery((({{ [\"{bodyParameterName}\"]: _, ...rest }}) => rest)(request))" ) : 
                 "";
 
-            string parameters = "";
-            if (options.IncludeParseUrlParam is false && options.IncludeParseRequestParam is false)
+            string? parameters = null;
+
+            if (requestName is not null) 
             {
-                parameters = requestName is null ? "" : string.Concat("request: ", requestName);
+                if (string.IsNullOrEmpty(parameters) is false)
+                {
+                    parameters = string.Concat(parameters, ",", Environment.NewLine);
+                }
+                else
+                {
+                    parameters = string.Concat(parameters, Environment.NewLine);
+                }
+                if (options.SkipTypes is false)
+                {
+                    parameters = string.Concat(parameters, "    request: ", requestName);
+                }
+                else
+                {
+                    parameters = string.Concat(parameters, "    request");
+                }
             }
-            else
+            if (eventsStreamingEnabled)
             {
-                parameters = string.Concat(parameters, Environment.NewLine);
-                if (requestName is not null) 
+                if (string.IsNullOrEmpty(parameters) is false)
                 {
-                    if (options.SkipTypes is false)
-                    {
-                        parameters = string.Concat(parameters, "    request: ", requestName);
-                    }
-                    else
-                    {
-                        parameters = string.Concat(parameters, "    request");
-                    }
+                    parameters = string.Concat(parameters, ",", Environment.NewLine);
                 }
-                if (options.IncludeParseUrlParam is true)
+                else
                 {
-                    if (requestName is not null)
-                    {
-                        parameters = string.Concat(parameters, ",", Environment.NewLine);
-                    }
-                    if (options.SkipTypes is false)
-                    {
-                        parameters = string.Concat(parameters, "    parseUrl: (url: string) => string = url=>url");
-                    }
-                    else
-                    {
-                        parameters = string.Concat(parameters, "    parseUrl = url=>url");
-                    }
+                    parameters = string.Concat(parameters, Environment.NewLine);
                 }
-                if (options.IncludeParseRequestParam is true)
+                if (options.SkipTypes is false)
                 {
-                    if (requestName is not null || options.IncludeParseUrlParam is true)
-                    {
-                        parameters = string.Concat(parameters, ",", Environment.NewLine);
-                    }
-                    if (options.SkipTypes is false)
-                    {
-                        parameters = string.Concat(parameters, "    parseRequest: (request: RequestInit) => RequestInit = request=>request");
-                    }
-                    else
-                    {
-                        parameters = string.Concat(parameters, "    parseRequest = req=>req");
-                    }
+                    parameters = string.Concat(parameters, "    info: (message: string) => void = msg => msg");
                 }
+                else
+                {
+                    parameters = string.Concat(parameters, "    info = msg => msg");
+                }
+            }
+            if (includeParseUrlParam is true)
+            {
+                if (string.IsNullOrEmpty(parameters) is false)
+                {
+                    parameters = string.Concat(parameters, ",", Environment.NewLine);
+                }
+                else
+                {
+                    parameters = string.Concat(parameters, Environment.NewLine);
+                }
+                if (options.SkipTypes is false)
+                {
+                    parameters = string.Concat(parameters, "    parseUrl: (url: string) => string = url => url");
+                }
+                else
+                {
+                    parameters = string.Concat(parameters, "    parseUrl = url => url");
+                }
+            }
+            if (includeParseRequestParam is true)
+            {
+                if (string.IsNullOrEmpty(parameters) is false)
+                {
+                    parameters = string.Concat(parameters, ",", Environment.NewLine);
+                }
+                else
+                {
+                    parameters = string.Concat(parameters, Environment.NewLine);
+                }
+                if (options.SkipTypes is false)
+                {
+                    parameters = string.Concat(parameters, "    parseRequest: (request: RequestInit) => RequestInit = request => request");
+                }
+                else
+                {
+                    parameters = string.Concat(parameters, "    parseRequest = request => request");
+                }
+            }
+            if (string.IsNullOrEmpty(parameters) is false)
+            {
                 parameters = string.Concat(parameters, Environment.NewLine);
             }
 
             string url;
             if (options.ExportUrls is false)
             {
-                url = options.IncludeParseUrlParam is true ?
+                url = includeParseUrlParam is true ?
                     string.Format("parseUrl(baseUrl + \"{0}\"{1})", endpoint.Url, qs) :
                     string.Format("baseUrl + \"{0}\"{1}", endpoint.Url, qs);
             }
             else
             {
-                url = options.IncludeParseUrlParam is true ?
+                url = includeParseUrlParam is true ?
                     (requestName is not null && body is null ? string.Format("parseUrl({0}Url(request))", camel) : string.Format("parseUrl({0}Url())", camel)) :
                     (requestName is not null && body is null ? string.Format("{0}Url(request)", camel) : string.Format("{0}Url()", camel));
 
@@ -618,14 +717,15 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }
             }
             string? createEventSourceFunc = null;
-            if (endpoint.InfoEventsStreamingPath is not null)
+            if (eventsStreamingEnabled)
             {
                 createEventSourceFunc = string.Concat("create", pascal, "EventSource");
                 contentHeader.AppendLine(string.Format(
-                    "{0}const {1} = () => new EventSource(baseUrl + \"{2}?\" + instanceId);",
-                    options.ExportEventSources is true ? "export " : "",
-                    createEventSourceFunc,
-                    endpoint.InfoEventsStreamingPath));
+                    "{0}const {1} = {2} => new EventSource(baseUrl + \"{3}?\" + id);",
+                    options.ExportEventSources is true ? "export " : "", //0
+                    createEventSourceFunc, //1
+                    options.SkipTypes ? "(id = \"\")" : "(id: string = \"\")", //2
+                    endpoint.InfoEventsStreamingPath)); //3
             }
 
             if (body is null && bodyParameterName is not null)
@@ -633,49 +733,80 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 body = $"body: request.{bodyParameterName}";
             }
 
-            var funcBody = string.Format(
-                """
-                {0}await fetch({1}, {2}{{
-                    method: "{3}",{4}{5}
-                }}{6});{7}
-            """,
-                isVoid && options.IncludeStatusCode is false ? "" : "const response = ",//0
-                url,//1
-                options.IncludeParseRequestParam ? "parseRequest(" : "",//2
-                endpoint.Method,//3
-                NewLine(headers, 2),//4
-                NewLine(body, 2),//5
-                options.IncludeParseRequestParam ? ")" : "",//6
-                NewLine(returnExp, 1));//7
-
             string resultType;
             if (string.Equals(responseName, "void", StringComparison.OrdinalIgnoreCase))
             {
-                resultType = options.IncludeStatusCode ?
+                resultType = includeStatusCode ?
                     "number" :
                     responseName;
             }
             else
             {
-                resultType = options.IncludeStatusCode ?
+                resultType = includeStatusCode ?
                     string.Concat("{status: number, response: ", responseName, (responseName == "string" ? "" : " | string"), "}") :
                     responseName;
             }
 
             if (endpoint.Upload is true)
             {
-                //returnExp = returnExp?
-                //    .Replace("return ", "")
-                //    .Replace(";", "")
-                //    .Replace("        ", "                    ")
-                //    .Replace("    }", "                }")
-                //    .Replace("response.status", "this.status")
-                //    .Replace("await response.text()", "this.responseText")
-                //    .Replace("await response.json()", "JSON.parse(this.responseText)");
+                string onloadExp;
+                if (isVoid is false)
+                {
+                    onloadExp =string.Format(
+                        """
+                            xhr.onload = function () {{
+                                if (this.status >= 200 && this.status < 300) {{
+                                    resolve({0});
+                                }} else {{
+                                    resolve({{status: this.status, response: this.response}});
+                                }}
+                            }};
+                    """, returnExp);
+                }
+                else
+                {
+                    onloadExp =
+                    """
+                            xhr.onload = function () {
+                                resolve(this.status);
+                            };
+                    """;
+                }
+                string sendExp;
+                if (eventsStreamingEnabled)
+                {
+                    sendExp = string.Format(
+                    """
+                            const eventSource = {0}(executionId);
+                            eventSource.onmessage = {1} => {{
+                                info(event.data);
+                            }};
+                            try {{
+                                xhr.send(formData);
+                            }}
+                            finally {{
+                                setTimeout(() => eventSource.close(), 1000);
+                            }}
+                    """,
+                    createEventSourceFunc, // 0
+                    options.SkipTypes ? "event" : "(event: MessageEvent)"); // 1;
+                }
+                else
+                {
+                    sendExp =
+                    """
+                            xhr.send(formData);
+                    """;
+                }
+                string? headers = null;
+                if (headersDict.Count > 0)
+                {
+                    headers = string.Join("", headersDict.Select(h => NewLine($"xhr.setRequestHeader({Quote(h.Key)}, {h.Value});", 2)));
+                }
                 if (options.SkipTypes is false)
                 {
                     returnExp = $"{{status: this.status, response: JSON.parse(this.responseText) as {responseName}}}";
-                    parameters = parameters.Trim('\n', '\r').Replace("RequestInit", "XMLHttpRequest");
+                    parameters = (parameters ?? "").Trim('\n', '\r').Replace("RequestInit", "XMLHttpRequest");
                     content.AppendLine(string.Format(
                     """
                     /**
@@ -691,8 +822,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                 reject(new Error("No files to upload"));
                                 return;
                             }}
-                            var xhr = new XMLHttpRequest();
-
+                            var xhr = new XMLHttpRequest();{11}
                             if (progress) {{
                                 xhr.upload.addEventListener(
                                     "progress",
@@ -703,16 +833,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                     }},
                                     false
                                 );
-                            }}
-
-                            xhr.onload = function () {{
-                                if (this.status >= 200 && this.status < 300) {{
-                                    resolve({5});
-                                }} else {{
-                                    resolve({{status: this.status, response: this.response}});
-                                }}
-                            }};
-
+                            }}{5}
                             xhr.onerror = function () {{
                                 reject({{
                                     xhr: this, 
@@ -721,17 +842,12 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                     response: this.response
                                 }});
                             }};
-
-                            xhr.open("POST", {6});
-
+                            xhr.open("POST", {6});{10}{7}
                             const formData = new FormData();
                             for(let i = 0; i < files.length; i++) {{
                                 const file = files[i];
                                 formData.append("file", file, file.name);
-                            }}
-                    {7}
-                    {8}
-                            xhr.send(formData);
+                            }}{8}{9}
                         }});
                     }}
                     """,
@@ -743,15 +859,15 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         {0}    xsrfToken?: string
                         """, Environment.NewLine) : "", //3
                         resultType,//4
-                        returnExp,//5
+                        NewLine(onloadExp, 0),//5
                         url,//6
                         options.XsrfTokenHeaderName is not null ?
-                        string.Format("""
+                        NewLine(string.Format("""
                                 if (xsrfToken) {{
                                     xhr.setRequestHeader("{0}", xsrfToken);
                                 }}
-                        """, options.XsrfTokenHeaderName) : "", //7
-                        options.IncludeParseRequestParam is true ?
+                        """, options.XsrfTokenHeaderName), 0) : "", //7
+                        includeParseRequestParam is true ? NewLine(
                         """
                                 if (parseRequest) {
                                     const modifiedXhr = parseRequest(xhr);
@@ -761,14 +877,17 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                         console.warn('parseRequest did not return an XMLHttpRequest object');
                                     }
                                 }
-                        """ : "" //8
+                        """, 0) : "", //8
+                        NewLine(sendExp, 0), //9
+                        headers, //10
+                        eventsStreamingEnabled ? NewLine("const executionId = window.crypto.randomUUID();", 2) : "" //11
                      ));
                 }
                 else
                 {
                     resultType = "{status: number, response: object[] | string}";
                     returnExp = "{status: this.status, response: JSON.parse(this.responseText)}";
-                    parameters = parameters.Trim('\n', '\r');
+                    parameters = (parameters ?? "").Trim('\n', '\r');
                     content.AppendLine(string.Format(
                     """
                     /**
@@ -784,8 +903,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                 reject(new Error("No files to upload"));
                                 return;
                             }}
-                            var xhr = new XMLHttpRequest();
-
+                            var xhr = new XMLHttpRequest();{10}
                             if (progress) {{
                                 xhr.upload.addEventListener(
                                     "progress",
@@ -796,16 +914,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                     }},
                                     false
                                 );
-                            }}
-
-                            xhr.onload = function () {{
-                                if (this.status >= 200 && this.status < 300) {{
-                                    resolve({4});
-                                }} else {{
-                                    resolve({{status: this.status, response: this.response}});
-                                }}
-                            }};
-
+                            }}{4}
                             xhr.onerror = function () {{
                                 reject({{
                                     xhr: this, 
@@ -814,17 +923,12 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                     response: this.response
                                 }});
                             }};
-
-                            xhr.open("POST", {5});
-
+                            xhr.open("POST", {5});{9}{6}
                             const formData = new FormData();
                             for(let i = 0; i < files.length; i++) {{
                                 const file = files[i];
                                 formData.append("file", file, file.name);
-                            }}
-                    {6}
-                    {7}
-                            xhr.send(formData);
+                            }}{7}{8}
                         }});
                     }}
                     """,
@@ -835,15 +939,15 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         string.Format("""
                         {0}    xsrfToken
                         """, Environment.NewLine) : "", //3
-                        returnExp,//4
+                        NewLine(onloadExp, 0),//4
                         url,//5
                         options.XsrfTokenHeaderName is not null ?
-                        string.Format("""
+                        NewLine(string.Format("""
                                 if (xsrfToken) {{
                                     xhr.setRequestHeader("{0}", xsrfToken);
                                 }}
-                        """, options.XsrfTokenHeaderName) : "", //6
-                        options.IncludeParseRequestParam is true ?
+                        """, options.XsrfTokenHeaderName), 0) : "", //6
+                        includeParseRequestParam is true ? NewLine(
                         """
                                 if (parseRequest) {
                                     const modifiedXhr = parseRequest(xhr);
@@ -853,13 +957,73 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                                         console.warn('parseRequest did not return an XMLHttpRequest object');
                                     }
                                 }
-                        """ : "" //7
+                        """, 0) : "", //7
+                        NewLine(sendExp, 0),//8
+                        headers, //9
+                        eventsStreamingEnabled ? NewLine("const executionId = window.crypto.randomUUID();", 2) : "" //10
                      ));
 
                 }
             }
             else
             {
+                string funcBody;
+                string? headers = null;
+                if (eventsStreamingEnabled is true)
+                {
+                    if (headersDict.Count > 0)
+                    {
+                        headers = "headers: {" + string.Join(", ", headersDict.Select(h => NewLine($"{Quote(h.Key)}: {h.Value}", 4))) + NewLine("},", 3);
+                    }
+                    funcBody = string.Format(
+                    """
+                    const executionId = window.crypto.randomUUID();
+                    const eventSource = {0}(executionId);
+                    eventSource.onmessage = {1} => {{
+                        info(event.data);
+                    }};
+                    try {{
+                        {2}await fetch({3}, {4}{{
+                            method: "{5}",{6}{7}
+                        }}{8});{9}
+                    }}
+                    finally {{
+                        setTimeout(() => eventSource.close(), 1000);
+                    }}
+                """,
+                    createEventSourceFunc, // 0
+                    options.SkipTypes ? "event" : "(event: MessageEvent)", // 1
+                    isVoid && includeStatusCode is false ? "" : "const response = ",//2
+                    url,//3
+                    includeParseRequestParam ? "parseRequest(" : "",//4
+                    endpoint.Method,//5
+                    NewLine(headers, 3),//6
+                    NewLine(body, 3),//7
+                    includeParseRequestParam ? ")" : "",//8
+                    NewLine(returnExp, 2));//9
+                }
+                else
+                {
+                    if (headersDict.Count > 0)
+                    {
+                        headers = "headers: {" + string.Join(", ", headersDict.Select(h => NewLine($"{Quote(h.Key)}: {h.Value}", 3))) + NewLine("},", 2);
+                    }
+                    funcBody = string.Format(
+                    """
+                    {0}await fetch({1}, {2}{{
+                        method: "{3}",{4}{5}
+                    }}{6});{7}
+                """,
+                    isVoid && includeStatusCode is false ? "" : "const response = ",//0
+                    url,//1
+                    includeParseRequestParam ? "parseRequest(" : "",//2
+                    endpoint.Method,//3
+                    NewLine(headers, 2),//4
+                    NewLine(body, 2),//5
+                    includeParseRequestParam ? ")" : "",//6
+                    NewLine(returnExp, 1));//7
+                }
+
                 if (options.SkipTypes is false)
                 {
                     content.AppendLine(string.Format(
@@ -870,7 +1034,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 export async function {1}({2}) : Promise<{3}> {{
                 {4}
                 """,
-                        GetComment(routine, parameters, resultType), // 0
+                        GetComment(routine, parameters ?? "", resultType), // 0
                         camel, // 1
                         parameters,  // 2
                         resultType,  // 3
@@ -887,7 +1051,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 export async function {1}({2}) {{
                 {3}
                 """,
-                        GetComment(routine, parameters, resultType),
+                        GetComment(routine, parameters ?? "", resultType),
                         camel,
                         parameters,
                         funcBody));
@@ -1110,6 +1274,22 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
         // default, assumed host
         host ??= "http://localhost:5000";
         return host;
+    }
+
+    public string Quote(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return name;
+        }
+        if (!( 
+            (name.StartsWith('"') && name.StartsWith('"')) || 
+            (name.StartsWith('\'') && name.StartsWith('\''))
+            ))
+        {
+            return $"\"{name}\"";
+        }
+        return name;
     }
 
     [GeneratedRegex("^[^a-zA-Z_$]")]

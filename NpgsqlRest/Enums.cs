@@ -87,7 +87,7 @@ public enum InfoEventsScope
     Matching,
 
     /// <summary>
-    /// All authorized sessions (ignoring specific roles)
+    /// All authorized sessions
     /// </summary>
     Authenticated,
 

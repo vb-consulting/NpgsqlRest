@@ -23,7 +23,9 @@ public class TsClientOptions(
     bool skipTypes = false,
     bool uniqueModels = false,
     string? xsrfTokenHeaderName = null,
-    bool exportEventSources = true)
+    bool exportEventSources = true,
+    string[]? customImports = null,
+    Dictionary<string, string>? customHeaders = null)
 {
     /// <summary>
     /// File path for the generated code. Set to null to skip the code generation. Use {0} to set schema name when BySchema is true
@@ -152,4 +154,14 @@ public class TsClientOptions(
     /// Export event sources create functions for streaming events.
     /// </summary>
     public bool ExportEventSources { get; set; } = exportEventSources;
+
+    /// <summary>
+    /// List if custom imports to add to the generated code. It adds line to a file. Use full expression like `import { MyType } from './my-type';`
+    /// </summary>
+    public string[] CustomImports { get; set; } = customImports ?? [];
+
+    /// <summary>
+    /// List if custom headers to add to the each request in generated code. Header key is automatically quoted if it doesn't contain quotes.
+    /// </summary>
+    public Dictionary<string, string> CustomHeaders { get; set; } = customHeaders ?? [];
 }

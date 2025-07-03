@@ -223,4 +223,13 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set USER CLAIMS to {param} by the comment annotation.")]
     public static partial void CommentUserClaimsParam(this ILogger logger, string description, string param);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set INFO EVENTS STREAMING PATH to {path} by the comment annotation.")]
+    public static partial void CommentInfoStreamingPath(this ILogger logger, string description, string? path);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set INFO EVENTS STREAMING SCOPE to {scope} by the comment annotation.")]
+    public static partial void CommentInfoStreamingScope(this ILogger logger, string description, InfoEventsScope scope);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set INFO EVENTS STREAMING SCOPE to AUTHENTICATED with roles {roles} by the comment annotation.")]
+    public static partial void CommentInfoStreamingScopeRoles(this ILogger logger, string description, HashSet<string> roles);
 }

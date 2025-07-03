@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 
@@ -182,12 +183,6 @@ internal static class DefaultCommentParser
         "info_scope",
         "info_events_scope",
         "info_streaming_scope",
-    ];
-
-    private static readonly string[] infoEventsStreamingRolesKey = [
-        "info_roles",
-        "info_events_roles",
-        "info_streaming_roles",
     ];
 
     public static RoutineEndpoint? Parse(
@@ -473,6 +468,8 @@ internal static class DefaultCommentParser
 
                 // authorize
                 // requires_authorization
+                // authorize [ role1, role2, role3 [, ...] ]
+                // requires_authorization [ role1, role2, role3 [, ...] ]
                 else if (haveTag is true && StrEqualsToArray(words[0], authorizeKey))
                 {
                     routineEndpoint.RequiresAuthorization = true;
@@ -1158,6 +1155,57 @@ internal static class DefaultCommentParser
                         }
                     }
                 }
+
+                // info_path [ true | false | path ]
+                // info_events_path [ true | false | path ]
+                // info_streaming_path [ true |false | path ]
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], infoEventsStreamingPathKey))
+                {
+                    if (bool.TryParse(words[1], out var parseredStreamingPath))
+                    {
+                        if (parseredStreamingPath is true)
+                        {
+                            routineEndpoint.InfoEventsStreamingPath = Consts.DefaultInfoPath;
+                        }
+                    }
+                    else
+                    {
+                        routineEndpoint.InfoEventsStreamingPath = words[1];
+                    }
+                    logger?.CommentInfoStreamingPath(description, routineEndpoint.InfoEventsStreamingPath);
+                }
+
+                // info_scope [ [ self | matching | authenticated | all ] | [ authenticated [ role1, role2, role3 [, ...] ] ] ] 
+                // info_events_scope [ [ self | matching | authenticated | all ] | [ authenticated [ role1, role2, role3 [, ...] ] ] ] 
+                // info_streaming_scope [ [ self | matching | authenticated | all ] | [ authenticated [ role1, role2, role3 [, ...] ] ] ] 
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], infoEventsStreamingScopeKey))
+                {
+                    if (words.Length > 1 && Enum.TryParse<InfoEventsScope>(words[1], true, out var parsedScope))
+                    {
+                        routineEndpoint.InfoEventsScope = parsedScope;
+                        if (parsedScope == InfoEventsScope.Authenticated && words.Length > 2)
+                        {
+                            routineEndpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var word in words[2..])
+                            {
+                                if (string.IsNullOrWhiteSpace(word) is false)
+                                {
+                                    routineEndpoint.InfoEventsRoles.Add(word);
+                                }
+                            }
+                            logger?.CommentInfoStreamingScopeRoles(description, routineEndpoint.InfoEventsRoles);
+                        }
+                        else
+                        {
+                            logger?.CommentInfoStreamingScope(description, routineEndpoint.InfoEventsScope);
+                        }
+                    }
+                    else
+                    {
+                        logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.",
+                            words[0], string.Join(", ", Enum.GetNames<InfoEventsScope>()), line);
+                    }
+                }
             }
             if (disabled)
             {
@@ -1179,17 +1227,6 @@ internal static class DefaultCommentParser
     public static void SetCustomParameter(RoutineEndpoint endpoint, string name, string value, ILogger? logger)
     {
         value = Regex.Unescape(value);
-        //if (endpoint.CustomParameters is null)
-        //{
-        //    endpoint.CustomParameters = new()
-        //    {
-        //        [name] = value
-        //    };
-        //}
-        //else
-        //{
-        //    endpoint.CustomParameters[name] = value;
-        //}
 
         if (StrEqualsToArray(name, bufferRowsKey))
         {
@@ -1242,41 +1279,44 @@ internal static class DefaultCommentParser
                 endpoint.UseUserParameters = parserUserParameters;
             }
         }
+
         else if (StrEqualsToArray(name, infoEventsStreamingPathKey))
         {
-            endpoint.InfoEventsStreamingPath = value;
+            if (bool.TryParse(value, out var parseredStreamingPath))
+            {
+                if (parseredStreamingPath is true)
+                {
+                    endpoint.InfoEventsStreamingPath = Consts.DefaultInfoPath;
+                }
+            }
+            else
+            {
+                endpoint.InfoEventsStreamingPath = value;
+            }
         }
 
         else if (StrEqualsToArray(name, infoEventsStreamingScopeKey))
         {
-            if (Enum.TryParse<InfoEventsScope>(value, true, out var parsedScope))
+            var words = value.SplitWords();
+            if (words.Length > 0 && Enum.TryParse<InfoEventsScope>(words[0], true, out var parsedScope))
             {
                 endpoint.InfoEventsScope = parsedScope;
-            }
-            else
-            {
-                logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.", 
-                    name, string.Join(", ", Enum.GetNames<InfoEventsScope>()), value);
-            }
-        }
-
-        else if (StrEqualsToArray(name, infoEventsStreamingRolesKey))
-        {
-            var words = value.SplitWords();
-            if (words.Length > 0)
-            {
-                endpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var word in words)
+                if (parsedScope == InfoEventsScope.Authenticated && words.Length > 1)
                 {
-                    if (string.IsNullOrWhiteSpace(word) is false)
+                    endpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var word in words[1..])
                     {
-                        endpoint.InfoEventsRoles.Add(word);
+                        if (string.IsNullOrWhiteSpace(word) is false)
+                        {
+                            endpoint.InfoEventsRoles.Add(word);
+                        }
                     }
                 }
             }
             else
             {
-                logger?.LogError("Could not recognize valid value for parameter key {key}. Value should be a comma-separated list of roles.", name);
+                logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.", 
+                    name, string.Join(", ", Enum.GetNames<InfoEventsScope>()), value);
             }
         }
 
@@ -1310,10 +1350,17 @@ internal static class DefaultCommentParser
         return false;
     }
 
-    private static string[] SplitWords(this string str) => [.. str
-        .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
-        .Select(x => x.Trim().ToLowerInvariant())
-    ];
+    private static string[] SplitWords(this string str)
+    {
+        if (str is null)
+        {
+            return [];
+        }
+        return [.. str
+            .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim().ToLowerInvariant())
+        ];
+    }
 
     private static bool SplitBySeparatorChar(string str, char sep, out string part1, out string part2)
     {

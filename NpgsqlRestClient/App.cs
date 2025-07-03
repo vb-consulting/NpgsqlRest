@@ -322,7 +322,19 @@ public static class App
                 UniqueModels = GetConfigBool("UniqueModels", tsClientCfg),
                 XsrfTokenHeaderName = GetConfigStr("XsrfTokenHeaderName", tsClientCfg),
                 ExportEventSources = GetConfigBool("ExportEventSources", tsClientCfg, true),
+                CustomImports = GetConfigEnumerable("CustomImports", tsClientCfg)?.ToArray() ?? [],
             };
+
+            Dictionary<string, string> customHeaders = [];
+            foreach (var section in tsClientCfg.GetSection("CustomHeaders").GetChildren())
+            {
+                if (section?.Value is null)
+                {
+                    continue;
+                }
+                customHeaders.Add(section.Key, section.Value!);
+            }
+            ts.CustomHeaders = customHeaders;
 
             var headerLines = GetConfigEnumerable("HeaderLines", tsClientCfg);
             if (headerLines is not null)

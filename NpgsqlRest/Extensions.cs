@@ -238,4 +238,36 @@ public static class Ext
     {
         return string.Equals(notice.Severity, Warning, StringComparison.OrdinalIgnoreCase);
     }
+
+    public static bool? ParameterEnabled(this Dictionary<string, string>? parameters, string key)
+    {
+        if (parameters is null || parameters.Count == 0)
+        {
+            return null;
+        }
+        if (parameters.TryGetValue(key, out var value))
+        {
+            // Check for "off" values
+            if (string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "off", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "disabled", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "disable", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "0", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // Check for "on" values
+            if (string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "on", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "enabled", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "enable", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "1", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            return null;
+        }
+        return null;
+    }
 }
