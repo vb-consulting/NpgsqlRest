@@ -1,4 +1,6 @@
-﻿using Npgsql;
+﻿using Microsoft.AspNetCore.Routing;
+using Npgsql;
+using NpgsqlRest.Defaults;
 
 namespace NpgsqlRest;
 
@@ -50,29 +52,59 @@ public class NpgsqlRestNoticeEventSource(RequestDelegate next)
         {
             await foreach (var noticeEvent in reader.ReadAllAsync(cancellationToken))
             {
-                if (noticeEvent.Endpoint?.InfoEventsScope == InfoEventsScope.Self)
+                var endpoint = noticeEvent.Endpoint;
+                var scope = noticeEvent.Endpoint?.InfoEventsScope;
+                var infoEventsRoles = endpoint?.InfoEventsRoles;
+
+                if (string.IsNullOrEmpty(noticeEvent.Notice.Hint) is false)
+                {
+                    string hint = noticeEvent.Notice.Hint;
+                    var words = hint.SplitWords();
+                    if (words is not null && words.Length > 0 && Enum.TryParse<InfoEventsScope>(words[0], true, out var parsedScope))
+                    {
+                        scope = parsedScope;
+                        if (scope == InfoEventsScope.Authorize && words.Length > 1)
+                        {
+                            infoEventsRoles  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var word in words[1..])
+                            {
+                                if (string.IsNullOrWhiteSpace(word) is false)
+                                {
+                                    infoEventsRoles.Add(word);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        NpgsqlRestMiddleware.Logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.",
+                            words?[0], string.Join(", ", Enum.GetNames<InfoEventsScope>()), hint);
+                    }
+                }
+
+                if (scope == InfoEventsScope.Self)
                 {
                     if (string.Equals(noticeEvent.ExecutionId, executionId, StringComparison.Ordinal) is false)
                     {
                         continue; // Skip events not matching the current execution ID
                     }
                 }
-                else if (noticeEvent.Endpoint?.InfoEventsScope == InfoEventsScope.Matching)
+                else if (scope == InfoEventsScope.Matching)
                 {
                     if (context.User?.Identity?.IsAuthenticated is false && 
-                        (noticeEvent.Endpoint.RequiresAuthorization is true || noticeEvent.Endpoint.AuthorizeRoles is not null))
+                        (endpoint?.RequiresAuthorization is true || endpoint?.AuthorizeRoles is not null))
                     {
                         continue; // Skip events for unauthorized users
                     }
 
-                    if (noticeEvent.Endpoint.AuthorizeRoles is not null)
+                    if (endpoint?.AuthorizeRoles is not null)
                     {
                         bool ok = false;
                         foreach (var claim in context.User?.Claims ?? [])
                         {
                             if (string.Equals(claim.Type, NpgsqlRestMiddleware.Options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal))
                             {
-                                if (noticeEvent.Endpoint.AuthorizeRoles.Contains(claim.Value) is true)
+                                if (endpoint?.AuthorizeRoles.Contains(claim.Value) is true)
                                 {
                                     ok = true;
                                     break;
@@ -85,21 +117,21 @@ public class NpgsqlRestNoticeEventSource(RequestDelegate next)
                         }
                     }
                 }
-                else if (noticeEvent.Endpoint?.InfoEventsScope == InfoEventsScope.Authenticated)
+                else if (scope == InfoEventsScope.Authorize)
                 {
                     if (context.User?.Identity?.IsAuthenticated is false)
                     {
                         continue; // Skip events for unauthorized users
                     }
 
-                    if (noticeEvent.Endpoint.InfoEventsRoles is not null)
+                    if (infoEventsRoles is not null)
                     {
                         bool ok = false;
                         foreach (var claim in context.User?.Claims ?? [])
                         {
                             if (string.Equals(claim.Type, NpgsqlRestMiddleware.Options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal))
                             {
-                                if (noticeEvent.Endpoint.InfoEventsRoles.Contains(claim.Value) is true)
+                                if (infoEventsRoles.Contains(claim.Value) is true)
                                 {
                                     ok = true;
                                     break;

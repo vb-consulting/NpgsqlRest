@@ -1,6 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using System.Xml.Linq;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 
 namespace NpgsqlRest.Defaults;
@@ -1183,7 +1181,7 @@ internal static class DefaultCommentParser
                     if (words.Length > 1 && Enum.TryParse<InfoEventsScope>(words[1], true, out var parsedScope))
                     {
                         routineEndpoint.InfoEventsScope = parsedScope;
-                        if (parsedScope == InfoEventsScope.Authenticated && words.Length > 2)
+                        if (parsedScope == InfoEventsScope.Authorize && words.Length > 2)
                         {
                             routineEndpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             foreach (var word in words[2..])
@@ -1301,7 +1299,7 @@ internal static class DefaultCommentParser
             if (words.Length > 0 && Enum.TryParse<InfoEventsScope>(words[0], true, out var parsedScope))
             {
                 endpoint.InfoEventsScope = parsedScope;
-                if (parsedScope == InfoEventsScope.Authenticated && words.Length > 1)
+                if (parsedScope == InfoEventsScope.Authorize && words.Length > 1)
                 {
                     endpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var word in words[1..])
@@ -1336,9 +1334,9 @@ internal static class DefaultCommentParser
         }
     }
 
-    private static bool StrEquals(string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
+    public static bool StrEquals(string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
 
-    private static bool StrEqualsToArray(string str, params string[] arr)
+    public static bool StrEqualsToArray(string str, params string[] arr)
     {
         for (var i = 0; i < arr.Length; i++)
         {
@@ -1350,7 +1348,7 @@ internal static class DefaultCommentParser
         return false;
     }
 
-    private static string[] SplitWords(this string str)
+    public static string[] SplitWords(this string str)
     {
         if (str is null)
         {
@@ -1362,7 +1360,7 @@ internal static class DefaultCommentParser
         ];
     }
 
-    private static bool SplitBySeparatorChar(string str, char sep, out string part1, out string part2)
+    public static bool SplitBySeparatorChar(string str, char sep, out string part1, out string part2)
     {
         part1 = null!;
         part2 = null!;

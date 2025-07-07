@@ -89,7 +89,7 @@ public enum InfoEventsScope
     /// <summary>
     /// All authorized sessions
     /// </summary>
-    Authenticated,
+    Authorize,
 
     /// <summary>
     /// All connected sessions regardless of authorization
