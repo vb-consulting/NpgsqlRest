@@ -1174,9 +1174,9 @@ internal static class DefaultCommentParser
                     logger?.CommentInfoStreamingPath(description, routineEndpoint.InfoEventsStreamingPath);
                 }
 
-                // info_scope [ [ self | matching | authenticated | all ] | [ authenticated [ role1, role2, role3 [, ...] ] ] ] 
-                // info_events_scope [ [ self | matching | authenticated | all ] | [ authenticated [ role1, role2, role3 [, ...] ] ] ] 
-                // info_streaming_scope [ [ self | matching | authenticated | all ] | [ authenticated [ role1, role2, role3 [, ...] ] ] ] 
+                // info_scope [ [ self | matching | authorize | all ] | [ authorize [ role1, role2, role3 [, ...] ] ] ] 
+                // info_events_scope [ [ self | matching | authorize | all ] | [ authorize [ role1, role2, role3 [, ...] ] ] ] 
+                // info_streaming_scope [ [ self | matching | authorize | all ] | [ authorize [ role1, role2, role3 [, ...] ] ] ] 
                 else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], infoEventsStreamingScopeKey))
                 {
                     if (words.Length > 1 && Enum.TryParse<InfoEventsScope>(words[1], true, out var parsedScope))
