@@ -1,13 +1,13 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
-
 using static NpgsqlRest.Auth.ClaimsDictionary;
 
 namespace NpgsqlRest.Auth;
 
-internal static class AuthHandler
+public static class AuthHandler
 {
     public static async Task HandleLoginAsync(
         NpgsqlCommand command,
@@ -21,13 +21,12 @@ internal static class AuthHandler
         string? message = null;
         string? userId = null;
         string? userName = null;
-        var authenticationType = options.AuthenticationOptions.DefaultAuthenticationType;
-        var claims = new List<Claim>(10);
+        var opts = options.AuthenticationOptions;
+        List<Claim> claims = new(10);
         var verificationPerformed = false;
         var verificationFailed = false;
 
-
-        await using (var reader = await command.ExecuteReaderAsync())
+        await using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
         {
             if (await reader.ReadAsync() is false)
             {
@@ -44,12 +43,12 @@ internal static class AuthHandler
             {
                 var name1 = routine.OriginalColumnNames[i];
                 var name2 = routine.ColumnNames[i];
-                var descriptor = routine.ColumnsTypeDescriptor[i];
+                TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[i];
 
-                if (options.AuthenticationOptions.StatusColumnName is not null)
+                if (opts.StatusColumnName is not null)
                 {
-                    if (string.Equals(name1, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(name1, opts.StatusColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, opts.StatusColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         if (descriptor.IsBoolean)
                         {
@@ -78,88 +77,47 @@ internal static class AuthHandler
                     }
                 }
 
-                if (options.AuthenticationOptions.SchemeColumnName is not null)
+                if (opts.SchemeColumnName is not null)
                 {
-                    if (string.Equals(name1, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(name1, opts.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, opts.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         scheme = reader?.GetValue(i).ToString();
                         continue;
                     }
                 }
 
-                if (options.AuthenticationOptions.MessageColumnName is not null)
+                if (opts.MessageColumnName is not null)
                 {
-                    if (string.Equals(name1, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(name1, opts.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, opts.MessageColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         message = reader?.GetValue(i).ToString();
                         continue;
                     }
                 }
-
-                string? claimType;
-                if (options.AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes)
+                var (userNameCurrent, userIdCurrent) = AddClaimFromReader(opts, i, descriptor, reader!, claims, name1, name2);
+                if (userNameCurrent is not null)
                 {
-                    if (ClaimTypesDictionary.TryGetValue(name1.ToLowerInvariant(), out claimType) is false)
-                    {
-                        if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
-                        {
-                            claimType = name1;
-                        }
-                    }
+                    userName = userNameCurrent;
                 }
-                else
+                if (userIdCurrent is not null)
                 {
-                    claimType = name1;
-                }
-
-                if (reader?.IsDBNull(i) is true)
-                {
-                    claims.Add(new Claim(claimType, ""));
-                    if (string.Equals(claimType, options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal))
-                    {
-                        userName = null;
-                    }
-                    else if (string.Equals(claimType, options.AuthenticationOptions.DefaultUserIdClaimType, StringComparison.Ordinal))
-                    {
-                        userId = null;
-                    }
-                }
-                else if (descriptor.IsArray)
-                {
-                    object[]? values = reader?.GetValue(i) as object[];
-                    for (int j = 0; j < values?.Length; j++)
-                    {
-                        claims.Add(new Claim(claimType, values[j]?.ToString() ?? ""));
-                    }
-                }
-                else
-                {
-                    string? value = reader?.GetValue(i)?.ToString();
-                    claims.Add(new Claim(claimType, value ?? ""));
-                    if (string.Equals(claimType, options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal))
-                    {
-                        userName = value;
-                    }
-                    else if (string.Equals(claimType, options.AuthenticationOptions.DefaultUserIdClaimType, StringComparison.Ordinal))
-                    {
-                        userId = value;
-                    }
+                    userId = userIdCurrent;
                 }
             }
 
             // hash verification last
-            if (options.AuthenticationOptions.HashColumnName is not null &&
-                options.AuthenticationOptions.PasswordHasher is not null &&
-                options.AuthenticationOptions.PasswordParameterNameContains is not null)
+            if (opts.HashColumnName is not null &&
+                opts.PasswordHasher is not null &&
+                opts.PasswordParameterNameContains is not null)
             {
                 for (int i = 0; i < routine.ColumnCount; i++)
                 {
                     var name1 = routine.OriginalColumnNames[i];
                     var name2 = routine.ColumnNames[i];
-                    if (string.Equals(name1, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, options.AuthenticationOptions.HashColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(name1, opts.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name2, opts.HashColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         if (reader?.IsDBNull(i) is false)
                         {
@@ -173,7 +131,7 @@ internal static class AuthHandler
                                 {
                                     var parameter = command.Parameters[j];
                                     var name = (parameter as NpgsqlRestParameter)?.ActualName;
-                                    if (name is not null && name.Contains(options.AuthenticationOptions.PasswordParameterNameContains, // found password parameter
+                                    if (name is not null && name.Contains(opts.PasswordParameterNameContains, // found password parameter
                                         StringComparison.OrdinalIgnoreCase))
                                     {
                                         foundPasswordParameter = true;
@@ -181,7 +139,7 @@ internal static class AuthHandler
                                         if (pass is not null && parameter?.Value != DBNull.Value)
                                         {
                                             verificationPerformed = true;
-                                            if (options.AuthenticationOptions.PasswordHasher?.VerifyHashedPassword(hash, pass) is false)
+                                            if (opts.PasswordHasher?.VerifyHashedPassword(hash, pass) is false)
                                             {
                                                 logger?.VerifyPasswordFailed(endpoint, userId, userName);
                                                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
@@ -196,7 +154,7 @@ internal static class AuthHandler
                                 {
                                     logger?.CantFindPasswordParameter(endpoint,
                                         command.Parameters.Select(p => (p as NpgsqlRestParameter)?.ActualName)?.ToArray(),
-                                        options.AuthenticationOptions.PasswordParameterNameContains);
+                                        opts.PasswordParameterNameContains);
                                 }
                             }
                         }
@@ -209,12 +167,12 @@ internal static class AuthHandler
         {
             if (verificationFailed is true)
             {
-                if (string.IsNullOrEmpty(options.AuthenticationOptions.PasswordVerificationFailedCommand) is false)
+                if (string.IsNullOrEmpty(opts.PasswordVerificationFailedCommand) is false)
                 {
                     using var failedCommand = connection?.CreateCommand();
                     if (failedCommand is not null)
                     {
-                        failedCommand.CommandText = options.AuthenticationOptions.PasswordVerificationFailedCommand;
+                        failedCommand.CommandText = opts.PasswordVerificationFailedCommand;
                         var paramCount = failedCommand.CommandText.PgCountParams();
                         if (paramCount >= 1)
                         {
@@ -235,12 +193,12 @@ internal static class AuthHandler
             }
             else
             {
-                if (string.IsNullOrEmpty(options.AuthenticationOptions.PasswordVerificationSucceededCommand) is false)
+                if (string.IsNullOrEmpty(opts.PasswordVerificationSucceededCommand) is false)
                 {
                     using var succeededCommand = connection?.CreateCommand();
                     if (succeededCommand is not null)
                     {
-                        succeededCommand.CommandText = options.AuthenticationOptions.PasswordVerificationSucceededCommand;
+                        succeededCommand.CommandText = opts.PasswordVerificationSucceededCommand;
                         var paramCount = succeededCommand.CommandText.PgCountParams();
 
                         if (paramCount >= 1)
@@ -265,9 +223,9 @@ internal static class AuthHandler
         {
             var principal = new ClaimsPrincipal(new ClaimsIdentity(
                 claims, 
-                scheme ?? authenticationType,
-                nameType: options.AuthenticationOptions.DefaultNameClaimType,
-                roleType: options.AuthenticationOptions.DefaultRoleClaimType));
+                scheme ?? opts.DefaultAuthenticationType,
+                nameType: opts.GetUserNameClaimType(),
+                roleType: opts.GetRoleClaimType()));
 
             if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
             {
@@ -281,6 +239,71 @@ internal static class AuthHandler
         {
             await context.Response.WriteAsync(message);
         }
+    }
+
+    public static (string? userName, string? userId) AddClaimFromReader(
+        NpgsqlRestAuthenticationOptions options,
+        int i,
+        TypeDescriptor descriptor,
+        NpgsqlDataReader reader,
+        List<Claim> claims, 
+        string name1, 
+        string name2)
+    {
+        string? claimType;
+        string? userName = null;
+        string? userId = null;
+
+        if (options.UseActiveDirectoryFederationServicesClaimTypes)
+        {
+            if (ClaimTypesDictionary.TryGetValue(name1.ToLowerInvariant(), out claimType) is false)
+            {
+                if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
+                {
+                    claimType = name1.Replace("_", "");
+                }
+            }
+        }
+        else
+        {
+            claimType = name1.Replace("_", "");
+        }
+
+        if (reader?.IsDBNull(i) is true)
+        {
+            claims.Add(new Claim(claimType, ""));
+            if (string.Equals(claimType, options.GetUserNameClaimType(), StringComparison.Ordinal))
+            {
+                userName = null;
+            }
+            else if (string.Equals(claimType, options.GetUserIdClaimType(), StringComparison.Ordinal))
+            {
+                userId = null;
+            }
+        }
+        else if (descriptor.IsArray)
+        {
+            object[]? values = reader?.GetValue(i) as object[];
+            for (int j = 0; j < values?.Length; j++)
+            {
+                claims.Add(new Claim(claimType, values[j]?.ToString() ?? ""));
+            }
+        }
+        else
+        {
+            string? value = reader?.GetValue(i)?.ToString();
+            claims.Add(new Claim(claimType, value ?? ""));
+            if (string.Equals(claimType, options.GetUserNameClaimType(), StringComparison.Ordinal))
+            {
+                userName = value;
+            }
+            else if (string.Equals(claimType, options.GetUserIdClaimType(), StringComparison.Ordinal))
+            {
+                userId = value;
+            }
+        }
+
+        return (userName, userId);
     }
 
     public static async Task HandleLogoutAsync(NpgsqlCommand command, Routine routine, HttpContext context)

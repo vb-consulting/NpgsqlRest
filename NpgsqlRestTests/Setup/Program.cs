@@ -85,13 +85,14 @@ public class Program
 
         var app = builder.Build();
 
+        var authOptions = new NpgsqlRest.Auth.NpgsqlRestAuthenticationOptions();
         app.MapGet("/login", () => Results.SignIn(new ClaimsPrincipal(new ClaimsIdentity(
             claims: new[]
             {
-                new Claim(ClaimTypes.Name, "user"),
-                new Claim(ClaimTypes.Role, "role1"),
-                new Claim(ClaimTypes.Role, "role2"),
-                new Claim(ClaimTypes.Role, "role3"),
+                new Claim(authOptions.GetUserNameClaimType(), "user"),
+                new Claim(authOptions.GetRoleClaimType(), "role1"),
+                new Claim(authOptions.GetRoleClaimType(), "role2"),
+                new Claim(authOptions.GetRoleClaimType(), "role3"),
             },
             authenticationType: CookieAuthenticationDefaults.AuthenticationScheme))));
 
@@ -107,7 +108,7 @@ public class Program
                 { "conn2", Database.CreateAdditional("conn2") }
             },
             Logger = new EmptyLogger(),
-            CommandCallbackAsync = async (RoutineEndpoint endpoint, NpgsqlCommand command, HttpContext context) =>
+            CommandCallbackAsync = async (endpoint, command, context) =>
             {
                 if (string.Equals(endpoint.Routine.Name , "get_csv_data"))
                 {
@@ -135,6 +136,8 @@ public class Program
 
             AuthenticationOptions = new()
             {
+                // UseActiveDirectoryFederationServicesClaimTypes = true,
+
                 PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)",
                 PasswordVerificationSucceededCommand = "call succeeded_login($1,$2,$3)",
                 UserClaimsContextKey = "request.user_claims",

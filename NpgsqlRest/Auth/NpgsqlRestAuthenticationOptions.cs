@@ -1,12 +1,48 @@
-﻿using System.Security.Claims;
-
-namespace NpgsqlRest;
+﻿
+namespace NpgsqlRest.Auth;
 
 /// <summary>
 /// Authentication options for the NpgsqlRest middleware.
 /// </summary>
 public class NpgsqlRestAuthenticationOptions
 {
+    private string? _defaultUserIdClaimType = null;
+    private string? _defaultNameClaimType = null;
+    private string? _defaultRoleClaimType = null;
+
+    public string GetUserIdClaimType()
+    {
+        _defaultUserIdClaimType ??= DefaultUserIdClaimType.ToLowerInvariant().Replace("_", "") ?? string.Empty;
+        if (UseActiveDirectoryFederationServicesClaimTypes is true &&
+            ClaimsDictionary.ClaimTypesDictionary.TryGetValue(_defaultUserIdClaimType, out var claimType))
+        {
+            return claimType;
+        }
+        return DefaultUserIdClaimType;
+    }
+
+    public string GetUserNameClaimType()
+    {
+        _defaultNameClaimType ??= DefaultNameClaimType.ToLowerInvariant().Replace("_", "") ?? string.Empty;
+        if (UseActiveDirectoryFederationServicesClaimTypes is true &&
+            ClaimsDictionary.ClaimTypesDictionary.TryGetValue(DefaultNameClaimType.ToLowerInvariant(), out var claimType))
+        {
+            return claimType;
+        }
+        return DefaultNameClaimType;
+    }
+
+    public string GetRoleClaimType()
+    {
+        _defaultRoleClaimType ??= DefaultRoleClaimType.ToLowerInvariant().Replace("_", "") ?? string.Empty;
+        if (UseActiveDirectoryFederationServicesClaimTypes is true &&
+            ClaimsDictionary.ClaimTypesDictionary.TryGetValue(DefaultRoleClaimType.ToLowerInvariant(), out var claimType))
+        {
+            return claimType;
+        }
+        return DefaultRoleClaimType;
+    }
+
     /// <summary>
     /// Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
     ///
@@ -46,33 +82,22 @@ public class NpgsqlRestAuthenticationOptions
     /// 
     /// For example, column name `NameIdentifier` or `name_identifier` (when transformed by the default name transformer) will match the key `NameIdentifier` which translates to this: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
     /// </summary>
-    public bool UseActiveDirectoryFederationServicesClaimTypes { get; set; } = true;
+    public bool UseActiveDirectoryFederationServicesClaimTypes { get; set; } = false;
 
     /// <summary>
     /// Default claim type for user id.
     /// </summary>
-    public string DefaultUserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
-
-    private string _defaultNameClaimType = ClaimTypes.Name;
-    internal bool UsingDefaultNameClaimType = true;
+    public string DefaultUserIdClaimType { get; set; } = "nameidentifier"; // ClaimTypes.NameIdentifier;
 
     /// <summary>
     /// Default claim type for user name.
     /// </summary>
-    public string DefaultNameClaimType
-    {
-        get => _defaultNameClaimType;
-        set
-        {
-            _defaultNameClaimType = value;
-            UsingDefaultNameClaimType = string.Equals(value, ClaimTypes.Name, StringComparison.Ordinal);
-        }
-    }
+    public string DefaultNameClaimType { get; set; } = "name"; // ClaimTypes.Name;
 
     /// <summary>
     /// Default claim type for user roles.
     /// </summary>
-    public string DefaultRoleClaimType { get; set; } = ClaimTypes.Role;
+    public string DefaultRoleClaimType { get; set; } = "role"; // ClaimTypes.Role;
 
     /// <summary>
     /// If true, return any response from auth endpoints (login and logout) if response hasn't been written by auth handler.

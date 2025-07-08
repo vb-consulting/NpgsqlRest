@@ -109,7 +109,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 bool ok = false;
                 foreach (var claim in context.User?.Claims ?? [])
                 {
-                    if (string.Equals(claim.Type, Options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal))
+                    if (string.Equals(claim.Type, Options.AuthenticationOptions.GetRoleClaimType(), StringComparison.Ordinal))
                     {
                         if (endpoint.AuthorizeRoles.Contains(claim.Value) is true)
                         {

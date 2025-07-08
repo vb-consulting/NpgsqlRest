@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Primitives;
 using Npgsql;
+using NpgsqlRest.Auth;
 using NpgsqlRest.Defaults;
 
 namespace NpgsqlRest;

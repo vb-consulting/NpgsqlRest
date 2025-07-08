@@ -1,3 +1,6 @@
+using System.Net;
+using System.Security.Claims;
+
 namespace NpgsqlRestTests;
 
 public static partial class Database
@@ -90,7 +93,11 @@ public class UserContextTests(TestFixture test)
         using var response = await client.GetAsync("/api/get-user-context-and-ip-and-full-claims/");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
-        content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\\\":\\\"123\\\",\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\\\":\\\"myname\\\",\\\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
+
+        // this will be the content when UseActiveDirectoryFederationServicesClaimTypes is true
+        //content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\\\":\\\"123\\\",\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\\\":\\\"myname\\\",\\\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
+        
+        content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"nameidentifier\\\":\\\"123\\\",\\\"name\\\":\\\"myname\\\",\\\"role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
     }
 
     [Fact]

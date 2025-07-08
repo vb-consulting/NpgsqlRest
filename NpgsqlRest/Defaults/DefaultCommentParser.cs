@@ -25,7 +25,8 @@ internal static class DefaultCommentParser
     ];
     private static readonly string[] authorizeKey = [
         "authorize",
-        "requires_authorization"
+        "authorized",
+        "requires_authorization",
     ];
     private static readonly string[] allowAnonymousKey = [
         "allow_anonymous",

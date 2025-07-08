@@ -12,6 +12,7 @@ using Microsoft.Extensions.Primitives;
 using NpgsqlRest.CrudSource;
 using Microsoft.AspNetCore.Antiforgery;
 using NpgsqlRest.UploadHandlers;
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRestClient;
 
@@ -139,10 +140,12 @@ public static class App
             StatusColumnName = GetConfigStr("StatusColumnName", authCfg) ?? "status",
             SchemeColumnName = GetConfigStr("SchemeColumnName", authCfg) ?? "scheme",
             MessageColumnName = GetConfigStr("MessageColumnName", authCfg) ?? "message",
-            UseActiveDirectoryFederationServicesClaimTypes = GetConfigBool("UseActiveDirectoryFederationServicesClaimTypes", authCfg, true),
-            DefaultUserIdClaimType = GetConfigStr("DefaultUserIdClaimType", authCfg) ?? ClaimTypes.NameIdentifier,
-            DefaultNameClaimType = GetConfigStr("DefaultNameClaimType", authCfg) ?? ClaimTypes.Name,
-            DefaultRoleClaimType = GetConfigStr("DefaultRoleClaimType", authCfg) ?? ClaimTypes.Role,
+            UseActiveDirectoryFederationServicesClaimTypes = GetConfigBool("UseActiveDirectoryFederationServicesClaimTypes", authCfg, false),
+            
+            DefaultUserIdClaimType = GetConfigStr("DefaultUserIdClaimType", authCfg) ?? "nameidentifier",
+            DefaultNameClaimType = GetConfigStr("DefaultNameClaimType", authCfg) ?? "name",
+            DefaultRoleClaimType = GetConfigStr("DefaultRoleClaimType", authCfg) ?? "role",
+
             SerializeAuthEndpointsResponse = GetConfigBool("SerializeAuthEndpointsResponse", authCfg, false),
             ObfuscateAuthParameterLogValues = GetConfigBool("ObfuscateAuthParameterLogValues", authCfg, true),
             HashColumnName = GetConfigStr("HashColumnName", authCfg) ?? "hash",

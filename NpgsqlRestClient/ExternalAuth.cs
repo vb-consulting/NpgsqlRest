@@ -490,40 +490,7 @@ public static class ExternalAuth
                     continue;
                 }
             }
-
-            string? claimType;
-            if (options.AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes)
-            {
-                if (ClaimTypesDictionary.TryGetValue(name1.ToLowerInvariant(), out claimType) is false)
-                {
-                    if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
-                    {
-                        claimType = name2;
-                    }
-                }
-            }
-            else
-            {
-                claimType = name2;
-            }
-
-            if (reader?.IsDBNull(i) is true)
-            {
-                claims.Add(new Claim(claimType, ""));
-            }
-            else if (descriptor.IsArray)
-            {
-                object[]? values = reader?.GetValue(i) as object[];
-                for (int j = 0; j < values?.Length; j++)
-                {
-                    claims.Add(new Claim(claimType, values[j]?.ToString() ?? ""));
-                }
-            }
-            else
-            {
-                string? value = reader?.GetValue(i)?.ToString();
-                claims.Add(new Claim(claimType, value ?? ""));
-            }
+            NpgsqlRest.Auth.AuthHandler.AddClaimFromReader(options.AuthenticationOptions, i, descriptor, reader!, claims, name1, name2);
         }
 
         if (context.Response.StatusCode == (int)HttpStatusCode.OK)

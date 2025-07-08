@@ -50,9 +50,10 @@ public static class Ext
 
     public static object GetUserIdDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
+        var type = options.AuthenticationOptions.GetUserIdClaimType();
         foreach (var claim in user.Claims)
         {
-            if (claim.IsTypeOf(options.AuthenticationOptions.DefaultUserIdClaimType))
+            if (claim.IsTypeOf(type))
             {
                 return claim.Value;
             }
@@ -62,21 +63,10 @@ public static class Ext
 
     public static object GetUserNameDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
-        if (user.Identity is null)
-        {
-            return DBNull.Value;
-        }
-        if (user.Identity.Name is null)
-        {
-            return DBNull.Value;
-        }
-        if (options.AuthenticationOptions.UsingDefaultNameClaimType)
-        {
-            return user.Identity.Name;
-        }
+        var type = options.AuthenticationOptions.GetUserNameClaimType();
         foreach (var claim in user.Claims)
         {
-            if (claim.IsTypeOf(options.AuthenticationOptions.DefaultNameClaimType))
+            if (claim.IsTypeOf(type))
             {
                 return claim.Value;
             }
@@ -86,12 +76,13 @@ public static class Ext
 
     public static object GetUserRolesTextDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
+        var type = options.AuthenticationOptions.GetRoleClaimType();
         StringBuilder sb = new(100);
         sb.Append('{');
         int i = 0;
         foreach (var claim in user.Claims)
         {
-            if (claim.IsTypeOf(options.AuthenticationOptions.DefaultRoleClaimType))
+            if (claim.IsTypeOf(type))
             {
                 if (i > 0)
                 {
@@ -107,10 +98,11 @@ public static class Ext
 
     public static object GetUserRolesDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
+        var type = options.AuthenticationOptions.GetRoleClaimType();
         List<string> roles = new(10);
         foreach (var claim in user.Claims)
         {
-            if (claim.IsTypeOf(options.AuthenticationOptions.DefaultRoleClaimType))
+            if (claim.IsTypeOf(type))
             {
                 roles.Add(claim.Value);
             }
