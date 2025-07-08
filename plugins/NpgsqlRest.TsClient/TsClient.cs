@@ -118,7 +118,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         string.Format(
                         "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
                         """
-                    const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query)
+                    const parseQuery = (query: Record<any, any>) => "?" + Object.keys(query ? query : {})
                         .map(key => {
                             const value = (query[key] != null ? query[key] : "") as string;
                             if (Array.isArray(value)) {
@@ -135,7 +135,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                         string.Format(
                         "import {{ parseQuery }} from \"{0}\";", options.ImportParseQueryFrom) :
                         """
-                    const parseQuery = query => "?" + Object.keys(query)
+                    const parseQuery = query => "?" + Object.keys(query ? query : {})
                         .map(key => {
                             const value = query[key] != null ? query[key] : "";
                             if (Array.isArray(value)) {
@@ -578,20 +578,6 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     }
                 }
             }
-            /*
-            string? headers;
-            if (eventsStreamingEnabled is false)
-            {
-                headers = json ?
-                    @"headers: { ""Content-Type"": ""application/json"" }," : null;
-            }
-            else
-            {
-                headers = json ?
-                    $"headers: {{ \"Content-Type\": \"application/json\", \"{_npgsqlRestoptions?.ExecutionIdHeaderName}\": executionId }}," :
-                    $"headers: {{ \"{_npgsqlRestoptions?.ExecutionIdHeaderName}\": executionId }},";
-            }
-            */
 
             var body = endpoint.RequestParamType == RequestParamType.BodyJson && requestName is not null ?
                 @"body: JSON.stringify(request)" : null;
