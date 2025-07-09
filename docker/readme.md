@@ -29,15 +29,15 @@ Outputs:
 
 ```
 Versions:
-.NET                  9.0.6
-Client Build          2.23.0.0
+.NET                  9.0.7
+Client Build          2.24.0.0
 System.Text.Json      9.0.0.0
 ExcelDataReader       3.7.0.0
 Serilog.AspNetCore    9.0.0.0
 Npgsql                9.0.3.0
-NpgsqlRest            2.28.0.0
+NpgsqlRest            2.29.0.0
 NpgsqlRest.HttpFiles  1.3.0.0
-NpgsqlRest.TsClient   1.20.0.0
+NpgsqlRest.TsClient   1.21.0.0
 NpgsqlRest.CrudSource 1.3.2.0
 
 CurrentDirectory     /app
