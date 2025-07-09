@@ -17,8 +17,10 @@ Allow anonymous access with no authorization to this endpoint.
 
 ```console
 authorize
+authorized
 requires_authorization
 authorize [role1, role2, role3 [, ...]]
+authorized [role1, role2, role3 [, ...]]
 requires_authorization [role1, role2, role3 [, ...]]
 ```
 
@@ -157,6 +159,35 @@ HTTP settings:
 - Change the HTTP method with the optional second argument.
 - Change the HTTP path with the optional third argument.
 - Change the HTTP path with second argument if the second argument doesn't match any valid VERB (GET, POST, etc).
+
+## InfoEventsPath
+
+```console
+info_path [path | true | false]
+info_events_path [path | true | false]
+info_streaming_path [path | true | false]
+```
+
+Additional path appended as a subpath to the main endpoint path for info events streaming (null disables info events). If the endpoint path is `/path` and this value is set to `/info`, the streaming path will be `/path/info`.
+
+**Note:** This can also be boolean. When set to `true`, the info streaming path will be `/info` which will be added to the main path.
+
+## InfoEventsScope
+
+```console
+info_scope [self | matching | authorize | all] | [authorize [role1, role2, role3 [, ...]]]
+info_events_scope [self | matching | authorize | all] | [authorize [role1, role2, role3 [, ...]]]
+info_streaming_scope [self | matching | authorize | all] | [authorize [role1, role2, role3 [, ...]]]
+```
+
+Scope that determines to whom events are streamed:
+
+- **`self`** (default): Only the original endpoint initiator session, regardless of the security context.
+- **`matching`**: Sessions with matching security context of the endpoint initiator. If the endpoint initiator requires authorization, all authorized sessions will receive these messages. If the endpoint initiator requires authorization for certain roles, all sessions requiring the same roles will receive these messages.
+- **`authorize`**: Only authorized sessions will receive these messages. If the `InfoEventsRoles` property contains a list of roles, only sessions with those roles will receive messages.
+- **`all`**: All sessions regardless of the security context will receive these messages.
+
+When using `authorize`, add an optional list of authorized roles.
 
 ## Login
 
@@ -570,6 +601,39 @@ To be a valid custom parameter name, name part must consist of alphanumerics or 
 - `excel_datetime_format = format string`: DateTime format specifically for this Excel handler.
 - `excel_row_is_json = true|false`: JSON row processing for this Excel handler.
 - `excel_row_command = command`: Row processing command for this Excel handler.
+
+## InfoEventsPath Parameters
+
+Additional path appended as a subpath to the main endpoint path for info events streaming (null disables info events). If the endpoint path is `/path` and this value is set to `/info`, the streaming path will be `/path/info`.
+
+**Note:** This can also be boolean. When set to `true`, the info streaming path will be `/info` which will be added to the main path.
+
+`info_path = [path | true | false]`
+`info_events_path = [path | true | false]`
+`info_streaming_path = [path | true | false]`
+
+## InfoEventsScope Parameters
+
+Scope that determines to whom events are streamed:
+
+- **`self`** (default): Only the original endpoint initiator session, regardless of the security context.
+- **`matching`**: Sessions with matching security context of the endpoint initiator. If the endpoint initiator requires authorization, all authorized sessions will receive these messages. If the endpoint initiator requires authorization for certain roles, all sessions requiring the same roles will receive these messages.
+- **`authorize`**: Only authorized sessions will receive these messages. If the `InfoEventsRoles` property contains a list of roles, only sessions with those roles will receive messages.
+- **`all`**: All sessions regardless of the security context will receive these messages.
+
+When using `authorize`, add an optional list of authorized roles.
+
+`info_scope = [self | matching | authorize | all] | [authorize [role1, role2, role3 [, ...]]]`
+`info_events_scope = [self | matching | authorize | all] | [authorize [role1, role2, role3 [, ...]]]`
+`info_streaming_scope = [self | matching | authorize | all] | [authorize [role1, role2, role3 [, ...]]]`
+
+## TsClient Parameters
+
+- `tsclient = [false | off | disabled | disable | 0]` - disable tsclient code generation for the endpoint.
+- `tsclient_events = [[false | off | disabled | disable | 0] | [true | on | enabled | enable | 1]]` - enable or disable info event parameter for endpoints with info events enabled.
+- `tsclient_parse_url = [[false | off | disabled | disable | 0] | [true | on | enabled | enable | 1]]` - enable or disable info event parameter URL parsing.
+- `tsclient_parse_request = [[false | off | disabled | disable | 0] | [true | on | enabled | enable | 1]]` - enable or disable info event parameter request parsing.
+- `tsclient_status_code = [[false | off | disabled | disable | 0] | [true | on | enabled | enable | 1]]` - enable or disable status code in the return value.
 
 # Tags
 
