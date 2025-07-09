@@ -190,7 +190,24 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             {
                 if (File.Exists(fileName))
                 {
-                    File.WriteAllText(fileName, content.ToString());
+                    try
+                    {
+                        File.Delete(fileName);
+                        _logger?.LogInformation("Deleted file: {fileName}", fileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Failed to delete file: {fileName}", fileName);
+
+                        try
+                        {
+                            File.WriteAllText(fileName, "// No endpoints found.");
+                        }
+                        catch (Exception ex2)
+                        {
+                            _logger?.LogError(ex2, "Failed to empty file: {fileName}", fileName);
+                        }
+                    }
                 }
             }
             return;
