@@ -32,8 +32,8 @@ Require authorization for this endpoint.
 ## BodyParameterName
 
 ```console
-body_parameter_name name
-body_param_name name
+body_parameter_name [name]
+body_param_name [name]
 ```
 
 Set the name of the existing parameter which is sent as body content. When the `body_parameter_name` is set, all other parameters are sent by the query string.
@@ -41,8 +41,8 @@ Set the name of the existing parameter which is sent as body content. When the `
 ## BufferRows
 
 ```console
-buffer_rows number
-buffer number
+buffer_rows [number]
+buffer [number]
 ```
 
 Sets the buffered amount of rows before they are written to the response for this endpoint.
@@ -299,7 +299,7 @@ Enable response parsing for this routine. Requires injecting a default parser. S
 ## Path
 
 ```console
-path path
+path [path]
 ```
 
 Sets the custom HTTP path.
@@ -384,9 +384,9 @@ Set how request parameters are handled:
 ## RequestHeadersParameterName
 
 ```console
-request_headers_parameter_name name
-request_headers_param_name name
-request-headers-param-name name
+request_headers_parameter_name [name]
+request_headers_param_name [name]
+request-headers-param-name [name]
 ```
 
 When `request_headers_mode` is set to send request headers as a parameter, set the existing parameter name. The default is `headers`.
