@@ -29,7 +29,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
     private static DefaultResponseParser? _parser;
 
     private static string[]? _headers;
-    private static string[]? _autorizePaths;
+    private static string[]? _authorizePaths;
     private static string? _unauthorizedRedirectPath;
     private static string? _unauthorizedReturnToQueryParameter;
     private static bool _checkAuthorize = false;
@@ -47,7 +47,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         string? antiforgeryTokenTag,
         IAntiforgery? antiforgery,
         string[]? headers,
-        string[]? autorizePaths,
+        string[]? authorizePaths,
         string? unauthorizedRedirectPath,
         string? unautorizedReturnToQueryParameter,
         Serilog.ILogger? logger)
@@ -75,10 +75,10 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         _logger = logger;
         _cacheParsedFiles = cacheParsedFiles;
         _headers = headers;
-        _autorizePaths = autorizePaths;
+        _authorizePaths = authorizePaths;
         _unauthorizedRedirectPath = unauthorizedRedirectPath;
         _unauthorizedReturnToQueryParameter = unautorizedReturnToQueryParameter;
-        _checkAuthorize = autorizePaths is not null && autorizePaths.Length > 0;
+        _checkAuthorize = authorizePaths is not null && authorizePaths.Length > 0;
         if (_checkAuthorize is true)
         {
             _pathInAuthorizePattern = new();
@@ -114,9 +114,9 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
             if (_pathInAuthorizePattern.TryGetValue(pathString, out bool isInAuthPattern) is false)
             {
                 isInAuthPattern = false;
-                for (int i = 0; i < _autorizePaths?.Length; i++)
+                for (int i = 0; i < _authorizePaths?.Length; i++)
                 {
-                    if (Parser.IsPatternMatch(pathString, _autorizePaths[i]))
+                    if (Parser.IsPatternMatch(pathString, _authorizePaths[i]))
                     {
                         isInAuthPattern = true;
                         break;

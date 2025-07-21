@@ -66,7 +66,7 @@ public static class App
 
         app.UseDefaultFiles();
 
-        string[]? autorizePaths = GetConfigEnumerable("AutorizePaths", staticFilesCfg)?.ToArray();
+        string[]? authorizePaths = GetConfigEnumerable("AuthorizePaths", staticFilesCfg)?.ToArray();
         string? unauthorizedRedirectPath = GetConfigStr("UnauthorizedRedirectPath", staticFilesCfg);
         string? unauthorizedReturnToQueryParameter = GetConfigStr("UnauthorizedReturnToQueryParameter", staticFilesCfg);
 
@@ -108,7 +108,7 @@ public static class App
             antiforgeryTokenTag,
             antiforgery,
             GetConfigEnumerable("Headers", parseCfg)?.ToArray(),
-            autorizePaths,
+            authorizePaths,
             unauthorizedRedirectPath,
             unauthorizedReturnToQueryParameter,
             Logger?.ForContext<AppStaticFileMiddleware>());
