@@ -37,6 +37,7 @@ var antiforgerUsed = ConfigureAntiForgery();
 WebApplication app = Build();
 Configure(app, () =>
 {
+    
     sw.Stop();
     var message = GetConfigStr("StartupMessage", Cfg) ?? "Started in {0}, listening on {1}, version {2}";
     if (string.IsNullOrEmpty(message) is false)
@@ -44,7 +45,10 @@ Configure(app, () =>
         Logger?.Information(message,
                 sw,
                 app.Urls, 
-                System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-");
+                System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-",
+                Instance.Environment.EnvironmentName,
+                Instance.Environment.ApplicationName);
+
     }
 });
 
