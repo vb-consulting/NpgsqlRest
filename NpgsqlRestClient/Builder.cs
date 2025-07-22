@@ -652,7 +652,14 @@ public static class Builder
         }
         if (isMain)
         {
-            Logger?.Information(messageTemplate: "Using {0} as main connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+            if (string.IsNullOrEmpty(connectionName) is true)
+            {
+                Logger?.Information(messageTemplate: "Using main connection string: {0}", connectionStringBuilder.ConnectionString);
+            }
+            else
+            {
+                Logger?.Information(messageTemplate: "Using {0} as main connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+            }
         }
         else
         {
@@ -660,14 +667,27 @@ public static class Builder
             {
                 return null;
             }
-            Logger?.Information(messageTemplate: "Using {0} as additional connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+            if (string.IsNullOrEmpty(connectionName) is true)
+            {
+                Logger?.Information(messageTemplate: "Using additional connection string: {0}", connectionStringBuilder.ConnectionString);
+            }
+            else
+            {
+                Logger?.Information(messageTemplate: "Using {0} as additional connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+            }
         }
 
         if (GetConfigBool("TestConnectionStrings", ConnectionSettingsCfg) is true)
         {
             using var conn = new NpgsqlConnection(connectionString);
-            conn.Open();
-            conn.Close();
+            try
+            {
+                conn.Open();
+            }
+            finally
+            {
+                conn.Close();
+            }
         }
 
         return connectionString;
