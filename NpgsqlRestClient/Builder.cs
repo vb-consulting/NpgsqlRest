@@ -257,7 +257,7 @@ public static class Builder
         }
         else
         {
-            Logger?.Information($"Using Data Protection for application {{0}} in {(dirInfo is null ? "" : "directory")} {{1}}. Expiration in {{2}} days.",
+            Logger?.Information($"Using Data Protection for application {{0}} in{(dirInfo is null ? " " : " directory ")}{{1}}. Expiration in {{2}} days.",
                 customAppName,
                 dirInfo?.FullName ?? "database",
                 expiresInDays);
