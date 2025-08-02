@@ -17,8 +17,24 @@ Features:
 - **High Performance**. See [Performances Benchmarks](https://github.com/vb-consulting/pg_function_load_tests).
 - **Modular Design** with a Plug-in System. Create API for functions and procedure, create CRUD endpoints for your tables, create HTTP files, and Typescript client code.
 - **AOT-Ready**. Ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
-- **Customizable**. Configure endpoints with comment annotations. You can easily configure any endpoint by adding comment annotation labels to [PostgreSQL Comments](https://www.postgresql.org/docs/current/sql-comment.html).
-- **Standalone Executable Web Client.** Download the executable and run it. No installation required. See [Releases](https://github.com/vb-consulting/NpgsqlRest/releases). 
+- **Customizable**. Configure endpoints with powerful comment annotations. You can easily configure any endpoint by adding comment annotation labels to [PostgreSQL Comments](https://www.postgresql.org/docs/current/sql-comment.html).
+- **Real-time Streaming**. Server-sent events support with PostgreSQL `RAISE INFO` statements for live notifications.
+- **Advanced Authentication**. Role-based authorization with flexible scope control.
+- **Standalone Executable Web Client.** Download the executable and run it. No installation required. See [Releases](https://github.com/vb-consulting/NpgsqlRest/releases).
+
+### Standalone Client Application
+
+The standalone client provides a production-ready REST API server with extensive configuration options:
+
+- **Authentication**: Cookie auth, Bearer tokens, OAuth (Google, LinkedIn, GitHub, Microsoft, Facebook)
+- **Security**: SSL/TLS, CORS, antiforgery tokens, data protection with configurable encryption
+- **File Operations**: Static file serving with template parsing, file uploads (filesystem, PostgreSQL Large Objects, CSV/Excel processing)
+- **Performance**: Response compression, configurable Kestrel limits, thread pool tuning
+- **Monitoring**: Comprehensive logging (console, file, PostgreSQL), request tracking, connection analytics
+- **Code Generation**: Auto-generated HTTP files and TypeScript/JavaScript clients
+- **CRUD Operations**: Automatic table/view endpoints with customizable URL patterns
+
+Simply download, configure via JSON, and deploy - no .NET installation required. 
 
 ## Quick Example
 
@@ -92,10 +108,21 @@ Hello World
 
 ### Comment Annotations
 
-Configure individual endpoints with powerful and simple routine comment annotations. You can use any PostgreSQL administration tool or a simple script:
+Configure individual endpoints with powerful and simple routine comment annotations. You can use any PostgreSQL administration tool or a simple script to customize HTTP methods, paths, content types, authentication, real-time streaming, and client code generation.
 
-Function:
+#### Quick Reference
 
+| Annotation | Example | Purpose |
+|------------|---------|---------|
+| `HTTP GET /path` | Custom endpoint path and method |
+| `Content-Type: text/html` | Response content type |
+| `authorize role1, role2` | Role-based authorization |
+| `info_path /events` | Enable event streaming |
+| `tsclient = false` | Disable TypeScript client generation |
+
+#### Basic Examples
+
+**Custom HTTP Method and Path:**
 ```sql
 create function hello_world_html()                               
 language sql 
@@ -109,7 +136,91 @@ HTTP GET /hello
 Content-Type: text/html';
 ```
 
-Will have content type `text/html` as visible in comment annotation:
+**Authentication and Authorization:**
+```sql
+create function secure_data()
+returns json
+language sql
+as $$
+select '{"message": "Secret data"}'::json;
+$$;
+
+comment on function secure_data() is '
+HTTP GET /api/secure
+authorize admin, manager';
+```
+
+**Real-time Event Streaming:**
+```sql
+create function live_updates()
+returns void
+language plpgsql
+as $$
+begin
+    raise info 'Processing started...';
+    perform pg_sleep(2);
+    raise info 'Step 1 completed';
+    perform pg_sleep(2);
+    raise info 'All done!';
+end;
+$$;
+
+comment on function live_updates() is '
+HTTP POST /api/live-updates
+info_path /events
+info_scope all';
+```
+
+**TypeScript Client Control:**
+```sql
+create function admin_function()
+returns text
+language sql
+as $$
+select 'Admin data';
+$$;
+
+comment on function admin_function() is '
+HTTP GET /admin/data
+authorize admin
+tsclient_events = true
+tsclient_status_code = true';
+```
+
+#### Parameter Format
+
+You can also use the parameter format for complex configurations:
+
+```sql
+comment on function my_function() is '
+method = GET
+path = /custom/endpoint
+content_type = application/json
+authorize = admin, user
+info_path = /stream
+info_scope = matching
+tsclient = true
+tsclient_events = false';
+```
+
+#### Advanced Info Streaming
+
+Control message scope per individual `RAISE INFO` statement:
+
+```sql
+create function detailed_process()
+returns void
+language plpgsql
+as $$
+begin
+    raise info 'Starting process...' using hint = 'all';
+    raise info 'Processing user data...' using hint = 'authorize admin';
+    raise info 'Process completed' using hint = 'self';
+end;
+$$;
+```
+
+Response will have content type `text/html`:
 
 ```console
 Connection: close                                                
@@ -130,13 +241,13 @@ Transfer-Encoding: chunked
 Install the package from NuGet by using any of the available methods:
 
 ```console
-dotnet add package NpgsqlRest --version 2.13.1
+dotnet add package NpgsqlRest --version 2.29.0
 ```
 ```console
-NuGet\Install-Package NpgsqlRest -version 2.13.1
+NuGet\Install-Package NpgsqlRest -version 2.29.0
 ```
 ```xml
-<PackageReference Include="NpgsqlRest" Version="2.13.1" />
+<PackageReference Include="NpgsqlRest" Version="2.29.0" />
 ```
 
 #### Library First Use

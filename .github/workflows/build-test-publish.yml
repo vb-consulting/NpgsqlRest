@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-test-publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Install PosgtreSQL
       uses: vb-consulting/postgresql-action@v1
@@ -33,7 +33,7 @@ jobs:
 
   create-release:
     needs: build-test-publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
@@ -50,7 +50,7 @@ jobs:
 
   upload-assets:
     needs: create-release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -67,7 +67,7 @@ jobs:
 
   build-windows:
     needs: create-release
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v2
     - name: Setup .NET9
