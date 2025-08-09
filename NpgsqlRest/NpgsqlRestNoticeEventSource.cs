@@ -65,10 +65,11 @@ public class NpgsqlRestNoticeEventSource(RequestDelegate next)
                         scope = parsedScope;
                         if (scope == InfoEventsScope.Authorize && words.Length > 1)
                         {
-                            infoEventsRoles  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            // if info roles already exist, merge them with the new ones
+                            infoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             foreach (var word in words[1..])
                             {
-                                if (string.IsNullOrWhiteSpace(word) is false)
+                                if (infoEventsRoles.Contains(word) is false && string.IsNullOrWhiteSpace(word) is false)
                                 {
                                     infoEventsRoles.Add(word);
                                 }
@@ -127,14 +128,21 @@ public class NpgsqlRestNoticeEventSource(RequestDelegate next)
                     if (infoEventsRoles is not null)
                     {
                         bool ok = false;
-                        foreach (var claim in context.User?.Claims ?? [])
+                        if (context.User?.Claims is not null)
                         {
-                            if (string.Equals(claim.Type, NpgsqlRestMiddleware.Options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal))
+                            foreach (var claim in context.User?.Claims!)
                             {
-                                if (infoEventsRoles.Contains(claim.Value) is true)
+                                if (
+                                    string.Equals(claim.Type, NpgsqlRestMiddleware.Options.AuthenticationOptions.DefaultUserIdClaimType, StringComparison.Ordinal) ||
+                                    string.Equals(claim.Type, NpgsqlRestMiddleware.Options.AuthenticationOptions.DefaultNameClaimType, StringComparison.Ordinal) ||
+                                    string.Equals(claim.Type, NpgsqlRestMiddleware.Options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal)
+                                    )
                                 {
-                                    ok = true;
-                                    break;
+                                    if (infoEventsRoles.Contains(claim.Value) is true)
+                                    {
+                                        ok = true;
+                                        break;
+                                    }
                                 }
                             }
                         }

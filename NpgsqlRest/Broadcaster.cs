@@ -9,7 +9,7 @@ public class Broadcaster<T>
 
     public void Broadcast(T message)
     {
-        foreach (var kvp in _channels.ToArray())
+        foreach (var kvp in _channels)
         {
             var writer = kvp.Value.Writer;
             if (!writer.TryWrite(message))
