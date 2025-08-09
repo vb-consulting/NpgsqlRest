@@ -24,10 +24,10 @@ app.UseNpgsqlRest(new NpgsqlRestOptions
 
 ```sql
 create function auth.login(_username text, _password text) 
-returns table (status int, name_identifier text, name text, role text[])
+returns table (status int, id text, name text, roles text[])
 language sql as 
 $$
--- select query that returns status, name_identifier, name and role array
+-- select query that returns status, id, name and roles array
 $$;
 
 comment on function auth.login(text, text) is '
@@ -55,15 +55,14 @@ Login
 
 ### Claim Types
 
-- By default, if the column name interpreted as the security claim type, matches one of the Active Directory Federation Services Claim Types names, it will use that AD Federation Services Claim Type URI. The table can be seen here: [ClaimTypes Class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0#fields).
+- Column names from login endpoint responses are converted directly to claim types without any transformation or mapping.
   
-- That means that if the column name is either of these `NameIdentifier` - or the `nameidentifier` (case is ignored), or the `name_identifier` (for the camel case converted names, which is the default), the actual security claim type is `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier` according to this table. 
-  
-- If the name is not found in this table, security is the column name as-is but parsed by the default name converter. 
-
-- In this example column name `name_identifier` will be the security claim type the `nameIdentifier`. 
-
-- This behavior that uses AD Federation Services Claim Type can be turned off with the [AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes option](https://vb-consulting.github.io/npgsqlrest/options/#authenticationoptionsuseactivedirectoryfederationservicesclaimtypes).
+- Common claim types you might use include:
+  - `id` for user identification
+  - `name` for user display name  
+  - `roles` roles (can be an array)
+  - `email` for user email address
+  - etc
 
 ### Status Columns
 

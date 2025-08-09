@@ -36,6 +36,12 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 - **Streamlined static file content parsing**: Static files now use direct claim type substitution with `{claimType}` syntax, making the configuration much simpler and more straightforward
 
+- **Enhanced info events broadcasting**: Improved Server-Sent Events (SSE) broadcasting functionality for info events:
+  - Improved performance in `Broadcaster.cs` by removing unnecessary `.ToArray()`
+  - Enhanced authorization scope checking in `NpgsqlRestNoticeEventSource.cs` to support user ID, name, and role claims for broadcast authorization
+  - Broadcast authorization now checks against `DefaultUserIdClaimType`, `DefaultNameClaimType`, and not just only `DefaultRoleClaimType` claim types.
+  - Authorization list now merges info hints and endpoint `InfoEventsRoles` settings.
+
 ### NpgsqlRest Client
 
 #### Improvements
