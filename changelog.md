@@ -4,6 +4,31 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+## Version [2.30.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.30.0) (2025-08-09)
+
+[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.29.0...2.30.0)
+
+### NpgsqlRest Client
+
+#### Bug Fixes
+
+- **Fix AuthorizePaths typo**: Corrected typo from `"AutorizePaths"` to `"AuthorizePaths"` in appsettings.json configuration file and updated corresponding references in App.cs and AppStaticFileMiddleware.cs
+- **Fix Data Protection logging**: Fixed spacing issue in Data Protection logging message template for better log formatting
+
+#### Improvements
+
+- **Enhanced connection logging**: Improved connection string logging in Builder.cs to handle cases where connection name is empty. Now properly logs "Using main connection string: {connection}" when no connection name is provided, instead of displaying an empty parameter
+- **Expanded startup message**: Extended startup message to support additional placeholders:
+  - `{3}` - Environment name (Development, Production, etc.)
+  - `{4}` - Application name
+  
+  Updated Program.cs to pass these additional parameters, allowing for more detailed startup information like:
+  ```
+  "Started in {0}, listening on {1}, version {2}, environment {3}, application {4}"
+  ```
+
+---
+
 ## Version [2.29.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.29.0) (2025-07-08)
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.28.0...2.29.0)
