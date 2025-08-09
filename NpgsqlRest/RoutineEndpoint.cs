@@ -28,7 +28,6 @@ public class RoutineEndpoint(
     bool cached = false,
     string[]? cachedParams = null,
     TimeSpan? cacheExpiresIn = null,
-    bool parseResponse = false,
     string? connectionName = null,
     bool upload = false,
     string[]? uploadHandlers = null,
