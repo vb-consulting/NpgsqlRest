@@ -8,12 +8,35 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 [Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.29.0...2.30.0)
 
-### NpgsqlRest Client
+### Core Library
+
+#### Breaking Changes
+
+- **Removed Active Directory Federation Services Claim Types support**: Eliminated `UseActiveDirectoryFederationServicesClaimTypes` option and the entire `ClaimsDictionary` class that mapped claim names to AD FS URIs. Authentication now uses simple claim type names directly instead of attempting to resolve them to Microsoft AD FS claim type URIs.
+
+- **Removed response parsing annotations**: Eliminated `parse` and `parse_response` comment annotations and the corresponding `ParseResponse` property from routine endpoints. This feature was used to parse single-column, single-row responses.
+
+- **Simplified static file parsing**: Removed specific tag mappings (`UserIdTag`, `UserNameTag`, `UserRolesTag`, `CustomTagToClaimMappings`) from ParseContentOptions. Static file parsing now uses direct claim type names in `{claimType}` format instead of configurable tag names.
 
 #### Bug Fixes
 
+- **Authentication claim handling**: Fixed issues with claim type resolution by removing complex Active Directory Federation Services mapping and using direct claim types
 - **Fix AuthorizePaths typo**: Corrected typo from `"AutorizePaths"` to `"AuthorizePaths"` in appsettings.json configuration file and updated corresponding references in App.cs and AppStaticFileMiddleware.cs
 - **Fix Data Protection logging**: Fixed spacing issue in Data Protection logging message template for better log formatting
+
+#### Improvements
+
+- **Simplified authentication configuration**: 
+  - Removed complex claim type mapping logic and `UseActiveDirectoryFederationServicesClaimTypes` option
+  - Updated default claim type values to use simple names:
+    - `DefaultUserIdClaimType`: changed from `"nameidentifier"` to `"id"`
+    - `DefaultNameClaimType`: remains `"name"` (unchanged)  
+    - `DefaultRoleClaimType`: changed from `"role"` to `"roles"`
+  - Column names from login endpoint responses are now converted directly to claim types without any transformation or mapping
+
+- **Streamlined static file content parsing**: Static files now use direct claim type substitution with `{claimType}` syntax, making the configuration much simpler and more straightforward
+
+### NpgsqlRest Client
 
 #### Improvements
 
