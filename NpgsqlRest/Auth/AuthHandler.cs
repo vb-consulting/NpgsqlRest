@@ -3,7 +3,6 @@ using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
-using static NpgsqlRest.Auth.ClaimsDictionary;
 
 namespace NpgsqlRest.Auth;
 
@@ -41,14 +40,13 @@ public static class AuthHandler
 
             for (int i = 0; i < routine.ColumnCount; i++)
             {
-                var name1 = routine.OriginalColumnNames[i];
-                var name2 = routine.ColumnNames[i];
+                var colName = routine.OriginalColumnNames[i];
+                
                 TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[i];
 
                 if (opts.StatusColumnName is not null)
                 {
-                    if (string.Equals(name1, opts.StatusColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, opts.StatusColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(colName, opts.StatusColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         if (descriptor.IsBoolean)
                         {
@@ -79,8 +77,7 @@ public static class AuthHandler
 
                 if (opts.SchemeColumnName is not null)
                 {
-                    if (string.Equals(name1, opts.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, opts.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(colName, opts.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         scheme = reader?.GetValue(i).ToString();
                         continue;
@@ -89,14 +86,13 @@ public static class AuthHandler
 
                 if (opts.MessageColumnName is not null)
                 {
-                    if (string.Equals(name1, opts.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, opts.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(colName, opts.MessageColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         message = reader?.GetValue(i).ToString();
                         continue;
                     }
                 }
-                var (userNameCurrent, userIdCurrent) = AddClaimFromReader(opts, i, descriptor, reader!, claims, name1, name2);
+                var (userNameCurrent, userIdCurrent) = AddClaimFromReader(opts, i, descriptor, reader!, claims, colName);
                 if (userNameCurrent is not null)
                 {
                     userName = userNameCurrent;
@@ -224,8 +220,8 @@ public static class AuthHandler
             var principal = new ClaimsPrincipal(new ClaimsIdentity(
                 claims, 
                 scheme ?? opts.DefaultAuthenticationType,
-                nameType: opts.GetUserNameClaimType(),
-                roleType: opts.GetRoleClaimType()));
+                nameType: opts.DefaultNameClaimType,
+                roleType: opts.DefaultRoleClaimType));
 
             if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
             {
@@ -247,36 +243,28 @@ public static class AuthHandler
         TypeDescriptor descriptor,
         NpgsqlDataReader reader,
         List<Claim> claims, 
-        string name1, 
-        string name2)
+        string colName)
     {
+        if (string.Equals(colName, options.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(colName, options.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+        {
+            return (null, null);
+        }
+
         string? claimType;
         string? userName = null;
         string? userId = null;
 
-        if (options.UseActiveDirectoryFederationServicesClaimTypes)
-        {
-            if (ClaimTypesDictionary.TryGetValue(name1.ToLowerInvariant(), out claimType) is false)
-            {
-                if (ClaimTypesDictionary.TryGetValue(name2.ToLowerInvariant(), out claimType) is false)
-                {
-                    claimType = name1.Replace("_", "");
-                }
-            }
-        }
-        else
-        {
-            claimType = name1.Replace("_", "");
-        }
+        claimType = colName;
 
         if (reader?.IsDBNull(i) is true)
         {
             claims.Add(new Claim(claimType, ""));
-            if (string.Equals(claimType, options.GetUserNameClaimType(), StringComparison.Ordinal))
+            if (string.Equals(claimType, options.DefaultNameClaimType, StringComparison.Ordinal))
             {
                 userName = null;
             }
-            else if (string.Equals(claimType, options.GetUserIdClaimType(), StringComparison.Ordinal))
+            else if (string.Equals(claimType, options.DefaultUserIdClaimType, StringComparison.Ordinal))
             {
                 userId = null;
             }
@@ -293,11 +281,11 @@ public static class AuthHandler
         {
             string? value = reader?.GetValue(i)?.ToString();
             claims.Add(new Claim(claimType, value ?? ""));
-            if (string.Equals(claimType, options.GetUserNameClaimType(), StringComparison.Ordinal))
+            if (string.Equals(claimType, options.DefaultNameClaimType, StringComparison.Ordinal))
             {
                 userName = value;
             }
-            else if (string.Equals(claimType, options.GetUserIdClaimType(), StringComparison.Ordinal))
+            else if (string.Equals(claimType, options.DefaultUserIdClaimType, StringComparison.Ordinal))
             {
                 userId = value;
             }

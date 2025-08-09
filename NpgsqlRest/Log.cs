@@ -122,14 +122,8 @@ public static partial class Log
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set CACHED with parameters {cachedParams} by the comment annotation.")]
     public static partial void CommentCached(this ILogger logger, string description, IEnumerable<string> cachedParams);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set PARSE RESPONSE to TRUE by the comment annotation.")]
-    public static partial void CommentParseResponse(this ILogger logger, string description);
-
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set SECURITY SENSITIVE to TRUE by the comment annotation.")]
     public static partial void CommentSecuritySensitive(this ILogger logger, string description);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "{description} has set PARSE RESPONSE to TRUE by the comment annotation but routine doesn't return a single value. Routine will NOT be parsed. Only single values can be parsed.")]
-    public static partial void CommentInvalidParseResponse(this ILogger logger, string description);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{description} has set CACHE EXPIRES IN to {value} by the comment annotation.")]
     public static partial void CommentCacheExpiresIn(this ILogger logger, string description, TimeSpan value);

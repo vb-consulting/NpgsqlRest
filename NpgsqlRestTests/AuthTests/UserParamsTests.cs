@@ -97,10 +97,7 @@ public class UserParamsTests(TestFixture test)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
 
-        // this will be the content when UseActiveDirectoryFederationServicesClaimTypes is true
-        //content.Should().Be("[{\"ipAddress\":null,\"userClaims\":{\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\":\"123\",\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\":\"myname\",\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\":[\"admin\",\"user\",\"contains\\\"quote\"]}}]");
-        
-        content.Should().Be("[{\"ipAddress\":null,\"userClaims\":{\"nameidentifier\":\"123\",\"name\":\"myname\",\"role\":[\"admin\",\"user\",\"contains\\\"quote\"]}}]");
+        content.Should().Be("[{\"ipAddress\":null,\"userClaims\":{\"name_identifier\":\"123\",\"name\":\"myname\",\"role\":[\"admin\",\"user\",\"contains\\\"quote\"]}}]");
     }
 
     [Fact]

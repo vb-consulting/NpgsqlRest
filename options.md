@@ -28,21 +28,21 @@ If the value is not set and the login endpoint is present, it will automatically
 ### AuthenticationOptions.DefaultNameClaimType
 
 - Type: `string`
-- Default: `ClaimTypes.Name` (`"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"`)
+- Default: `name`
 
 Default claim type for user name.
 
 ### AuthenticationOptions.DefaultRoleClaimType
 
 - Type: `string`
-- Default: `ClaimTypes.Role` (`"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"`)
+- Default: `roles`
 
 Default claim type for user roles.
 
 ### AuthenticationOptions.DefaultUserIdClaimType
 
 - Type: `string`
-- Default: `ClaimTypes.NameIdentifier` (`"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"`)
+- Default: `id`
 
 Default claim type for user id.
 
@@ -143,17 +143,6 @@ The default column name in the data reader which will be used to read the value 
 - If this column is not present, the success is when the endpoint returns any records.
 - If this column is not present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
 - If this column is present and retrieves a numeric value, that value is assigned to the HTTP Status Code and the login will authenticate only when this value is 200.
-
-### AuthenticationOptions.UseActiveDirectoryFederationServicesClaimTypes
-
-- Type: `bool`
-- Default: `true`
-
-Any columns retrieved from the reader during login, which don't have a name in `StatusColumnName` or `SchemeColumnName` will be used to create a new identity `Claim`. Column name will be interpreted as the claim type and the associated reader value for that column will be the claim value.
-
-When this value is set to true (default) column name will try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value.
-
-For example, column name `NameIdentifier` or `name_identifier` (when transformed by the default name transformer) will match the key `NameIdentifier` which translates to this: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
 
 ### AuthenticationOptions.UserClaimsContextKey
 
@@ -365,13 +354,6 @@ When not null, forces a method type for all created endpoints. Method types are 
 - Default: `null`
 
 When not null, sets the request parameter position (request parameter types) for all created endpoints. Values are `QueryString` (parameters are sent using query string) or `BodyJson` (parameters are sent using JSON request body). When this value is null (default), request parameter type is `QueryString` for all `GET` and `DELETE` endpoints, otherwise, request parameter type is `BodyJson`. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
-
-## DefaultResponseParser
-
-- Type: `IResponseParser?`
-- Default: `null`
-
-Default response parser object. Inject custom response parser object to add default response parser.
 
 ## DefaultRoutineCache
 

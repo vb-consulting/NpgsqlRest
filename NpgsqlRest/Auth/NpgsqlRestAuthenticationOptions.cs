@@ -6,43 +6,6 @@ namespace NpgsqlRest.Auth;
 /// </summary>
 public class NpgsqlRestAuthenticationOptions
 {
-    private string? _defaultUserIdClaimType = null;
-    private string? _defaultNameClaimType = null;
-    private string? _defaultRoleClaimType = null;
-
-    public string GetUserIdClaimType()
-    {
-        _defaultUserIdClaimType ??= DefaultUserIdClaimType.ToLowerInvariant().Replace("_", "") ?? string.Empty;
-        if (UseActiveDirectoryFederationServicesClaimTypes is true &&
-            ClaimsDictionary.ClaimTypesDictionary.TryGetValue(_defaultUserIdClaimType, out var claimType))
-        {
-            return claimType;
-        }
-        return DefaultUserIdClaimType;
-    }
-
-    public string GetUserNameClaimType()
-    {
-        _defaultNameClaimType ??= DefaultNameClaimType.ToLowerInvariant().Replace("_", "") ?? string.Empty;
-        if (UseActiveDirectoryFederationServicesClaimTypes is true &&
-            ClaimsDictionary.ClaimTypesDictionary.TryGetValue(DefaultNameClaimType.ToLowerInvariant(), out var claimType))
-        {
-            return claimType;
-        }
-        return DefaultNameClaimType;
-    }
-
-    public string GetRoleClaimType()
-    {
-        _defaultRoleClaimType ??= DefaultRoleClaimType.ToLowerInvariant().Replace("_", "") ?? string.Empty;
-        if (UseActiveDirectoryFederationServicesClaimTypes is true &&
-            ClaimsDictionary.ClaimTypesDictionary.TryGetValue(DefaultRoleClaimType.ToLowerInvariant(), out var claimType))
-        {
-            return claimType;
-        }
-        return DefaultRoleClaimType;
-    }
-
     /// <summary>
     /// Authentication type used with the Login endpoints to set the authentication type for the new `ClaimsIdentity` created by the login.
     ///
@@ -74,20 +37,9 @@ public class NpgsqlRestAuthenticationOptions
     public string? MessageColumnName { get; set; } = "message";
 
     /// <summary>
-    /// Any columns retrieved from the reader during login, which don't have a name in `StatusColumnName` or `SchemeColumnName` will be used to create a new identity  `Claim`:
-    /// 
-    /// Column name will be interpreted as the claim type and the associated reader value for that column will be the claim value.
-    /// 
-    /// When this value is set to true (default) column name will try to match the constant name in the [ClaimTypes class](https://learn.microsoft.com/en-us/dotnet/api/system.security.claims.claimtypes?view=net-8.0) to retrieve the value.
-    /// 
-    /// For example, column name `NameIdentifier` or `name_identifier` (when transformed by the default name transformer) will match the key `NameIdentifier` which translates to this: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier
-    /// </summary>
-    public bool UseActiveDirectoryFederationServicesClaimTypes { get; set; } = false;
-
-    /// <summary>
     /// Default claim type for user id.
     /// </summary>
-    public string DefaultUserIdClaimType { get; set; } = "nameidentifier"; // ClaimTypes.NameIdentifier;
+    public string DefaultUserIdClaimType { get; set; } = "id"; // ClaimTypes.NameIdentifier;
 
     /// <summary>
     /// Default claim type for user name.
@@ -97,7 +49,7 @@ public class NpgsqlRestAuthenticationOptions
     /// <summary>
     /// Default claim type for user roles.
     /// </summary>
-    public string DefaultRoleClaimType { get; set; } = "role"; // ClaimTypes.Role;
+    public string DefaultRoleClaimType { get; set; } = "roles"; // ClaimTypes.Role;
 
     /// <summary>
     /// If true, return any response from auth endpoints (login and logout) if response hasn't been written by auth handler.

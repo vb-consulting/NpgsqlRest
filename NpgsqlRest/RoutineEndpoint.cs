@@ -81,7 +81,6 @@ public class RoutineEndpoint(
     public bool Cached { get; set; } = cached;
     public HashSet<string>? CachedParams { get; set; } = cachedParams?.ToHashSet();
     public TimeSpan? CacheExpiresIn { get; set; } = cacheExpiresIn;
-    public bool ParseResponse { get; set; } = parseResponse;
     public string? ConnectionName { get; set; } = connectionName;
     public bool Upload { get; set; } = upload;
     public string[]? UploadHandlers { get; set; } = uploadHandlers;

@@ -85,14 +85,19 @@ public class Program
 
         var app = builder.Build();
 
-        var authOptions = new NpgsqlRest.Auth.NpgsqlRestAuthenticationOptions();
+        var authOptions = new NpgsqlRest.Auth.NpgsqlRestAuthenticationOptions
+        {
+            DefaultUserIdClaimType = "name_identifier",
+            DefaultNameClaimType = "name",
+            DefaultRoleClaimType = "role",
+        };
         app.MapGet("/login", () => Results.SignIn(new ClaimsPrincipal(new ClaimsIdentity(
             claims: new[]
             {
-                new Claim(authOptions.GetUserNameClaimType(), "user"),
-                new Claim(authOptions.GetRoleClaimType(), "role1"),
-                new Claim(authOptions.GetRoleClaimType(), "role2"),
-                new Claim(authOptions.GetRoleClaimType(), "role3"),
+                new Claim(authOptions.DefaultNameClaimType, "user"),
+                new Claim(authOptions.DefaultRoleClaimType, "role1"),
+                new Claim(authOptions.DefaultRoleClaimType, "role2"),
+                new Claim(authOptions.DefaultRoleClaimType, "role3"),
             },
             authenticationType: CookieAuthenticationDefaults.AuthenticationScheme))));
 
@@ -136,7 +141,9 @@ public class Program
 
             AuthenticationOptions = new()
             {
-                // UseActiveDirectoryFederationServicesClaimTypes = true,
+                DefaultUserIdClaimType = "name_identifier",
+                DefaultNameClaimType = "name",
+                DefaultRoleClaimType = "role",
 
                 PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)",
                 PasswordVerificationSucceededCommand = "call succeeded_login($1,$2,$3)",

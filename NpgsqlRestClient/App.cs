@@ -56,7 +56,7 @@ public static class App
         }
     }
 
-    public static void ConfigureStaticFiles(WebApplication app)
+    public static void ConfigureStaticFiles(WebApplication app, NpgsqlRestAuthenticationOptions options)
     {
         var staticFilesCfg = Cfg.GetSection("StaticFiles");
         if (staticFilesCfg.Exists() is false || GetConfigBool("Enabled", staticFilesCfg) is false)
@@ -79,19 +79,6 @@ public static class App
         }
 
         var filePaths = GetConfigEnumerable("FilePaths", parseCfg)?.ToArray();
-        var userIdTag = GetConfigStr("UserIdTag", parseCfg);
-        var userNameTag = GetConfigStr("UserNameTag", parseCfg);
-        var userRolesTag = GetConfigStr("UserRolesTag", parseCfg);
-        Dictionary<string, StringValues>? customTags = null;
-        foreach (var section in parseCfg.GetSection("CustomTagToClaimMappings").GetChildren())
-        {
-            customTags ??= [];
-            if (section?.Value is null)
-            {
-                continue;
-            }
-            customTags.Add(section.Key, section.Value!);
-        }
         var antiforgeryFieldNameTag = GetConfigStr("AntiforgeryFieldName", parseCfg);
         var antiforgeryTokenTag = GetConfigStr("AntiforgeryToken", parseCfg);
         var antiforgery = app.Services.GetService<IAntiforgery>();
@@ -99,10 +86,7 @@ public static class App
         AppStaticFileMiddleware.ConfigureStaticFileMiddleware(
             parse,
             filePaths,
-            userIdTag,
-            userNameTag,
-            userRolesTag,
-            customTags,
+            options,
             GetConfigBool("CacheParsedFile", parseCfg, true),
             antiforgeryFieldNameTag,
             antiforgeryTokenTag,
@@ -140,8 +124,7 @@ public static class App
             StatusColumnName = GetConfigStr("StatusColumnName", authCfg) ?? "status",
             SchemeColumnName = GetConfigStr("SchemeColumnName", authCfg) ?? "scheme",
             MessageColumnName = GetConfigStr("MessageColumnName", authCfg) ?? "message",
-            UseActiveDirectoryFederationServicesClaimTypes = GetConfigBool("UseActiveDirectoryFederationServicesClaimTypes", authCfg, false),
-            
+
             DefaultUserIdClaimType = GetConfigStr("DefaultUserIdClaimType", authCfg) ?? "nameidentifier",
             DefaultNameClaimType = GetConfigStr("DefaultNameClaimType", authCfg) ?? "name",
             DefaultRoleClaimType = GetConfigStr("DefaultRoleClaimType", authCfg) ?? "role",
@@ -167,36 +150,6 @@ public static class App
             IpAddressParameterName = GetConfigStr("IpAddressParameterName", authCfg) ?? "_ip_address",
             UserClaimsParameterName = GetConfigStr("UserClaimsParameterName", authCfg) ?? "_user_claims",
         }, authCfg);
-    }
-
-    public static IResponseParser? CreateDefaultParser(IConfigurationSection authCfg, NpgsqlRestAuthenticationOptions options)
-    {
-        if (authCfg.Exists() is false)
-        {
-            return null;
-        }
-        if (GetConfigBool("UseUserParameters", authCfg, false) is false)
-        {
-            return null;
-        }
-
-
-        Dictionary<string, string?>? customParameters = null;
-        foreach (var section in NpgsqlRestCfg.GetSection("CustomParameterMappings").GetChildren())
-        {
-            customParameters ??= [];
-            customParameters.Add(section.Key, section.Value);
-        }
-
-        return new DefaultResponseParser(
-            options.UserIdParameterName,
-            options.UserNameParameterName,
-            options.UserRolesParameterName,
-            options.IpAddressParameterName,
-            null,
-            null,
-            null,
-            customParameters);
     }
 
     public static Action<RoutineEndpoint?>? CreateEndpointCreatedHandler(IConfigurationSection authCfg)
@@ -260,7 +213,7 @@ public static class App
         return result;
     }
 
-    public static Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? BeforeConnectionOpen(string connectionString)
+    public static Action<NpgsqlConnection, RoutineEndpoint, HttpContext>? BeforeConnectionOpen(string connectionString, NpgsqlRestAuthenticationOptions options)
     {
         if (UseConnectionApplicationNameWithUsername is false)
         {
@@ -269,7 +222,7 @@ public static class App
 
         return (connection, endpoint, context) =>
         {
-            var uid = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var uid = context.User.FindFirstValue(options.DefaultUserIdClaimType);
             var executionId = context.Request.Headers["X-Execution-Id"].FirstOrDefault();
             connection.ConnectionString = new NpgsqlConnectionStringBuilder(connectionString)
             {

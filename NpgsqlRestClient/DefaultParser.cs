@@ -1,75 +1,72 @@
-﻿using System.Security.Claims;
+﻿using System.Collections.Generic;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest;
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRestClient;
 
 public class DefaultResponseParser(
-    string? userIdParameterName,
-    string? userNameParameterName,
-    string? userRolesParameterName,
-    string? ipAddressParameterName,
+    NpgsqlRestAuthenticationOptions options,
     string? antiforgeryFieldNameTag,
-    string? antiforgeryTokenTag,
-    Dictionary<string, StringValues>? customClaims,
-    Dictionary<string, string?>? customParameters) : IResponseParser
+    string? antiforgeryTokenTag)
 {
-    private readonly string? userIdParameterName = userIdParameterName;
-    private readonly string? userNameParameterName = userNameParameterName;
-    private readonly string? userRolesParameterName = userRolesParameterName;
-    private readonly string? ipAddressParameterName = ipAddressParameterName;
-
+    private readonly NpgsqlRestAuthenticationOptions options = options;
     private readonly string? antiforgeryFieldNameTag = antiforgeryFieldNameTag;
     private readonly string? antiforgeryTokenTag = antiforgeryTokenTag;
-
-    private readonly Dictionary<string, StringValues>? customClaims = customClaims;
-    private readonly Dictionary<string, string?>? customParameters = customParameters;
 
     public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context)
     {
         return Parse(input, context, null);
     }
 
-    public ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, HttpContext context, AntiforgeryTokenSet? tokenSet)
+    public ReadOnlySpan<char> Parse(
+        ReadOnlySpan<char> input, 
+        HttpContext context, 
+        AntiforgeryTokenSet? tokenSet)
     {
         Dictionary<string, string> replacements = [];
+        HashSet<string> arrayTypes = new(10)
+        {
+            options.DefaultRoleClaimType
+        };
+        foreach (var claim in context.User.Claims)
+        {
+            if (replacements.TryGetValue(claim.Type, out var existingValue))
+            {
+                replacements[claim.Type] = string.Concat(existingValue, ",", PgConverters.SerializeString(claim.Value));
+                if (arrayTypes.Contains(claim.Type) is false)
+                {
+                    arrayTypes.Add(claim.Type);
+                }
+            }
+            else
+            {
+                replacements.Add(claim.Type, PgConverters.SerializeString(claim.Value));
+            }
+        }
+        foreach (var item in arrayTypes)
+        {
+            if (replacements.TryGetValue(item, out var existingValue) is true)
+            {
+                replacements[item] = string.Concat(Consts.OpenBracket, existingValue, Consts.CloseBracket);
+            }
+            else
+            {
+                replacements[item] = string.Concat(Consts.OpenBracket, Consts.CloseBracket);
+            }
+        }
 
-        if (userIdParameterName is not null)
+        if (replacements.ContainsKey(options.DefaultUserIdClaimType) is false)
         {
-            var value = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            replacements.Add(userIdParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote)); 
+            replacements.Add(options.DefaultUserIdClaimType, Consts.Null);
         }
-        if (userNameParameterName is not null)
+        if (replacements.ContainsKey(options.DefaultNameClaimType) is false)
         {
-            var value = context.User.Identity?.Name;
-            replacements.Add(userNameParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
+            replacements.Add(options.DefaultNameClaimType, Consts.Null);
         }
-        if (userRolesParameterName is not null)
-        {
-            var value = context.User.FindAll(c => string.Equals(c.Type, ClaimTypes.Role, StringComparison.Ordinal))?.Select(r => string.Concat(Consts.DoubleQuote, r.Value, Consts.DoubleQuote));
-            replacements.Add(userRolesParameterName, value is null ? Consts.Null : string.Concat(Consts.OpenBracket, string.Join(Consts.Comma, value), Consts.CloseBracket));
-        }
-        if (ipAddressParameterName is not null)
-        {
-            var value = context.Request.GetClientIpAddress();
-            replacements.Add(ipAddressParameterName, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
-        }
-        if (customClaims is not null)
-        {
-            foreach (var (key, value) in customClaims)
-            {
-                var claim = context.User.FindFirst(key);
-                replacements.Add(key, claim is null ? Consts.Null : string.Concat(Consts.DoubleQuote, claim.Value, Consts.DoubleQuote));
-            }
-        }
-        if (customParameters is not null)
-        {
-            foreach (var (key, value) in customParameters)
-            {
-                replacements.Add(key, value is null ? Consts.Null : string.Concat(Consts.DoubleQuote, value, Consts.DoubleQuote));
-            }
-        }
+
         if (tokenSet is not null && (antiforgeryFieldNameTag is not null || antiforgeryTokenTag is not null))
         {
             if (antiforgeryFieldNameTag is not null)

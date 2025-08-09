@@ -318,11 +318,6 @@ public class NpgsqlRestOptions
     public int CachePruneIntervalMin { get; set; } = 1;
 
     /// <summary>
-    /// Default response parser object. Inject custom response parser object to add default response parser.
-    /// </summary>
-    public IResponseParser? DefaultResponseParser { get; set; }
-
-    /// <summary>
     /// Default Upload Options
     /// </summary>
     public NpgsqlRestUploadOptions UploadOptions { get; set; } = new();

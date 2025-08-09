@@ -94,10 +94,7 @@ public class UserContextTests(TestFixture test)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadAsStringAsync();
 
-        // this will be the content when UseActiveDirectoryFederationServicesClaimTypes is true
-        //content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\\\":\\\"123\\\",\\\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\\\":\\\"myname\\\",\\\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
-        
-        content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"nameidentifier\\\":\\\"123\\\",\\\"name\\\":\\\"myname\\\",\\\"role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
+        content.Should().Be("[{\"ipAddress\":\"\",\"claims\":\"{\\\"name_identifier\\\":\\\"123\\\",\\\"name\\\":\\\"myname\\\",\\\"role\\\":[\\\"admin\\\",\\\"user\\\"]}\"}]");
     }
 
     [Fact]

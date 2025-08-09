@@ -151,12 +151,3 @@ public interface IRoutineSource
     /// </summary>
     string[]? ExcludeNames { get; set; }
 }
-
-public interface IResponseParser
-{
-    /// <summary>
-    /// Parse response from PostgreSQL.
-    /// </summary>
-    /// <returns>Response string</returns>
-    ReadOnlySpan<char> Parse(ReadOnlySpan<char> input, RoutineEndpoint endpoint, HttpContext context);
-}

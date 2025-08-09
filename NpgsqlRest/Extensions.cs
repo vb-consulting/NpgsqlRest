@@ -50,7 +50,7 @@ public static class Ext
 
     public static object GetUserIdDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
-        var type = options.AuthenticationOptions.GetUserIdClaimType();
+        var type = options.AuthenticationOptions.DefaultUserIdClaimType;
         foreach (var claim in user.Claims)
         {
             if (claim.IsTypeOf(type))
@@ -63,7 +63,7 @@ public static class Ext
 
     public static object GetUserNameDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
-        var type = options.AuthenticationOptions.GetUserNameClaimType();
+        var type = options.AuthenticationOptions.DefaultNameClaimType;
         foreach (var claim in user.Claims)
         {
             if (claim.IsTypeOf(type))
@@ -76,7 +76,7 @@ public static class Ext
 
     public static object GetUserRolesTextDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
-        var type = options.AuthenticationOptions.GetRoleClaimType();
+        var type = options.AuthenticationOptions.DefaultRoleClaimType;
         StringBuilder sb = new(100);
         sb.Append('{');
         int i = 0;
@@ -98,7 +98,7 @@ public static class Ext
 
     public static object GetUserRolesDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
     {
-        var type = options.AuthenticationOptions.GetRoleClaimType();
+        var type = options.AuthenticationOptions.DefaultRoleClaimType;
         List<string> roles = new(10);
         foreach (var claim in user.Claims)
         {

@@ -52,6 +52,8 @@ Configure(app, () =>
     }
 });
 
+var (authenticationOptions, authCfg) = CreateNpgsqlRestAuthenticationOptions();
+
 if (usingCors)
 {
     app.UseCors();
@@ -64,15 +66,12 @@ if (antiforgerUsed)
 {
     app.UseAntiforgery();
 }
-ConfigureStaticFiles(app);
+ConfigureStaticFiles(app, authenticationOptions);
 
 var refreshOptionsCfg = NpgsqlRestCfg.GetSection("RefreshOptions");
 
 await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 var logConnectionNoticeEventsMode = GetConfigEnum<PostgresConnectionNoticeLoggingMode?>("LogConnectionNoticeEventsMode", NpgsqlRestCfg) ?? PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
-
-//var (paramHandler, defaultParser) = CreateParametersHandlers();
-var (authenticationOptions, authCfg) = CreateNpgsqlRestAuthenticationOptions();
 
 ConfigureThreadPool();
 
@@ -114,7 +113,7 @@ NpgsqlRestOptions options = new()
     ValidateParameters = null,
     ReturnNpgsqlExceptionMessage = GetConfigBool("ReturnNpgsqlExceptionMessage", NpgsqlRestCfg, true),
     PostgreSqlErrorCodeToHttpStatusCodeMapping = CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
-    BeforeConnectionOpen = BeforeConnectionOpen(connectionString),
+    BeforeConnectionOpen = BeforeConnectionOpen(connectionString, authenticationOptions),
     AuthenticationOptions = authenticationOptions,
     EndpointCreateHandlers = CreateCodeGenHandlers(connectionString),
     CustomRequestHeaders = GetCustomHeaders(),
@@ -125,7 +124,6 @@ NpgsqlRestOptions options = new()
     RefreshEndpointEnabled = GetConfigBool("Enabled", refreshOptionsCfg, false),
     RefreshPath = GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
     RefreshMethod = GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
-    DefaultResponseParser = CreateDefaultParser(authCfg, authenticationOptions),
     UploadOptions = CreateUploadOptions(),
 };
 

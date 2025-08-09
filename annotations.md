@@ -287,15 +287,6 @@ param param_name is user_claims
 
 Marks a parameter to be populated with the current user's complete claims information from authentication.
 
-## ParseResponse
-
-```console
-parse
-parse_response
-```
-
-Enable response parsing for this routine. Requires injecting a default parser. See the `DefaultResponseParser` option.
-
 ## Path
 
 ```console

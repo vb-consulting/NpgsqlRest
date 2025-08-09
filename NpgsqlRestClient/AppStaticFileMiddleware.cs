@@ -8,6 +8,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using NpgsqlRest;
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRestClient;
 
@@ -38,10 +39,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
     public static void ConfigureStaticFileMiddleware(
         bool parse,
         string[]? parsePatterns,
-        string? userIdTag,
-        string? userNameTag,
-        string? userRolesTag,
-        Dictionary<string, StringValues>? customClaimTags,
+        NpgsqlRestAuthenticationOptions options,
         bool cacheParsedFiles,
         string? antiforgeryFieldNameTag,
         string? antiforgeryTokenTag,
@@ -53,22 +51,13 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         Serilog.ILogger? logger)
     {
         _parsePatterns = parse == false || parsePatterns == null || parsePatterns.Length == 0 ? null : parsePatterns?.Where(p => !string.IsNullOrEmpty(p)).ToArray();
-        if (parse is false || _parsePatterns is null ||
-            (userIdTag is null && userNameTag is null && userRolesTag is null && customClaimTags is null && antiforgeryFieldNameTag is null && antiforgeryTokenTag is null))
+        if (parse is false || _parsePatterns is null)
         {
             _parser = null;
         }
         else
         {
-            _parser = new DefaultResponseParser(
-                    userIdParameterName: userIdTag,
-                    userNameParameterName: userNameTag,
-                    userRolesParameterName: userRolesTag,
-                    ipAddressParameterName: null,
-                    antiforgeryFieldNameTag: antiforgeryFieldNameTag,
-                    antiforgeryTokenTag: antiforgeryTokenTag,
-                    customClaims: customClaimTags,
-                    customParameters: null);
+            _parser = new DefaultResponseParser(options, antiforgeryFieldNameTag, antiforgeryTokenTag);
         }
 
         _antiforgery = antiforgery;

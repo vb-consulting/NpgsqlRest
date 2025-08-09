@@ -133,11 +133,6 @@ internal static class DefaultCommentParser
 
     private const string CacheKey = "cached";
 
-    private static readonly string[] parseResponseKey = [
-        "parse",
-        "parse_response",
-    ];
-
     private static readonly string[] cacheExpiresInKey = [
         "cache_expires",
         "cache_expires_in",
@@ -727,21 +722,6 @@ internal static class DefaultCommentParser
                     if (options.LogAnnotationSetInfo)
                     {
                         logger?.CommentRawSetColumnNames(description);
-                    }
-                }
-
-                // parse
-                // parse_response
-                else if (haveTag is true && StrEqualsToArray(words[0], parseResponseKey))
-                {
-                    if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
-                    {
-                        logger?.CommentInvalidParseResponse(description);
-                    }
-                    routineEndpoint.ParseResponse = true;
-                    if (options.LogAnnotationSetInfo)
-                    {
-                        logger?.CommentParseResponse(description);
                     }
                 }
 

@@ -109,7 +109,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 bool ok = false;
                 foreach (var claim in context.User?.Claims ?? [])
                 {
-                    if (string.Equals(claim.Type, Options.AuthenticationOptions.GetRoleClaimType(), StringComparison.Ordinal))
+                    if (string.Equals(claim.Type, Options.AuthenticationOptions.DefaultRoleClaimType, StringComparison.Ordinal))
                     {
                         if (endpoint.AuthorizeRoles.Contains(claim.Value) is true)
                         {
@@ -1386,10 +1386,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         else
                         {
                             var span = (valueResult as string).AsSpan();
-                            if (Options.DefaultResponseParser is not null && endpoint.ParseResponse)
-                            {
-                                span = Options.DefaultResponseParser.Parse(span, endpoint, context);
-                            }
                             writer.Advance(Encoding.UTF8.GetBytes(span, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(span.Length))));
                         }
                     }
@@ -1417,10 +1413,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         {
                             var span = (descriptor.IsArray && valueResult is not null) ?
                                 PgConverters.PgArrayToJsonArray((valueResult as string).AsSpan(), descriptor) : (valueResult as string).AsSpan();
-                            if (Options.DefaultResponseParser is not null && endpoint.ParseResponse)
-                            {
-                                span = Options.DefaultResponseParser.Parse(span, endpoint, context);
-                            }
                             writer.Advance(Encoding.UTF8.GetBytes(span, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(span.Length))));
                         }
                     }

@@ -8,7 +8,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
     <PublishAot>true</PublishAot>
-    <Version>2.24.0</Version>
+    <Version>2.25.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +27,7 @@
   
   <ItemGroup>
     <Folder Include="build\" />
+    <Folder Include="dist\" />
     <Folder Include="logs\" />
     <Folder Include="src\" />
   </ItemGroup>

@@ -11,7 +11,6 @@ using Serilog.Events;
 using static System.Net.Mime.MediaTypeNames;
 using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
-using static NpgsqlRest.Auth.ClaimsDictionary;
 
 namespace NpgsqlRestClient;
 
@@ -434,16 +433,15 @@ public static class ExternalAuth
         string? message = null;
         var claims = new List<Claim>(10);
         context.Response.StatusCode = (int)HttpStatusCode.OK;
+
         for (int i = 0; i < reader?.FieldCount; i++)
         {
-            string name1 = reader.GetName(i);
-            string name2 = options.NameConverter(name1) ?? name1;
+            string colName = reader.GetName(i);
             var descriptor = new TypeDescriptor(reader.GetDataTypeName(i));
 
             if (options.AuthenticationOptions.StatusColumnName is not null)
             {
-                if (string.Equals(name1, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(colName, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase))
                 {
                     if (descriptor.IsBoolean)
                     {
@@ -473,8 +471,7 @@ public static class ExternalAuth
 
             if (options.AuthenticationOptions.SchemeColumnName is not null)
             {
-                if (string.Equals(name1, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(colName, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
                 {
                     scheme = reader?.GetValue(i).ToString();
                     continue;
@@ -483,14 +480,13 @@ public static class ExternalAuth
 
             if (options.AuthenticationOptions.MessageColumnName is not null)
             {
-                if (string.Equals(name1, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name2, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(colName, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
                 {
                     message = reader?.GetValue(i).ToString();
                     continue;
                 }
             }
-            NpgsqlRest.Auth.AuthHandler.AddClaimFromReader(options.AuthenticationOptions, i, descriptor, reader!, claims, name1, name2);
+            NpgsqlRest.Auth.AuthHandler.AddClaimFromReader(options.AuthenticationOptions, i, descriptor, reader!, claims, colName);
         }
 
         if (context.Response.StatusCode == (int)HttpStatusCode.OK)
