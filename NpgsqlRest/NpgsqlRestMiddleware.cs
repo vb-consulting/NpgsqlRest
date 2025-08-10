@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using System.Net;
@@ -1640,6 +1641,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             else
             {
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                var msg = string.Format("Error in while processing NpgsqlRest request. Please check error logs for more details. Here is what we know: {0}", exception.Message);
+                writer.Advance(Encoding.UTF8.GetBytes(msg, writer.GetSpan(Encoding.UTF8.GetMaxByteCount(msg.Length))));
             }
 
             if (endpoint.Upload is true)
@@ -1664,7 +1667,6 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     {
                         await transaction.CommitAsync();
                     }
-                    //await transaction.DisposeAsync();
                 }
             }
             if (connection is not null && shouldDispose is true)
