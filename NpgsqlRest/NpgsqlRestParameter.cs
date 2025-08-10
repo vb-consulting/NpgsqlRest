@@ -17,11 +17,11 @@ public class NpgsqlRestParameter : NpgsqlParameter
     public NpgsqlRestParameter? HashOf { get; set; } = null;
 
     public bool IsUploadMetadata { get; set; } = false;
-    public bool IsUserId { get; set; } = false;
-    public bool IsUserName { get; set; } = false;
-    public bool IsUserRoles { get; set; } = false;
+
     public bool IsIpAddress { get; set; } = false;
+    public string? UserClaim { get; set; } = null;
     public bool IsUserClaims { get; set; } = false;
+    public bool IsFromUserClaims => UserClaim is not null || IsUserClaims is true;
 
     public NpgsqlRestParameter(
         NpgsqlRestOptions options, 
@@ -36,36 +36,27 @@ public class NpgsqlRestParameter : NpgsqlParameter
         TypeDescriptor = typeDescriptor;
         NpgsqlDbType = typeDescriptor.ActualDbType;
 
-        if (string.Equals(options.AuthenticationOptions.UserIdParameterName, actualName, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(options.AuthenticationOptions.UserIdParameterName, convertedName, StringComparison.OrdinalIgnoreCase))
+        if (actualName is not null && 
+            options.AuthenticationOptions.ParameterNameClaimsMapping.TryGetValue(actualName, out var claimName))
         {
-            IsUserId = true;
+            UserClaim = claimName;
         }
-        if (string.Equals(options.AuthenticationOptions.UserNameParameterName, actualName, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(options.AuthenticationOptions.UserNameParameterName, convertedName, StringComparison.OrdinalIgnoreCase))
-        {
-            IsUserName = true;
-        }
-        if (string.Equals(options.AuthenticationOptions.UserRolesParameterName, actualName, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(options.AuthenticationOptions.UserRolesParameterName, convertedName, StringComparison.OrdinalIgnoreCase))
-        {
-            IsUserRoles = true;
-        }
-        if (string.Equals(options.AuthenticationOptions.IpAddressParameterName, actualName, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(options.AuthenticationOptions.IpAddressParameterName, convertedName, StringComparison.OrdinalIgnoreCase))
+
+        if (actualName is not null && 
+            string.Equals(options.AuthenticationOptions.IpAddressParameterName, actualName, StringComparison.OrdinalIgnoreCase))
         {
             IsIpAddress = true;
         }
-        if (string.Equals(options.AuthenticationOptions.UserClaimsParameterName, actualName, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(options.AuthenticationOptions.UserClaimsParameterName, convertedName, StringComparison.OrdinalIgnoreCase))
+
+        if (actualName is not null && 
+            string.Equals(options.AuthenticationOptions.ClaimsJsonParameterName, actualName, StringComparison.OrdinalIgnoreCase))
         {
             IsUserClaims = true;
         }
 
         if (options.UploadOptions.UseDefaultUploadMetadataParameter is true)
         {
-            if (string.Equals(options.UploadOptions.DefaultUploadMetadataParameterName, actualName, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(options.UploadOptions.DefaultUploadMetadataParameterName, convertedName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(options.UploadOptions.DefaultUploadMetadataParameterName, actualName, StringComparison.OrdinalIgnoreCase))
             {
                 IsUploadMetadata = true;
             }

@@ -80,7 +80,6 @@ public static partial class Database
 [Collection("TestFixture")]
 public class UserContextTests(TestFixture test)
 {
-
     [Fact]
     public async Task Test_get_user_context_and_ip_and_full_claims()
     {

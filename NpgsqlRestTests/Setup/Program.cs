@@ -90,6 +90,18 @@ public class Program
             DefaultUserIdClaimType = "name_identifier",
             DefaultNameClaimType = "name",
             DefaultRoleClaimType = "role",
+            ContextKeyClaimsMapping = new()
+            {
+                { "request.user_id", "name_identifier" },
+                { "request.user_name", "name" },
+                { "request.user_roles" , "role" },
+            },
+            ParameterNameClaimsMapping = new()
+            {
+                { "_user_id", "name_identifier" },
+                { "_user_name", "name" },
+                { "_user_roles", "role" }
+            },
         };
         app.MapGet("/login", () => Results.SignIn(new ClaimsPrincipal(new ClaimsIdentity(
             claims: new[]
@@ -105,6 +117,7 @@ public class Program
         {
             //NameSimilarTo = "get_conn1_connection_name_p",
             //SchemaSimilarTo = "custom_param_schema",
+            IncludeSchemas = ["public", "custom_param_schema", "my_schema", "custom_table_param_schema"],
             CommentsMode = CommentsMode.ParseAll,
             ValidateParametersAsync = ValidateAsync,
             ConnectionStrings = new Dictionary<string, string>()
@@ -144,10 +157,22 @@ public class Program
                 DefaultUserIdClaimType = "name_identifier",
                 DefaultNameClaimType = "name",
                 DefaultRoleClaimType = "role",
+                ContextKeyClaimsMapping = new()
+                {
+                    { "request.user_id", "name_identifier" },
+                    { "request.user_name", "name" },
+                    { "request.user_roles" , "role" },
+                },
+                ParameterNameClaimsMapping = new()
+                {
+                    { "_user_id", "name_identifier" },
+                    { "_user_name", "name" },
+                    { "_user_roles", "role" }
+                },
 
                 PasswordVerificationFailedCommand = "call failed_login($1,$2,$3)",
                 PasswordVerificationSucceededCommand = "call succeeded_login($1,$2,$3)",
-                UserClaimsContextKey = "request.user_claims",
+                ClaimsJsonContextKey = "request.user_claims",
             },
 
             UploadOptions = new()

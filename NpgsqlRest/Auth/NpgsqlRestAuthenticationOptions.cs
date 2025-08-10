@@ -39,17 +39,17 @@ public class NpgsqlRestAuthenticationOptions
     /// <summary>
     /// Default claim type for user id.
     /// </summary>
-    public string DefaultUserIdClaimType { get; set; } = "id"; // ClaimTypes.NameIdentifier;
+    public string DefaultUserIdClaimType { get; set; } = "user_id"; // ClaimTypes.NameIdentifier;
 
     /// <summary>
     /// Default claim type for user name.
     /// </summary>
-    public string DefaultNameClaimType { get; set; } = "name"; // ClaimTypes.Name;
+    public string DefaultNameClaimType { get; set; } = "user_name"; // ClaimTypes.Name;
 
     /// <summary>
     /// Default claim type for user roles.
     /// </summary>
-    public string DefaultRoleClaimType { get; set; } = "roles"; // ClaimTypes.Role;
+    public string DefaultRoleClaimType { get; set; } = "user_roles"; // ClaimTypes.Role;
 
     /// <summary>
     /// If true, return any response from auth endpoints (login and logout) if response hasn't been written by auth handler.
@@ -111,30 +111,19 @@ public class NpgsqlRestAuthenticationOptions
     /// </summary>
     public bool UseUserContext { get; set; } = false;
 
-    /// <summary>
-    /// User id context key that is used to set context variable for the user id.
-    /// </summary>
-    public string? UserIdContextKey { get; set; } = "request.user_id";
+    public Dictionary<string, string> ContextKeyClaimsMapping { get; set; } = new() 
+    {
+        { "request.user_id", "user_id" },
+        { "request.user_name", "user_name" },
+        { "request.user_roles" , "user_roles" },
+    };
 
-    /// <summary>
-    /// User name context key that is used to set context variable for the user name.
-    /// </summary>
-    public string? UserNameContextKey { get; set; } = "request.user_name";
-
-    /// <summary>
-    /// User roles context key that is used to set context variable for the user roles.
-    /// </summary>
-    public string? UserRolesContextKey { get; set; } = "request.user_roles";
+    public string? ClaimsJsonContextKey { get; set; } = null;
 
     /// <summary>
     /// IP address context key that is used to set context variable for the IP address.
     /// </summary>
     public string? IpAddressContextKey { get; set; } = "request.ip_address";
-
-    /// <summary>
-    /// When this value is set and user context is used, all user claims will be serialized to JSON value and set to the context variable with this name.
-    /// </summary>
-    public string? UserClaimsContextKey { get; set; } = null;
 
     /// <summary>
     /// Set user parameters to true for all requests. 
@@ -143,23 +132,17 @@ public class NpgsqlRestAuthenticationOptions
     /// </summary>
     public bool UseUserParameters { get; set; } = false;
 
-    /// <summary>
-    /// User id parameter name that is used to set parameter value for the user id.
-    /// Parameter name can be original or converted and it has to be the text type.
-    /// </summary>
-    public string? UserIdParameterName { get; set; } = "_user_id";
+    public Dictionary<string, string> ParameterNameClaimsMapping { get; set; } = new()
+    {
+        { "_user_id" , "user_id" },
+        { "_user_name" , "user_name" },
+        { "_user_roles" , "user_roles" },
+    };
 
     /// <summary>
-    /// User name parameter name that is used to set parameter value for the user name.
-    /// Parameter name can be original or converted and it has to be the text type.
+    /// All user claims will be serialized to JSON value and set to the parameter with this name.
     /// </summary>
-    public string? UserNameParameterName { get; set; } = "_user_name";
-
-    /// <summary>
-    /// User roles parameter name that is used to set parameter value for the user roles.
-    /// Parameter name can be original or converted and it has to be the text array type.
-    /// </summary>
-    public string? UserRolesParameterName { get; set; } = "_user_roles";
+    public string? ClaimsJsonParameterName { get; set; } = "_user_claims";
 
     /// <summary>
     /// IP address parameter name that is used to set parameter value for the IP address.
@@ -167,8 +150,8 @@ public class NpgsqlRestAuthenticationOptions
     /// </summary>
     public string? IpAddressParameterName { get; set; } = "_ip_address";
 
-    /// <summary>
-    /// All user claims will be serialized to JSON value and set to the parameter with this name.
-    /// </summary>
-    public string? UserClaimsParameterName { get; set; } = "_user_claims";
+    ///// <summary>
+    ///// All user claims will be serialized to JSON value and set to the parameter with this name.
+    ///// </summary>
+    //public string? UserClaimsParameterName { get; set; } = "_user_claims";
 }

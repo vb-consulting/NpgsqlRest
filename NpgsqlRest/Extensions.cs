@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Text;
 using Npgsql;
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRest;
 
@@ -48,77 +49,50 @@ public static class Ext
         return string.Equals(claim.Type, type, StringComparison.OrdinalIgnoreCase);
     }
 
-    public static object GetUserIdDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
+    public static object GetClaimDbParam(this Dictionary<string, object> dict, string key)
     {
-        var type = options.AuthenticationOptions.DefaultUserIdClaimType;
-        foreach (var claim in user.Claims)
+        if (dict.TryGetValue(key, out var value))
         {
-            if (claim.IsTypeOf(type))
-            {
-                return claim.Value;
-            }
+           if (value is null)
+           {
+                 return DBNull.Value;
+           }
+           return value;
         }
         return DBNull.Value;
     }
 
-    public static object GetUserNameDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
+    public static object GetClaimDbContextParam(this Dictionary<string, object> dict, string key)
     {
-        var type = options.AuthenticationOptions.DefaultNameClaimType;
-        foreach (var claim in user.Claims)
+        object value = dict.GetClaimDbParam(key);
+        if (value == DBNull.Value || value is string)
         {
-            if (claim.IsTypeOf(type))
-            {
-                return claim.Value;
-            }
+            return value;
         }
-        return DBNull.Value;
-    }
-
-    public static object GetUserRolesTextDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
-    {
-        var type = options.AuthenticationOptions.DefaultRoleClaimType;
+        var list = value as List<string>;
         StringBuilder sb = new(100);
         sb.Append('{');
-        int i = 0;
-        foreach (var claim in user.Claims)
+        for (int i = 0; i < list?.Count; i++)
         {
-            if (claim.IsTypeOf(type))
+            if (i > 0)
             {
-                if (i > 0)
-                {
-                    sb.Append(',');
-                }
-                sb.Append(PgConverters.QuoteText(claim.Value.AsSpan()));
-                i++;
+                sb.Append(',');
             }
+            sb.Append(PgConverters.SerializeString(list[i]));
         }
         sb.Append('}');
         return sb.ToString();
     }
 
-    public static object GetUserRolesDbParam(this ClaimsPrincipal user, NpgsqlRestOptions options)
-    {
-        var type = options.AuthenticationOptions.DefaultRoleClaimType;
-        List<string> roles = new(10);
-        foreach (var claim in user.Claims)
-        {
-            if (claim.IsTypeOf(type))
-            {
-                roles.Add(claim.Value);
-            }
-        }
-        return roles.ToArray();
-    }
 
-    public static object GetUserClaimsDbParam(this ClaimsPrincipal user)
+    public static Dictionary<string, object> BuildClaimsDictionary(this ClaimsPrincipal? user, NpgsqlRestAuthenticationOptions options)
     {
-        var claims = user.Claims;
-        if (!claims.Any())
-        {
-            return "{}";
-        }
         Dictionary<string, object> claimValues = [];
-        foreach (var claim in claims)
+        if (user is null || user.Claims is null)
+        {
+            return claimValues;
+        }
+        foreach (var claim in user.Claims)
         {
             if (claimValues.TryGetValue(claim.Type, out var existing))
             {
@@ -134,8 +108,24 @@ public static class Ext
             }
             else
             {
-                claimValues[claim.Type] = claim.Value;
+                if (claim.IsTypeOf(options.DefaultRoleClaimType))
+                    {
+                    claimValues[claim.Type] = new List<string> { claim.Value };
+                }
+                else
+                {
+                    claimValues[claim.Type] = claim.Value;
+                }
             }
+        }
+        return claimValues;
+    }
+
+    public static object GetUserClaimsDbParam(this ClaimsPrincipal user, Dictionary<string, object> claimValues)
+    {
+        if (user is null || claimValues is null || claimValues.Count == 0)
+        {
+            return "{}";
         }
         int estimatedCapacity = 2 + (claimValues.Count * 10);
         foreach (var entry in claimValues)

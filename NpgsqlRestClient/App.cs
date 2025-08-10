@@ -125,9 +125,9 @@ public static class App
             SchemeColumnName = GetConfigStr("SchemeColumnName", authCfg) ?? "scheme",
             MessageColumnName = GetConfigStr("MessageColumnName", authCfg) ?? "message",
 
-            DefaultUserIdClaimType = GetConfigStr("DefaultUserIdClaimType", authCfg) ?? "nameidentifier",
-            DefaultNameClaimType = GetConfigStr("DefaultNameClaimType", authCfg) ?? "name",
-            DefaultRoleClaimType = GetConfigStr("DefaultRoleClaimType", authCfg) ?? "role",
+            DefaultUserIdClaimType = GetConfigStr("DefaultUserIdClaimType", authCfg) ?? "user_id",
+            DefaultNameClaimType = GetConfigStr("DefaultNameClaimType", authCfg) ?? "user_name",
+            DefaultRoleClaimType = GetConfigStr("DefaultRoleClaimType", authCfg) ?? "user_roles",
 
             SerializeAuthEndpointsResponse = GetConfigBool("SerializeAuthEndpointsResponse", authCfg, false),
             ObfuscateAuthParameterLogValues = GetConfigBool("ObfuscateAuthParameterLogValues", authCfg, true),
@@ -137,18 +137,24 @@ public static class App
             PasswordVerificationFailedCommand = GetConfigStr("PasswordVerificationFailedCommand", authCfg),
             PasswordVerificationSucceededCommand = GetConfigStr("PasswordVerificationSucceededCommand", authCfg),
             UseUserContext = GetConfigBool("UseUserContext", authCfg, false),
-            UserIdContextKey = GetConfigStr("UserIdContextKey", authCfg) ?? "request.user_id",
-            UserNameContextKey = GetConfigStr("UserNameContextKey", authCfg) ?? "request.user_name",
-            UserRolesContextKey = GetConfigStr("UserRolesContextKey", authCfg) ?? "request.user_roles",
+            ContextKeyClaimsMapping = authCfg.GetSection("ContextKeyClaimsMapping").GetConfigDict() ?? new()
+            {
+                { "request.user_id", "user_id" },
+                { "request.user_name", "user_name" },
+                { "request.user_roles" , "user_roles" },
+            },
+            ClaimsJsonContextKey = GetConfigStr("ClaimsJsonContextKey", authCfg),
             IpAddressContextKey = GetConfigStr("IpAddressContextKey", authCfg) ?? "request.ip_address",
-            UserClaimsContextKey = GetConfigStr("UserClaimsContextKey", authCfg) ?? "request.user_claims",
-
             UseUserParameters = GetConfigBool("UseUserParameters", authCfg, false),
-            UserIdParameterName = GetConfigStr("UserIdParameterName", authCfg) ?? "_user_id",
-            UserNameParameterName = GetConfigStr("UserNameParameterName", authCfg) ?? "_user_name",
-            UserRolesParameterName = GetConfigStr("UserRolesParameterName", authCfg) ?? "_user_roles",
+            ParameterNameClaimsMapping = authCfg.GetSection("ParameterNameClaimsMapping").GetConfigDict() ?? new()
+            {
+                { "_user_id" , "user_id" },
+                { "_user_name" , "user_name" },
+                { "_user_roles" , "user_roles" },
+            },
+            ClaimsJsonParameterName = GetConfigStr("ClaimsJsonParameterName", authCfg) ?? "_user_claims",
             IpAddressParameterName = GetConfigStr("IpAddressParameterName", authCfg) ?? "_ip_address",
-            UserClaimsParameterName = GetConfigStr("UserClaimsParameterName", authCfg) ?? "_user_claims",
+
         }, authCfg);
     }
 

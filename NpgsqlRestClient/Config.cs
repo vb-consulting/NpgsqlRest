@@ -198,6 +198,19 @@ public static class Config
         return result;
     }
 
+    public static Dictionary<string, string>? GetConfigDict(this IConfiguration config)
+    {
+        var result = new Dictionary<string, string>();
+        foreach (var section in config.GetChildren())
+        {
+            if (section.Value is not null)
+            {
+                result.TryAdd(section.Key, section.Value);
+            }
+        }
+        return result.Count == 0 ? null : result;
+    }
+
     public static string Serialize()
     {
         var json = SerializeConfig(Cfg);

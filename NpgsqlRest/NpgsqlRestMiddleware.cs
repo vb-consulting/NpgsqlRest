@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Data;
+using System.Data.Common;
 using System.Net;
+using System.Reflection.Metadata;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -217,6 +220,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             StringBuilder? cacheKeys = null;
             uploadHandler = endpoint.Upload is true ? Options.CreateUploadHandler(endpoint, logger) : null;
             int uploadMetaParamIndex = -1;
+            Dictionary<string, object>? claimsDict = null;
 
             if (endpoint.Cached is true)
             {
@@ -304,37 +308,22 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     if (endpoint.UseUserParameters is true)
                     {
-                        if (parameter.IsUserId is true)
+                        if (parameter.IsFromUserClaims is true && claimsDict is null)
                         {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserIdDbParam(Options);
-                            }
+                            claimsDict = context.User.BuildClaimsDictionary(Options.AuthenticationOptions);
                         }
-                        else if (parameter.IsUserName is true)
-                        {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserNameDbParam(Options);
-                            }
-                        }
-                        else if (parameter.IsUserRoles is true)
-                        {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserRolesDbParam(Options);
-                            }
-                        }
-                        else if (parameter.IsIpAddress is true)
+                        
+                        if (parameter.IsIpAddress is true)
                         {
                             parameter.Value = context.Request.GetClientIpAddressDbParam();
                         }
-                        else if (parameter.IsUserClaims is true)
+                        else if (context.User?.Identity?.IsAuthenticated is true && Options.AuthenticationOptions.ParameterNameClaimsMapping.TryGetValue(parameter.ActualName, out var claimType))
                         {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserClaimsDbParam();
-                            }
+                            parameter.Value = claimsDict!.GetClaimDbParam(claimType);
+                        }
+                        else if (context.User?.Identity?.IsAuthenticated is true && parameter.IsUserClaims is true)
+                        {
+                            parameter.Value = context.User.GetUserClaimsDbParam(claimsDict!);
                         }
                     }
                     if (parameter.IsUploadMetadata is true)
@@ -770,42 +759,25 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                     if (endpoint.UseUserParameters is true)
                     {
-                        if (parameter.IsUserId is true)
+                        if (parameter.IsFromUserClaims is true && claimsDict is null)
                         {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserIdDbParam(Options);
-                            }
+                            claimsDict = context.User.BuildClaimsDictionary(Options.AuthenticationOptions);
                         }
-                        else if (parameter.IsUserName is true)
-                        {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserNameDbParam(Options);
-                            }
-                        }
-                        else if (parameter.IsUserRoles is true)
-                        {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserRolesDbParam(Options);
-                            }
-                        }
-                        else if (parameter.IsIpAddress is true)
+                        if (parameter.IsIpAddress is true)
                         {
                             parameter.Value = context.Request.GetClientIpAddressDbParam();
                         }
-                        else if (parameter.IsUserClaims is true)
+                        else if (context.User?.Identity?.IsAuthenticated is true && Options.AuthenticationOptions.ParameterNameClaimsMapping.TryGetValue(parameter.ActualName, out var claimType))
                         {
-                            if (context.User?.Identity?.IsAuthenticated is true)
-                            {
-                                parameter.Value = context.User.GetUserClaimsDbParam();
-                            }
+                            parameter.Value = claimsDict!.GetClaimDbParam(claimType);
+                        }
+                        else if (context.User?.Identity?.IsAuthenticated is true && parameter.IsUserClaims is true)
+                        {
+                            parameter.Value = context.User!.GetUserClaimsDbParam(claimsDict!);
                         }
                     }
                     if (parameter.IsUploadMetadata is true)
                     {
-                        //uploadMetaParamIndex = i;
                         uploadMetaParamIndex = command.Parameters.Count; // the last one added
                         parameter.Value = DBNull.Value;
                     }
@@ -1172,10 +1144,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 (endpoint.UserContext is true && Options.AuthenticationOptions.IpAddressContextKey is not null)
                 ||
                 (endpoint.UserContext is true && context.User?.Identity?.IsAuthenticated is true &&
-                    (Options.AuthenticationOptions.UserIdContextKey is not null ||
-                    Options.AuthenticationOptions.UserNameContextKey is not null ||
-                    Options.AuthenticationOptions.UserRolesContextKey is not null ||
-                    Options.AuthenticationOptions.UserClaimsContextKey is not null))
+                    (Options.AuthenticationOptions.ClaimsJsonContextKey is not null || Options.AuthenticationOptions.ContextKeyClaimsMapping.Count > 0)
+                    )
                 ||
                 (Options.UploadOptions.UseDefaultUploadMetadataContextKey && 
                     Options.UploadOptions.DefaultUploadMetadataContextKey is not null && 
@@ -1202,46 +1172,33 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     batch.BatchCommands.Add(cmd);
                 }
 
-                if (endpoint.UserContext is true && context.User?.Identity?.IsAuthenticated is true)
-                {
-                    if (Options.AuthenticationOptions.UserIdContextKey is not null)
-                    {
-                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(Options.AuthenticationOptions.UserIdContextKey));
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserIdDbParam(Options)));
-                        batch.BatchCommands.Add(cmd);
-                    }
-                    if (Options.AuthenticationOptions.UserNameContextKey is not null)
-                    {
-                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(Options.AuthenticationOptions.UserNameContextKey));
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserNameDbParam(Options)));
-                        batch.BatchCommands.Add(cmd);
-                    }
-                    if (Options.AuthenticationOptions.UserRolesContextKey is not null)
-                    {
-                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(Options.AuthenticationOptions.UserRolesContextKey));
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserRolesTextDbParam(Options)));
-                        batch.BatchCommands.Add(cmd);
-                    }
-                    if (Options.AuthenticationOptions.UserClaimsContextKey is not null)
-                    {
-                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(Options.AuthenticationOptions.UserClaimsContextKey));
-                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User.GetUserClaimsDbParam()));
-                        batch.BatchCommands.Add(cmd);
-                    }
-                }
-
                 if (endpoint.UserContext is true)
                 {
+                    claimsDict ??= context.User.BuildClaimsDictionary(Options.AuthenticationOptions);
+
                     if (Options.AuthenticationOptions.IpAddressContextKey is not null)
                     {
                         var cmd = new NpgsqlBatchCommand(Consts.SetContext);
                         cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(Options.AuthenticationOptions.IpAddressContextKey));
                         cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.Request.GetClientIpAddressDbParam()));
                         batch.BatchCommands.Add(cmd);
+                    }
+                    if (context.User?.Identity?.IsAuthenticated is true && Options.AuthenticationOptions.ClaimsJsonContextKey is not null)
+                    {
+                        var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(Options.AuthenticationOptions.ClaimsJsonContextKey));
+                        cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(context.User!.GetUserClaimsDbParam(claimsDict!)));
+                        batch.BatchCommands.Add(cmd);
+                    }
+                    if (context.User?.Identity?.IsAuthenticated is true)
+                    {
+                        foreach (var mapping in Options.AuthenticationOptions.ContextKeyClaimsMapping)
+                        {
+                            var cmd = new NpgsqlBatchCommand(Consts.SetContext);
+                            cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(mapping.Key));
+                            cmd.Parameters.Add(NpgsqlRestParameter.CreateTextParam(claimsDict!.GetClaimDbContextParam(mapping.Value)));
+                            batch.BatchCommands.Add(cmd);
+                        }
                     }
                 }
 
@@ -1707,7 +1664,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     {
                         await transaction.CommitAsync();
                     }
-                    await transaction.DisposeAsync();
+                    //await transaction.DisposeAsync();
                 }
             }
             if (connection is not null && shouldDispose is true)
