@@ -110,10 +110,7 @@ public static class AuthHandler
             {
                 for (int i = 0; i < routine.ColumnCount; i++)
                 {
-                    var name1 = routine.OriginalColumnNames[i];
-                    var name2 = routine.ColumnNames[i];
-                    if (string.Equals(name1, opts.HashColumnName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name2, opts.HashColumnName, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(routine.OriginalColumnNames[i], opts.HashColumnName, StringComparison.OrdinalIgnoreCase))
                     {
                         if (reader?.IsDBNull(i) is false)
                         {
