@@ -1126,6 +1126,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                         Options.BeforeConnectionOpen(connection, endpoint, context);
                     }
                     await connection.OpenAsync();
+                    //await NpgsqlConnectionRetryOpener.OpenAsync(connection, options, logger, context.RequestAborted);
                 }
                 if (uploadHandler.RequiresTransaction is true)
                 {
