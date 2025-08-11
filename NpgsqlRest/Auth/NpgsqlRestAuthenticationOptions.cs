@@ -105,33 +105,48 @@ public class NpgsqlRestAuthenticationOptions
     public string? PasswordVerificationSucceededCommand { get; set; } = null;
 
     /// <summary>
-    /// Set user context to true for all requests. 
-    /// When this is set to true, user information (user id, user name and user roles) will be set to the context variables.
-    /// You can set this individually for each request.
+    /// Enable setting authenticated user claims to context variables automatically.
+    /// See ContextKeyClaimsMapping and ClaimsJsonContextKey options.
+    /// You can set this individually for each request by using UserContext endpoint property or user_context comment annotation.
     /// </summary>
     public bool UseUserContext { get; set; } = false;
 
-    public Dictionary<string, string> ContextKeyClaimsMapping { get; set; } = new() 
+    /// <summary>
+    /// Mapping of context keys to user claim names.
+    /// Keys are the context variable names and values are the user claim names.
+    /// When <see cref="UseUserContext"/> is enabled, the user claims from will be automatically mapped to the context variables.
+    /// </summary>
+    public Dictionary<string, string> ContextKeyClaimsMapping { get; set; } = new()
     {
         { "request.user_id", "user_id" },
         { "request.user_name", "user_name" },
         { "request.user_roles" , "user_roles" },
     };
 
+    /// <summary>
+    /// Context key that is used to set context variable for all available user claims.
+    /// When this option is not null, and user is authenticated, the user claims will be serialized to JSON value and set to the context variable.
+    /// </summary>
     public string? ClaimsJsonContextKey { get; set; } = null;
 
     /// <summary>
     /// IP address context key that is used to set context variable for the IP address.
+    /// When this option is not null, the IP address will be set to the context variable when <see cref="UseUserContext"/> is enabled and even when user is not authenticated.
     /// </summary>
     public string? IpAddressContextKey { get; set; } = "request.ip_address";
 
     /// <summary>
-    /// Set user parameters to true for all requests. 
-    /// When this is set to true, user information (user id, user name and user roles) will be set to the matching parameter names if available.
-    /// You can set this individually for each request.
+    /// Enable mapping authenticated user claims to parameters by name automatically.
+    /// See ParameterNameClaimsMapping and ClaimsJsonParameterName options.
+    /// You can set this individually for each request by using UseUserParameters endpoint property or user_parameters comment annotation.
     /// </summary>
     public bool UseUserParameters { get; set; } = false;
 
+    /// <summary>
+    /// Mapping of parameter names to user claim names.
+    /// Keys are the parameter names and values are the user claim names.
+    /// When <see cref="UseUserParameters"/> is enabled, the user claims from will be automatically mapped to the parameters.
+    /// </summary>
     public Dictionary<string, string> ParameterNameClaimsMapping { get; set; } = new()
     {
         { "_user_id" , "user_id" },
@@ -140,18 +155,14 @@ public class NpgsqlRestAuthenticationOptions
     };
 
     /// <summary>
-    /// All user claims will be serialized to JSON value and set to the parameter with this name.
+    /// Parameter name that is used to set value for all available user claims.
+    /// When this option is not null, and user is authenticated, the user claims will be serialized to JSON value and set to the parameter with this name.
     /// </summary>
     public string? ClaimsJsonParameterName { get; set; } = "_user_claims";
 
     /// <summary>
     /// IP address parameter name that is used to set parameter value for the IP address.
-    /// Parameter name can be original or converted and it has to be the text type.
+    /// When this option is not null, the IP address will be set to the parameter when <see cref="UseUserContext"/> is enabled and even when user is not authenticated.
     /// </summary>
     public string? IpAddressParameterName { get; set; } = "_ip_address";
-
-    ///// <summary>
-    ///// All user claims will be serialized to JSON value and set to the parameter with this name.
-    ///// </summary>
-    //public string? UserClaimsParameterName { get; set; } = "_user_claims";
 }

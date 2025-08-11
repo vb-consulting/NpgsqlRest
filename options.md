@@ -14,6 +14,27 @@ The full list of available options in the latest version is below.
 
 This is the group of options used for authentication:
 
+### AuthenticationOptions.ClaimsJsonContextKey
+
+- Type: `string?`
+- Default: `null`
+
+Context key that is used to set context variable for all available user claims. When this option is not null, and user is authenticated, the user claims will be serialized to JSON value and set to the context variable.
+
+### AuthenticationOptions.ClaimsJsonParameterName
+
+- Type: `string?`
+- Default: `"_user_claims"`
+
+Parameter name that is used to set value for all available user claims. When this option is not null, and user is authenticated, the user claims will be serialized to JSON value and set to the parameter with this name.
+
+### AuthenticationOptions.ContextKeyClaimsMapping
+
+- Type: `Dictionary<string, string>`
+- Default: `{ "request.user_id", "user_id" }, { "request.user_name", "user_name" }, { "request.user_roles" , "user_roles" }`
+
+Mapping of context keys to user claim names. Keys are the context variable names and values are the user claim names. When UseUserContext is enabled, the user claims from will be automatically mapped to the context variables.
+
 ### AuthenticationOptions.DefaultAuthenticationType
 
 - Type: `string?`
@@ -28,21 +49,21 @@ If the value is not set and the login endpoint is present, it will automatically
 ### AuthenticationOptions.DefaultNameClaimType
 
 - Type: `string`
-- Default: `name`
+- Default: `"user_name"`
 
 Default claim type for user name.
 
 ### AuthenticationOptions.DefaultRoleClaimType
 
 - Type: `string`
-- Default: `roles`
+- Default: `"user_roles"`
 
 Default claim type for user roles.
 
 ### AuthenticationOptions.DefaultUserIdClaimType
 
 - Type: `string`
-- Default: `id`
+- Default: `"user_id"`
 
 Default claim type for user id.
 
@@ -58,14 +79,14 @@ The default column name in the data reader which will be used to read the value 
 - Type: `string?`
 - Default: `"request.ip_address"`
 
-IP address context key that is used to set context variable for the IP address.
+IP address context key that is used to set context variable for the IP address. When this option is not null, the IP address will be set to the context variable when UseUserContext is enabled and even when user is not authenticated.
 
 ### AuthenticationOptions.IpAddressParameterName
 
 - Type: `string?`
 - Default: `"_ip_address"`
 
-IP address parameter name that is used to set parameter value for the IP address. Parameter name can be original or converted and it has to be the text type.
+IP address parameter name that is used to set parameter value for the IP address. When this option is not null, the IP address will be set to the parameter when UseUserContext is enabled and even when user is not authenticated.
 
 ### AuthenticationOptions.MessageColumnName
 
@@ -80,6 +101,13 @@ The default column name in the data reader which will return a text message with
 - Default: `true`
 
 Don't write real parameter values when logging parameters from auth endpoints and obfuscate instead. This prevents user credentials including password from ending up in application logs.
+
+### AuthenticationOptions.ParameterNameClaimsMapping
+
+- Type: `Dictionary<string, string>`
+- Default: `{ "_user_id" , "user_id" }, { "_user_name" , "user_name" }, { "_user_roles" , "user_roles" }`
+
+Mapping of parameter names to user claim names. Keys are the parameter names and values are the user claim names. When UseUserParameters is enabled, the user claims from will be automatically mapped to the parameters.
 
 ### AuthenticationOptions.PasswordHasher
 
@@ -144,75 +172,19 @@ The default column name in the data reader which will be used to read the value 
 - If this column is not present, it must be either a boolean to indicate success or a numeric value to indicate the HTTP Status Code to return.
 - If this column is present and retrieves a numeric value, that value is assigned to the HTTP Status Code and the login will authenticate only when this value is 200.
 
-### AuthenticationOptions.UserClaimsContextKey
-
-- Type: `string?`
-- Default: `null`
-
-When this value is set and user context is used, all user claims will be serialized to JSON value and set to the context variable with this name.
-
-### AuthenticationOptions.UserClaimsParameterName
-
-- Type: `string?`
-- Default: `"_user_claims"`
-
-All user claims will be serialized to JSON value and set to the parameter with this name.
-
-### AuthenticationOptions.UserIdContextKey
-
-- Type: `string?`
-- Default: `"request.user_id"`
-
-User id context key that is used to set context variable for the user id.
-
-### AuthenticationOptions.UserIdParameterName
-
-- Type: `string?`
-- Default: `"_user_id"`
-
-User id parameter name that is used to set parameter value for the user id. Parameter name can be original or converted and it has to be the text type.
-
-### AuthenticationOptions.UserNameContextKey
-
-- Type: `string?`
-- Default: `"request.user_name"`
-
-User name context key that is used to set context variable for the user name.
-
-### AuthenticationOptions.UserNameParameterName
-
-- Type: `string?`
-- Default: `"_user_name"`
-
-User name parameter name that is used to set parameter value for the user name. Parameter name can be original or converted and it has to be the text type.
-
-### AuthenticationOptions.UserRolesContextKey
-
-- Type: `string?`
-- Default: `"request.user_roles"`
-
-User roles context key that is used to set context variable for the user roles.
-
-### AuthenticationOptions.UserRolesParameterName
-
-- Type: `string?`
-- Default: `"_user_roles"`
-
-User roles parameter name that is used to set parameter value for the user roles. Parameter name can be original or converted and it has to be the text array type.
-
 ### AuthenticationOptions.UseUserContext
 
 - Type: `bool`
 - Default: `false`
 
-Set user context to true for all requests. When this is set to true, user information (user id, user name and user roles) will be set to the context variables. You can set this individually for each request.
+Enable setting authenticated user claims to context variables automatically. See ContextKeyClaimsMapping and ClaimsJsonContextKey options. You can set this individually for each request by using UserContext endpoint property or user_context comment annotation.
 
 ### AuthenticationOptions.UseUserParameters
 
 - Type: `bool`
 - Default: `false`
 
-Set user parameters to true for all requests. When this is set to true, user information (user id, user name and user roles) will be set to the matching parameter names if available. You can set this individually for each request.
+Enable mapping authenticated user claims to parameters by name automatically. See ParameterNameClaimsMapping and ClaimsJsonParameterName options. You can set this individually for each request by using UseUserParameters endpoint property or user_parameters comment annotation.
 
 ## BeforeConnectionOpen
 
@@ -307,10 +279,7 @@ Sets the wait time (in seconds) on database commands, before terminating the att
 - Type: `CommentsMode`
 - Default: `CommentsMode.OnlyWithHttpTag`
 
-Configure how the comment annotations will behave:
-- `Ignore` will create all endpoints and ignore comment annotations.
-- `ParseAll` will create all endpoints and parse comment annotations to alter the endpoint.
-- `OnlyWithHttpTag` (default) will only create endpoints that contain the `HTTP` tag in the comments and then parse comment annotations.
+Configure how the comment annotations will behave. `Ignore` will create all endpoints and ignore comment annotations. `ParseAll` will create all endpoints and parse comment annotations to alter the endpoint. `OnlyWithHttpTag` (default) will only create endpoints that contain the `HTTP` tag in the comments and then parse comment annotations.
 
 ## ConnectionString
 
@@ -333,6 +302,13 @@ Dictionary of connection strings. The key is the connection name and the value i
 
 Custom request headers dictionary that will be added to NpgsqlRest requests. 
 Note: these values are added to the request headers dictionary before they are sent as a context or parameter to the PostgreSQL routine and as such not visible to the browser debugger.
+
+## CustomServerSentEventsResponseHeaders
+
+- Type: `Dictionary<string, StringValues>`
+- Default: `[]`
+
+Collection of custom server-sent events response headers that will be added to the response when connected to the endpoint that is configured to return server-sent events.
 
 ## DataSource
 
@@ -469,6 +445,13 @@ List of names to be excluded or `null` to ignore this parameter.
 - Default: `null`
 
 List of schema names to be excluded or `null` to ignore this parameter.
+
+## ExecutionIdHeaderName
+
+- Type: `string`
+- Default: `"X-NpgsqlRest-ID"`
+
+Name of the request ID header that will be used to track requests. This is used to correlate requests with streaming connection ids.
 
 ## IncludeNames
 
@@ -607,13 +590,6 @@ Refresh endpoint method.
 
 Refresh endpoint path.
 
-## RequiresAuthorization
-
-- Type: `bool`
-- Default: `false`
-
-When set to true, it will force all created endpoints to require authorization. Authorization requirements for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
-
 ## RequestHeadersContextKey
 
 - Type: `string`
@@ -639,6 +615,13 @@ This option for individual endpoints can be changed with the `EndpointCreated` f
 - Default: `"headers"`
 
 Sets a parameter name that will receive a request headers JSON when the `Parameter` value is used in `RequestHeadersMode` options. A parameter with this name must exist, must be one of the JSON or text types and must have the default value defined. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
+
+## RequiresAuthorization
+
+- Type: `bool`
+- Default: `false`
+
+When set to true, it will force all created endpoints to require authorization. Authorization requirements for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
 
 ## ReturnNpgsqlExceptionMessage
 
@@ -752,6 +735,13 @@ Enables upload functionality.
 - Default: `true`
 
 When true, logs upload events.
+
+### UploadOptions.LogUploadParameters
+
+- Type: `bool`
+- Default: `false`
+
+Log upload parameter values.
 
 ### UploadOptions.UploadHandlers
 

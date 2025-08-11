@@ -8,8 +8,19 @@ namespace NpgsqlRest;
 /// </summary>
 public class NpgsqlRestUploadOptions
 {
+    /// <summary>
+    /// Enables upload functionality.
+    /// </summary>
     public bool Enabled { get; set; } = true;
+    
+    /// <summary>
+    /// When true, logs upload events.
+    /// </summary>
     public bool LogUploadEvent { get; set; } = true;
+    
+    /// <summary>
+    /// Log upload parameter values.
+    /// </summary>
     public bool LogUploadParameters { get; set; } = false;
 
     /// <summary>

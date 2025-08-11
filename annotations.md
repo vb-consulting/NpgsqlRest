@@ -463,8 +463,6 @@ Optionally, set handler name (or multiple handlers names) - or set the upload me
 
 ```console
 user_context
-user_settings
-user_config
 ```
 
 Enables user context for this endpoint. This allows access to user-specific settings and configuration.

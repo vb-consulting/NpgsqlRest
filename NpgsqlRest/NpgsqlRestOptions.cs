@@ -103,7 +103,7 @@ public class NpgsqlRestOptions
     public string? UrlPathPrefix { get; set; } = "/api";
 
     /// <summary>
-    /// Custom function delegate that receives routine and options parameters and returns constructed URL path string for routine. Default is the default URL builder that transforms snake case names to kebab case names.
+    /// Custom function delegate that receives routine and options parameters and returns constructed URL path string for routine. Default the default URL builder that transforms snake case names to kebab case names.
     /// </summary>
     public Func<Routine, NpgsqlRestOptions, string> UrlPathBuilder { get; set; } = DefaultUrlBuilder.CreateUrl;
 
@@ -200,7 +200,12 @@ public class NpgsqlRestOptions
     public CommentsMode CommentsMode { get; set; } = CommentsMode.OnlyWithHttpTag;
 
     /// <summary>
-    /// Configure how to send request headers to PostgreSQL routines execution. `Ignore` (default) doesn't send any request headers to routines. `Context` sets a context variable for the current session `context.headers` containing JSON string with current request headers. This executes `set_config('context.headers', headers, false)` before any routine executions. `Parameter` sends request headers to the routine parameter defined with the `RequestHeadersParameterName` option. Parameter with this name must exist, must be one of the JSON or text types and must have the default value defined. This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
+    /// Configure how to send request headers to PostgreSQL routines execution:
+    /// - `Ignore` (default) don't send any request headers to routines.
+    /// - `Context` sets a context variable for the current session `context.headers` containing JSON string with current request headers. This executes `set_config('context.headers', headers, false)` before any routine executions.
+    /// - `Parameter` sends request headers to the routine parameter defined with the `RequestHeadersParameterName` option. Parameter with this name must exist, must be one of the JSON or text types and must have the default value defined.
+    ///
+    /// This option for individual endpoints can be changed with the `EndpointCreated` function callback, or by using comment annotations.
     /// </summary>
     public RequestHeadersMode RequestHeadersMode { get; set; } = RequestHeadersMode.Ignore;
 

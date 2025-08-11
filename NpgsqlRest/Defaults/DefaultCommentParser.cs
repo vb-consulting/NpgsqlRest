@@ -150,9 +150,7 @@ internal static class DefaultCommentParser
     ];
 
     private static readonly string[] userContextKey = [
-        "user_context",
-        "user_settings",
-        "user_config"
+        "user_context"
     ];
 
     private static readonly string[] userParemetersKey = [
@@ -737,8 +735,6 @@ internal static class DefaultCommentParser
                 }
 
                 // user_context
-                // user_settings
-                // user_config
                 else if (haveTag is true && StrEqualsToArray(words[0], userContextKey))
                 {
                     routineEndpoint.UserContext = true;
