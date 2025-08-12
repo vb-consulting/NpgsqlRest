@@ -4,13 +4,12 @@ using NpgsqlRest;
 using NpgsqlRest.CrudSource;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
-using static NpgsqlRestClient.Config;
 
 namespace NpgsqlRestClient;
 
-public static class Arguments
+public class Arguments
 {
-    public static bool Parse(string[] args)
+    public bool Parse(string[] args)
     {
         if (args.Any(a => a.ToLowerInvariant() is "-v" or "--version" or "-h" or "--help") is false)
         {
@@ -58,14 +57,14 @@ public static class Arguments
                 ("NpgsqlRest.TsClient", System.Reflection.Assembly.GetAssembly(typeof(TsClientOptions))?.GetName()?.Version?.ToString() ?? "-"),
                 ("NpgsqlRest.CrudSource", System.Reflection.Assembly.GetAssembly(typeof(CrudSource))?.GetName()?.Version?.ToString() ?? "-"),
                 (" ", " "),
-                ("CurrentDirectory", CurrentDir)
+                ("CurrentDirectory", Directory.GetCurrentDirectory())
                 ]);
             NL();
         }
         return false;
     }
 
-    public static (List<(string fileName, bool optional)> configFiles, string[] commanLineArgs) BuildFromArgs(string[] args)
+    public (List<(string fileName, bool optional)> configFiles, string[] commanLineArgs) BuildFromArgs(string[] args)
     {
         var configFiles = new List<(string fileName, bool optional)>();
         var commandLineArgs = new List<string>();
@@ -99,9 +98,9 @@ public static class Arguments
         return (configFiles, commandLineArgs.ToArray());
     }
 
-    private static void NL() => Console.WriteLine();
+    private void NL() => Console.WriteLine();
 
-    private static void Line(string line, ConsoleColor? color = null)
+    private void Line(string line, ConsoleColor? color = null)
     {
         if (color is not null)
         {
@@ -114,7 +113,7 @@ public static class Arguments
         }
     }
 
-    private static void Write(string line, ConsoleColor? color = null)
+    private void Write(string line, ConsoleColor? color = null)
     {
         if (color is not null)
         {
@@ -127,7 +126,7 @@ public static class Arguments
         }
     }
 
-    private static void Line((string str1, string str2)[] lines)
+    private void Line((string str1, string str2)[] lines)
     {
         var pos = lines.Select(l => l.str1.Length).Max() + 1;
         int consoleWidth = Console.WindowWidth;

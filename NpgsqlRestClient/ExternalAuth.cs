@@ -4,13 +4,10 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Options;
 using Npgsql;
 using NpgsqlRest;
 using Serilog.Events;
 using static System.Net.Mime.MediaTypeNames;
-using static NpgsqlRestClient.Builder;
-using static NpgsqlRestClient.Config;
 
 namespace NpgsqlRestClient;
 
@@ -27,19 +24,19 @@ public class ExternalAuthClientConfig
     public string ExternalType { get; set; } = default!;
 }
 
-public static class ExternalAuthConfig
+public class ExternalAuthConfig
 {
-    public static string BrowserSessionStatusKey { get; private set; } = default!;
-    public static string BrowserSessionMessageKey { get; private set; } = default!;
-    public static string SignInHtmlTemplate { get; private set; } = default!;
-    public static string? RedirectUrl { get; private set; } = null;
-    public static string ReturnToPath { get; private set; } = default!;
-    public static string ReturnToPathQueryStringKey { get; private set; } = default!;
-    public static string LoginCommand { get; private set; } = default!;
-    public static string ClientAnaliticsData { get; private set; } = default!;
-    public static string ClientAnaliticsIpKey { get; private set; } = default!;
+    public string BrowserSessionStatusKey { get; private set; } = default!;
+    public string BrowserSessionMessageKey { get; private set; } = default!;
+    public string SignInHtmlTemplate { get; private set; } = default!;
+    public string? RedirectUrl { get; private set; } = null;
+    public string ReturnToPath { get; private set; } = default!;
+    public string ReturnToPathQueryStringKey { get; private set; } = default!;
+    public string LoginCommand { get; private set; } = default!;
+    public string ClientAnaliticsData { get; private set; } = default!;
+    public string ClientAnaliticsIpKey { get; private set; } = default!;
 
-    private static readonly Dictionary<string, ExternalAuthClientConfig> DefaultClientConfigs = 
+    private readonly Dictionary<string, ExternalAuthClientConfig> DefaultClientConfigs = 
         new()
         {
         { "google", new ExternalAuthClientConfig
@@ -80,12 +77,12 @@ public static class ExternalAuthConfig
         }
     };
 
-    public static Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = [];
+    public Dictionary<string, ExternalAuthClientConfig> ClientConfigs { get; private set; } = [];
 
-    public static void Build(IConfigurationSection authConfig)
+    public void Build(IConfigurationSection authConfig, Config config, Builder builder)
     {
         var externalCfg = authConfig.GetSection("External");
-        if (externalCfg.Exists() is false || GetConfigBool("Enabled", externalCfg) is false)
+        if (config.Exists(externalCfg) is false || config.GetConfigBool("Enabled", externalCfg) is false)
         {
             return;
         }
@@ -96,32 +93,32 @@ public static class ExternalAuthConfig
             {
                 continue;
             }
-            var signinUrlTemplate = GetConfigStr("SigninUrl", externalCfg) ?? "/signin-{0}";
+            var signinUrlTemplate = config.GetConfigStr("SigninUrl", externalCfg) ?? "/signin-{0}";
 
-            if (GetConfigBool("Enabled", section) is false)
+            if (config.GetConfigBool("Enabled", section) is false)
             {
                 continue;
             }
             var key = section.Key.ToLowerInvariant();
             var signinUrl = string.Format(signinUrlTemplate, key);
 
-            if (DefaultClientConfigs.TryGetValue(key, out var config) is false)
+            if (DefaultClientConfigs.TryGetValue(key, out var clientConfig) is false)
             {
-                config = new ExternalAuthClientConfig();
+                clientConfig = new ExternalAuthClientConfig();
             }
 
-            config.Enabled = GetConfigBool("Enabled", section, config.Enabled);
-            config.ClientId = GetConfigStr("ClientId", section) ?? config.ClientId;
-            config.ClientSecret = GetConfigStr("ClientSecret", section) ?? config.ClientSecret;
-            config.AuthUrl = GetConfigStr("AuthUrl", section) ?? config.AuthUrl;
-            config.TokenUrl = GetConfigStr("TokenUrl", section) ?? config.TokenUrl;
-            config.InfoUrl = GetConfigStr("InfoUrl", section) ?? config.InfoUrl;
-            config.EmailUrl = GetConfigStr("EmailUrl", section) ?? config.EmailUrl;
-            config.SigninUrl = signinUrl;
-            config.ExternalType = section.Key;
+            clientConfig.Enabled = config.GetConfigBool("Enabled", section, clientConfig.Enabled);
+            clientConfig.ClientId = config.GetConfigStr("ClientId", section) ?? clientConfig.ClientId;
+            clientConfig.ClientSecret = config.GetConfigStr("ClientSecret", section) ?? clientConfig.ClientSecret;
+            clientConfig.AuthUrl = config.GetConfigStr("AuthUrl", section) ?? clientConfig.AuthUrl;
+            clientConfig.TokenUrl = config.GetConfigStr("TokenUrl", section) ?? clientConfig.TokenUrl;
+            clientConfig.InfoUrl = config.GetConfigStr("InfoUrl", section) ?? clientConfig.InfoUrl;
+            clientConfig.EmailUrl = config.GetConfigStr("EmailUrl", section) ?? clientConfig.EmailUrl;
+            clientConfig.SigninUrl = signinUrl;
+            clientConfig.ExternalType = section.Key;
 
-            ClientConfigs.Add(config.SigninUrl, config);
-            Logger?.Information("External login available for {0} available on path: {1}", section.Key, signinUrl);
+            ClientConfigs.Add(clientConfig.SigninUrl, clientConfig);
+            builder.Logger?.Information("External login available for {0} available on path: {1}", section.Key, signinUrl);
         }
 
         if (ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
@@ -129,35 +126,65 @@ public static class ExternalAuthConfig
             return;
         }
 
-        BrowserSessionStatusKey = GetConfigStr("BrowserSessionStatusKey", externalCfg) ?? "__external_status";
-        BrowserSessionMessageKey = GetConfigStr("BrowserSessionMessageKey", externalCfg) ?? "__external_message";
+        BrowserSessionStatusKey = config.GetConfigStr("BrowserSessionStatusKey", externalCfg) ?? "__external_status";
+        BrowserSessionMessageKey = config.GetConfigStr("BrowserSessionMessageKey", externalCfg) ?? "__external_message";
 
-        SignInHtmlTemplate = GetConfigStr("SignInHtmlTemplate", externalCfg) ?? 
+        SignInHtmlTemplate = config.GetConfigStr("SignInHtmlTemplate", externalCfg) ?? 
             "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Talking To {0}</title></head><body>Loading...{1}</body></html>";
-        RedirectUrl = GetConfigStr("RedirectUrl", externalCfg);
-        ReturnToPath = GetConfigStr("ReturnToPath", externalCfg) ?? "/";
-        ReturnToPathQueryStringKey = GetConfigStr("ReturnToPathQueryStringKey", externalCfg) ?? "return_to";
-        LoginCommand = GetConfigStr("LoginCommand", externalCfg) ?? "select * from auth.login($1,$2,$3,$4)";
+        RedirectUrl = config.GetConfigStr("RedirectUrl", externalCfg);
+        ReturnToPath = config.GetConfigStr("ReturnToPath", externalCfg) ?? "/";
+        ReturnToPathQueryStringKey = config.GetConfigStr("ReturnToPathQueryStringKey", externalCfg) ?? "return_to";
+        LoginCommand = config.GetConfigStr("LoginCommand", externalCfg) ?? "select * from auth.login($1,$2,$3,$4)";
 
-        ClientAnaliticsData = GetConfigStr("ClientAnaliticsData", externalCfg) ?? "{timestamp:new Date().toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:{width:window.screen.width,height:window.screen.height,colorDepth:window.screen.colorDepth,pixelRatio:window.devicePixelRatio,orientation:screen.orientation.type},browser:{userAgent:navigator.userAgent,language:navigator.language,languages:navigator.languages,cookiesEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack,onLine:navigator.onLine,platform:navigator.platform,vendor:navigator.vendor},memory:{deviceMemory:navigator.deviceMemory,hardwareConcurrency:navigator.hardwareConcurrency},window:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerWidth:window.outerWidth,outerHeight:window.outerHeight},location:{href:window.location.href,hostname:window.location.hostname,pathname:window.location.pathname,protocol:window.location.protocol,referrer:document.referrer},performance:{navigation:{type:performance.navigation?.type,redirectCount:performance.navigation?.redirectCount},timing:performance.timing?{loadEventEnd:performance.timing.loadEventEnd,loadEventStart:performance.timing.loadEventStart,domComplete:performance.timing.domComplete,domInteractive:performance.timing.domInteractive,domContentLoadedEventEnd:performance.timing.domContentLoadedEventEnd}:null}}";
-        ClientAnaliticsIpKey = GetConfigStr("ClientAnaliticsIpKey", externalCfg) ?? "ip";
+        ClientAnaliticsData = config.GetConfigStr("ClientAnaliticsData", externalCfg) ?? "{timestamp:new Date().toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:{width:window.screen.width,height:window.screen.height,colorDepth:window.screen.colorDepth,pixelRatio:window.devicePixelRatio,orientation:screen.orientation.type},browser:{userAgent:navigator.userAgent,language:navigator.language,languages:navigator.languages,cookiesEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack,onLine:navigator.onLine,platform:navigator.platform,vendor:navigator.vendor},memory:{deviceMemory:navigator.deviceMemory,hardwareConcurrency:navigator.hardwareConcurrency},window:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerWidth:window.outerWidth,outerHeight:window.outerHeight},location:{href:window.location.href,hostname:window.location.hostname,pathname:window.location.pathname,protocol:window.location.protocol,referrer:document.referrer},performance:{navigation:{type:performance.navigation?.type,redirectCount:performance.navigation?.redirectCount},timing:performance.timing?{loadEventEnd:performance.timing.loadEventEnd,loadEventStart:performance.timing.loadEventStart,domComplete:performance.timing.domComplete,domInteractive:performance.timing.domInteractive,domContentLoadedEventEnd:performance.timing.domContentLoadedEventEnd}:null}}";
+        ClientAnaliticsIpKey = config.GetConfigStr("ClientAnaliticsIpKey", externalCfg) ?? "ip";
     }
 }
 
-public static class ExternalAuth
+public class ExternalAuth
 {
-    private static PostgresConnectionNoticeLoggingMode _loggingMode;
-
-    public static void Configure(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
+    private readonly ExternalAuthConfig? _externalAuthConfig;
+    private readonly string _connectionString;
+    private readonly Serilog.ILogger? _logger;
+    
+    // Static fields to hold configuration for middleware - allows instance to be GC'd
+    private static ExternalAuthConfig? _staticConfig;
+    private static string? _staticConnectionString;
+    private static Serilog.ILogger? _staticLogger;
+    
+    public ExternalAuth(ExternalAuthConfig? externalAuthConfig, string connectionString, Serilog.ILogger? logger)
     {
-        if (ExternalAuthConfig.ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
+        _externalAuthConfig = externalAuthConfig;
+        _connectionString = connectionString;
+        _logger = logger;
+    }
+    
+    // Instance method to configure and register static middleware
+    public void Configure(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
+    {
+        // Copy instance values to static fields for middleware access
+        _staticConfig = _externalAuthConfig;
+        _staticConnectionString = _connectionString;
+        _staticLogger = _logger;
+        
+        // Register middleware using static method to avoid capturing instance
+        RegisterMiddleware(app, options, loggingMode);
+    }
+    
+    // Static method that registers middleware without capturing instance references
+    private static void RegisterMiddleware(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
+    {
+        var externalAuthConfig = _staticConfig;
+        var connectionString = _staticConnectionString;
+        var logger = _staticLogger;
+        if (externalAuthConfig?.ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
         {
             return;
         }
-        _loggingMode = loggingMode;
+        var _loggingMode = loggingMode;
         app.Use(async (context, next) =>
         {
-            if (ExternalAuthConfig.ClientConfigs.TryGetValue(context.Request.Path, out var config) is false)
+            if (externalAuthConfig?.ClientConfigs.TryGetValue(context.Request.Path, out var config) is not true)
             {
                 await next(context);
                 return;
@@ -172,7 +199,7 @@ public static class ExternalAuth
             if (string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
             {
                 PrepareResponse(Text.Html, context);
-                await context.Response.WriteAsync(BuildHtmlTemplate(config, context.Request));
+                await context.Response.WriteAsync(BuildHtmlTemplate(config, context.Request, externalAuthConfig));
                 await context.Response.CompleteAsync();
                 return;
             }
@@ -189,7 +216,7 @@ public static class ExternalAuth
                     string code = (node["code"]?.ToString()) ??
                         throw new ArgumentException("code retrieved from the external provider is null");
 
-                    await ProcessAsync(code, config, context, options);
+                    await ProcessAsync(code, config!, context, options, connectionString!, logger, externalAuthConfig!, _loggingMode);
                     return;
                 }
                 catch (Exception e)
@@ -197,7 +224,7 @@ public static class ExternalAuth
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     await context.Response.WriteAsync(string.Format("Error talking to {0}", config.ExternalType));
                     await context.Response.CompleteAsync();
-                    Logger?.Error(e, "Failed to parse external provider response: {0}", config.ExternalType);
+                    logger?.Error(e, "Failed to parse external provider response: {0}", config.ExternalType);
                     return;
                 }
             }
@@ -225,7 +252,11 @@ public static class ExternalAuth
         string code,
         ExternalAuthClientConfig config, 
         HttpContext context, 
-        NpgsqlRestOptions options)
+        NpgsqlRestOptions options,
+        string connectionString,
+        Serilog.ILogger? logger,
+        ExternalAuthConfig externalAuthConfig,
+        PostgresConnectionNoticeLoggingMode loggingMode)
     {
         string? email;
         string? name;
@@ -237,7 +268,7 @@ public static class ExternalAuth
         requestTokenMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(Application.Json));
         requestTokenMessage.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["redirect_uri"] = GetRedirectUrl(config, context.Request),
+            ["redirect_uri"] = GetRedirectUrl(config, context.Request, externalAuthConfig),
             ["code"] = code,
             ["client_id"] = config.ClientId,
             ["client_secret"] = config.ClientSecret,
@@ -340,20 +371,20 @@ public static class ExternalAuth
             throw new ArgumentException("email retrieved from the external provider is null");
         }
 
-        var logger = NpgsqlRestMiddleware.Logger;
-        using var connection = new NpgsqlConnection(Builder.ConnectionString);
-        if (options.LogConnectionNoticeEvents && logger != null)
+        var middlewareLogger = NpgsqlRestMiddleware.Logger;
+        using var connection = new NpgsqlConnection(connectionString);
+        if (options.LogConnectionNoticeEvents && middlewareLogger != null)
         {
             connection.Notice += (sender, args) =>
             {
-                NpgsqlRestLogger.LogConnectionNotice(logger, args.Notice, _loggingMode);
+                NpgsqlRestLogger.LogConnectionNotice(middlewareLogger, args.Notice, loggingMode);
             };
         }
 
-        await NpgsqlConnectionRetryOpener.OpenAsync(connection, options.ConnectionRetryOptions, logger, context.RequestAborted);
+        await NpgsqlConnectionRetryOpener.OpenAsync(connection, options.ConnectionRetryOptions, middlewareLogger, context.RequestAborted);
 
         using var command = connection.CreateCommand();
-        command.CommandText = ExternalAuthConfig.LoginCommand;
+        command.CommandText = externalAuthConfig!.LoginCommand;
 
         var paramCount = command.CommandText.PgCountParams();
         if (paramCount >= 1) command.Parameters.Add(new NpgsqlParameter()
@@ -384,9 +415,9 @@ public static class ExternalAuth
                 var analyticsData = JsonNode.Parse(query);
                 if (analyticsData is not null)
                 {
-                    if (string.IsNullOrEmpty(ExternalAuthConfig.ClientAnaliticsIpKey) is false)
+                    if (string.IsNullOrEmpty(externalAuthConfig!.ClientAnaliticsIpKey) is false)
                     {
-                        analyticsData[ExternalAuthConfig.ClientAnaliticsIpKey] = context.Request.GetClientIpAddress();
+                        analyticsData[externalAuthConfig!.ClientAnaliticsIpKey] = context.Request.GetClientIpAddress();
                     }
                     command.Parameters.Add(new NpgsqlParameter()
                     {
@@ -397,7 +428,7 @@ public static class ExternalAuth
             }
         }
 
-        if (logger?.IsEnabled(LogLevel.Information) is true && options.LogCommands)
+        if (middlewareLogger?.IsEnabled(LogLevel.Information) is true && options.LogCommands)
         {
             var commandToLog = command.CommandText;
             if (options.LogCommandParameters)
@@ -413,11 +444,11 @@ public static class ExternalAuth
                         " = ",
                         p.Value));
                 }
-                logger?.Log(LogLevel.Information, "{paramsToLog}{commandToLog}", paramsToLog, commandToLog);
+                middlewareLogger?.Log(LogLevel.Information, "{paramsToLog}{commandToLog}", paramsToLog, commandToLog);
             }
             else
             {
-                logger?.Log(LogLevel.Information, "{commandToLog}", commandToLog);
+                middlewareLogger?.Log(LogLevel.Information, "{commandToLog}", commandToLog);
             }
         }
 
@@ -425,7 +456,7 @@ public static class ExternalAuth
 
         if (await reader.ReadAsync() is false || reader.FieldCount == 0)
         {
-            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogEventLevel.Warning, context);
+            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogEventLevel.Warning, context, logger);
             return;
         }
 
@@ -463,7 +494,7 @@ public static class ExternalAuth
                     else
                     {
                         await CompleteWithErrorAsync("External login command returns a status field that is not either boolean or numeric.",
-                            HttpStatusCode.InternalServerError, LogEventLevel.Error, context);
+                            HttpStatusCode.InternalServerError, LogEventLevel.Error, context, logger);
                         return;
                     }
                     continue;
@@ -500,7 +531,7 @@ public static class ExternalAuth
             if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
             {
                 await CompleteWithErrorAsync("Failed in constructing user identity for authentication.",
-                    HttpStatusCode.InternalServerError, LogEventLevel.Error, context);
+                    HttpStatusCode.InternalServerError, LogEventLevel.Error, context, logger);
                 return;
             }
             await result.ExecuteAsync(context);
@@ -517,46 +548,47 @@ public static class ExternalAuth
         string text, 
         HttpStatusCode code, 
         LogEventLevel? logLevel, 
-        HttpContext context)
+        HttpContext context,
+        Serilog.ILogger? logger)
     {
         if (logLevel.HasValue)
         {
-            Logger?.Write(logLevel.Value, text);
+            logger?.Write(logLevel.Value, text);
         }
         context.Response.StatusCode = (int)code;
         await context.Response.WriteAsync(text);
         await context.Response.CompleteAsync();
     }
 
-    private static string BuildHtmlTemplate(ExternalAuthClientConfig config, HttpRequest request)
+    private static string BuildHtmlTemplate(ExternalAuthClientConfig config, HttpRequest request, ExternalAuthConfig externalAuthConfig)
     {
-        string redirectUrl = GetRedirectUrl(config, request);
+        string redirectUrl = GetRedirectUrl(config, request, externalAuthConfig);
         var state = Guid.NewGuid().ToString();
         var redirectTo = "/";
         var authUrl = string.Format(config.AuthUrl, config.ClientId, redirectUrl, state);
-        var analyticsData = ExternalAuthConfig.ClientAnaliticsData is null ? "null" : ExternalAuthConfig.ClientAnaliticsData;
-        return string.Format(ExternalAuthConfig.SignInHtmlTemplate,
+        var analyticsData = externalAuthConfig!.ClientAnaliticsData is null ? "null" : externalAuthConfig!.ClientAnaliticsData;
+        return string.Format(externalAuthConfig!.SignInHtmlTemplate,
             config.ExternalType,
             string.Format(_jsTemplate,
                 browserSessionStateKey,//0
                 state,//1
                 browserSessionParamsKey,//2
-                ExternalAuthConfig.BrowserSessionStatusKey,//3
-                ExternalAuthConfig.BrowserSessionMessageKey,//4
+                externalAuthConfig!.BrowserSessionStatusKey,//3
+                externalAuthConfig!.BrowserSessionMessageKey,//4
                 redirectTo,//5
                 authUrl,//6
                 config.SigninUrl,//7
-                ExternalAuthConfig.ReturnToPathQueryStringKey,//8
+                externalAuthConfig!.ReturnToPathQueryStringKey,//8
                 config.ExternalType,//9
                 analyticsData//10
             ));
     }
 
-    private static string GetRedirectUrl(ExternalAuthClientConfig clientConfig, HttpRequest request)
+    private static string GetRedirectUrl(ExternalAuthClientConfig clientConfig, HttpRequest request, ExternalAuthConfig externalAuthConfig)
     {
-        return ExternalAuthConfig.RedirectUrl is null ?
+        return externalAuthConfig!.RedirectUrl is null ?
             string.Concat(request.Scheme, "://", request.Host, clientConfig.SigninUrl) :
-            string.Concat(ExternalAuthConfig.RedirectUrl, clientConfig.SigninUrl);
+            string.Concat(externalAuthConfig!.RedirectUrl, clientConfig.SigninUrl);
     }
 
     private const string _jsTemplate =

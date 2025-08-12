@@ -3,20 +3,21 @@ using System.Text.Json.Nodes;
 
 namespace NpgsqlRestClient;
 
-public static class Config
+public class Config
 {
-    public static IConfigurationRoot Cfg { get; private set; } = null!;
-    public static IConfigurationSection NpgsqlRestCfg { get; private set; } = null!;
-    public static IConfigurationSection ConnectionSettingsCfg { get; private set; } = null!;
-    public static bool UseConnectionApplicationNameWithUsername { get; private set; }
-    public static string CurrentDir => Directory.GetCurrentDirectory();
+    public IConfigurationRoot Cfg { get; private set; } = null!;
+    public IConfigurationSection NpgsqlRestCfg { get; private set; } = null!;
+    public IConfigurationSection ConnectionSettingsCfg { get; private set; } = null!;
+    public bool UseConnectionApplicationNameWithUsername { get; private set; }
+    public string CurrentDir => Directory.GetCurrentDirectory();
 
-    public static void Build(string[] args)
+    public void Build(string[] args)
     {
         var tempBuilder = new ConfigurationBuilder();
         IConfigurationRoot tempCfg;
 
-        var (configFiles, commandLineArgs) = Arguments.BuildFromArgs(args);
+        var arguments = new Arguments();
+        var (configFiles, commandLineArgs) = arguments.BuildFromArgs(args);
 
         if (configFiles.Count > 0)
         {
@@ -77,7 +78,7 @@ public static class Config
         UseConnectionApplicationNameWithUsername = GetConfigBool("UseJsonApplicationName", ConnectionSettingsCfg);
     }
 
-    public static bool Exists(this IConfigurationSection? section)
+    public bool Exists(IConfigurationSection? section)
     {
         if (section is null)
         {
@@ -90,7 +91,7 @@ public static class Config
         return true;
     }
 
-    public static bool GetConfigBool(string key, IConfiguration? subsection = null, bool defaultVal = false)
+    public bool GetConfigBool(string key, IConfiguration? subsection = null, bool defaultVal = false)
     {
         var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);
         if (string.IsNullOrEmpty(section?.Value))
@@ -100,13 +101,13 @@ public static class Config
         return string.Equals(section?.Value, "true", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static string? GetConfigStr(string key, IConfiguration? subsection = null)
+    public string? GetConfigStr(string key, IConfiguration? subsection = null)
     {
         var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);
         return string.IsNullOrEmpty(section?.Value) ? null : section.Value;
     }
 
-    public static int? GetConfigInt(string key, IConfiguration? subsection = null)
+    public int? GetConfigInt(string key, IConfiguration? subsection = null)
     {
         var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);
         if (section?.Value is null)
@@ -120,7 +121,7 @@ public static class Config
         return null;
     }
 
-    public static double? GetConfigDouble(string key, IConfiguration? subsection = null)
+    public double? GetConfigDouble(string key, IConfiguration? subsection = null)
     {
         var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);
         if (section?.Value is null)
@@ -134,7 +135,7 @@ public static class Config
         return null;
     }
 
-    public static T? GetConfigEnum<T>(string key, IConfiguration? subsection = null)
+    public T? GetConfigEnum<T>(string key, IConfiguration? subsection = null)
     {
         var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);
         if (string.IsNullOrEmpty(section?.Value))
@@ -144,7 +145,7 @@ public static class Config
         return GetEnum<T>(section?.Value);
     }
 
-    public static T? GetEnum<T>(string? value)
+    public T? GetEnum<T>(string? value)
     {
         if (value is null)
         {
@@ -163,7 +164,7 @@ public static class Config
         return default;
     }
 
-    public static IEnumerable<string>? GetConfigEnumerable(string key, IConfiguration? subsection = null)
+    public IEnumerable<string>? GetConfigEnumerable(string key, IConfiguration? subsection = null)
     {
         var section = subsection is not null ? subsection?.GetSection(key) : Cfg.GetSection(key);
         if (section.Exists() is false)
@@ -178,7 +179,7 @@ public static class Config
         return children.Select(c => c.Value ?? "");
     }
 
-    public static T? GetConfigFlag<T>(string key, IConfiguration? subsection = null)
+    public T? GetConfigFlag<T>(string key, IConfiguration? subsection = null)
     {
         var array = GetConfigEnumerable(key, subsection)?.ToArray();
         if (array is null)
@@ -212,7 +213,7 @@ public static class Config
         return result;
     }
 
-    public static Dictionary<string, string>? GetConfigDict(this IConfiguration config)
+    public Dictionary<string, string>? GetConfigDict(IConfiguration config)
     {
         var result = new Dictionary<string, string>();
         foreach (var section in config.GetChildren())
@@ -225,13 +226,13 @@ public static class Config
         return result.Count == 0 ? null : result;
     }
 
-    public static string Serialize()
+    public string Serialize()
     {
         var json = SerializeConfig(Cfg);
         return json?.ToJsonString(new JsonSerializerOptions() { WriteIndented = true }) ?? "{}";
     }
 
-    private static JsonNode? SerializeConfig(IConfiguration config)
+    private JsonNode? SerializeConfig(IConfiguration config)
     {
         JsonObject obj = [];
 

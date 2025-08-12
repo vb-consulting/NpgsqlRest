@@ -7,15 +7,16 @@ using Serilog.Events;
 
 namespace NpgsqlRestClient;
 
-public class PostgresSink(string command, LogEventLevel restrictedToMinimumLevel, int paramCount) : ILogEventSink
+public class PostgresSink(string command, LogEventLevel restrictedToMinimumLevel, int paramCount, string? connectionString) : ILogEventSink
 {
     private readonly string _command = command;
     private readonly LogEventLevel _restrictedToMinimumLevel = restrictedToMinimumLevel;
     private readonly int _paramCount = paramCount;
+    private readonly string? _connectionString = connectionString;
 
     public void Emit(LogEvent logEvent)
     {
-        if (string.IsNullOrEmpty(Builder.ConnectionString) is true)
+        if (string.IsNullOrEmpty(_connectionString) is true)
         {
             return;
         }
@@ -26,7 +27,7 @@ public class PostgresSink(string command, LogEventLevel restrictedToMinimumLevel
 
         try
         {
-            using var connection = new NpgsqlConnection(Builder.ConnectionString);
+            using var connection = new NpgsqlConnection(_connectionString);
             using var command = new NpgsqlCommand(_command, connection);
 
             if (_paramCount > 0)
@@ -66,7 +67,8 @@ public static partial class PostgresSinkSinkExtensions
 {
     public static LoggerConfiguration Postgres(this LoggerSinkConfiguration loggerConfiguration, 
         string command,
-        LogEventLevel restrictedToMinimumLevel)
+        LogEventLevel restrictedToMinimumLevel,
+        string? connectionString)
     {
         var matches = ParameterRegex().Matches(command).ToArray();
         if (matches.Length < 1 || matches.Length > 5)
@@ -80,7 +82,7 @@ public static partial class PostgresSinkSinkExtensions
                 throw new ArgumentException($"Parameter ${i + 1} is missing in the command.");
             }
         }
-        return loggerConfiguration.Sink(new PostgresSink(command, restrictedToMinimumLevel, matches.Length));
+        return loggerConfiguration.Sink(new PostgresSink(command, restrictedToMinimumLevel, matches.Length, connectionString));
     }
 
     [GeneratedRegex(@"\$\d+")]

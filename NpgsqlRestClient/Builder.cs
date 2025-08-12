@@ -13,51 +13,58 @@ using Npgsql;
 using NpgsqlRest;
 using Serilog;
 
-using static NpgsqlRestClient.Config;
 
 namespace NpgsqlRestClient;
 
-public static class Builder
+public class Builder
 {
-    public static WebApplicationBuilder Instance { get; private set; }  = default!;
-
-    public static bool LogToConsole { get; private set; } = false;
-    public static bool LogToFile { get; private set; } = false;
-    public static bool LogToPostgres { get; private set; } = false;
-    public static Serilog.ILogger? Logger { get; private set; } = null;
-    public static bool UseHttpsRedirection { get; private set; } = false;
-    public static bool UseHsts { get; private set; } = false;
-    public static BearerTokenConfig? BearerTokenConfig { get; private set; } = null;
-    public static string? ConnectionString { get; private set; } = null;
-    public static string? ConnectionName { get; private set; } = null;
-
-    public static void BuildInstance()
+    private readonly Config _config;
+    
+    public Builder(Config config)
     {
-        var staticFilesCfg = Cfg.GetSection("StaticFiles");
-        string? webRootPath = staticFilesCfg is not null && GetConfigBool("Enabled", staticFilesCfg) is true ? GetConfigStr("RootPath", staticFilesCfg) ?? "wwwroot" : null;
+        _config = config;
+    }
+    
+    public WebApplicationBuilder Instance { get; private set; }  = default!;
+
+    public bool LogToConsole { get; private set; } = false;
+    public bool LogToFile { get; private set; } = false;
+    public bool LogToPostgres { get; private set; } = false;
+    public Serilog.ILogger? Logger { get; private set; } = null;
+    public bool UseHttpsRedirection { get; private set; } = false;
+    public bool UseHsts { get; private set; } = false;
+    public BearerTokenConfig? BearerTokenConfig { get; private set; } = null;
+    public string? ConnectionString { get; private set; } = null;
+    public string? ConnectionName { get; private set; } = null;
+    public ExternalAuthConfig? ExternalAuthConfig { get; private set; } = null;
+
+    public void BuildInstance()
+    {
+        var staticFilesCfg = _config.Cfg.GetSection("StaticFiles");
+        string? webRootPath = staticFilesCfg is not null && _config.GetConfigBool("Enabled", staticFilesCfg) is true ? _config.GetConfigStr("RootPath", staticFilesCfg) ?? "wwwroot" : null;
 
         var options = new WebApplicationOptions()
         {
-            ApplicationName = GetConfigStr("ApplicationName") ?? Path.GetFileName(Environment.CurrentDirectory),
+            ApplicationName = _config.GetConfigStr("ApplicationName") ?? Path.GetFileName(Environment.CurrentDirectory),
             WebRootPath = webRootPath,
-            EnvironmentName = GetConfigStr("EnvironmentName") ?? "Production",
+            EnvironmentName = _config.GetConfigStr("EnvironmentName") ?? "Production",
         };
         Instance = WebApplication.CreateEmptyBuilder(options);
         Instance.WebHost.UseKestrelCore();
 
-        var kestrelConfig = Cfg.GetSection("Kestrel");
+        var kestrelConfig = _config.Cfg.GetSection("Kestrel");
         if (kestrelConfig is not null && kestrelConfig.Exists())
         {
             Instance.WebHost.ConfigureKestrel((context, options) =>
             {
                 options.Configure(kestrelConfig);
 
-                options.DisableStringReuse = GetConfigBool("DisableStringReuse", kestrelConfig, options.DisableStringReuse);
-                options.AllowAlternateSchemes = GetConfigBool("AllowAlternateSchemes", kestrelConfig, options.AllowAlternateSchemes);
-                options.AllowSynchronousIO = GetConfigBool("AllowSynchronousIO", kestrelConfig, options.AllowSynchronousIO);
-                options.AllowResponseHeaderCompression = GetConfigBool("AllowResponseHeaderCompression", kestrelConfig, options.AllowResponseHeaderCompression);
-                options.AddServerHeader = GetConfigBool("AddServerHeader", kestrelConfig, options.AddServerHeader);
-                options.AllowHostHeaderOverride = GetConfigBool("AllowSynchronousIO", kestrelConfig, options.AllowHostHeaderOverride);
+                options.DisableStringReuse = _config.GetConfigBool("DisableStringReuse", kestrelConfig, options.DisableStringReuse);
+                options.AllowAlternateSchemes = _config.GetConfigBool("AllowAlternateSchemes", kestrelConfig, options.AllowAlternateSchemes);
+                options.AllowSynchronousIO = _config.GetConfigBool("AllowSynchronousIO", kestrelConfig, options.AllowSynchronousIO);
+                options.AllowResponseHeaderCompression = _config.GetConfigBool("AllowResponseHeaderCompression", kestrelConfig, options.AllowResponseHeaderCompression);
+                options.AddServerHeader = _config.GetConfigBool("AddServerHeader", kestrelConfig, options.AddServerHeader);
+                options.AllowHostHeaderOverride = _config.GetConfigBool("AllowSynchronousIO", kestrelConfig, options.AllowHostHeaderOverride);
 
                 var limitsSection = kestrelConfig.GetSection("Limits");
                 if (limitsSection.Exists())
@@ -67,7 +74,7 @@ public static class Builder
             });
         }
 
-        var urls = GetConfigStr("Urls");
+        var urls = _config.GetConfigStr("Urls");
         if (urls is not null)
         {
             Instance.WebHost.UseUrls(urls.Split(';'));
@@ -77,14 +84,14 @@ public static class Builder
            Instance.WebHost.UseUrls("http://localhost:5000", "http://localhost:5001");
         }
 
-        var ssqlCfg = Cfg.GetSection("Ssl");
-        if (ssqlCfg.Exists() is true)
+        var ssqlCfg = _config.Cfg.GetSection("Ssl");
+        if (_config.Exists(ssqlCfg) is true)
         {
-            if (GetConfigBool("Enabled", ssqlCfg) is true)
+            if (_config.GetConfigBool("Enabled", ssqlCfg) is true)
             {
                 Instance.WebHost.UseKestrelHttpsConfiguration();
-                UseHttpsRedirection = GetConfigBool("UseHttpsRedirection", ssqlCfg, true);
-                UseHsts = GetConfigBool("UseHsts", ssqlCfg, true);
+                UseHttpsRedirection = _config.GetConfigBool("UseHttpsRedirection", ssqlCfg, true);
+                UseHsts = _config.GetConfigBool("UseHsts", ssqlCfg, true);
             }
         }
         else
@@ -94,17 +101,17 @@ public static class Builder
         }
     }
 
-    public static WebApplication Build() => Instance.Build();
+    public WebApplication Build() => Instance.Build();
 
-    public static void BuildLogger()
+    public void BuildLogger()
     {
-        var logCfg = Cfg.GetSection("Log");
+        var logCfg = _config.Cfg.GetSection("Log");
         Logger = null;
-        LogToConsole = GetConfigBool("ToConsole", logCfg, true);
-        LogToFile = GetConfigBool("ToFile", logCfg);
-        var filePath = GetConfigStr("FilePath", logCfg) ?? "logs/log.txt";
-        LogToPostgres = GetConfigBool("ToPostgres", logCfg);
-        var postgresCommand = GetConfigStr("PostgresCommand", logCfg);
+        LogToConsole = _config.GetConfigBool("ToConsole", logCfg, true);
+        LogToFile = _config.GetConfigBool("ToFile", logCfg);
+        var filePath = _config.GetConfigStr("FilePath", logCfg) ?? "logs/log.txt";
+        LogToPostgres = _config.GetConfigBool("ToPostgres", logCfg);
+        var postgresCommand = _config.GetConfigStr("PostgresCommand", logCfg);
 
         if (LogToConsole is true || (LogToFile is true)  || (LogToPostgres is true && postgresCommand is not null))
         {
@@ -114,7 +121,7 @@ public static class Builder
             foreach (var level in logCfg?.GetSection("MinimalLevels")?.GetChildren() ?? [])
             {
                 var key = level.Key;
-                var value = GetEnum<Serilog.Events.LogEventLevel?>(level.Value);
+                var value = _config.GetEnum<Serilog.Events.LogEventLevel?>(level.Value);
                 if (value is not null && key is not null)
                 {
                     loggerConfig.MinimumLevel.Override(key, value.Value);
@@ -137,13 +144,13 @@ public static class Builder
                 loggerConfig.MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning);
             }
 
-            string outputTemplate = GetConfigStr("OutputTemplate", logCfg) ?? 
+            string outputTemplate = _config.GetConfigStr("OutputTemplate", logCfg) ?? 
                 "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj} [{SourceContext}]{NewLine}{Exception}";
             if (LogToConsole is true)
             {
                 loggerConfig = loggerConfig.WriteTo.Console(
                     restrictedToMinimumLevel: 
-                        GetConfigEnum<Serilog.Events.LogEventLevel?>("ConsoleMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
+                        _config.GetConfigEnum<Serilog.Events.LogEventLevel?>("ConsoleMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
                     outputTemplate: outputTemplate,
                     theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code);
             }
@@ -151,12 +158,12 @@ public static class Builder
             {
                 loggerConfig = loggerConfig.WriteTo.File(
                     restrictedToMinimumLevel:
-                        GetConfigEnum<Serilog.Events.LogEventLevel?>("FileMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
+                        _config.GetConfigEnum<Serilog.Events.LogEventLevel?>("FileMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
                     path: filePath ?? "logs/log.txt",
                     rollingInterval: RollingInterval.Day,
-                    fileSizeLimitBytes: GetConfigInt("FileSizeLimitBytes", logCfg) ?? 30000000,
-                    retainedFileCountLimit: GetConfigInt("RetainedFileCountLimit", logCfg) ?? 30,
-                    rollOnFileSizeLimit: GetConfigBool("RollOnFileSizeLimit", logCfg, defaultVal: true),
+                    fileSizeLimitBytes: _config.GetConfigInt("FileSizeLimitBytes", logCfg) ?? 30000000,
+                    retainedFileCountLimit: _config.GetConfigInt("RetainedFileCountLimit", logCfg) ?? 30,
+                    rollOnFileSizeLimit: _config.GetConfigBool("RollOnFileSizeLimit", logCfg, defaultVal: true),
                     outputTemplate: outputTemplate);
             }
             if (LogToPostgres is true && postgresCommand is not null)
@@ -164,16 +171,17 @@ public static class Builder
                 loggerConfig = loggerConfig.WriteTo.Postgres(
                     postgresCommand, 
                     restrictedToMinimumLevel:
-                        GetConfigEnum<Serilog.Events.LogEventLevel?>("PostgresMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose);
+                        _config.GetConfigEnum<Serilog.Events.LogEventLevel?>("PostgresMinimumLevel", logCfg) ?? Serilog.Events.LogEventLevel.Verbose,
+                    connectionString: ConnectionString);
             }
             var serilog = loggerConfig.CreateLogger();
-            var appName = GetConfigStr("ApplicationName", Cfg);
+            var appName = _config.GetConfigStr("ApplicationName", _config.Cfg);
             Logger = string.IsNullOrEmpty(appName) ? 
                 serilog.ForContext("SourceContext", "NpgsqlRest") : 
                 serilog.ForContext("SourceContext", appName);
             Instance.Host.UseSerilog(serilog);
 
-            var providerString = Cfg.Providers.Select(p =>
+            var providerString = _config.Cfg.Providers.Select(p =>
             {
                 var str = p.ToString();
                 if (p is Microsoft.Extensions.Configuration.Json.JsonConfigurationProvider j)
@@ -196,30 +204,30 @@ public static class Builder
         Database
     }
 
-    public static void BuildDataProtection()
+    public void BuildDataProtection()
     {
-        var dataProtectionCfg = Cfg.GetSection("DataProtection");
-        if (dataProtectionCfg.Exists() is false || GetConfigBool("Enabled", dataProtectionCfg) is false)
+        var dataProtectionCfg = _config.Cfg.GetSection("DataProtection");
+        if (_config.Exists(dataProtectionCfg) is false || _config.GetConfigBool("Enabled", dataProtectionCfg) is false)
         {
             return;
         }
         var dataProtectionBuilder = Instance.Services.AddDataProtection();
 
         var encryptionCfg = dataProtectionCfg.GetSection("UseCryptographicAlgorithms");
-        if (encryptionCfg.Exists() is true && GetConfigBool("Enabled", encryptionCfg) is true)
+        if (_config.Exists(encryptionCfg) is true && _config.GetConfigBool("Enabled", encryptionCfg) is true)
         {
             dataProtectionBuilder.UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration
             {
-                EncryptionAlgorithm = GetConfigEnum<EncryptionAlgorithm?>("EncryptionAlgorithm", encryptionCfg) ?? EncryptionAlgorithm.AES_256_CBC,
-                ValidationAlgorithm = GetConfigEnum<ValidationAlgorithm?>("ValidationAlgorithm", encryptionCfg) ?? ValidationAlgorithm.HMACSHA256
+                EncryptionAlgorithm = _config.GetConfigEnum<EncryptionAlgorithm?>("EncryptionAlgorithm", encryptionCfg) ?? EncryptionAlgorithm.AES_256_CBC,
+                ValidationAlgorithm = _config.GetConfigEnum<ValidationAlgorithm?>("ValidationAlgorithm", encryptionCfg) ?? ValidationAlgorithm.HMACSHA256
             });
         }
 
         DirectoryInfo? dirInfo = null;
-        var storage = GetConfigEnum<DataProtectionStorage?>("Storage", dataProtectionCfg) ?? DataProtectionStorage.Default;
+        var storage = _config.GetConfigEnum<DataProtectionStorage?>("Storage", dataProtectionCfg) ?? DataProtectionStorage.Default;
         if (storage == DataProtectionStorage.FileSystem)
         {
-            var path = GetConfigStr("FileSystemPath", dataProtectionCfg);
+            var path = _config.GetConfigStr("FileSystemPath", dataProtectionCfg);
             if (string.IsNullOrEmpty(path) is true)
             {
                 throw new ArgumentException("FileSystemPath value in DataProtection can't be null or empty when using FileSystem Storage");
@@ -229,8 +237,8 @@ public static class Builder
         }
         else if (storage == DataProtectionStorage.Database)
         {
-            var getAllElementsCommand = GetConfigStr("GetAllElementsCommand", dataProtectionCfg) ?? "select data from get_all_data_protection_elements()";
-            var storeElementCommand = GetConfigStr("StoreElementCommand", dataProtectionCfg) ?? "call store_data_protection_element($1,$2)";
+            var getAllElementsCommand = _config.GetConfigStr("GetAllElementsCommand", dataProtectionCfg) ?? "select data from get_all_data_protection_elements()";
+            var storeElementCommand = _config.GetConfigStr("StoreElementCommand", dataProtectionCfg) ?? "call store_data_protection_element($1,$2)";
             Instance.Services.Configure<KeyManagementOptions>(options =>
             {
                 options.XmlRepository = new DbDataProtection(
@@ -240,10 +248,10 @@ public static class Builder
             });
         }
 
-        var expiresInDays = GetConfigInt("DefaultKeyLifetimeDays", dataProtectionCfg) ?? 90;
+        var expiresInDays = _config.GetConfigInt("DefaultKeyLifetimeDays", dataProtectionCfg) ?? 90;
         dataProtectionBuilder.SetDefaultKeyLifetime(TimeSpan.FromDays(expiresInDays));
 
-        var customAppName = GetConfigStr("CustomApplicationName", dataProtectionCfg);
+        var customAppName = _config.GetConfigStr("CustomApplicationName", dataProtectionCfg);
         if (string.IsNullOrEmpty(customAppName) is true)
         {
             customAppName = Instance.Environment.ApplicationName;
@@ -265,21 +273,21 @@ public static class Builder
         }
     }
 
-    public static void BuildAuthentication()
+    public void BuildAuthentication()
     {
-        var authCfg = Cfg.GetSection("Auth");
+        var authCfg = _config.Cfg.GetSection("Auth");
         bool cookieAuth = false;
         bool bearerTokenAuth = false;
-        if (authCfg.Exists() is true)
+        if (_config.Exists(authCfg) is true)
         {
-            cookieAuth = GetConfigBool("CookieAuth", authCfg);
-            bearerTokenAuth = GetConfigBool("BearerTokenAuth", authCfg);
+            cookieAuth = _config.GetConfigBool("CookieAuth", authCfg);
+            bearerTokenAuth = _config.GetConfigBool("BearerTokenAuth", authCfg);
         }
 
         if (cookieAuth is true || bearerTokenAuth is true)
         {
-            var cookieScheme = GetConfigStr("CookieAuthScheme", authCfg) ?? CookieAuthenticationDefaults.AuthenticationScheme;
-            var tokenScheme = GetConfigStr("BearerTokenAuthScheme", authCfg) ?? BearerTokenDefaults.AuthenticationScheme;
+            var cookieScheme = _config.GetConfigStr("CookieAuthScheme", authCfg) ?? CookieAuthenticationDefaults.AuthenticationScheme;
+            var tokenScheme = _config.GetConfigStr("BearerTokenAuthScheme", authCfg) ?? BearerTokenDefaults.AuthenticationScheme;
             string defaultScheme = (cookieAuth, bearerTokenAuth) switch
             {
                 (true, true) => string.Concat(cookieScheme, "_and_", tokenScheme),
@@ -291,29 +299,29 @@ public static class Builder
 
             if (cookieAuth is true)
             {
-                var days = GetConfigInt("CookieValidDays", authCfg) ?? 14;
+                var days = _config.GetConfigInt("CookieValidDays", authCfg) ?? 14;
                 auth.AddCookie(cookieScheme, options =>
                 {
                     options.ExpireTimeSpan = TimeSpan.FromDays(days);
-                    var name = GetConfigStr("CookieName", authCfg);
+                    var name = _config.GetConfigStr("CookieName", authCfg);
                     if (string.IsNullOrEmpty(name) is false)
                     {
-                        options.Cookie.Name = GetConfigStr("CookieName", authCfg);
+                        options.Cookie.Name = _config.GetConfigStr("CookieName", authCfg);
                     }
-                    options.Cookie.Path = GetConfigStr("CookiePath", authCfg);
-                    options.Cookie.Domain = GetConfigStr("CookieDomain", authCfg);
-                    options.Cookie.MaxAge = GetConfigBool("CookieMultiSessions", authCfg, true) is true ? TimeSpan.FromDays(days) : null;
-                    options.Cookie.HttpOnly = GetConfigBool("CookieHttpOnly", authCfg, true) is true;
+                    options.Cookie.Path = _config.GetConfigStr("CookiePath", authCfg);
+                    options.Cookie.Domain = _config.GetConfigStr("CookieDomain", authCfg);
+                    options.Cookie.MaxAge = _config.GetConfigBool("CookieMultiSessions", authCfg, true) is true ? TimeSpan.FromDays(days) : null;
+                    options.Cookie.HttpOnly = _config.GetConfigBool("CookieHttpOnly", authCfg, true) is true;
                 });
                 Logger?.Information("Using Cookie Authentication with scheme {0}. Cookie expires in {1} days.", cookieScheme, days);
             }
             if (bearerTokenAuth is true)
             {
-                var hours = GetConfigInt("BearerTokenExpireHours", authCfg) ?? 1;
+                var hours = _config.GetConfigInt("BearerTokenExpireHours", authCfg) ?? 1;
                 BearerTokenConfig = new()
                 {
                     Scheme = tokenScheme,
-                    RefreshPath = GetConfigStr("BearerTokenRefreshPath", authCfg)
+                    RefreshPath = _config.GetConfigStr("BearerTokenRefreshPath", authCfg)
                 };
                 auth.AddBearerToken(tokenScheme, options =>
                 {
@@ -348,22 +356,23 @@ public static class Builder
 
             if (cookieAuth || bearerTokenAuth)
             {
-                ExternalAuthConfig.Build(authCfg);
+                ExternalAuthConfig = new ExternalAuthConfig();
+                ExternalAuthConfig.Build(authCfg, _config, this);
             }
         }
     }
 
-    public static bool BuildCors()
+    public bool BuildCors()
     {
-        var corsCfg = Cfg.GetSection("Cors");
-        if (corsCfg.Exists() is false || GetConfigBool("Enabled", corsCfg) is false)
+        var corsCfg = _config.Cfg.GetSection("Cors");
+        if (_config.Exists(corsCfg) is false || _config.GetConfigBool("Enabled", corsCfg) is false)
         {
             return false;
         }
 
-        var allowedOrigins = GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? ["*"];
-        var allowedMethods = GetConfigEnumerable("AllowedMethods", corsCfg)?.ToArray() ?? ["*"];
-        var allowedHeaders = GetConfigEnumerable("AllowedHeaders", corsCfg)?.ToArray() ?? ["*"];
+        var allowedOrigins = _config.GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? ["*"];
+        var allowedMethods = _config.GetConfigEnumerable("AllowedMethods", corsCfg)?.ToArray() ?? ["*"];
+        var allowedHeaders = _config.GetConfigEnumerable("AllowedHeaders", corsCfg)?.ToArray() ?? ["*"];
 
         Instance.Services.AddCors(options => options.AddDefaultPolicy(policy =>
         {
@@ -401,7 +410,7 @@ public static class Builder
                 Logger?.Information("CORS policy allows headers: {0}", allowedHeaders);
             }
 
-            if (GetConfigBool("AllowCredentials", corsCfg, true) is true)
+            if (_config.GetConfigBool("AllowCredentials", corsCfg, true) is true)
             {
                 Logger?.Information("CORS policy allows credentials.");
                 builder.AllowCredentials();
@@ -411,7 +420,7 @@ public static class Builder
                 Logger?.Information("CORS policy does not allow credentials.");
             }
             
-            var preflightMaxAge = GetConfigInt("PreflightMaxAgeSeconds", corsCfg) ?? 600;
+            var preflightMaxAge = _config.GetConfigInt("PreflightMaxAgeSeconds", corsCfg) ?? 600;
             if (preflightMaxAge > 0)
             {
                 Logger?.Information("CORS policy preflight max age is set to {0} seconds.", preflightMaxAge);
@@ -425,16 +434,16 @@ public static class Builder
         return true;
     }
 
-    public static bool ConfigureResponseCompression()
+    public bool ConfigureResponseCompression()
     {
-        var responseCompressionCfg = Cfg.GetSection("ResponseCompression");
-        if (responseCompressionCfg.Exists() is false || GetConfigBool("Enabled", responseCompressionCfg) is false)
+        var responseCompressionCfg = _config.Cfg.GetSection("ResponseCompression");
+        if (_config.Exists(responseCompressionCfg) is false || _config.GetConfigBool("Enabled", responseCompressionCfg) is false)
         {
             return false;
         }
 
-        var useBrotli = GetConfigBool("UseBrotli", responseCompressionCfg, true);
-        var useGzipFallback = GetConfigBool("UseGzipFallback", responseCompressionCfg, true);
+        var useBrotli = _config.GetConfigBool("UseBrotli", responseCompressionCfg, true);
+        var useGzipFallback = _config.GetConfigBool("UseGzipFallback", responseCompressionCfg, true);
 
         if (useBrotli is false && useGzipFallback is false)
         {
@@ -443,7 +452,7 @@ public static class Builder
 
         Instance.Services.AddResponseCompression(options =>
         {
-            options.EnableForHttps = GetConfigBool("EnableForHttps", responseCompressionCfg, false); 
+            options.EnableForHttps = _config.GetConfigBool("EnableForHttps", responseCompressionCfg, false); 
             if (useBrotli is true)
             {
                 options.Providers.Add<BrotliCompressionProvider>();
@@ -452,7 +461,7 @@ public static class Builder
             {
                 options.Providers.Add<GzipCompressionProvider>();
             }
-            options.MimeTypes = GetConfigEnumerable("IncludeMimeTypes", responseCompressionCfg)?.ToArray() ?? [
+            options.MimeTypes = _config.GetConfigEnumerable("IncludeMimeTypes", responseCompressionCfg)?.ToArray() ?? [
                 "text/plain",
                 "text/css",
                 "application/javascript",
@@ -466,10 +475,10 @@ public static class Builder
                 "font/woff2",
                 "application/font-woff",
                 "application/font-woff2"];
-            options.ExcludedMimeTypes = GetConfigEnumerable("ExcludeMimeTypes", responseCompressionCfg)?.ToArray() ?? [];
+            options.ExcludedMimeTypes = _config.GetConfigEnumerable("ExcludeMimeTypes", responseCompressionCfg)?.ToArray() ?? [];
         });
 
-        var level = GetConfigEnum<CompressionLevel>("CompressionLevel", responseCompressionCfg);
+        var level = _config.GetConfigEnum<CompressionLevel>("CompressionLevel", responseCompressionCfg);
         if (useBrotli is true)
         {
             Instance.Services.Configure<BrotliCompressionProviderOptions>(options =>
@@ -488,33 +497,33 @@ public static class Builder
         return true;
     }
 
-    public static bool ConfigureAntiForgery()
+    public bool ConfigureAntiForgery()
     {
-        var antiforgeryCfg = Cfg.GetSection("Antiforgery");
-        if (antiforgeryCfg.Exists() is false || GetConfigBool("Enabled", antiforgeryCfg) is false)
+        var antiforgeryCfg = _config.Cfg.GetSection("Antiforgery");
+        if (_config.Exists(antiforgeryCfg) is false || _config.GetConfigBool("Enabled", antiforgeryCfg) is false)
         {
             return false;
         }
 
         Instance.Services.AddAntiforgery(o =>
         {
-            var str = GetConfigStr("CookieName", antiforgeryCfg);
+            var str = _config.GetConfigStr("CookieName", antiforgeryCfg);
             if (string.IsNullOrEmpty(str) is false)
             {
                 o.Cookie.Name = str;
             }
-            str = GetConfigStr("FormFieldName", antiforgeryCfg);
+            str = _config.GetConfigStr("FormFieldName", antiforgeryCfg);
             if (string.IsNullOrEmpty(str) is false)
             {
                 o.FormFieldName = str;
             }
-            str = GetConfigStr("HeaderName", antiforgeryCfg);
+            str = _config.GetConfigStr("HeaderName", antiforgeryCfg);
             if (string.IsNullOrEmpty(str) is false)
             {
                 o.HeaderName = str;
             }
-            o.SuppressXFrameOptionsHeader = GetConfigBool("SuppressXFrameOptionsHeader", antiforgeryCfg, false);
-            o.SuppressReadingTokenFromFormBody = GetConfigBool("SuppressReadingTokenFromFormBody", antiforgeryCfg, false);
+            o.SuppressXFrameOptionsHeader = _config.GetConfigBool("SuppressXFrameOptionsHeader", antiforgeryCfg, false);
+            o.SuppressReadingTokenFromFormBody = _config.GetConfigBool("SuppressReadingTokenFromFormBody", antiforgeryCfg, false);
 
             Logger?.Information("Using Antiforgery with cookie name {0}, form field name {1}, header name {2}",
                 o.Cookie.Name,
@@ -524,25 +533,25 @@ public static class Builder
         return true;
     }
 
-    private static readonly string[] ConnectionNames = ["Host", "Port", "Database", "Username", "Password", "Passfile", "SSL Mode", "Trust Server Certificate", "SSL Certificate", "SSL Key", "SSL Password", "Root Certificate", "Check Certificate Revocation", "SSL Negotiation", "Channel Binding", "Persist Security Info", "Kerberos Service Name", "Include Realm", "Include Error Detail", "Log Parameters", "Pooling", "Minimum Pool Size", "Maximum Pool Size", "Connection Idle Lifetime", "Connection Pruning Interval", "Connection Lifetime", "Timeout", "Command Timeout", "Cancellation Timeout", "Keepalive", "Tcp Keepalive", "Tcp Keepalive Time", "Tcp Keepalive Interval", "Max Auto Prepare", "Auto Prepare Min Usages", "Read Buffer Size", "Write Buffer Size", "Socket Receive Buffer Size", "Socket Send Buffer Size", "No Reset On Close", "Target Session Attributes", "Load Balance Hosts", "Host Recheck Seconds", "Options", "Application Name", "Enlist", "Search Path", "Client Encoding", "Encoding", "Timezone", "Array Nullability Mode"];
+    private readonly string[] ConnectionNames = ["Host", "Port", "Database", "Username", "Password", "Passfile", "SSL Mode", "Trust Server Certificate", "SSL Certificate", "SSL Key", "SSL Password", "Root Certificate", "Check Certificate Revocation", "SSL Negotiation", "Channel Binding", "Persist Security Info", "Kerberos Service Name", "Include Realm", "Include Error Detail", "Log Parameters", "Pooling", "Minimum Pool Size", "Maximum Pool Size", "Connection Idle Lifetime", "Connection Pruning Interval", "Connection Lifetime", "Timeout", "Command Timeout", "Cancellation Timeout", "Keepalive", "Tcp Keepalive", "Tcp Keepalive Time", "Tcp Keepalive Interval", "Max Auto Prepare", "Auto Prepare Min Usages", "Read Buffer Size", "Write Buffer Size", "Socket Receive Buffer Size", "Socket Send Buffer Size", "No Reset On Close", "Target Session Attributes", "Load Balance Hosts", "Host Recheck Seconds", "Options", "Application Name", "Enlist", "Search Path", "Client Encoding", "Encoding", "Timezone", "Array Nullability Mode"];
 
-    private static (string?, ConnectionRetryOptions) BuildConnection(
+    private (string?, ConnectionRetryOptions) BuildConnection(
         string? connectionName, 
         string connectionString, 
         bool isMain,
         bool skipRetryOpts)
     {
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-        if (GetConfigBool("SetApplicationNameInConnection", ConnectionSettingsCfg, true) is true)
+        if (_config.GetConfigBool("SetApplicationNameInConnection", _config.ConnectionSettingsCfg, true) is true)
         {
             connectionStringBuilder.ApplicationName = Instance.Environment.ApplicationName;
         }
 
-        if (GetConfigBool("UseEnvVars", ConnectionSettingsCfg) is true)
+        if (_config.GetConfigBool("UseEnvVars", _config.ConnectionSettingsCfg) is true)
         {
-            var envOverride = GetConfigBool("EnvVarsOverride", ConnectionSettingsCfg, false);
+            var envOverride = _config.GetConfigBool("EnvVarsOverride", _config.ConnectionSettingsCfg, false);
 
-            var hostEnvVar = GetConfigStr("HostEnvVar", ConnectionSettingsCfg) ?? "PGHOST";
+            var hostEnvVar = _config.GetConfigStr("HostEnvVar", _config.ConnectionSettingsCfg) ?? "PGHOST";
             if (string.IsNullOrEmpty(hostEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(hostEnvVar)) is false)
             {
                 if (envOverride is true)
@@ -555,7 +564,7 @@ public static class Builder
                 }
             }
 
-            var portEnvVar = GetConfigStr("PortEnvVar", ConnectionSettingsCfg) ?? "PGPORT";
+            var portEnvVar = _config.GetConfigStr("PortEnvVar", _config.ConnectionSettingsCfg) ?? "PGPORT";
             if (string.IsNullOrEmpty(portEnvVar) is false && int.TryParse(Environment.GetEnvironmentVariable(portEnvVar), out int port) is true)
             {
                 if (envOverride is true)
@@ -567,7 +576,7 @@ public static class Builder
                     connectionStringBuilder.Port = port;
                 }
             }
-            var dbEnvVar = GetConfigStr("DatabaseEnvVar", ConnectionSettingsCfg) ?? "PGDATABASE";
+            var dbEnvVar = _config.GetConfigStr("DatabaseEnvVar", _config.ConnectionSettingsCfg) ?? "PGDATABASE";
             if (string.IsNullOrEmpty(dbEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(dbEnvVar)) is false)
             {
                 if (envOverride is true)
@@ -579,7 +588,7 @@ public static class Builder
                     connectionStringBuilder.Database = Environment.GetEnvironmentVariable(dbEnvVar);
                 }
             }
-            var userEnvVar = GetConfigStr("UserEnvVar", ConnectionSettingsCfg) ?? "PGUSER";
+            var userEnvVar = _config.GetConfigStr("UserEnvVar", _config.ConnectionSettingsCfg) ?? "PGUSER";
             if (string.IsNullOrEmpty(userEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(userEnvVar)) is false)
             {
                 if (envOverride is true)
@@ -591,7 +600,7 @@ public static class Builder
                     connectionStringBuilder.Username = Environment.GetEnvironmentVariable(userEnvVar);
                 }
             }
-            var passEnvVar = GetConfigStr("PasswordEnvVar", ConnectionSettingsCfg) ?? "PGPASSWORD";
+            var passEnvVar = _config.GetConfigStr("PasswordEnvVar", _config.ConnectionSettingsCfg) ?? "PGPASSWORD";
             if (string.IsNullOrEmpty(passEnvVar) is false && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(passEnvVar)) is false)
             {
                 if (envOverride is true)
@@ -604,7 +613,7 @@ public static class Builder
                 }
             }
 
-            var matchNpgsqlConnectionParameterNamesWithEnvVarNames = GetConfigStr("MatchNpgsqlConnectionParameterNamesWithEnvVarNames", ConnectionSettingsCfg);
+            var matchNpgsqlConnectionParameterNamesWithEnvVarNames = _config.GetConfigStr("MatchNpgsqlConnectionParameterNamesWithEnvVarNames", _config.ConnectionSettingsCfg);
             if (matchNpgsqlConnectionParameterNamesWithEnvVarNames is not null && matchNpgsqlConnectionParameterNamesWithEnvVarNames.Contains("{0}"))
             {
                 bool hasTwoFormatters = matchNpgsqlConnectionParameterNamesWithEnvVarNames?.Contains("{0}") is true && matchNpgsqlConnectionParameterNamesWithEnvVarNames?.Contains("{1}") is true;
@@ -685,23 +694,23 @@ public static class Builder
         var retryOptions = new ConnectionRetryOptions();
         if (skipRetryOpts is false)
         {
-            var retryCfg = ConnectionSettingsCfg.GetSection("RetryOptions");
-            retryOptions.Enabled = GetConfigBool("Enabled", retryCfg, true);
+            var retryCfg = _config.ConnectionSettingsCfg.GetSection("RetryOptions");
+            retryOptions.Enabled = _config.GetConfigBool("Enabled", retryCfg, true);
             if (retryOptions.Enabled is true)
             {
-                retryOptions.MaxRetryCount = GetConfigInt("MaxRetryCount", retryCfg) ?? 6;
-                retryOptions.MaxRetryDelay = TimeSpan.FromSeconds(GetConfigInt("MaxRetryDelaySeconds", retryCfg) ?? 30);
-                retryOptions.ExponentialBase = GetConfigDouble("ExponentialBase", retryCfg) ?? 2.0;
-                retryOptions.RandomFactor = GetConfigDouble("RandomFactor", retryCfg) ?? 1.1;
-                retryOptions.DelayCoefficient = TimeSpan.FromSeconds(GetConfigInt("DelayCoefficientSeconds", retryCfg) ?? 1);
-                var additionalErrorCodes = GetConfigEnumerable("AdditionalErrorCodes", retryCfg)?.ToHashSet();
+                retryOptions.MaxRetryCount = _config.GetConfigInt("MaxRetryCount", retryCfg) ?? 6;
+                retryOptions.MaxRetryDelay = TimeSpan.FromSeconds(_config.GetConfigInt("MaxRetryDelaySeconds", retryCfg) ?? 30);
+                retryOptions.ExponentialBase = _config.GetConfigDouble("ExponentialBase", retryCfg) ?? 2.0;
+                retryOptions.RandomFactor = _config.GetConfigDouble("RandomFactor", retryCfg) ?? 1.1;
+                retryOptions.DelayCoefficient = TimeSpan.FromSeconds(_config.GetConfigInt("DelayCoefficientSeconds", retryCfg) ?? 1);
+                var additionalErrorCodes = _config.GetConfigEnumerable("AdditionalErrorCodes", retryCfg)?.ToHashSet();
                 if (additionalErrorCodes is not null && additionalErrorCodes.Count > 0)
                 {
                     retryOptions.AdditionalErrorCodes = additionalErrorCodes;
                 }
             }
         }
-        if (GetConfigBool("TestConnectionStrings", ConnectionSettingsCfg) is true)
+        if (_config.GetConfigBool("TestConnectionStrings", _config.ConnectionSettingsCfg) is true)
         {
             using var conn = new NpgsqlConnection(connectionString);
             try
@@ -717,17 +726,17 @@ public static class Builder
         return (connectionString, retryOptions);
     }
 
-    public static (string?, ConnectionRetryOptions) BuildConnectionString()
+    public (string?, ConnectionRetryOptions) BuildConnectionString()
     {
         string? connectionString;
-        string? connectionName = GetConfigStr("ConnectionName", NpgsqlRestCfg);
+        string? connectionName = _config.GetConfigStr("ConnectionName", _config.NpgsqlRestCfg);
         if (connectionName is not null)
         {
-            connectionString = Cfg.GetConnectionString(connectionName);
+            connectionString = _config.Cfg.GetConnectionString(connectionName);
         }
         else
         {
-            var section = Cfg.GetSection("ConnectionStrings");
+            var section = _config.Cfg.GetSection("ConnectionStrings");
             connectionString = section.GetChildren().FirstOrDefault()?.Value;
         }
 
@@ -741,10 +750,10 @@ public static class Builder
         return (result, retryOpts);
     }
 
-    public static IDictionary<string, string> BuildConnectionStringDict()
+    public IDictionary<string, string> BuildConnectionStringDict()
     {
         var result = new Dictionary<string, string>();
-        foreach (var section in Cfg.GetSection("ConnectionStrings").GetChildren())
+        foreach (var section in _config.Cfg.GetSection("ConnectionStrings").GetChildren())
         {
             if (section?.Key is null)
             {
@@ -759,9 +768,9 @@ public static class Builder
         return result.ToFrozenDictionary();
     }
 
-    private static string? _instanceId = null;
+    private string? _instanceId = null;
 
-    public static string InstanceId
+    public string InstanceId
     {
         get
         {
@@ -770,15 +779,15 @@ public static class Builder
         }
     }
 
-    public static Dictionary<string, StringValues> GetCustomHeaders()
+    public Dictionary<string, StringValues> GetCustomHeaders()
     {
         var result = new Dictionary<string, StringValues>();
-        foreach(var section in NpgsqlRestCfg.GetSection("CustomRequestHeaders").GetChildren())
+        foreach(var section in _config.NpgsqlRestCfg.GetSection("CustomRequestHeaders").GetChildren())
         {
             result.Add(section.Key, section.Value);
         }
 
-        var instIdName = GetConfigStr("InstanceIdRequestHeaderName", NpgsqlRestCfg);
+        var instIdName = _config.GetConfigStr("InstanceIdRequestHeaderName", _config.NpgsqlRestCfg);
         if (string.IsNullOrEmpty(instIdName) is false)
         {
             result.Add(instIdName, InstanceId);
@@ -786,10 +795,10 @@ public static class Builder
         return result;
     }
 
-    public static Dictionary<string, StringValues> GetCustomServerSentEventsResponseHeaders()
+    public Dictionary<string, StringValues> GetCustomServerSentEventsResponseHeaders()
     {
         var result = new Dictionary<string, StringValues>();
-        foreach (var section in NpgsqlRestCfg.GetSection("CustomServerSentEventsResponseHeaders").GetChildren())
+        foreach (var section in _config.NpgsqlRestCfg.GetSection("CustomServerSentEventsResponseHeaders").GetChildren())
         {
             result.Add(section.Key, section.Value);
         }

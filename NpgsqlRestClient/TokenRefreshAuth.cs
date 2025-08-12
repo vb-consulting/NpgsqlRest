@@ -12,20 +12,47 @@ public class BearerTokenConfig
     public string? RefreshPath { get; set; }
 }
 
-public static class TokenRefreshAuth
+public class TokenRefreshAuth
 {
-    public static void Configure(WebApplication app)
+    private readonly BearerTokenConfig? _bearerTokenConfig;
+    
+    // Static field to hold configuration for middleware - allows instance to be GC'd
+    private static BearerTokenConfig? _staticBearerTokenConfig;
+    
+    public TokenRefreshAuth(BearerTokenConfig? bearerTokenConfig)
     {
-        if (Builder.BearerTokenConfig is null || 
-            string.IsNullOrEmpty(Builder.BearerTokenConfig.RefreshPath) is true || 
-            string.IsNullOrEmpty(Builder.BearerTokenConfig.Scheme) is true)
+        _bearerTokenConfig = bearerTokenConfig;
+    }
+    
+    // Instance method to configure and register static middleware
+    public void Configure(WebApplication app)
+    {
+        // Copy instance value to static field for middleware access
+        _staticBearerTokenConfig = _bearerTokenConfig;
+        
+        // Register middleware using static method to avoid capturing instance
+        RegisterMiddleware(app);
+    }
+    
+    // Static method that registers middleware without capturing instance references
+    private static void RegisterMiddleware(WebApplication app)
+    {
+        var bearerTokenConfig = _staticBearerTokenConfig;
+        
+        if (bearerTokenConfig is null || 
+            string.IsNullOrEmpty(bearerTokenConfig.RefreshPath) is true || 
+            string.IsNullOrEmpty(bearerTokenConfig.Scheme) is true)
         {
             return;
         }
 
+        // Use local variables from parameters - no instance references captured
+        var refreshPath = bearerTokenConfig.RefreshPath;
+        var scheme = bearerTokenConfig.Scheme;
+
         app.Use(async (context, next) =>
         {
-            if (context.Request.Path.Equals(Builder.BearerTokenConfig.RefreshPath, StringComparison.OrdinalIgnoreCase) is false)
+            if (context.Request.Path.Equals(refreshPath, StringComparison.OrdinalIgnoreCase) is false)
             {
                 await next(context);
                 return;
@@ -38,7 +65,7 @@ public static class TokenRefreshAuth
             }
 
             var bearerTokenOptions = app.Services.GetRequiredService<IOptionsMonitor<Microsoft.AspNetCore.Authentication.BearerToken.BearerTokenOptions>>();
-            var refreshTokenProtector = bearerTokenOptions.Get(Builder.BearerTokenConfig.Scheme).RefreshTokenProtector;
+            var refreshTokenProtector = bearerTokenOptions.Get(scheme).RefreshTokenProtector;
             var timeProvider = app.Services.GetRequiredService<TimeProvider>();
 
             string refreshToken;
@@ -69,7 +96,7 @@ public static class TokenRefreshAuth
                 return;
             }
 
-            if (Results.SignIn(principal: context.User, authenticationScheme: Builder.BearerTokenConfig.Scheme) is not SignInHttpResult signInResult)
+            if (Results.SignIn(principal: context.User, authenticationScheme: scheme) is not SignInHttpResult signInResult)
             {
                 NpgsqlRestMiddleware.Logger?.LogError("Failed in constructing user identity for authentication.");
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
