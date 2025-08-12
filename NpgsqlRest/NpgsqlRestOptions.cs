@@ -58,6 +58,11 @@ public class NpgsqlRestOptions
     public IDictionary<string, string>? ConnectionStrings { get; set; }
 
     /// <summary>
+    /// Retry options for the connection opening.
+    /// </summary>
+    public ConnectionRetryOptions ConnectionRetryOptions { get; set; } = new();
+
+    /// <summary>
     /// Filter schema names [similar to](https://www.postgresql.org/docs/current/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP) this parameter or `null` to ignore this parameter.
     /// </summary>
     public string? SchemaSimilarTo { get; set; }

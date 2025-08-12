@@ -21,7 +21,7 @@ sw.Start();
 Build(args);
 BuildInstance();
 BuildLogger();
-var connectionString = BuildConnectionString();
+var (connectionString, retryOpts) = BuildConnectionString();
 if (connectionString is null)
 {
     return;
@@ -80,6 +80,7 @@ NpgsqlRestOptions options = new()
     DataSource = dataSource,
     ServiceProviderMode = ServiceProviderObject.None,
     ConnectionStrings = connectionStrings,
+    ConnectionRetryOptions = retryOpts,
     SchemaSimilarTo = GetConfigStr("SchemaSimilarTo", NpgsqlRestCfg),
     SchemaNotSimilarTo = GetConfigStr("SchemaNotSimilarTo", NpgsqlRestCfg),
     IncludeSchemas = GetConfigEnumerable("IncludeSchemas", NpgsqlRestCfg)?.ToArray(),

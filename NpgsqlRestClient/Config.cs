@@ -120,6 +120,20 @@ public static class Config
         return null;
     }
 
+    public static double? GetConfigDouble(string key, IConfiguration? subsection = null)
+    {
+        var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);
+        if (section?.Value is null)
+        {
+            return null;
+        }
+        if (double.TryParse(section.Value, out var value))
+        {
+            return value;
+        }
+        return null;
+    }
+
     public static T? GetConfigEnum<T>(string key, IConfiguration? subsection = null)
     {
         var section = subsection?.GetSection(key) ?? Cfg.GetSection(key);

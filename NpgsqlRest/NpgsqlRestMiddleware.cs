@@ -157,7 +157,8 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             {
                 if (Options.ServiceProviderMode == ServiceProviderObject.NpgsqlDataSource)
                 {
-                    connection = await serviceProvider.GetRequiredService<NpgsqlDataSource>().OpenConnectionAsync();
+                    connection = serviceProvider.GetRequiredService<NpgsqlDataSource>().CreateConnection();
+                    await NpgsqlConnectionRetryOpener.OpenAsync(connection, Options.ConnectionRetryOptions, logger, context.RequestAborted);
                 }
                 else if (Options.ServiceProviderMode == ServiceProviderObject.NpgsqlConnection)
                 {
@@ -1125,8 +1126,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     {
                         Options.BeforeConnectionOpen(connection, endpoint, context);
                     }
-                    await connection.OpenAsync();
-                    //await NpgsqlConnectionRetryOpener.OpenAsync(connection, options, logger, context.RequestAborted);
+                    await NpgsqlConnectionRetryOpener.OpenAsync(connection, Options.ConnectionRetryOptions, logger, context.RequestAborted);
                 }
                 if (uploadHandler.RequiresTransaction is true)
                 {
@@ -1162,7 +1162,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     {
                         Options.BeforeConnectionOpen(connection, endpoint, context);
                     }
-                    await connection.OpenAsync();
+                    await NpgsqlConnectionRetryOpener.OpenAsync(connection, Options.ConnectionRetryOptions, logger, context.RequestAborted);
                 }
                 await using var batch = NpgsqlRestBatch.Create(connection);
 
@@ -1694,7 +1694,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             {
                 Options.BeforeConnectionOpen(connection, endpoint, context);
             }
-            await connection.OpenAsync();
+            await NpgsqlConnectionRetryOpener.OpenAsync(connection, Options.ConnectionRetryOptions, logger, context.RequestAborted);
         }
         command.CommandText = commandText;
         

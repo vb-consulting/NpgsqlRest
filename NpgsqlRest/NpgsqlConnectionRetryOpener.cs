@@ -26,7 +26,7 @@ public static class NpgsqlConnectionRetryOpener
                 logger?.LogDebug("Successfully opened PostgreSQL connection on attempt {Attempt}", attempt + 1);
                 return;
             }
-            catch (Exception ex) when (ShouldRetryOn(ex, settings, exceptionsEncountered.Count))
+            catch (Exception ex) when (ShouldRetryOn(ex, settings))
             {
                 exceptionsEncountered.Add(ex);
 
@@ -63,9 +63,9 @@ public static class NpgsqlConnectionRetryOpener
     }
 
     public static async Task OpenAsync(
-        NpgsqlConnection connection, 
+        NpgsqlConnection connection,
         ConnectionRetryOptions settings,
-        ILogger? logger = null, 
+        ILogger? logger = null,
         CancellationToken cancellationToken = default)
     {
         var exceptionsEncountered = new List<Exception>();
@@ -75,7 +75,7 @@ public static class NpgsqlConnectionRetryOpener
 
             try
             {
-                logger?.LogDebug("Attempting to open PostgreSQL connection (attempt {Attempt}/{MaxAttempts})",
+                logger?.LogDebug("Attempting to open connection (attempt {Attempt}/{MaxAttempts})",
                     attempt + 1, settings.MaxRetryCount + 1);
 
                 if (connection.State != System.Data.ConnectionState.Closed)
@@ -85,10 +85,10 @@ public static class NpgsqlConnectionRetryOpener
 
                 await connection.OpenAsync(cancellationToken);
 
-                logger?.LogDebug("Successfully opened PostgreSQL connection on attempt {Attempt}", attempt + 1);
+                logger?.LogDebug("Successfully opened connection on attempt {Attempt}", attempt + 1);
                 return;
             }
-            catch (Exception ex) when (ShouldRetryOn(ex, settings, exceptionsEncountered.Count) && !cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (ShouldRetryOn(ex, settings) && !cancellationToken.IsCancellationRequested)
             {
                 exceptionsEncountered.Add(ex);
 
@@ -98,20 +98,20 @@ public static class NpgsqlConnectionRetryOpener
 
                     if (delay.HasValue)
                     {
-                        logger?.LogWarning("Failed to open PostgreSQL connection on attempt {Attempt}. Retrying in {Delay}ms. Error: {Error}",
+                        logger?.LogWarning("Failed to open connection on attempt {Attempt}. Retrying in {Delay}ms. Error: {Error}",
                             attempt + 1, delay.Value.TotalMilliseconds, ex.Message);
 
                         await Task.Delay(delay.Value, cancellationToken);
                     }
                     else
                     {
-                        logger?.LogError(ex, "Failed to open PostgreSQL connection after {TotalAttempts} attempts", attempt + 1);
+                        logger?.LogError(ex, "Failed to open connection after {TotalAttempts} attempts", attempt + 1);
                         ThrowRetryExhaustedException(exceptionsEncountered);
                     }
                 }
                 else
                 {
-                    logger?.LogError(ex, "Failed to open PostgreSQL connection after {TotalAttempts} attempts", attempt + 1);
+                    logger?.LogError(ex, "Failed to open connection after {TotalAttempts} attempts", attempt + 1);
                     ThrowRetryExhaustedException(exceptionsEncountered);
                 }
             }
@@ -124,19 +124,14 @@ public static class NpgsqlConnectionRetryOpener
                     throw;
                 }
 
-                logger?.LogError(ex, "Non-retryable error occurred while opening PostgreSQL connection: {Error}", ex.Message);
+                logger?.LogError(ex, "Non-retryable error occurred while opening connection: {Error}", ex.Message);
                 throw;
             }
         }
     }
 
-    private static bool ShouldRetryOn(Exception exception, ConnectionRetryOptions settings, int exceptionsEncounteredCount)
+    private static bool ShouldRetryOn(Exception exception, ConnectionRetryOptions settings)
     {
-        if (exceptionsEncounteredCount >= settings.MaxRetryCount)
-        {
-            return false;
-        }
-
         if (exception is NpgsqlException npgsqlException)
         {
             if (npgsqlException.IsTransient)
@@ -150,7 +145,7 @@ public static class NpgsqlConnectionRetryOpener
             }
 
             // Check additional error codes if specified
-            if (settings.AdditionalErrorCodes?.Contains(npgsqlException.SqlState) is true)
+            if (settings.AdditionalErrorCodes?.Contains(npgsqlException.SqlState) == true)
             {
                 return true;
             }
@@ -164,8 +159,6 @@ public static class NpgsqlConnectionRetryOpener
                 "55P03" => true,
                 // Object in use
                 "55006" => true,
-                // System error
-                "XX000" or "XX001" or "XX002" => true,
                 // Too many connections
                 "53300" => true,
                 // Cannot connect now
@@ -192,8 +185,9 @@ public static class NpgsqlConnectionRetryOpener
     {
         if (currentRetryCount < settings.MaxRetryCount)
         {
-            // EF Core's exact exponential backoff formula with jitter
+            // EF Core's exact exponential backoff formula with jitter (including divisor for geometric series)
             var delta = (Math.Pow(settings.ExponentialBase, currentRetryCount) - 1.0)
+                / (settings.ExponentialBase - 1.0)
                 * (1.0 + _random.NextDouble() * (settings.RandomFactor - 1.0));
 
             var delay = Math.Min(
@@ -209,7 +203,7 @@ public static class NpgsqlConnectionRetryOpener
     {
         throw new NpgsqlRetryExhaustedException(
             exceptionsEncountered.Count,
-            [.. exceptionsEncountered],
+            exceptionsEncountered.ToArray(),
             $"Failed to open PostgreSQL connection after {exceptionsEncountered.Count} attempts. See inner exception for details.");
     }
 }
@@ -223,6 +217,6 @@ public class NpgsqlRetryExhaustedException : Exception
         : base(message, attemptExceptions?.Length > 0 ? attemptExceptions[^1] : null)
     {
         TotalAttempts = totalAttempts;
-        AttemptExceptions = attemptExceptions ?? new Exception[0];
+        AttemptExceptions = attemptExceptions ?? Array.Empty<Exception>();
     }
 }

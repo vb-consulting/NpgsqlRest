@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Npgsql;
+using NpgsqlRest;
 using Serilog;
 
 using static NpgsqlRestClient.Config;
@@ -525,7 +526,11 @@ public static class Builder
 
     private static readonly string[] ConnectionNames = ["Host", "Port", "Database", "Username", "Password", "Passfile", "SSL Mode", "Trust Server Certificate", "SSL Certificate", "SSL Key", "SSL Password", "Root Certificate", "Check Certificate Revocation", "SSL Negotiation", "Channel Binding", "Persist Security Info", "Kerberos Service Name", "Include Realm", "Include Error Detail", "Log Parameters", "Pooling", "Minimum Pool Size", "Maximum Pool Size", "Connection Idle Lifetime", "Connection Pruning Interval", "Connection Lifetime", "Timeout", "Command Timeout", "Cancellation Timeout", "Keepalive", "Tcp Keepalive", "Tcp Keepalive Time", "Tcp Keepalive Interval", "Max Auto Prepare", "Auto Prepare Min Usages", "Read Buffer Size", "Write Buffer Size", "Socket Receive Buffer Size", "Socket Send Buffer Size", "No Reset On Close", "Target Session Attributes", "Load Balance Hosts", "Host Recheck Seconds", "Options", "Application Name", "Enlist", "Search Path", "Client Encoding", "Encoding", "Timezone", "Array Nullability Mode"];
 
-    private static string? BuildConnection(string? connectionName, string connectionString, bool isMain)
+    private static (string?, ConnectionRetryOptions) BuildConnection(
+        string? connectionName, 
+        string connectionString, 
+        bool isMain,
+        bool skipRetryOpts)
     {
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
         if (GetConfigBool("SetApplicationNameInConnection", ConnectionSettingsCfg, true) is true)
@@ -665,7 +670,7 @@ public static class Builder
         {
             if (string.Equals(ConnectionName, connectionName, StringComparison.Ordinal))
             {
-                return null;
+                return (null, null!);
             }
             if (string.IsNullOrEmpty(connectionName) is true)
             {
@@ -677,12 +682,31 @@ public static class Builder
             }
         }
 
+        var retryOptions = new ConnectionRetryOptions();
+        if (skipRetryOpts is false)
+        {
+            var retryCfg = ConnectionSettingsCfg.GetSection("RetryOptions");
+            retryOptions.Enabled = GetConfigBool("Enabled", retryCfg, true);
+            if (retryOptions.Enabled is true)
+            {
+                retryOptions.MaxRetryCount = GetConfigInt("MaxRetryCount", retryCfg) ?? 6;
+                retryOptions.MaxRetryDelay = TimeSpan.FromSeconds(GetConfigInt("MaxRetryDelaySeconds", retryCfg) ?? 30);
+                retryOptions.ExponentialBase = GetConfigDouble("ExponentialBase", retryCfg) ?? 2.0;
+                retryOptions.RandomFactor = GetConfigDouble("RandomFactor", retryCfg) ?? 1.1;
+                retryOptions.DelayCoefficient = TimeSpan.FromSeconds(GetConfigInt("DelayCoefficientSeconds", retryCfg) ?? 1);
+                var additionalErrorCodes = GetConfigEnumerable("AdditionalErrorCodes", retryCfg)?.ToHashSet();
+                if (additionalErrorCodes is not null && additionalErrorCodes.Count > 0)
+                {
+                    retryOptions.AdditionalErrorCodes = additionalErrorCodes;
+                }
+            }
+        }
         if (GetConfigBool("TestConnectionStrings", ConnectionSettingsCfg) is true)
         {
             using var conn = new NpgsqlConnection(connectionString);
             try
             {
-                conn.Open();
+                NpgsqlConnectionRetryOpener.Open(conn, retryOptions, null);
             }
             finally
             {
@@ -690,10 +714,10 @@ public static class Builder
             }
         }
 
-        return connectionString;
+        return (connectionString, retryOptions);
     }
 
-    public static string? BuildConnectionString()
+    public static (string?, ConnectionRetryOptions) BuildConnectionString()
     {
         string? connectionString;
         string? connectionName = GetConfigStr("ConnectionName", NpgsqlRestCfg);
@@ -707,14 +731,14 @@ public static class Builder
             connectionString = section.GetChildren().FirstOrDefault()?.Value;
         }
 
-        var result = BuildConnection(connectionName, connectionString!, true);
+        var (result, retryOpts) = BuildConnection(connectionName, connectionString!, isMain: true, skipRetryOpts: false);
 
-        // disable SQL rewriting to ensure that NpgsqlRest works with this option on.
+        // disable SQL rewriting to ensure that NpgsqlRest works with this option OFF.
         AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
 
         ConnectionString = result;
         ConnectionName = connectionName;
-        return result;
+        return (result, retryOpts);
     }
 
     public static IDictionary<string, string> BuildConnectionStringDict()
@@ -726,7 +750,7 @@ public static class Builder
             {
                 continue;
             }
-            var conn = BuildConnection(section.Key, section?.Value!, false);
+            var (conn, _) = BuildConnection(section?.Key, section?.Value!, isMain: false, skipRetryOpts: true);
             if (conn is not null)
             {
                 result.Add(section?.Key!, conn!);

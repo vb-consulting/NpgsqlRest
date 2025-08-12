@@ -1,16 +1,16 @@
-﻿using System.Text.Json.Nodes;
-using System.Text;
+﻿using System.Net;
 using System.Net.Http.Headers;
-using Npgsql;
-using System.Net;
-using NpgsqlRest;
-using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Options;
+using Npgsql;
+using NpgsqlRest;
 using Serilog.Events;
-
 using static System.Net.Mime.MediaTypeNames;
-using static NpgsqlRestClient.Config;
 using static NpgsqlRestClient.Builder;
+using static NpgsqlRestClient.Config;
 
 namespace NpgsqlRestClient;
 
@@ -350,7 +350,8 @@ public static class ExternalAuth
             };
         }
 
-        await connection.OpenAsync();
+        await NpgsqlConnectionRetryOpener.OpenAsync(connection, options.ConnectionRetryOptions, logger, context.RequestAborted);
+
         using var command = connection.CreateCommand();
         command.CommandText = ExternalAuthConfig.LoginCommand;
 
