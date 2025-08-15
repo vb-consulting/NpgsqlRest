@@ -12,6 +12,7 @@ using Microsoft.Net.Http.Headers;
 using Npgsql;
 using NpgsqlRest;
 using Serilog;
+using Serilog.Extensions.Logging;
 
 
 namespace NpgsqlRestClient;
@@ -715,7 +716,7 @@ public class Builder
             using var conn = new NpgsqlConnection(connectionString);
             try
             {
-                NpgsqlConnectionRetryOpener.Open(conn, retryOptions, null);
+                NpgsqlConnectionRetryOpener.Open(conn, retryOptions, new SerilogLoggerFactory(Logger).CreateLogger<Program>());
             }
             finally
             {

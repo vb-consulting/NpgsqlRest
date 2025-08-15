@@ -131,10 +131,11 @@ NpgsqlRestOptions options = new()
 };
 
 app.UseNpgsqlRest(options);
-// Create instances with extracted configuration values - allows initialization objects to be GC'd
+
 var externalAuth = new ExternalAuth(builder.ExternalAuthConfig, connectionString, builder.Logger);
-var tokenRefreshAuth = new TokenRefreshAuth(builder.BearerTokenConfig);
-// Call instance methods - maintains same API behavior
 externalAuth.Configure(app, options, logConnectionNoticeEventsMode);
+
+var tokenRefreshAuth = new TokenRefreshAuth(builder.BearerTokenConfig);
 tokenRefreshAuth.Configure(app);
+
 app.Run();
