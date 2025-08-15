@@ -5,27 +5,44 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-**Automatic REST API** for PostgreSQL Databases implemented as **AOT-Ready .NET8/.NET9 Middleware**
+**Automatic PostgreSQL API Standalone Server** - The Ultimate Solution for PostgreSQL REST APIs
 
 >
-> If you have a PostgreSQL database - NpgsqlRest can create **blazing fast REST API automatically** and **write client code** for your project.
+> Transform your PostgreSQL database into a **production-ready REST API server** instantly. NpgsqlRest automatically discovers your database schema and creates **blazing fast REST endpoints** with **zero configuration required**.
 >
 
-Features:
+## Why Choose NpgsqlRest?
 
-- Nuget package for .NET that creates discoverable REST API automatically from PostgreSQL database.
-- **High Performance**. See [Performances Benchmarks](https://github.com/vb-consulting/pg_function_load_tests).
-- **Modular Design** with a Plug-in System. Create API for functions and procedure, create CRUD endpoints for your tables, create HTTP files, and Typescript client code.
-- **AOT-Ready**. Ahead-of-time compiled to the native code. No dependencies, native executable, it just runs and it's very fast.
-- **Customizable**. Configure endpoints with powerful comment annotations. You can easily configure any endpoint by adding comment annotation labels to [PostgreSQL Comments](https://www.postgresql.org/docs/current/sql-comment.html).
-- **Real-time Streaming**. Server-sent events support with PostgreSQL `RAISE INFO` statements for live notifications.
-- **Advanced Authentication**. Role-based authorization with flexible scope control.
-- **Standalone Executable Web Client.** Download the executable and run it. No installation required. See [Releases](https://github.com/vb-consulting/NpgsqlRest/releases).
+NpgsqlRest is the superior alternative to existing PostgreSQL REST API solutions, offering unmatched performance, flexibility, and ease of deployment.
 
-### Standalone Client Application
+### Standalone Server (Primary Solution)
+- **Zero Installation Required**. Download and run the executable - no .NET runtime needed
+- **Auto-Discovery**. Instantly creates REST endpoints from your PostgreSQL functions, procedures, and tables
+- **Production-Ready**. Enterprise-grade server with authentication, SSL, monitoring, and performance optimization
+- **High Performance**. Blazing fast native executable. See [Performance Benchmarks](https://github.com/vb-consulting/pg_function_load_tests)
+- **Advanced Features**. Real-time streaming, file operations, code generation, and comprehensive security
 
-The standalone client provides a production-ready REST API server with extensive configuration options:
+### .NET Library Component (Secondary Option)
+- **Middleware Integration**. Add PostgreSQL REST API capabilities to existing .NET applications
+- **AOT-Ready**. Ahead-of-time compilation support for maximum performance
+- **Flexible Configuration**. Programmatic control over API generation and behavior
 
+### Key Features
+- **Customizable Endpoints**. Configure HTTP methods, paths, and behavior using PostgreSQL comment annotations
+- **Real-time Streaming**. Server-sent events with PostgreSQL `RAISE INFO` statements
+- **Authentication & Authorization**. Role-based security with OAuth providers support
+- **Code Generation**. Auto-generated HTTP files and TypeScript/JavaScript clients
+- **CRUD Operations**. Automatic table/view endpoints with customizable patterns
+
+## Get Started in Seconds
+
+### Option 1: Standalone Server (Recommended)
+
+1. **Download** the executable from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases)
+2. **Configure** your PostgreSQL connection in `appsettings.json`
+3. **Run** the executable - your REST API is live!
+
+**Enterprise Features Included:**
 - **Authentication**: Cookie auth, Bearer tokens, OAuth (Google, LinkedIn, GitHub, Microsoft, Facebook)
 - **Security**: SSL/TLS, CORS, antiforgery tokens, data protection with configurable encryption
 - **File Operations**: Static file serving with template parsing, file uploads (filesystem, PostgreSQL Large Objects, CSV/Excel processing)
@@ -34,9 +51,23 @@ The standalone client provides a production-ready REST API server with extensive
 - **Code Generation**: Auto-generated HTTP files and TypeScript/JavaScript clients
 - **CRUD Operations**: Automatic table/view endpoints with customizable URL patterns
 
-Simply download, configure via JSON, and deploy - no .NET installation required. 
+### Option 2: .NET Library Integration
 
-## Quick Example
+Add NpgsqlRest to your existing .NET application:
+
+```console
+dotnet add package NpgsqlRest
+```
+
+```csharp
+var builder = WebApplication.CreateSlimBuilder(args);
+var app = builder.Build();
+var connectionStr = "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres";
+app.UseNpgsqlRest(new(connectionStr));
+app.Run();
+```
+
+## Complete Example
 
 #### 1) Your PostgreSQL Function
 
@@ -49,8 +80,14 @@ select 'Hello World'
 $$;
 ```
 
-#### 2) .NET8 AOT-Ready Web App
+#### 2) Start the Server
 
+**Standalone Server:**
+```bash
+./NpgsqlRest
+```
+
+**Or integrate into .NET app:**
 ```csharp
 var builder = WebApplication.CreateSlimBuilder(args);
 var app = builder.Build();
@@ -232,42 +269,34 @@ Transfer-Encoding: chunked
 <div>Hello World</div>
 ```
 
-## Getting Started
+## Documentation & Advanced Configuration
 
-### Using Library
+### Standalone Server
+Download the executable from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) and configure via JSON - no installation required.
 
-#### Library Installation
+### .NET Library Integration
 
-Install the package from NuGet by using any of the available methods:
-
+**Installation:**
 ```console
 dotnet add package NpgsqlRest --version 2.30.0
-```
-```console
-NuGet\Install-Package NpgsqlRest -version 2.30.0
 ```
 ```xml
 <PackageReference Include="NpgsqlRest" Version="2.30.0" />
 ```
 
-#### Library First Use
-
-Your application builder code:
-
+**Configuration:**
 ```csharp
 var app = builder.Build();
 app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));
 app.Run();
 ```
 
-For all available build options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
+For comprehensive configuration options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
 
-#### Library Dependencies
-
-- net9.0
-- Microsoft.NET.Sdk.Web 9.0
-- Npgsql 8.0.5
+### System Requirements
 - PostgreSQL >= 13
+- .NET 9.0 (for library integration only)
+- Npgsql 8.0.5
 
 Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
 
