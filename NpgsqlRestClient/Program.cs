@@ -7,6 +7,9 @@ using NpgsqlRestClient;
 
 using Npgsql;
 
+Stopwatch sw = new();
+sw.Start();
+
 var arguments = new Arguments();
 if (arguments.Parse(args) is false)
 {
@@ -15,10 +18,7 @@ if (arguments.Parse(args) is false)
 
 var config = new Config();
 var builder = new Builder(config);
-var app_instance = new App(config, builder);
-
-Stopwatch sw = new();
-sw.Start();
+var appInstance = new App(config, builder);
 
 config.Build(args);
 builder.BuildInstance();
@@ -37,7 +37,7 @@ var compressionEnabled = builder.ConfigureResponseCompression();
 var antiforgerUsed = builder.ConfigureAntiForgery();
 
 WebApplication app = builder.Build();
-app_instance.Configure(app, () =>
+appInstance.Configure(app, () =>
 {
     
     sw.Stop();
@@ -54,7 +54,7 @@ app_instance.Configure(app, () =>
     }
 });
 
-var (authenticationOptions, authCfg) = app_instance.CreateNpgsqlRestAuthenticationOptions();
+var (authenticationOptions, authCfg) = appInstance.CreateNpgsqlRestAuthenticationOptions();
 
 if (usingCors)
 {
@@ -68,14 +68,14 @@ if (antiforgerUsed)
 {
     app.UseAntiforgery();
 }
-app_instance.ConfigureStaticFiles(app, authenticationOptions);
+appInstance.ConfigureStaticFiles(app, authenticationOptions);
 
 var refreshOptionsCfg = config.NpgsqlRestCfg.GetSection("RefreshOptions");
 
 await using var dataSource = new NpgsqlDataSourceBuilder(connectionString).Build();
 var logConnectionNoticeEventsMode = config.GetConfigEnum<PostgresConnectionNoticeLoggingMode?>("LogConnectionNoticeEventsMode", config.NpgsqlRestCfg) ?? PostgresConnectionNoticeLoggingMode.FirstStackFrameAndMessage;
 
-app_instance.ConfigureThreadPool();
+appInstance.ConfigureThreadPool();
 
 NpgsqlRestOptions options = new()
 {
@@ -92,7 +92,7 @@ NpgsqlRestOptions options = new()
     IncludeNames = config.GetConfigEnumerable("IncludeNames", config.NpgsqlRestCfg)?.ToArray(),
     ExcludeNames = config.GetConfigEnumerable("ExcludeNames", config.NpgsqlRestCfg)?.ToArray(),
     UrlPathPrefix = config.GetConfigStr("UrlPathPrefix", config.NpgsqlRestCfg) ?? "/api",
-    UrlPathBuilder = config.GetConfigBool("KebabCaseUrls", config.NpgsqlRestCfg, true) ? DefaultUrlBuilder.CreateUrl : app_instance.CreateUrl,
+    UrlPathBuilder = config.GetConfigBool("KebabCaseUrls", config.NpgsqlRestCfg, true) ? DefaultUrlBuilder.CreateUrl : appInstance.CreateUrl,
     NameConverter = config.GetConfigBool("CamelCaseNames", config.NpgsqlRestCfg, true) ? DefaultNameConverter.ConvertToCamelCase : n => n?.Trim('"'),
     RequiresAuthorization = config.GetConfigBool("RequiresAuthorization", config.NpgsqlRestCfg, true),
 
@@ -112,22 +112,22 @@ NpgsqlRestOptions options = new()
     RequestHeadersContextKey = config.GetConfigStr("RequestHeadersContextKey", config.NpgsqlRestCfg) ?? "request.headers",
     RequestHeadersParameterName = config.GetConfigStr("RequestHeadersParameterName", config.NpgsqlRestCfg) ?? "_headers",
 
-    EndpointCreated = app_instance.CreateEndpointCreatedHandler(authCfg),
+    EndpointCreated = appInstance.CreateEndpointCreatedHandler(authCfg),
     ValidateParameters = null,
     ReturnNpgsqlExceptionMessage = config.GetConfigBool("ReturnNpgsqlExceptionMessage", config.NpgsqlRestCfg, true),
-    PostgreSqlErrorCodeToHttpStatusCodeMapping = app_instance.CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
-    BeforeConnectionOpen = app_instance.BeforeConnectionOpen(connectionString, authenticationOptions),
+    PostgreSqlErrorCodeToHttpStatusCodeMapping = appInstance.CreatePostgreSqlErrorCodeToHttpStatusCodeMapping(),
+    BeforeConnectionOpen = appInstance.BeforeConnectionOpen(connectionString, authenticationOptions),
     AuthenticationOptions = authenticationOptions,
-    EndpointCreateHandlers = app_instance.CreateCodeGenHandlers(connectionString),
+    EndpointCreateHandlers = appInstance.CreateCodeGenHandlers(connectionString),
     CustomRequestHeaders = builder.GetCustomHeaders(),
     ExecutionIdHeaderName = config.GetConfigStr("ExecutionIdHeaderName", config.NpgsqlRestCfg) ?? "X-NpgsqlRest-ID",
     CustomServerSentEventsResponseHeaders = builder.GetCustomServerSentEventsResponseHeaders(),
 
-    RoutineSources = app_instance.CreateRoutineSources(),
+    RoutineSources = appInstance.CreateRoutineSources(),
     RefreshEndpointEnabled = config.GetConfigBool("Enabled", refreshOptionsCfg, false),
     RefreshPath = config.GetConfigStr("Path", refreshOptionsCfg) ?? "/api/npgsqlrest/refresh",
     RefreshMethod = config.GetConfigStr("Method", refreshOptionsCfg) ?? "GET",
-    UploadOptions = app_instance.CreateUploadOptions(),
+    UploadOptions = appInstance.CreateUploadOptions(),
 };
 
 app.UseNpgsqlRest(options);
