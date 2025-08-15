@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace NpgsqlRestClient;
@@ -10,7 +11,8 @@ public class Config
     public IConfigurationSection ConnectionSettingsCfg { get; private set; } = null!;
     public bool UseConnectionApplicationNameWithUsername { get; private set; }
     public string CurrentDir => Directory.GetCurrentDirectory();
-
+    public Dictionary<string, string>? EnvDict { get; private set; } = null;
+    
     public void Build(string[] args)
     {
         var tempBuilder = new ConfigurationBuilder();
@@ -74,6 +76,16 @@ public class Config
 
         NpgsqlRestCfg = Cfg.GetSection("NpgsqlRest");
         ConnectionSettingsCfg = Cfg.GetSection("ConnectionSettings");
+        
+        if (GetConfigBool("ParseConnectionStringWithEnvVars", ConnectionSettingsCfg, false) is true)
+        {
+            EnvDict = new Dictionary<string, string>();
+            var envVars = Environment.GetEnvironmentVariables();
+            foreach (var key in envVars.Keys)
+            {
+                EnvDict.Add(key.ToString()!, envVars[key.ToString()!]?.ToString()!);
+            }
+        }
 
         UseConnectionApplicationNameWithUsername = GetConfigBool("UseJsonApplicationName", ConnectionSettingsCfg);
     }

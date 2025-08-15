@@ -542,6 +542,11 @@ public class Builder
         bool isMain,
         bool skipRetryOpts)
     {
+        if (_config.EnvDict is not null)
+        {
+            connectionString = Formatter.FormatString(connectionString.AsSpan(), _config.EnvDict).ToString();
+        }
+        
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
         if (_config.GetConfigBool("SetApplicationNameInConnection", _config.ConnectionSettingsCfg, true) is true)
         {

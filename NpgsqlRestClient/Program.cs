@@ -23,12 +23,14 @@ var appInstance = new App(config, builder);
 config.Build(args);
 builder.BuildInstance();
 builder.BuildLogger();
+
 var (connectionString, retryOpts) = builder.BuildConnectionString();
 if (connectionString is null)
 {
     return;
 }
 var connectionStrings = config.GetConfigBool("UseMultipleConnections", config.NpgsqlRestCfg, true) ? builder.BuildConnectionStringDict() : null;
+
 builder.BuildDataProtection();
 builder.BuildAuthentication();
 var usingCors = builder.BuildCors();
@@ -39,7 +41,6 @@ var antiforgerUsed = builder.ConfigureAntiForgery();
 WebApplication app = builder.Build();
 appInstance.Configure(app, () =>
 {
-    
     sw.Stop();
     var message = config.GetConfigStr("StartupMessage", config.Cfg) ?? "Started in {0}, listening on {1}, version {2}";
     if (string.IsNullOrEmpty(message) is false)
