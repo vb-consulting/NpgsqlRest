@@ -407,3 +407,6 @@ appsettings.Development.json
 */k6/*.text
 /*.DotSettings
 dist/
+
+.DS_Store
+**/.DS_Store
