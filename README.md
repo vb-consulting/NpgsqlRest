@@ -5,67 +5,151 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-**Automatic PostgreSQL API Standalone Server** - The Ultimate Solution for PostgreSQL REST APIs
+**Automatic PostgreSQL API Standalone Server**
 
 >
-> Transform your PostgreSQL database into a **production-ready REST API server** instantly. NpgsqlRest automatically discovers your database schema and creates **blazing fast REST endpoints** with **zero configuration required**.
+> Transform your PostgreSQL database into a **production-ready, blazing-fast REST API Standalone Web Server**. Generate code, build entire applications and more.
 >
 
-## Why Choose NpgsqlRest?
+## Enterprise-Grade PostgreSQL REST API Server
 
-NpgsqlRest is the superior alternative to existing PostgreSQL REST API solutions, offering unmatched performance, flexibility, and ease of deployment.
+NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API solutions, offering unmatched performance and advanced enterprise features.
 
-### Standalone Server (Primary Solution)
-- **Zero Installation Required**. Download and run the executable - no .NET runtime needed
-- **Auto-Discovery**. Instantly creates REST endpoints from your PostgreSQL functions, procedures, and tables
-- **Production-Ready**. Enterprise-grade server with authentication, SSL, monitoring, and performance optimization
-- **High Performance**. Blazing fast native executable. See [Performance Benchmarks](https://github.com/vb-consulting/pg_function_load_tests)
-- **Advanced Features**. Real-time streaming, file operations, code generation, and comprehensive security
+**Download, configure, and run** - your REST API server is live in seconds with comprehensive enterprise features built-in.
 
-### .NET Library Component (Secondary Option)
-- **Middleware Integration**. Add PostgreSQL REST API capabilities to existing .NET applications
-- **AOT-Ready**. Ahead-of-time compilation support for maximum performance
-- **Flexible Configuration**. Programmatic control over API generation and behavior
+## Core Features
 
-### Key Features
-- **Customizable Endpoints**. Configure HTTP methods, paths, and behavior using PostgreSQL comment annotations
-- **Real-time Streaming**. Server-sent events with PostgreSQL `RAISE INFO` statements
-- **Authentication & Authorization**. Role-based security with OAuth providers support
-- **Code Generation**. Auto-generated HTTP files and TypeScript/JavaScript clients
-- **CRUD Operations**. Automatic table/view endpoints with customizable patterns
+### Endpoints & Configuration 
+- **Instant API Generation**. Automatically creates REST endpoints from PostgreSQL functions, procedures, tables, and views.
+- **Minimal Configuration**. Works out-of-the-box with any PostgreSQL database with minimal configuration file. You only need connection info to get started.
+- **Comment Annotations**. Control and configure endpoint behavior from your database using **declarative comment annotations system.**
+- **Declarative Configuration**. Declare to database how your endpoint should behave. Focus on end-results of your system, not on how it will be implemented.
+- **HTTP Customization**. Set methods, paths, content types, and response headers directly in your database declarations.
+- **Authentication Control**. Configure authorization, roles, and security per endpoint in your database declarations.
+- **Real-Time Streaming**. Enable server-sent events and fine control event scoping (user, roles, etc.) directly in your database declarations.
+- **Response Formatting**. Control output formats, caching, timeouts, and raw responses in your database declarations, and more.
+
+### Code Generation
+- **JavaScript**. Generate automatically fetch modules for all endpoints in development mode. Slash development time dramatically and reduce bugs.
+- **TypeScript**. Generate type-safe interfaces and types for generated fetch modules. Bring static type checking for your PostgreSQL database.
+- **HTTP Files**. Auto-generated REST client files, for all generated endpoints, for testing, development and auto-discovery.
+
+### Authentication & Security
+- **Multiple Auth Methods**. Cookie authentication, Bearer tokens, and external OAuth providers.
+- **Encrypted Tokens**. Encrypted security tokens with advanced encryption key management and storage options (file, database, etc).
+- **CORS Support**. Cross-origin resource sharing configuration for Bearer token access.
+- **Built-in Password Validation**. Built-in extendable and secure password hashing and validation. PBKDF2-SHA256 with 600,000 iterations aligned with OWASP's 2023+ recommendations.
+- **OAuth Integration**. Google, LinkedIn, GitHub, Microsoft and Facebook support built-in.
+- **Claims-based security**. User assertions cached in encrypted security token.
+- **Role-Based Authorization**. Fine-grained access control with PostgreSQL role integration.
+- **Claim or Role Parameter Mapping**. Automatically map user claims or roles to parameters.
+- **Claim or Role Context Mapping**. Automatically map user claims or roles to PostgreSQL connection context.
+- **CSRF Protection**. Antiforgery token support for secure uploads and form submissions.
+- **SSL/TLS**. Full HTTPS support with certificate management.
+- **PostgreSQL Security and Encryption**. Database connection security features courtesy of [Npgsql](https://www.npgsql.org/doc/connection-string-parameters.html#security-and-encryption). Includes SSL, Certificates, Kerberos and more.
+
+### Performance & Scalability
+- **High Performance**. Blazing fast native executable. See [Performance Benchmarks](https://github.com/vb-consulting/pg_function_load_tests).
+- **Connection Pooling**. Built-in connection pooler, courtesy of [Npgsql](https://www.npgsql.org/doc/connection-string-parameters.html#pooling).
+- **KeepAlive, Auto-prepare, Buffer Size**. Other performance tweaks and settings courtesy of [Npgsql](https://www.npgsql.org/doc/connection-string-parameters.html#performance).
+- **Failover, Load Balancing**. Set multiple hosts in connection string for failover and balancing.
+- **Multiple Connections**. Define multiple connections and set specific connections (read-only, write-only) per endpoint in your database declarations.
+- **Connection Retry**. Robust and configurable built-in connection retry mechanism.
+- **Thread Pool Optimization**. Configurable thread pool settings for maximum throughput.
+- **Request Optimization**. Kestrel server tuning with configurable limits.
+- **Response Compression**. Brotli and Gzip compression with configurable levels.
+- **HTTP Caching**. Define endpoint caching per endpoint in your database declarations.
+- **Server Caching**. Define endpoint in-memory server caching per endpoint in your database declarations.
+
+### Real-Time & Streaming
+- **Server-Sent Events**. Innovative real-time streaming with PostgreSQL `RAISE INFO` statements. No database locking.
+- **Live Notifications**. Push updates to clients in real-time.
+- **Event Sources**. Auto-generated client code for streaming connections.
+- **Custom Scopes**. Define Server-Sent Event Scope (specific user, groups of users or roles, etc.) per endpoint or per event in your database declarations.
+
+### Enterprise Features
+- **Containerization**. Docker-ready hub images.
+- **NPM Package**. Additional distribution channel as NPM package.
+- **Environment Configuration**. Flexible environment variable and configuration management.
+- **Data Protection**. Advanced encryption key management and storage options.
+- **Structured Logging**. Industry standard Serilog logger for Console, rolling file or PostgreSQL database logging.
+- **Excel Processing**. Upload handler for Excel files that supports Excel content processing.
+
+### Additional Features
+- **Upload Handlers**. Multiple upload handlers implemented: File System, Large Objects, CSV/Excel, etc, with code generation. Make complex upload and processing pipelines in minutes. 
+- **Static Files**. Built-in serving of static content with high speed template parser for user claims and authorization features.
+- **Request Tracking**. Detailed request analytics and connection monitoring.
+- **Performance Metrics**. Built-in performance monitoring and diagnostics.
+- **Error Handling**. Advanced PostgreSQL error code mapping to HTTP status codes.
+- **Custom Headers**. Configurable request/response header management in your database declarations.
+- **IP Tracking**. Client IP address parameter or PostgreSQL connection context for tracking.
+- **.NET Library Integration**. Version with core features implemented as .NET Nuget library for .NET project integration.
+
+And more!
 
 ## Get Started in Seconds
 
-### Option 1: Standalone Server (Recommended)
+Starting is easy:
 
-1. **Download** the executable from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases)
+1. Add NPM package or **download** the executable.
 2. **Configure** your PostgreSQL connection in `appsettings.json`
-3. **Run** the executable - your REST API is live!
+3. **Run** the executable - your REST API server is live!
 
-**Enterprise Features Included:**
-- **Authentication**: Cookie auth, Bearer tokens, OAuth (Google, LinkedIn, GitHub, Microsoft, Facebook)
-- **Security**: SSL/TLS, CORS, antiforgery tokens, data protection with configurable encryption
-- **File Operations**: Static file serving with template parsing, file uploads (filesystem, PostgreSQL Large Objects, CSV/Excel processing)
-- **Performance**: Response compression, configurable Kestrel limits, thread pool tuning
-- **Monitoring**: Comprehensive logging (console, file, PostgreSQL), request tracking, connection analytics
-- **Code Generation**: Auto-generated HTTP files and TypeScript/JavaScript clients
-- **CRUD Operations**: Automatic table/view endpoints with customizable URL patterns
+- Add NPM package:
 
-### Option 2: .NET Library Integration
+```bash
+❯ npm i npgsqlrest
 
-Add NpgsqlRest to your existing .NET application:
-
-```console
-dotnet add package NpgsqlRest
+added 1 package in 31s
 ```
 
-```csharp
-var builder = WebApplication.CreateSlimBuilder(args);
-var app = builder.Build();
-var connectionStr = "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres";
-app.UseNpgsqlRest(new(connectionStr));
-app.Run();
+- Add minimal configuration:
+
+```bash
+❯ cat > appsettings.json << EOF
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"
+  }
+}
+EOF
 ```
+
+- Run the server executable. You will see the logs like this:
+
+```bash
+❯ npx npgsqlrest
+[11:33:35.348 INF] ----> Starting with configuration(s): JsonConfigurationProvider for 'appsettings.json' (Optional), JsonConfigurationProvider for 'appsettings.Development.json' (Missing), CommandLineConfigurationProvider [NpgsqlRest]
+[11:33:35.351 INF] Using main connection string: Host=127.0.0.1;Database=todo;Username=todo_app;Password=******;Application Name=dev;Enlist=False;No Reset On Close=True [NpgsqlRest]
+[11:33:35.354 INF] Using RoutineSource PostgreSQL Source [NpgsqlRest]
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+```
+
+Note: you can use `-v` or `--version` to dump all versions (including libraries used) or `-h` or `--help` to dump additional help information.
+
+Alternatively to this, you can download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page. Just remember to assign appropriate executable permissions.
+
+Similarly, you can also use Docker version if you prefer. Just make sure you bind configuration, use appropriate ports and appropriate network where your database is located:
+
+```bash
+~/dev
+❯ docker pull vbilopav/npgsqlrest:latest
+latest: Pulling from vbilopav/npgsqlrest
+Digest: sha256:70b4057343457e019657dca303acbed8a1acd5f83075ea996b8e6ea20dac4b48
+Status: Image is up to date for vbilopav/npgsqlrest:latest
+docker.io/vbilopav/npgsqlrest:latest
+
+~/dev
+❯ docker run -p 8080:8080 -v ./appsettings.json:/app/appsettings.json --network host vbilopav/npgsqlrest:latest
+[11:33:35.348 INF] ----> Starting with configuration(s): JsonConfigurationProvider for 'appsettings.json' (Optional), JsonConfigurationProvider for 'appsettings.Development.json' (Missing), CommandLineConfigurationProvider [NpgsqlRest]
+[11:33:35.351 INF] Using main connection string: Host=127.0.0.1;Database=todo;Username=todo_app;Password=******;Application Name=dev;Enlist=False;No Reset On Close=True [NpgsqlRest]
+[11:33:35.354 INF] Using RoutineSource PostgreSQL Source [NpgsqlRest]
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+```
+
+**That's it!** Your PostgreSQL database is now a full-featured REST API server.
+
+For more configuration options, see the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json)
 
 ## Complete Example
 
@@ -78,51 +162,46 @@ language sql
 as $$
 select 'Hello World'
 $$;
+
+comment on function hello_world() is '
+HTTP GET /hello
+Content-Type: text/plain
+authorize admin';
 ```
+
+> The simple comment above transforms the endpoint to use GET method, custom path `/hello`, plain text response, and requires admin authorization - all configured with just a few lines of PostgreSQL comments!
 
 #### 2) Start the Server
 
-**Standalone Server:**
-```bash
-./NpgsqlRest
-```
-
-**Or integrate into .NET app:**
-```csharp
-var builder = WebApplication.CreateSlimBuilder(args);
-var app = builder.Build();
-var connectionStr = "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres";
-app.UseNpgsqlRest(new(connectionStr));
-app.Run();
-```
+Depending on distribution used, run the executable, NPX command or Docker command as described above. 
 
 #### 3) Auto-Generated HTTP File
 
 ```console
-@host=http://localhost:5000                                      
+@host=http://localhost:8080                                      
 
 // function public.hello_world()
 // returns text
-POST {{host}}/api/hello-world/
+GET {{host}}/hello
 ```
 
 #### 4) Auto-Generated Typescript Client Module
 
 ```ts
-const _baseUrl = "http://localhost:5000";                        
+const _baseUrl = "http://localhost:8080";                        
 
 
 /**
-* function public.get_latest_customer()
-* returns customers
+* function public.hello_world()
+* returns text
 * 
 * @remarks
-* GET /api/get-latest-customer
+* GET /hello
 * 
-* @see FUNCTION public.get_latest_customer
+* @see FUNCTION public.hello_world
 */
 export async function getHelloWorld() : Promise<string> {
-    const response = await fetch(_baseUrl + "/api/hello-world", {
+    const response = await fetch(_baseUrl + "/hello", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
     });
@@ -143,160 +222,20 @@ Transfer-Encoding: chunked
 Hello World
 ```
 
-### Comment Annotations
-
-Configure individual endpoints with powerful and simple routine comment annotations. You can use any PostgreSQL administration tool or a simple script to customize HTTP methods, paths, content types, authentication, real-time streaming, and client code generation.
-
-#### Quick Reference
-
-| Annotation | Example | Purpose |
-|------------|---------|---------|
-| `HTTP GET /path` | Custom endpoint path and method |
-| `Content-Type: text/html` | Response content type |
-| `authorize role1, role2` | Role-based authorization |
-| `info_path /events` | Enable event streaming |
-| `tsclient = false` | Disable TypeScript client generation |
-
-#### Basic Examples
-
-**Custom HTTP Method and Path:**
-```sql
-create function hello_world_html()                               
-language sql 
-as 
-$$
-select '<div>Hello World</div>';
-$$
-
-comment on function hello_world_html() is '
-HTTP GET /hello
-Content-Type: text/html';
-```
-
-**Authentication and Authorization:**
-```sql
-create function secure_data()
-returns json
-language sql
-as $$
-select '{"message": "Secret data"}'::json;
-$$;
-
-comment on function secure_data() is '
-HTTP GET /api/secure
-authorize admin, manager';
-```
-
-**Real-time Event Streaming:**
-```sql
-create function live_updates()
-returns void
-language plpgsql
-as $$
-begin
-    raise info 'Processing started...';
-    perform pg_sleep(2);
-    raise info 'Step 1 completed';
-    perform pg_sleep(2);
-    raise info 'All done!';
-end;
-$$;
-
-comment on function live_updates() is '
-HTTP POST /api/live-updates
-info_path /events
-info_scope all';
-```
-
-**TypeScript Client Control:**
-```sql
-create function admin_function()
-returns text
-language sql
-as $$
-select 'Admin data';
-$$;
-
-comment on function admin_function() is '
-HTTP GET /admin/data
-authorize admin
-tsclient_events = true
-tsclient_status_code = true';
-```
-
-#### Parameter Format
-
-You can also use the parameter format for complex configurations:
-
-```sql
-comment on function my_function() is '
-method = GET
-path = /custom/endpoint
-content_type = application/json
-authorize = admin, user
-info_path = /stream
-info_scope = matching
-tsclient = true
-tsclient_events = false';
-```
-
-#### Advanced Info Streaming
-
-Control message scope per individual `RAISE INFO` statement:
-
-```sql
-create function detailed_process()
-returns void
-language plpgsql
-as $$
-begin
-    raise info 'Starting process...' using hint = 'all';
-    raise info 'Processing user data...' using hint = 'authorize admin';
-    raise info 'Process completed' using hint = 'self';
-end;
-$$;
-```
-
-Response will have content type `text/html`:
-
-```console
-Connection: close                                                
-Content-Type: text/html
-Date: Thu, 18 Jan 2024 11:00:39 GMT
-Server: Kestrel
-Transfer-Encoding: chunked
-
-<div>Hello World</div>
-```
-
-## Documentation & Advanced Configuration
-
-### Standalone Server
-Download the executable from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) and configure via JSON - no installation required.
-
-### .NET Library Integration
-
-**Installation:**
-```console
-dotnet add package NpgsqlRest --version 2.30.0
-```
-```xml
-<PackageReference Include="NpgsqlRest" Version="2.30.0" />
-```
-
-**Configuration:**
-```csharp
-var app = builder.Build();
-app.UseNpgsqlRest(new("Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"));
-app.Run();
-```
-
-For comprehensive configuration options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
+## Documentation & Configuration
 
 ### System Requirements
 - PostgreSQL >= 13
-- .NET 9.0 (for library integration only)
-- Npgsql 8.0.5
+- No runtime dependencies - native executable
+
+### Configuration
+All server features are configured via `appsettings.json`. For comprehensive configuration options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
+
+### .NET Library Integration
+For integrating into existing .NET applications:
+```console
+dotnet add package NpgsqlRest
+```
 
 Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
 
