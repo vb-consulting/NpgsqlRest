@@ -33,7 +33,7 @@ public class RoutineSource(
     public string[]? IncludeLanguagues { get; set; } = includeLanguagues;
     public string[]? ExcludeLanguagues { get; set; } = excludeLanguagues;
 
-    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider)
+    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider, ILogger? logger)
     {
         NpgsqlConnection? connection = null;
         bool shouldDispose = true;
@@ -89,6 +89,8 @@ public class RoutineSource(
             AddParameter(command, ExcludeNames ?? options.ExcludeNames, true); // $8
             AddParameter(command, IncludeLanguagues, true); // $9
             AddParameter(command, ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues, true); // $10
+
+            logger.TraceCommand(command, nameof(RoutineSource));
 
             connection.Open();
             using NpgsqlDataReader reader = command.ExecuteReader();
@@ -385,7 +387,7 @@ public class RoutineSource(
             }
         }
     }
-
+    
     private static void AddParameter(NpgsqlCommand command, object? value, bool isArray = false)
     {
         if (value is null)

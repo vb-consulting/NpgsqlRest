@@ -16,28 +16,9 @@ public class TokenRefreshAuth
 {
     private readonly BearerTokenConfig? _bearerTokenConfig;
     
-    // Static field to hold configuration for middleware - allows instance to be GC'd
-    private static BearerTokenConfig? _staticBearerTokenConfig;
-    
-    public TokenRefreshAuth(BearerTokenConfig? bearerTokenConfig)
+    public TokenRefreshAuth(BearerTokenConfig? bearerTokenConfig, WebApplication app)
     {
         _bearerTokenConfig = bearerTokenConfig;
-    }
-    
-    // Instance method to configure and register static middleware
-    public void Configure(WebApplication app)
-    {
-        // Copy instance value to static field for middleware access
-        _staticBearerTokenConfig = _bearerTokenConfig;
-        
-        // Register middleware using static method to avoid capturing instance
-        RegisterMiddleware(app);
-    }
-    
-    // Static method that registers middleware without capturing instance references
-    private static void RegisterMiddleware(WebApplication app)
-    {
-        var bearerTokenConfig = _staticBearerTokenConfig;
         
         if (bearerTokenConfig is null || 
             string.IsNullOrEmpty(bearerTokenConfig.RefreshPath) is true || 

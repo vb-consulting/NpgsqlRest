@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace NpgsqlRestTests;
@@ -66,7 +67,7 @@ public class TestSource : IRoutineSource
     public string[]? ExcludeNames { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
     public CommentsMode? CommentsMode { get => null; set => throw new NotImplementedException(); }
 
-    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider)
+    public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider, ILogger? logger)
     {
         yield return (
             CreateRoutine(

@@ -26,6 +26,7 @@ public class ExternalAuthClientConfig
 
 public class ExternalAuthConfig
 {
+    public bool Enabled { get; set; } = false;
     public string BrowserSessionStatusKey { get; private set; } = default!;
     public string BrowserSessionMessageKey { get; private set; } = default!;
     public string SignInHtmlTemplate { get; private set; } = default!;
@@ -86,7 +87,7 @@ public class ExternalAuthConfig
         {
             return;
         }
-
+        Enabled = true;
         foreach (var section in externalCfg.GetChildren())
         {
             if (section.GetChildren().Any() is false)
@@ -118,11 +119,12 @@ public class ExternalAuthConfig
             clientConfig.ExternalType = section.Key;
 
             ClientConfigs.Add(clientConfig.SigninUrl, clientConfig);
-            builder.Logger?.Information("External login available for {0} available on path: {1}", section.Key, signinUrl);
+            builder.Logger?.LogDebug("External login available for {Key} available on path: {signinUrl}", section.Key, signinUrl);
         }
 
         if (ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
         {
+            Enabled = false;
             return;
         }
 
@@ -143,45 +145,19 @@ public class ExternalAuthConfig
 
 public class ExternalAuth
 {
-    private readonly ExternalAuthConfig? _externalAuthConfig;
-    private readonly string _connectionString;
-    private readonly Serilog.ILogger? _logger;
-    
-    // Static fields to hold configuration for middleware - allows instance to be GC'd
-    private static ExternalAuthConfig? _staticConfig;
-    private static string? _staticConnectionString;
-    private static Serilog.ILogger? _staticLogger;
-    
-    public ExternalAuth(ExternalAuthConfig? externalAuthConfig, string connectionString, Serilog.ILogger? logger)
+    public ExternalAuth(
+        ExternalAuthConfig? externalAuthConfig, 
+        string connectionString, 
+        ILogger? logger,
+        WebApplication app, 
+        NpgsqlRestOptions options, 
+        PostgresConnectionNoticeLoggingMode loggingMode)
     {
-        _externalAuthConfig = externalAuthConfig;
-        _connectionString = connectionString;
-        _logger = logger;
-    }
-    
-    // Instance method to configure and register static middleware
-    public void Configure(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
-    {
-        // Copy instance values to static fields for middleware access
-        _staticConfig = _externalAuthConfig;
-        _staticConnectionString = _connectionString;
-        _staticLogger = _logger;
-        
-        // Register middleware using static method to avoid capturing instance
-        RegisterMiddleware(app, options, loggingMode);
-    }
-    
-    // Static method that registers middleware without capturing instance references
-    private static void RegisterMiddleware(WebApplication app, NpgsqlRestOptions options, PostgresConnectionNoticeLoggingMode loggingMode)
-    {
-        var externalAuthConfig = _staticConfig;
-        var connectionString = _staticConnectionString;
-        var logger = _staticLogger;
         if (externalAuthConfig?.ClientConfigs.Where(c => c.Value.Enabled).Any() is false)
         {
             return;
         }
-        var _loggingMode = loggingMode;
+        
         app.Use(async (context, next) =>
         {
             if (externalAuthConfig?.ClientConfigs.TryGetValue(context.Request.Path, out var config) is not true)
@@ -216,7 +192,7 @@ public class ExternalAuth
                     string code = (node["code"]?.ToString()) ??
                         throw new ArgumentException("code retrieved from the external provider is null");
 
-                    await ProcessAsync(code, config!, context, options, connectionString!, logger, externalAuthConfig!, _loggingMode);
+                    await ProcessAsync(code, config!, context, options, connectionString!, logger, externalAuthConfig!, loggingMode);
                     return;
                 }
                 catch (Exception e)
@@ -224,7 +200,7 @@ public class ExternalAuth
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     await context.Response.WriteAsync(string.Format("Error talking to {0}", config.ExternalType));
                     await context.Response.CompleteAsync();
-                    logger?.Error(e, "Failed to parse external provider response: {0}", config.ExternalType);
+                    logger?.LogError(e, "Failed to parse external provider response: {ExternalType}", config.ExternalType);
                     return;
                 }
             }
@@ -232,8 +208,8 @@ public class ExternalAuth
             await next(context);
         });
     }
-
-    private static void PrepareResponse(string contentType, HttpContext context)
+    
+    private void PrepareResponse(string contentType, HttpContext context)
     {
         context.Response.ContentType = contentType;
         context.Response.StatusCode = (int)HttpStatusCode.OK;
@@ -248,13 +224,13 @@ public class ExternalAuth
     private const string browserSessionStateKey = "__external_state";
     private const string browserSessionParamsKey = "__external_params";
 
-    private static async Task ProcessAsync(
+    private async Task ProcessAsync(
         string code,
         ExternalAuthClientConfig config, 
         HttpContext context, 
         NpgsqlRestOptions options,
         string connectionString,
-        Serilog.ILogger? logger,
+        ILogger? logger,
         ExternalAuthConfig externalAuthConfig,
         PostgresConnectionNoticeLoggingMode loggingMode)
     {
@@ -456,7 +432,7 @@ public class ExternalAuth
 
         if (await reader.ReadAsync() is false || reader.FieldCount == 0)
         {
-            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogEventLevel.Warning, context, logger);
+            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogLevel.Warning, context, logger);
             return;
         }
 
@@ -494,7 +470,7 @@ public class ExternalAuth
                     else
                     {
                         await CompleteWithErrorAsync("External login command returns a status field that is not either boolean or numeric.",
-                            HttpStatusCode.InternalServerError, LogEventLevel.Error, context, logger);
+                            HttpStatusCode.InternalServerError, LogLevel.Error, context, logger);
                         return;
                     }
                     continue;
@@ -531,7 +507,7 @@ public class ExternalAuth
             if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
             {
                 await CompleteWithErrorAsync("Failed in constructing user identity for authentication.",
-                    HttpStatusCode.InternalServerError, LogEventLevel.Error, context, logger);
+                    HttpStatusCode.InternalServerError, LogLevel.Error, context, logger);
                 return;
             }
             await result.ExecuteAsync(context);
@@ -547,13 +523,14 @@ public class ExternalAuth
     private static async Task CompleteWithErrorAsync(
         string text, 
         HttpStatusCode code, 
-        LogEventLevel? logLevel, 
+        LogLevel? logLevel, 
         HttpContext context,
-        Serilog.ILogger? logger)
+        ILogger? logger)
     {
         if (logLevel.HasValue)
         {
-            logger?.Write(logLevel.Value, text);
+            //logger?.Write(logLevel.Value, text);
+            logger?.Log(logLevel.Value, text);
         }
         context.Response.StatusCode = (int)code;
         await context.Response.WriteAsync(text);

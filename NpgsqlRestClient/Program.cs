@@ -1,5 +1,3 @@
-// dotnet publish -r win-x64 -c Release
-// dotnet publish -r linux-x64 -c Release
 using System.Diagnostics;
 using NpgsqlRest;
 using NpgsqlRest.Defaults;
@@ -45,7 +43,7 @@ appInstance.Configure(app, () =>
     var message = config.GetConfigStr("StartupMessage", config.Cfg) ?? "Started in {0}, listening on {1}, version {2}";
     if (string.IsNullOrEmpty(message) is false)
     {
-        builder.Logger?.Information(message,
+        builder.Logger?.LogInformation(message,
                 sw,
                 app.Urls, 
                 System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-",
@@ -133,10 +131,14 @@ NpgsqlRestOptions options = new()
 
 app.UseNpgsqlRest(options);
 
-var externalAuth = new ExternalAuth(builder.ExternalAuthConfig, connectionString, builder.Logger);
-externalAuth.Configure(app, options, logConnectionNoticeEventsMode);
+if (builder.ExternalAuthConfig?.Enabled is true)
+{
+    new ExternalAuth(builder.ExternalAuthConfig, connectionString, builder.Logger, app, options, logConnectionNoticeEventsMode);
+}
 
-var tokenRefreshAuth = new TokenRefreshAuth(builder.BearerTokenConfig);
-tokenRefreshAuth.Configure(app);
+if (builder.BearerTokenConfig is not null)
+{
+    new TokenRefreshAuth(builder.BearerTokenConfig, app);
+}
 
 app.Run();

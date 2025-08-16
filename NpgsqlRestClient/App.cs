@@ -102,10 +102,10 @@ public class App
             authorizePaths,
             unauthorizedRedirectPath,
             unauthorizedReturnToQueryParameter,
-            _builder.Logger?.ForContext<AppStaticFileMiddleware>());
+            _builder.Logger);
 
         app.UseMiddleware<AppStaticFileMiddleware>();
-        _builder.Logger?.Information("Serving static files from {0}. Parsing following file path patterns: {1}", app.Environment.WebRootPath, filePaths);
+        _builder.Logger?.LogDebug("Serving static files from {WebRootPath}. Parsing following file path patterns: {filePaths}", app.Environment.WebRootPath, filePaths);
     }
 
     public string CreateUrl(Routine routine, NpgsqlRestOptions options) =>
@@ -369,7 +369,7 @@ public class App
             }
         }
         sources.Add(source);
-        _builder.Logger?.Information("Using {name} PostrgeSQL Source", nameof(RoutineSource));
+        _builder.Logger?.LogDebug("Using {name} PostrgeSQL Source", nameof(RoutineSource));
 
         var crudSourceCfg = _config.NpgsqlRestCfg.GetSection("CrudSource");
         if (crudSourceCfg.Exists() is false || _config.GetConfigBool("Enabled", crudSourceCfg) is false)
@@ -395,7 +395,7 @@ public class App
             OnConflictDoUpdateUrlPattern = _config.GetConfigStr("OnConflictDoUpdateUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-update",
             OnConflictDoUpdateReturningUrlPattern = _config.GetConfigStr("OnConflictDoUpdateReturningUrlPattern", crudSourceCfg) ?? "{0}/on-conflict-do-update/returning",
         });
-        _builder.Logger?.Information("Using {name} PostrgeSQL Source", nameof(CrudSource));
+        _builder.Logger?.LogDebug("Using {name} PostrgeSQL Source", nameof(CrudSource));
         return sources;
     }
 
@@ -484,10 +484,10 @@ public class App
 
         if (result?.UploadHandlers is not null && result.UploadHandlers.Count > 1)
         {
-            _builder.Logger?.Information("Using {0} upload handlers where {1} is default.", result.UploadHandlers.Keys, result.DefaultUploadHandler);
+            _builder.Logger?.LogDebug("Using {Keys} upload handlers where {DefaultUploadHandler} is default.", result.UploadHandlers.Keys, result.DefaultUploadHandler);
             foreach (var uploadHandler in result.UploadHandlers)
             {
-                _builder.Logger?.Information("Upload handler {0} has following parameters: {1}", uploadHandler.Key, uploadHandler.Value(null!).SetType(uploadHandler.Key).Parameters);
+                _builder.Logger?.LogDebug("Upload handler {Key} has following parameters: {Parameters}", uploadHandler.Key, uploadHandler.Value(null!).SetType(uploadHandler.Key).Parameters);
             }
         }
         return result!;

@@ -44,7 +44,7 @@ internal static class DefaultEndpoint
 
         if (options.LogCommands && logger != null)
         {
-            routineEndpoint.LogCallback = LoggerMessage.Define<string, string>(LogLevel.Information,
+            routineEndpoint.LogCallback = LoggerMessage.Define<string, string>(LogLevel.Debug,
                 new EventId(5, nameof(routineEndpoint.LogCallback)),
                 "{parameters}{command}",
                 NpgsqlRestLogger.LogDefineOptions);

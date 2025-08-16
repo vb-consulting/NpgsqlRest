@@ -31,7 +31,7 @@ public class Builder
     public bool LogToConsole { get; private set; } = false;
     public bool LogToFile { get; private set; } = false;
     public bool LogToPostgres { get; private set; } = false;
-    public Serilog.ILogger? Logger { get; private set; } = null;
+    public Microsoft.Extensions.Logging.ILogger? Logger { get; private set; } = null;
     public bool UseHttpsRedirection { get; private set; } = false;
     public bool UseHsts { get; private set; } = false;
     public BearerTokenConfig? BearerTokenConfig { get; private set; } = null;
@@ -117,6 +117,7 @@ public class Builder
         if (LogToConsole is true || (LogToFile is true)  || (LogToPostgres is true && postgresCommand is not null))
         {
             var loggerConfig = new LoggerConfiguration().MinimumLevel.Verbose();
+            bool npgsqlRestAdded = false;
             bool systemAdded = false;
             bool microsoftAdded = false;
             foreach (var level in logCfg?.GetSection("MinimalLevels")?.GetChildren() ?? [])
@@ -126,6 +127,10 @@ public class Builder
                 if (value is not null && key is not null)
                 {
                     loggerConfig.MinimumLevel.Override(key, value.Value);
+                    if (string.Equals(key, "NpgsqlRest", StringComparison.OrdinalIgnoreCase))
+                    {
+                        npgsqlRestAdded = true;
+                    }
                     if (string.Equals(key, "System", StringComparison.OrdinalIgnoreCase))
                     {
                         systemAdded = true;
@@ -135,6 +140,10 @@ public class Builder
                         microsoftAdded = true;
                     }
                 }
+            }
+            if (npgsqlRestAdded is false)
+            {
+                loggerConfig.MinimumLevel.Override("NpgsqlRest", Serilog.Events.LogEventLevel.Debug);
             }
             if (systemAdded is false)
             {
@@ -177,9 +186,11 @@ public class Builder
             }
             var serilog = loggerConfig.CreateLogger();
             var appName = _config.GetConfigStr("ApplicationName", _config.Cfg);
+            
             Logger = string.IsNullOrEmpty(appName) ? 
-                serilog.ForContext("SourceContext", "NpgsqlRest") : 
-                serilog.ForContext("SourceContext", appName);
+                new SerilogLoggerFactory(serilog.ForContext("SourceContext", "NpgsqlRest")).CreateLogger("NpgsqlRest") : 
+                new SerilogLoggerFactory(serilog.ForContext("SourceContext", appName)).CreateLogger(appName);
+
             Instance.Host.UseSerilog(serilog);
 
             var providerString = _config.Cfg.Providers.Select(p =>
@@ -194,7 +205,7 @@ public class Builder
                 }
                 return str;
             }).Aggregate((a, b) => string.Concat(a, ", ", b));
-            Logger?.Information("----> Starting with configuration(s): {0}", providerString);
+            Logger?.LogDebug("----> Starting with configuration(s): {providerString}", providerString);
         }
     }
 
@@ -261,13 +272,13 @@ public class Builder
 
         if (storage == DataProtectionStorage.Default)
         {
-            Logger?.Information("Using Data Protection for application {0} with default provider. Expiration in {1} days.",
+            Logger?.LogDebug("Using Data Protection for application {customAppName} with default provider. Expiration in {expiresInDays} days.",
                 customAppName,
                 expiresInDays);
         }
         else
         {
-            Logger?.Information($"Using Data Protection for application {{0}} in{(dirInfo is null ? " " : " directory ")}{{1}}. Expiration in {{2}} days.",
+            Logger?.LogDebug($"Using Data Protection for application {{customAppName}} in{(dirInfo is null ? " " : " directory ")}{{dirInfo}}. Expiration in {{expiresInDays}} days.",
                 customAppName,
                 dirInfo?.FullName ?? "database",
                 expiresInDays);
@@ -314,7 +325,7 @@ public class Builder
                     options.Cookie.MaxAge = _config.GetConfigBool("CookieMultiSessions", authCfg, true) is true ? TimeSpan.FromDays(days) : null;
                     options.Cookie.HttpOnly = _config.GetConfigBool("CookieHttpOnly", authCfg, true) is true;
                 });
-                Logger?.Information("Using Cookie Authentication with scheme {0}. Cookie expires in {1} days.", cookieScheme, days);
+                Logger?.LogDebug("Using Cookie Authentication with scheme {cookieScheme}. Cookie expires in {days} days.", cookieScheme, days);
             }
             if (bearerTokenAuth is true)
             {
@@ -330,8 +341,8 @@ public class Builder
                     options.RefreshTokenExpiration = TimeSpan.FromHours(hours);
                     options.Validate();
                 });
-                Logger?.Information(
-                    "Using Bearer Token Authentication with scheme {0}. Token expires in {1} hours. Refresh path is {2}", 
+                Logger?.LogDebug(
+                    "Using Bearer Token Authentication with scheme {tokenScheme}. Token expires in {hours} hours. Refresh path is {RefreshPath}", 
                     tokenScheme, 
                     hours, 
                     BearerTokenConfig.RefreshPath);
@@ -371,7 +382,7 @@ public class Builder
             return false;
         }
 
-        var allowedOrigins = _config.GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? ["*"];
+        string[] allowedOrigins = _config.GetConfigEnumerable("AllowedOrigins", corsCfg)?.ToArray() ?? ["*"];
         var allowedMethods = _config.GetConfigEnumerable("AllowedMethods", corsCfg)?.ToArray() ?? ["*"];
         var allowedHeaders = _config.GetConfigEnumerable("AllowedHeaders", corsCfg)?.ToArray() ?? ["*"];
 
@@ -381,55 +392,55 @@ public class Builder
             if (allowedOrigins.Contains("*"))
             {
                 builder = builder.AllowAnyOrigin();
-                Logger?.Information("CORS policy allows any origins.");
+                Logger?.LogDebug("CORS policy allows any origins.");
             }
             else
             {
                 builder = builder.WithOrigins(allowedOrigins);
-                Logger?.Information("CORS policy allows origins: {0}", allowedOrigins);
+                Logger?.LogDebug("CORS policy allows origins: {allowedOrigins}", allowedOrigins);
             }
 
             if (allowedMethods.Contains("*"))
             {
                 builder = builder.AllowAnyMethod();
-                Logger?.Information("CORS policy allows any methods.");
+                Logger?.LogDebug("CORS policy allows any methods.");
             }
             else
             {
                 builder = builder.WithMethods(allowedMethods);
-                Logger?.Information("CORS policy allows methods: {0}", allowedMethods);
+                Logger?.LogDebug("CORS policy allows methods: {allowedMethods}", allowedMethods);
             }
 
             if (allowedHeaders.Contains("*"))
             {
                 builder = builder.AllowAnyHeader();
-                Logger?.Information("CORS policy allows any headers.");
+                Logger?.LogDebug("CORS policy allows any headers.");
             }
             else
             {
                 builder = builder.WithHeaders(allowedHeaders);
-                Logger?.Information("CORS policy allows headers: {0}", allowedHeaders);
+                Logger?.LogDebug("CORS policy allows headers: {allowedHeaders}", allowedHeaders);
             }
 
             if (_config.GetConfigBool("AllowCredentials", corsCfg, true) is true)
             {
-                Logger?.Information("CORS policy allows credentials.");
+                Logger?.LogDebug("CORS policy allows credentials.");
                 builder.AllowCredentials();
             }
             else
             {
-                Logger?.Information("CORS policy does not allow credentials.");
+                Logger?.LogDebug("CORS policy does not allow credentials.");
             }
             
             var preflightMaxAge = _config.GetConfigInt("PreflightMaxAgeSeconds", corsCfg) ?? 600;
             if (preflightMaxAge > 0)
             {
-                Logger?.Information("CORS policy preflight max age is set to {0} seconds.", preflightMaxAge);
+                Logger?.LogDebug("CORS policy preflight max age is set to {preflightMaxAge} seconds.", preflightMaxAge);
                 builder.SetPreflightMaxAge(TimeSpan.FromSeconds(preflightMaxAge));
             }
             else
             {
-                Logger?.Information("CORS policy preflight max age is not set.");
+                Logger?.LogDebug("CORS policy preflight max age is not set.");
             }
         }));
         return true;
@@ -526,7 +537,7 @@ public class Builder
             o.SuppressXFrameOptionsHeader = _config.GetConfigBool("SuppressXFrameOptionsHeader", antiforgeryCfg, false);
             o.SuppressReadingTokenFromFormBody = _config.GetConfigBool("SuppressReadingTokenFromFormBody", antiforgeryCfg, false);
 
-            Logger?.Information("Using Antiforgery with cookie name {0}, form field name {1}, header name {2}",
+            Logger?.LogDebug("Using Antiforgery with cookie name {Cookie}, form field name {FormFieldName}, header name {HeaderName}",
                 o.Cookie.Name,
                 o.FormFieldName,
                 o.HeaderName);
@@ -534,7 +545,7 @@ public class Builder
         return true;
     }
 
-    private readonly string[] ConnectionNames = ["Host", "Port", "Database", "Username", "Password", "Passfile", "SSL Mode", "Trust Server Certificate", "SSL Certificate", "SSL Key", "SSL Password", "Root Certificate", "Check Certificate Revocation", "SSL Negotiation", "Channel Binding", "Persist Security Info", "Kerberos Service Name", "Include Realm", "Include Error Detail", "Log Parameters", "Pooling", "Minimum Pool Size", "Maximum Pool Size", "Connection Idle Lifetime", "Connection Pruning Interval", "Connection Lifetime", "Timeout", "Command Timeout", "Cancellation Timeout", "Keepalive", "Tcp Keepalive", "Tcp Keepalive Time", "Tcp Keepalive Interval", "Max Auto Prepare", "Auto Prepare Min Usages", "Read Buffer Size", "Write Buffer Size", "Socket Receive Buffer Size", "Socket Send Buffer Size", "No Reset On Close", "Target Session Attributes", "Load Balance Hosts", "Host Recheck Seconds", "Options", "Application Name", "Enlist", "Search Path", "Client Encoding", "Encoding", "Timezone", "Array Nullability Mode"];
+    private readonly string[] _connectionNames = ["Host", "Port", "Database", "Username", "Password", "Passfile", "SSL Mode", "Trust Server Certificate", "SSL Certificate", "SSL Key", "SSL Password", "Root Certificate", "Check Certificate Revocation", "SSL Negotiation", "Channel Binding", "Persist Security Info", "Kerberos Service Name", "Include Realm", "Include Error Detail", "Log Parameters", "Pooling", "Minimum Pool Size", "Maximum Pool Size", "Connection Idle Lifetime", "Connection Pruning Interval", "Connection Lifetime", "Timeout", "Command Timeout", "Cancellation Timeout", "Keepalive", "Tcp Keepalive", "Tcp Keepalive Time", "Tcp Keepalive Interval", "Max Auto Prepare", "Auto Prepare Min Usages", "Read Buffer Size", "Write Buffer Size", "Socket Receive Buffer Size", "Socket Send Buffer Size", "No Reset On Close", "Target Session Attributes", "Load Balance Hosts", "Host Recheck Seconds", "Options", "Application Name", "Enlist", "Search Path", "Client Encoding", "Encoding", "Timezone", "Array Nullability Mode"];
 
     private (string?, ConnectionRetryOptions) BuildConnection(
         string? connectionName, 
@@ -624,7 +635,7 @@ public class Builder
             {
                 bool hasTwoFormatters = matchNpgsqlConnectionParameterNamesWithEnvVarNames?.Contains("{0}") is true && matchNpgsqlConnectionParameterNamesWithEnvVarNames?.Contains("{1}") is true;
 
-                foreach (var key in ConnectionNames)
+                foreach (var key in _connectionNames)
                 {
                     string envVar;
                     if (hasTwoFormatters is true)
@@ -674,11 +685,11 @@ public class Builder
         {
             if (string.IsNullOrEmpty(connectionName) is true)
             {
-                Logger?.Information(messageTemplate: "Using main connection string: {0}", connectionStringBuilder.ConnectionString);
+                Logger?.LogDebug("Using main connection string: {ConnectionString}", connectionStringBuilder.ConnectionString);
             }
             else
             {
-                Logger?.Information(messageTemplate: "Using {0} as main connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+                Logger?.LogDebug("Using {connectionName} as main connection string: {ConnectionString}", connectionName, connectionStringBuilder.ConnectionString);
             }
         }
         else
@@ -689,11 +700,11 @@ public class Builder
             }
             if (string.IsNullOrEmpty(connectionName) is true)
             {
-                Logger?.Information(messageTemplate: "Using additional connection string: {0}", connectionStringBuilder.ConnectionString);
+                Logger?.LogDebug("Using additional connection string: {0}", connectionStringBuilder.ConnectionString);
             }
             else
             {
-                Logger?.Information(messageTemplate: "Using {0} as additional connection string: {1}", connectionName, connectionStringBuilder.ConnectionString);
+                Logger?.LogDebug("Using {connectionName} as additional connection string: {ConnectionString}", connectionName, connectionStringBuilder.ConnectionString);
             }
         }
 
@@ -721,7 +732,7 @@ public class Builder
             using var conn = new NpgsqlConnection(connectionString);
             try
             {
-                NpgsqlConnectionRetryOpener.Open(conn, retryOptions, new SerilogLoggerFactory(Logger).CreateLogger<Program>());
+                NpgsqlConnectionRetryOpener.Open(conn, retryOptions, Logger);
             }
             finally
             {

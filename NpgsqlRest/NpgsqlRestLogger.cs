@@ -43,7 +43,7 @@ public static class NpgsqlRestLogger
 
     public static void LogEndpoint(ILogger? logger, RoutineEndpoint endpoint, string parameters, string command)
     {
-        if (logger?.IsEnabled(LogLevel.Information) is true && endpoint.LogCallback is not null)
+        if (logger?.IsEnabled(LogLevel.Debug) is true && endpoint.LogCallback is not null)
         {
             endpoint.LogCallback(logger, parameters, command, null);
         }

@@ -19,7 +19,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
     private static readonly FileExtensionContentTypeProvider _fileTypeProvider = new();
 
     private static string[]? _parsePatterns = default!;
-    private static Serilog.ILogger? _logger = default!;
+    private static ILogger? _logger = default!;
 
     private static readonly ConcurrentDictionary<string, bool> _pathInParsePattern = new();
     private static ConcurrentDictionary<string, bool> _pathInAuthorizePattern = null!;
@@ -48,7 +48,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
         string[]? authorizePaths,
         string? unauthorizedRedirectPath,
         string? unautorizedReturnToQueryParameter,
-        Serilog.ILogger? logger)
+        ILogger? logger)
     {
         _parsePatterns = parse == false || parsePatterns == null || parsePatterns.Length == 0 ? null : parsePatterns?.Where(p => !string.IsNullOrEmpty(p)).ToArray();
         if (parse is false || _parsePatterns is null)
@@ -288,7 +288,7 @@ public class AppStaticFileMiddleware(RequestDelegate next, IWebHostEnvironment h
             }
             catch (IOException ex)
             {
-                _logger?.Error(ex, "Failed to serve static file {Path}", path);
+                _logger?.LogError(ex, "Failed to serve static file {Path}", path);
 
                 context.Response.Clear();
                 await _next(context);

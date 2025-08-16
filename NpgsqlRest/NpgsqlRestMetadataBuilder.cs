@@ -41,7 +41,7 @@ public static class NpgsqlRestMetadataBuilder
             {
                 options.CommentsMode = optionsCommentsMode;
             }
-            foreach (var (routine, formatter) in source.Read(options, builder?.ApplicationServices))
+            foreach (var (routine, formatter) in source.Read(options, builder?.ApplicationServices, logger))
             {
                 RoutineEndpoint endpoint = DefaultEndpoint.Create(routine, options, logger)!;
 

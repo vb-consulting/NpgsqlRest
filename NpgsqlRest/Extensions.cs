@@ -252,4 +252,23 @@ public static class Ext
         }
         return null;
     }
+    
+    public static void TraceCommand(this ILogger? logger, NpgsqlCommand command, string name)
+    {
+        if (logger?.IsEnabled(LogLevel.Trace) is true && logger is not null)
+        {
+            StringBuilder sb = new();
+            for (int i = 0; i < command.Parameters.Count; i++)
+            {
+                sb.Append('$');
+                sb.Append(i+1);
+                sb.Append("=");
+                sb.Append(PgConverters.SerializeDatbaseObject(command.Parameters[i].Value));
+                sb.Append('\n');
+            }
+
+            sb.Append(command.CommandText);
+            logger?.LogTrace("{name}:\n{query}", name, sb.ToString());
+        }
+    }
 }
