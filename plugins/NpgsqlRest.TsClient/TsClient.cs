@@ -191,7 +191,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                     try
                     {
                         File.Delete(fileName);
-                        _logger?.LogInformation("Deleted file: {fileName}", fileName);
+                        _logger?.LogDebug("Deleted file: {fileName}", fileName);
                     }
                     catch (Exception ex)
                     {
@@ -233,7 +233,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 }
                 AddHeader(interfaces);
                 File.WriteAllText(fileName, interfaces.ToString());
-                _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
+                _logger?.LogDebug("Created Typescript file: {fileName}", fileName);
             }
         }
         else
@@ -243,7 +243,7 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
                 var typeFile = fileName.Replace(".ts", "Types.d.ts");
                 AddHeader(interfaces);
                 File.WriteAllText(typeFile, interfaces.ToString());
-                _logger?.LogInformation("Created Typescript type file: {typeFile}", typeFile);
+                _logger?.LogDebug("Created Typescript type file: {typeFile}", typeFile);
             }
 
             if (contentHeader.Length > 0)
@@ -254,11 +254,11 @@ public partial class TsClient(TsClientOptions options) : IEndpointCreateHandler
             File.WriteAllText(fileName, content.ToString());
             if (options.SkipTypes is false)
             {
-                _logger?.LogInformation("Created Typescript file: {fileName}", fileName);
+                _logger?.LogDebug("Created Typescript file: {fileName}", fileName);
             }
             else
             {
-                _logger?.LogInformation("Created Javascript file: {fileName}", fileName);
+                _logger?.LogDebug("Created Javascript file: {fileName}", fileName);
             }
         }
         return;

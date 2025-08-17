@@ -200,7 +200,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     await context.Response.WriteAsync(content.ToString());
                 });
                 var host = GetHost();
-                _logger?.LogInformation("Exposed HTTP file content on URL: {host}{path}", host, path);
+                _logger?.LogDebug("Exposed HTTP file content on URL: {host}{path}", host, path);
             }
         }
 
@@ -219,7 +219,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     Directory.CreateDirectory(dir);
                 }
                 File.WriteAllText(fullFileName, content.ToString());
-                _logger?.LogInformation("Created HTTP file: {fullFileName}", fullFileName);
+                _logger?.LogDebug("Created HTTP file: {fullFileName}", fullFileName);
             }
         }
     }
