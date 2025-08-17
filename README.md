@@ -116,11 +116,11 @@ authorize admin
 ';
 ```
 
-This annotation will create `HTTP GET /hello` endpoint that returns "Hello World" and will authorize only admin role. 
+This annotation will create an `HTTP GET /hello` endpoint that returns "Hello World" and will authorize only the admin role. 
 
-We could also add any HTTP response header, like for example `Content-Type: text/plain`, but since this function returns text, response will be `text/plain` anyhow. 
+We could also add any HTTP response header, like for example `Content-Type: text/plain`, but since this function returns text, the response will be `text/plain` anyhow. 
 
-Note: Anything that is not valid HTTP header or comment annotation that alters behavior, will be ignored and treated as a function comment.
+Note: Anything that is not a valid HTTP header or a comment annotation that alters behavior will be ignored and treated as a function comment.
 
 ### 2) Prepare Server Executable
 
@@ -128,11 +128,11 @@ You have a choice to do the best approach that suits you. Either one of these th
 
 #### Download Executable 
 
-Download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page. You can use manual download or wget or anything you want. Just remember to assign appropriate executable permissions after the download.
+Download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page. You can use manual download, wget, or anything you want. Just remember to assign appropriate executable permissions after the download.
 
 #### NPM Install
 
-```bash
+```console
 ~/dev
 ❯ npm i npgsqlrest
 
@@ -143,7 +143,7 @@ Note: NPM package will do the same thing on install automatically: Download the 
 
 #### Docker Pull
 
-```bash
+```console
 ~/dev
 ❯ docker pull vbilopav/npgsqlrest:latest
 latest: Pulling from vbilopav/npgsqlrest
@@ -158,7 +158,7 @@ docker.io/vbilopav/npgsqlrest:latest
 
 Minimal Configuration is `appsettings.json` file with one connection string. You can do that with any editor or, using bash:
 
-```bash
+```console
 ~/dev
 ❯ cat > appsettings.json << EOF
 {
@@ -173,7 +173,7 @@ EOF
 
 Type executable name:
 
-```bash
+```console
 ~/dev
 ❯ ./npgsqlrest
 [11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
@@ -181,13 +181,13 @@ Type executable name:
 
 Or, run as NPX command for NPM distributions:
 
-```bash
+```console
 ~/dev
 ❯ npx npgsqlrest
 [11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
 ```
 
-Or, run appropriate Docker command (expose 8080 default port and bind the default configuration):
+Or, run the appropriate Docker command (expose the 8080 default port and bind the default configuration):
 
 ```bash
 ~/dev
@@ -199,15 +199,15 @@ Congratulations, your High Speed Web Server is running with `/hello` endpoint ex
 
 ### Next Steps
 
-Now, we have our server up and running, we can add some more configuration to make things interesting:
+Now that we have our server up and running, we can add some more configuration to make things interesting:
 
 - Configure the Debug Log level for our NpgsqlRest server.
 - Enable `HttpFileOptions` for the `HttpFile` plugin that generates HTTP files for testing.
 - Enable  `ClientCodeGen` for `TsClient` plugin that generates TypeScript code for us.
 
-Configuration file should look like this:
+The configuration file should look like this:
 
-```jsonc
+```json
 {
   "ConnectionStrings": {
     "Default": "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"
@@ -230,9 +230,9 @@ Configuration file should look like this:
 }
 ```
 
-After running with this configuration, we will see much more information in console:
+After running with this configuration, we will see much more information in the console:
 
-```bash
+```console
 ~/dev
 ❯ ./npgsqlrest
 [12:46:05.120 DBG] ----> Starting with configuration(s): JsonConfigurationProvider for 'appsettings.json' (Optional), JsonConfigurationProvider for 'appsettings.Development.json' (Optional), CommandLineConfigurationProvider [NpgsqlRest]
@@ -250,11 +250,11 @@ After running with this configuration, we will see much more information in cons
 [12:46:05.358 INF] Started in 00:00:00.2759846, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
 ```
 
-Also, two more file will be generated on startup:
+Also, two more files will be generated on startup:
 
 1) `todo_public.http`
 
-HTTP file for testing debugging and development (VS Code requires rest-client plugin).
+HTTP file for testing, debugging, and development (VS Code requires rest-client plugin).
 
 ```console
 @host=http://localhost:8080
@@ -301,19 +301,19 @@ export async function publicHelloWorld() : Promise<{status: number, response: st
     };
 }
 ```
-For a full list of configuration options see the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json). Any settings your configuration file will override these defaults.
+For a full list of configuration options, see the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json). Any settings your configuration file will override these defaults.
 
-Also, you can override these settings with console parameters. For example to enable Debug Level for NpgsqlRest run:
+Also, you can override these settings with console parameters. For example,e to enable Debug Level for NpgsqlRest run:
 
-```bash
+```console
 ~/dev
 ❯ ./npgsqlrest --log:minimallevels:npgsqlrest=debug
 ...
 ```
 
-And finally, to see all command line options use `-h` or `--help`:
+And finally, to see all command line options, use `-h` or `--help`:
 
-```bash
+```console
 ~/dev
 ❯ ./npgsqlrest --help
 Usage:
@@ -352,7 +352,7 @@ Note: PostgreSQL 13 minimal version is required to run the initial query to get 
 
 ## Contributing
 
-Contributions from the community are welcomed.
+Contributions from the community are welcome.
 Please make a pull request with a description if you wish to contribute.
 
 ## License
