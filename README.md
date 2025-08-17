@@ -120,12 +120,9 @@ EOF
 - Run the server executable. You will see the logs like this:
 
 ```bash
-❯ npx npgsqlrest
 ~/dev
-[11:33:35.348 INF] ----> Starting with configuration(s): JsonConfigurationProvider for 'appsettings.json' (Optional), JsonConfigurationProvider for 'appsettings.Development.json' (Missing), CommandLineConfigurationProvider [NpgsqlRest]
-[11:33:35.351 INF] Using main connection string: Host=127.0.0.1;Database=my_db;Username=postgres;Password=******;Application Name=dev;Enlist=False;No Reset On Close=True [NpgsqlRest]
-[11:33:35.354 INF] Using RoutineSource PostgreSQL Source [NpgsqlRest]
-[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
+❯ npx npgsqlrest
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
 ```
 
 Note: you can use `-v` or `--version` to dump all versions (including libraries used) or `-h` or `--help` to dump additional help information.
@@ -144,10 +141,7 @@ docker.io/vbilopav/npgsqlrest:latest
 
 ~/dev
 ❯ docker run -p 8080:8080 -v ./appsettings.json:/app/appsettings.json --network host vbilopav/npgsqlrest:latest
-[11:33:35.348 INF] ----> Starting with configuration(s): JsonConfigurationProvider for 'appsettings.json' (Optional), JsonConfigurationProvider for 'appsettings.Development.json' (Missing), CommandLineConfigurationProvider [NpgsqlRest]
-[11:33:35.351 INF] Using main connection string: Host=127.0.0.1;Database=my_db;Username=postgres;Password=******;Application Name=app;Enlist=False;No Reset On Close=True [NpgsqlRest]
-[11:33:35.354 INF] Using RoutineSource PostgreSQL Source [NpgsqlRest]
-[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
 ```
 
 **That's it!** Your PostgreSQL database is now a full-featured REST API server.
