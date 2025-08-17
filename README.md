@@ -36,7 +36,7 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 
 ### Authentication & Security
 - **Multiple Auth Methods**. Cookie authentication, Bearer tokens, and external OAuth providers.
-- **Encrypted Tokens**. Encrypted security tokens with advanced encryption key management and storage options (file, database, etc).
+- **Encrypted Tokens**. Encrypted security tokens with advanced encryption key management and storage options (file, database, etc.).
 - **CORS Support**. Cross-origin resource sharing configuration for Bearer token access.
 - **Built-in Password Validation**. Built-in extendable and secure password hashing and validation. PBKDF2-SHA256 with 600,000 iterations aligned with OWASP's 2023+ recommendations.
 - **OAuth Integration**. Google, LinkedIn, GitHub, Microsoft and Facebook support built-in.
@@ -76,7 +76,7 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 - **Excel Processing**. Upload handler for Excel files that supports Excel content processing.
 
 ### Additional Features
-- **Upload Handlers**. Multiple upload handlers implemented: File System, Large Objects, CSV/Excel, etc, with code generation. Make complex upload and processing pipelines in minutes. 
+- **Upload Handlers**. Multiple upload handlers implemented: File System, Large Objects, CSV/Excel, etc., with code generation. Make complex upload and processing pipelines in minutes. 
 - **Static Files**. Built-in serving of static content with high speed template parser for user claims and authorization features.
 - **Request Tracking**. Detailed request analytics and connection monitoring.
 - **Performance Metrics**. Built-in performance monitoring and diagnostics.

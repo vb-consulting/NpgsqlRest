@@ -34,8 +34,8 @@ public class ExternalAuthConfig
     public string ReturnToPath { get; private set; } = default!;
     public string ReturnToPathQueryStringKey { get; private set; } = default!;
     public string LoginCommand { get; private set; } = default!;
-    public string ClientAnaliticsData { get; private set; } = default!;
-    public string ClientAnaliticsIpKey { get; private set; } = default!;
+    public string ClientAnalyticsData { get; private set; } = default!;
+    public string ClientAnalyticsIpKey { get; private set; } = default!;
 
     private readonly Dictionary<string, ExternalAuthClientConfig> DefaultClientConfigs = 
         new()
@@ -138,8 +138,8 @@ public class ExternalAuthConfig
         ReturnToPathQueryStringKey = config.GetConfigStr("ReturnToPathQueryStringKey", externalCfg) ?? "return_to";
         LoginCommand = config.GetConfigStr("LoginCommand", externalCfg) ?? "select * from auth.login($1,$2,$3,$4)";
 
-        ClientAnaliticsData = config.GetConfigStr("ClientAnaliticsData", externalCfg) ?? "{timestamp:new Date().toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:{width:window.screen.width,height:window.screen.height,colorDepth:window.screen.colorDepth,pixelRatio:window.devicePixelRatio,orientation:screen.orientation.type},browser:{userAgent:navigator.userAgent,language:navigator.language,languages:navigator.languages,cookiesEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack,onLine:navigator.onLine,platform:navigator.platform,vendor:navigator.vendor},memory:{deviceMemory:navigator.deviceMemory,hardwareConcurrency:navigator.hardwareConcurrency},window:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerWidth:window.outerWidth,outerHeight:window.outerHeight},location:{href:window.location.href,hostname:window.location.hostname,pathname:window.location.pathname,protocol:window.location.protocol,referrer:document.referrer},performance:{navigation:{type:performance.navigation?.type,redirectCount:performance.navigation?.redirectCount},timing:performance.timing?{loadEventEnd:performance.timing.loadEventEnd,loadEventStart:performance.timing.loadEventStart,domComplete:performance.timing.domComplete,domInteractive:performance.timing.domInteractive,domContentLoadedEventEnd:performance.timing.domContentLoadedEventEnd}:null}}";
-        ClientAnaliticsIpKey = config.GetConfigStr("ClientAnaliticsIpKey", externalCfg) ?? "ip";
+        ClientAnalyticsData = config.GetConfigStr("ClientAnalyticsData", externalCfg) ?? "{timestamp:new Date().toISOString(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,screen:{width:window.screen.width,height:window.screen.height,colorDepth:window.screen.colorDepth,pixelRatio:window.devicePixelRatio,orientation:screen.orientation.type},browser:{userAgent:navigator.userAgent,language:navigator.language,languages:navigator.languages,cookiesEnabled:navigator.cookieEnabled,doNotTrack:navigator.doNotTrack,onLine:navigator.onLine,platform:navigator.platform,vendor:navigator.vendor},memory:{deviceMemory:navigator.deviceMemory,hardwareConcurrency:navigator.hardwareConcurrency},window:{innerWidth:window.innerWidth,innerHeight:window.innerHeight,outerWidth:window.outerWidth,outerHeight:window.outerHeight},location:{href:window.location.href,hostname:window.location.hostname,pathname:window.location.pathname,protocol:window.location.protocol,referrer:document.referrer},performance:{navigation:{type:performance.navigation?.type,redirectCount:performance.navigation?.redirectCount},timing:performance.timing?{loadEventEnd:performance.timing.loadEventEnd,loadEventStart:performance.timing.loadEventStart,domComplete:performance.timing.domComplete,domInteractive:performance.timing.domInteractive,domContentLoadedEventEnd:performance.timing.domContentLoadedEventEnd}:null}}";
+        ClientAnalyticsIpKey = config.GetConfigStr("ClientAnalyticsIpKey", externalCfg) ?? "ip";
     }
 }
 
@@ -391,9 +391,9 @@ public class ExternalAuth
                 var analyticsData = JsonNode.Parse(query);
                 if (analyticsData is not null)
                 {
-                    if (string.IsNullOrEmpty(externalAuthConfig!.ClientAnaliticsIpKey) is false)
+                    if (string.IsNullOrEmpty(externalAuthConfig!.ClientAnalyticsIpKey) is false)
                     {
-                        analyticsData[externalAuthConfig!.ClientAnaliticsIpKey] = context.Request.GetClientIpAddress();
+                        analyticsData[externalAuthConfig!.ClientAnalyticsIpKey] = context.Request.GetClientIpAddress();
                     }
                     command.Parameters.Add(new NpgsqlParameter()
                     {
@@ -543,7 +543,7 @@ public class ExternalAuth
         var state = Guid.NewGuid().ToString();
         var redirectTo = "/";
         var authUrl = string.Format(config.AuthUrl, config.ClientId, redirectUrl, state);
-        var analyticsData = externalAuthConfig!.ClientAnaliticsData is null ? "null" : externalAuthConfig!.ClientAnaliticsData;
+        var analyticsData = externalAuthConfig?.ClientAnalyticsData is null ? "null" : externalAuthConfig!.ClientAnalyticsData;
         return string.Format(externalAuthConfig!.SignInHtmlTemplate,
             config.ExternalType,
             string.Format(_jsTemplate,

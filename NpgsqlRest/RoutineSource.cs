@@ -16,8 +16,8 @@ public class RoutineSource(
         string? query = null,
         CommentsMode? commentsMode = null,
         string? customTypeParameterSeparator = "_",
-        string[]? includeLanguagues = null,
-        string[]? excludeLanguagues = null) : IRoutineSource
+        string[]? includeLanguages = null,
+        string[]? excludeLanguages = null) : IRoutineSource
 {
     public string? SchemaSimilarTo { get; set; } = schemaSimilarTo;
     public string? SchemaNotSimilarTo { get; set; } = schemaNotSimilarTo;
@@ -30,8 +30,8 @@ public class RoutineSource(
     public string? Query { get; set; } = query ?? RoutineSourceQuery.Query;
     public CommentsMode? CommentsMode { get; set; } = commentsMode;
     public string? CustomTypeParameterSeparator { get; set; } = customTypeParameterSeparator;
-    public string[]? IncludeLanguagues { get; set; } = includeLanguagues;
-    public string[]? ExcludeLanguagues { get; set; } = excludeLanguagues;
+    public string[]? IncludeLanguages { get; set; } = includeLanguages;
+    public string[]? ExcludeLanguages { get; set; } = excludeLanguages;
 
     public IEnumerable<(Routine, IRoutineSourceParameterFormatter)> Read(NpgsqlRestOptions options, IServiceProvider? serviceProvider, ILogger? logger)
     {
@@ -87,8 +87,8 @@ public class RoutineSource(
             AddParameter(command, NameNotSimilarTo ?? options.NameNotSimilarTo); // $6
             AddParameter(command, IncludeNames ?? options.IncludeNames, true); // $7
             AddParameter(command, ExcludeNames ?? options.ExcludeNames, true); // $8
-            AddParameter(command, IncludeLanguagues, true); // $9
-            AddParameter(command, ExcludeLanguagues is null ? ["c", "internal"] : ExcludeLanguagues, true); // $10
+            AddParameter(command, IncludeLanguages, true); // $9
+            AddParameter(command, ExcludeLanguages is null ? ["c", "internal"] : ExcludeLanguages, true); // $10
 
             logger.TraceCommand(command, nameof(RoutineSource));
 

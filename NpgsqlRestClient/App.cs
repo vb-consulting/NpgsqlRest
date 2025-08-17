@@ -357,15 +357,15 @@ public class App
             {
                 source.CustomTypeParameterSeparator = customTypeParameterSeparator;
             }
-            var includeLanguagues = _config.GetConfigEnumerable("IncludeLanguagues", routineOptionsCfg);
-            if (includeLanguagues is not null)
+            var includeLanguages = _config.GetConfigEnumerable("IncludeLanguages", routineOptionsCfg);
+            if (includeLanguages is not null)
             {
-                source.IncludeLanguagues = [.. includeLanguagues];
+                source.IncludeLanguages = [.. includeLanguages];
             }
-            var excludeLanguagues = _config.GetConfigEnumerable("ExcludeLanguagues", routineOptionsCfg);
-            if (excludeLanguagues is not null)
+            var excludeLanguages = _config.GetConfigEnumerable("ExcludeLanguages", routineOptionsCfg);
+            if (excludeLanguages is not null)
             {
-                source.ExcludeLanguagues = [.. excludeLanguagues];
+                source.ExcludeLanguages = [.. excludeLanguages];
             }
         }
         sources.Add(source);
