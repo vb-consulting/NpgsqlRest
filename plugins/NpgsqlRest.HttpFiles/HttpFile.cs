@@ -219,7 +219,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
                     Directory.CreateDirectory(dir);
                 }
                 File.WriteAllText(fullFileName, content.ToString());
-                _logger?.LogDebug("Created HTTP file: {fullFileName}", fullFileName);
+                _logger?.LogDebug("Created HTTP file: {fileName}", fileName);
             }
         }
     }

@@ -87,19 +87,50 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 
 And more!
 
-
-
-----------
-
 ## Get Started in Seconds
 
 Starting is easy:
 
-1. Add NPM package or **download** the executable.
-2. **Configure** your PostgreSQL connection in `appsettings.json`
-3. **Run** the executable - your REST API server is live!
+1. **Annotate some PostgreSQL Functions** to enable HTTP Endpoint.
+2. **Prepare Server Executable** (download, install or pull).
+3. **Configure** your PostgreSQL connection in `appsettings.json`
+4. **Run** the executable - your REST API server is live!
 
-- Add NPM package:
+## Complete Example
+
+### 1) Annotate PostgreSQL Function
+
+Let's create a simple Hello World function and add a simple comment annotation:
+
+```sql
+create function hello_world()
+returns text
+language sql
+as $$
+select 'Hello World'
+$$;
+
+comment on function hello_world() is '
+HTTP GET /hello
+authorize admin
+';
+```
+
+This annotation will create `HTTP GET /hello` endpoint that returns "Hello World" and will authorize only admin role. 
+
+We could also add any HTTP response header, like for example `Content-Type: text/plain`, but since this function returns text, response will be `text/plain` anyhow. 
+
+Note: Anything that is not valid HTTP header or comment annotation that alters behavior, will be ignored and treated as a function comment.
+
+### 2) Prepare Server Executable
+
+You have a choice to do the best approach that suits you. Either one of these things:
+
+#### Download Executable 
+
+Download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page. You can use manual download or wget or anything you want. Just remember to assign appropriate executable permissions after the download.
+
+#### NPM Install
 
 ```bash
 ~/dev
@@ -108,7 +139,24 @@ Starting is easy:
 added 1 package in 31s
 ```
 
-- Add minimal configuration:
+Note: NPM package will do the same thing on install automatically: Download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page.
+
+#### Docker Pull
+
+```bash
+~/dev
+❯ docker pull vbilopav/npgsqlrest:latest
+latest: Pulling from vbilopav/npgsqlrest
+Digest: sha256:70b4057343457e019657dca303acbed8a1acd5f83075ea996b8e6ea20dac4b48
+Status: Image is up to date for vbilopav/npgsqlrest:latest
+docker.io/vbilopav/npgsqlrest:latest
+
+~/dev
+```
+
+### 3) Add Minimal Configuration
+
+Minimal Configuration is `appsettings.json` file with one connection string. You can do that with any editor or, using bash:
 
 ```bash
 ~/dev
@@ -121,7 +169,17 @@ added 1 package in 31s
 EOF
 ```
 
-- Run the server executable. You will see the logs like this:
+### 4) Run
+
+Type executable name:
+
+```bash
+~/dev
+❯ ./npgsqlrest
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+```
+
+Or, run as NPX command for NPM distributions:
 
 ```bash
 ~/dev
@@ -129,55 +187,74 @@ EOF
 [11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
 ```
 
-Note: you can use `-v` or `--version` to dump all versions (including libraries used) or `-h` or `--help` to dump additional help information.
-
-Alternatively to this, you can download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page. Just remember to assign appropriate executable permissions.
-
-Similarly, you can also use Docker version if you prefer. Just make sure you bind configuration, use appropriate ports and appropriate network where your database is located:
+Or, run appropriate Docker command (expose 8080 default port and bind the default configuration):
 
 ```bash
-~/dev
-❯ docker pull vbilopav/npgsqlrest:latest
-latest: Pulling from vbilopav/npgsqlrest
-Digest: sha256:70b4057343457e019657dca303acbed8a1acd5f83075ea996b8e6ea20dac4b48
-Status: Image is up to date for vbilopav/npgsqlrest:latest
-docker.io/vbilopav/npgsqlrest:latest
-
 ~/dev
 ❯ docker run -p 8080:8080 -v ./appsettings.json:/app/appsettings.json --network host vbilopav/npgsqlrest:latest
 [11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
 ```
 
-**That's it!** Your PostgreSQL database is now a full-featured REST API server.
+Congratulations, your High Speed Web Server is running with `/hello` endpoint exposed.  
 
-For more configuration options, see the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json)
+### Next Steps
 
-## Complete Example
+Now, we have our server up and running, we can add some more configuration to make things interesting:
 
-#### 1) Your PostgreSQL Function
+- Configure the Debug Log level for our NpgsqlRest server.
+- Enable `HttpFileOptions` for the `HttpFile` plugin that generates HTTP files for testing.
+- Enable  `ClientCodeGen` for `TsClient` plugin that generates TypeScript code for us.
 
-```sql
-create function hello_world()                                    
-returns text 
-language sql
-as $$
-select 'Hello World'
-$$;
+Configuration file should look like this:
 
-comment on function hello_world() is '
-HTTP GET /hello
-Content-Type: text/plain
-authorize admin
-';
+```jsonc
+{
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5432;Database=my_db;Username=postgres;Password=postgres"
+  },
+  "Log": {
+    "MinimalLevels": {
+      "NpgsqlRest": "Debug"
+    }
+  },
+  "NpgsqlRest": {
+    "HttpFileOptions": {
+      "Enabled": true,
+      "NamePattern": "./src/http/{0}_{1}"
+    },
+    "ClientCodeGen": {
+      "Enabled": true,
+      "FilePath": "./src/app/api/{0}Api.ts"
+    }
+  }
+}
 ```
 
-> The simple comment above transforms the endpoint to use GET method, custom path `/hello`, plain text response, and requires admin authorization - all configured with just a few lines of PostgreSQL comments!
+After running with this configuration, we will see much more information in console:
 
-#### 2) Start the Server
+```bash
+~/dev
+❯ ./npgsqlrest
+[12:46:05.120 DBG] ----> Starting with configuration(s): JsonConfigurationProvider for 'appsettings.json' (Optional), JsonConfigurationProvider for 'appsettings.Development.json' (Optional), CommandLineConfigurationProvider [NpgsqlRest]
+[12:46:05.135 DBG] Using main connection string: Host=127.0.0.1;Database=my_db;Username=postgres;Password=******;Application Name=dev;Enlist=False;No Reset On Close=True [NpgsqlRest]
+[12:46:05.149 DBG] Attempting to open PostgreSQL connection (attempt 1/7) [NpgsqlRest]
+[12:46:05.194 DBG] Successfully opened PostgreSQL connection on attempt 1 [NpgsqlRest]
+[12:46:05.199 DBG] Using Data Protection for application dev with default provider. Expiration in 90 days. [NpgsqlRest]
+[12:46:05.214 DBG] Using RoutineSource PostgreSQL Source [NpgsqlRest]
+[12:46:05.215 DBG] Using CrudSource PostgreSQL Source [NpgsqlRest]
+[12:46:05.309 DBG] Function public.hello_world mapped to POST /api/hello-world has set HTTP by the comment annotation to GET /hello [NpgsqlRest]
+[12:46:05.311 DBG] Created endpoint GET /hello [NpgsqlRest]
+[12:46:05.332 DBG] Created HTTP file: ./src/http/todo_public.http [NpgsqlRest.HttpFiles]
+[12:46:05.340 DBG] Created Typescript type file: ./src/app/api/publicApiTypes.d.ts [NpgsqlRest.TsClient]
+[12:46:05.340 DBG] Created Typescript file: ./src/app/api/publicApi.ts [NpgsqlRest.TsClient]
+[12:46:05.358 INF] Started in 00:00:00.2759846, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+```
 
-Depending on distribution used, run the executable, NPX command or Docker command as described above. 
+Also, two more file will be generated on startup:
 
-#### 3) Auto-Generated HTTP File
+1) `todo_public.http`
+
+HTTP file for testing debugging and development (VS Code requires rest-client plugin).
 
 ```console
 @host=http://localhost:8080
@@ -186,14 +263,15 @@ Depending on distribution used, run the executable, NPX command or Docker comman
 // returns text
 //
 // comment on function public.hello_world is 'HTTP GET /hello
-// Content-Type: text/plain
 // authorize admin';
 GET {{host}}/hello
 
 ###
 ```
 
-#### 4) Auto-Generated Typescript Client Module
+2) `publicApi.ts`
+
+TypeScript fetch module that you can import and use in your Frontend project immediately.
 
 ```ts
 // autogenerated at 2025-08-17T11:06:58.6605710+02:00
@@ -207,7 +285,6 @@ export const publicHelloWorldUrl = () => baseUrl + "/hello";
  *
  * @remarks
  * comment on function public.hello_world is 'HTTP GET /hello
- * Content-Type: text/plain
  * authorize admin';
  *
  * @returns {{status: number, response: string}}
@@ -224,30 +301,48 @@ export async function publicHelloWorld() : Promise<{status: number, response: st
     };
 }
 ```
+For a full list of configuration options see the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json). Any settings your configuration file will override these defaults.
 
-#### 5) Endpoint Response
+Also, you can override these settings with console parameters. For example to enable Debug Level for NpgsqlRest run:
 
-```console
-HTTP/1.1 200 OK                                                  
-Connection: close
-Content-Type: text/plain
-Date: Tue, 09 Jan 2024 14:25:26 GMT
-Server: Kestrel
-Transfer-Encoding: chunked
-
-Hello World
+```bash
+~/dev
+❯ ./npgsqlrest --log:minimallevels:npgsqlrest=debug
+...
 ```
 
-## Documentation & Configuration
+And finally, to see all command line options use `-h` or `--help`:
 
-### System Requirements
+```bash
+~/dev
+❯ ./npgsqlrest --help
+Usage:
+npgsqlrest                               Run with the optional default configuration files: appsettings.json and appsettings.Development.json. If these file are not found, default configuration setting is used (see
+                                         https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json).
+npgsqlrest [files...]                    Run with the custom configuration files. All configuration files are required. Any configuration values will override default values in order of appearance.
+npgsqlrest [file1 -o file2...]           Use the -o switch to mark the next configuration file as optional. The first file after the -o switch is optional.
+npgsqlrest [file1 --optional file2...]   Use --optional switch to mark the next configuration file as optional. The first file after the --optional switch is optional.
+Note:                                    Values in the later file will override the values in the previous one.
+                                          
+npgsqlrest [--key=value]                 Override the configuration with this key with a new value (case insensitive, use : to separate sections). 
+                                          
+npgsqlrest -v, --version                 Show version information.
+npgsqlrest -h, --help                    Show command line help.
+                                          
+                                          
+Examples:                                 
+Example: use two config files            npgsqlrest appsettings.json appsettings.Development.json
+Example: second config file optional     npgsqlrest appsettings.json -o appsettings.Development.json
+Example: override ApplicationName config npgsqlrest --applicationname=Test
+Example: override Auth:CookieName config npgsqlrest --auth:cookiename=Test
+...
+```
+
+## System Requirements
 - PostgreSQL >= 13
 - No runtime dependencies - native executable
 
-### Configuration
-All server features are configured via `appsettings.json`. For comprehensive configuration options, see the **[options documentation](https://vb-consulting.github.io/npgsqlrest/options/).**
-
-### .NET Library Integration
+## .NET Library Integration
 For integrating into existing .NET applications:
 ```console
 dotnet add package NpgsqlRest
