@@ -70,6 +70,7 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 - **Custom Scopes**. Define Server-Sent Event Scope (specific user, groups of users or roles, etc.) per endpoint or per event in your database declarations.
 
 ### Enterprise Features
+- **Native Executables**. Native executable builds, including ARM versions, have zero dependencies and extremely fast startup times.
 - **Containerization**. Docker-ready hub images.
 - **NPM Package**. Additional distribution channel as NPM package.
 - **Environment Configuration**. Flexible environment variable and configuration management.

@@ -7,6 +7,15 @@ on:
     branches: [ master ]
   workflow_dispatch:
 
+env:
+  CLIENT_VERSION: v2.26.0
+  LIBRARY_VERSION: v2.31.0
+
+# Add workflow-level permissions
+permissions:
+  contents: write
+  packages: read
+
 jobs:
   build-test-publish:
     runs-on: ubuntu-22.04
@@ -17,9 +26,9 @@ jobs:
         postgresql version: '17'
         postgresql user: 'postgres'
         postgresql password: 'postgres'
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4  # Updated from v2
     - name: Setup .NET9
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4  # Updated from v1
       with:
         dotnet-version: 9.0.x
     - name: Install dependencies
@@ -34,6 +43,9 @@ jobs:
   create-release:
     needs: build-test-publish
     runs-on: ubuntu-22.04
+    # Explicit permissions for this job
+    permissions:
+      contents: write
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
@@ -43,17 +55,20 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v2.30.0-client-v2.25.0
-        release_name: "AOT Client v2.25.0 NpgsqlRest v2.30.0"
+        tag_name: ${{ env.LIBRARY_VERSION }}-client-${{ env.CLIENT_VERSION }}
+        release_name: "AOT Client ${{ env.CLIENT_VERSION }} NpgsqlRest ${{ env.LIBRARY_VERSION }}"
         draft: true
-        prerelease: true
+        prerelease: false
 
   upload-assets:
     needs: create-release
     runs-on: ubuntu-22.04
+    # Explicit permissions for this job
+    permissions:
+      contents: write
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # Updated from v2
 
     - name: Upload appsettings.json to release
       uses: actions/upload-release-asset@v1
@@ -68,10 +83,13 @@ jobs:
   build-windows:
     needs: create-release
     runs-on: windows-2022
+    # Explicit permissions for this job
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4  # Updated from v2
     - name: Setup .NET9
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4  # Updated from v1
       with:
         dotnet-version: 9.0.x
     - name: Build Windows AOT
@@ -89,10 +107,13 @@ jobs:
   build-linux:
     needs: create-release
     runs-on: ubuntu-22.04
+    # Explicit permissions for this job
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4  # Updated from v2
     - name: Setup .NET9
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4  # Updated from v1
       with:
         dotnet-version: 9.0.x
     - name: Build Linux AOT
@@ -110,10 +131,13 @@ jobs:
   build-macos:
     needs: create-release
     runs-on: macos-latest
+    # Explicit permissions for this job
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4  # Updated from v2
     - name: Setup .NET9
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4  # Updated from v1
       with:
         dotnet-version: 9.0.x
     - name: Build macOS ARM64 AOT
@@ -124,6 +148,33 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./NpgsqlRestClient/bin/Release/net9.0/osx-x64/publish/NpgsqlRestClient
+        asset_path: ./NpgsqlRestClient/bin/Release/net9.0/osx-arm64/publish/NpgsqlRestClient  # Fixed path
         asset_name: npgsqlrest-osx-arm64
         asset_content_type: application/octet-stream
+  
+  build-docker:
+    needs: build-linux
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./docker
+        push: true
+        platforms: linux/amd64
+        provenance: false
+        tags: |
+          vbilopav/npgsqlrest:${{ env.CLIENT_VERSION }}
+          vbilopav/npgsqlrest:latest
