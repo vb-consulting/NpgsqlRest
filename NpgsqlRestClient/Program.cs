@@ -40,7 +40,7 @@ WebApplication app = builder.Build();
 appInstance.Configure(app, () =>
 {
     sw.Stop();
-    var message = config.GetConfigStr("StartupMessage", config.Cfg) ?? "Started in {0}, listening on {1}, version {2}";
+    var message = config.Cfg?.GetSection("StartupMessage")?.Value ?? "Started in {0}, listening on {1}, version {2}";
     if (string.IsNullOrEmpty(message) is false)
     {
         builder.Logger?.LogInformation(message,
@@ -49,7 +49,6 @@ appInstance.Configure(app, () =>
                 System.Reflection.Assembly.GetAssembly(typeof(Program))?.GetName()?.Version?.ToString() ?? "-",
                 builder.Instance.Environment.EnvironmentName,
                 builder.Instance.Environment.ApplicationName);
-
     }
 });
 

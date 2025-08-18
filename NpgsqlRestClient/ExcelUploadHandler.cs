@@ -96,7 +96,7 @@ public class ExcelUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger
 
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for Excel: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
+            logger?.LogDebug("Upload for Excel: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, targetSheetName={targetSheetName}, allSheets={allSheets}, timeFormat={timeFormat}, dateFormat={dateFormat}, dateTimeFormat={dateTimeFormat}, rowCommand={rowCommand}",
                 _includedMimeTypePatterns, _excludedMimeTypePatterns, targetSheetName, allSheets, _timeFormat, _dateFormat, _dateTimeFormat, rowCommand);
         }
 

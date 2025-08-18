@@ -66,7 +66,7 @@ public class LargeObjectUploadHandler(NpgsqlRestUploadOptions options, ILogger? 
 
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, oid={oid}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}", 
+            logger?.LogDebug("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, bufferSize={bufferSize}, oid={oid}, checkText={checkText}, checkImage={checkImage}, allowedImage={allowedImage}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}", 
                 _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, _bufferSize, oid, checkText, checkImage, allowedImage, testBufferSize, nonPrintableThreshold);
         }
 

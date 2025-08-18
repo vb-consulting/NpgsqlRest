@@ -73,7 +73,7 @@ public class CsvUploadHandler(NpgsqlRestUploadOptions options, ILogger? logger) 
 
         if (options.LogUploadParameters is true)
         {
-            logger?.LogInformation("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}, delimiters={delimiters}, hasFieldsEnclosedInQuotes={hasFieldsEnclosedInQuotes}, setWhiteSpaceToNull={setWhiteSpaceToNull}, rowCommand={rowCommand}",
+            logger?.LogDebug("Upload for {_type}: includedMimeTypePatterns={includedMimeTypePatterns}, excludedMimeTypePatterns={excludedMimeTypePatterns}, checkFileStatus={checkFileStatus}, testBufferSize={testBufferSize}, nonPrintableThreshold={nonPrintableThreshold}, delimiters={delimiters}, hasFieldsEnclosedInQuotes={hasFieldsEnclosedInQuotes}, setWhiteSpaceToNull={setWhiteSpaceToNull}, rowCommand={rowCommand}",
                 _type, _includedMimeTypePatterns, _excludedMimeTypePatterns, checkFileStatus, testBufferSize, nonPrintableThreshold, delimiters, hasFieldsEnclosedInQuotes, setWhiteSpaceToNull, rowCommand);
         }
 
