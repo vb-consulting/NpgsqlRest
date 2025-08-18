@@ -116,8 +116,8 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 9.0.x
-    - name: Build macOS AOT
-      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r osx-x64 -c Release
+    - name: Build macOS ARM64 AOT
+      run: dotnet publish ./NpgsqlRestClient/NpgsqlRestClient.csproj -r osx-arm64 -c Release
     - name: Upload macOS executable
       uses: actions/upload-release-asset@v1
       env:
@@ -125,5 +125,5 @@ jobs:
       with:
         upload_url: ${{ needs.create-release.outputs.upload_url }}
         asset_path: ./NpgsqlRestClient/bin/Release/net9.0/osx-x64/publish/NpgsqlRestClient
-        asset_name: npgsqlrest-osx64
+        asset_name: npgsqlrest-osx-arm64
         asset_content_type: application/octet-stream
