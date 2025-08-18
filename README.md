@@ -5,10 +5,12 @@
 ![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
 ![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
 
-**Automatic PostgreSQL API Standalone Server**
+**Automatic PostgreSQL Web Server**
 
 >
-> Transform your PostgreSQL database into a **production-ready, blazing-fast REST API Standalone Web Server**. Generate code, build entire applications and more.
+> Transform your PostgreSQL database into a **production-ready, blazing-fast REST API Standalone Web Server**. 
+>
+> Generate code, build entire applications and more.
 >
 
 ## Enterprise-Grade PostgreSQL REST API Server
