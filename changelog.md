@@ -1,12 +1,12 @@
 # Changelog
 
-Note: The changelog for the older version can be found here: [Changelog Archive](https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog-old.md)
+Note: The changelog for the older version can be found here: [Changelog Archive](https://github.com/NpgsqlRest/NpgsqlRest/blob/master/changelog-old.md)
 
 ---
 
-## Version [2.30.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.30.0) (2025-08-09)
+## Version [2.30.0](https://github.com/NpgsqlRest/NpgsqlRest/tree/2.30.0) (2025-08-09)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.29.0...2.30.0)
+[Full Changelog](https://github.com/NpgsqlRest/NpgsqlRest/compare/2.29.0...2.30.0)
 
 ### Core Library
 
@@ -58,9 +58,9 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
-## Version [2.29.0](https://github.com/vb-consulting/NpgsqlRest/tree/2.29.0) (2025-07-08)
+## Version [2.29.0](https://github.com/NpgsqlRest/NpgsqlRest/tree/2.29.0) (2025-07-08)
 
-[Full Changelog](https://github.com/vb-consulting/NpgsqlRest/compare/2.28.0...2.29.0)
+[Full Changelog](https://github.com/NpgsqlRest/NpgsqlRest/compare/2.28.0...2.29.0)
 
 ### Core Library
 

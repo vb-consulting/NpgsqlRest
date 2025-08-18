@@ -9,14 +9,14 @@
         <NoWarn>$(NoWarn);1591</NoWarn>
         <IsPackable>true</IsPackable>
         <Title>NpgsqlRest.HttpFiles</Title>
-        <Authors>VB-Consulting</Authors>
+        <Authors>Vedran Bilopavlović</Authors>
         <Company>VB-Consulting</Company>
-        <Copyright>VB-Consulting</Copyright>
+        <Company>VB-Consulting</Company>
         <Description>Automatic HTTP Files Generation for NpgsqlRest</Description>
         <PackageTags>api;api-rest;restful-api;http;postgres;dotnet;http;httpfiles;http-files;database;rest;server;postgresql;npgsqlrest;pgsql;pg;automatic</PackageTags>
-        <PackageProjectUrl>https://github.com/vb-consulting/NpgsqlRest/NpgsqlRest.HttpFiles</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/vb-consulting/NpgsqlRest</RepositoryUrl>
-        <PackageReleaseNotes>https://github.com/vb-consulting/NpgsqlRest/blob/master/changelog.md</PackageReleaseNotes>
+        <PackageProjectUrl>https://github.com/NpgsqlRest/NpgsqlRest/NpgsqlRest.HttpFiles</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/NpgsqlRest/NpgsqlRest</RepositoryUrl>
+        <PackageReleaseNotes>https://github.com/NpgsqlRest/NpgsqlRest/blob/master/changelog.md</PackageReleaseNotes>
         <PackageId>NpgsqlRest.HttpFiles</PackageId>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

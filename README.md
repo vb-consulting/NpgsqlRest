@@ -1,9 +1,9 @@
 # NpgsqlRest
 
-[![Build, Test, Publish and Release](https://github.com/vb-consulting/NpgsqlRest/actions/workflows/build-test-publish.yml/badge.svg)](https://github.com/vb-consulting/NpgsqlRest/actions/workflows/build-test-publish.yml)
+[![Build, Test, Publish and Release](https://github.com/NpgsqlRest/NpgsqlRest/actions/workflows/build-test-publish.yml/badge.svg)](https://github.com/NpgsqlRest/NpgsqlRest/actions/workflows/build-test-publish.yml)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![GitHub Stars](https://img.shields.io/github/stars/vb-consulting/NpgsqlRest?style=social)
-![GitHub Forks](https://img.shields.io/github/forks/vb-consulting/NpgsqlRest?style=social)
+![GitHub Stars](https://img.shields.io/github/stars/NpgsqlRest/NpgsqlRest?style=social)
+![GitHub Forks](https://img.shields.io/github/forks/NpgsqlRest/NpgsqlRest?style=social)
 
 **Automatic PostgreSQL Web Server**
 
@@ -51,7 +51,7 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 - **PostgreSQL Security and Encryption**. Database connection security features courtesy of [Npgsql](https://www.npgsql.org/doc/connection-string-parameters.html#security-and-encryption). Includes SSL, Certificates, Kerberos and more.
 
 ### Performance & Scalability
-- **High Performance**. Blazing fast native executable. See [Performance Benchmarks](https://github.com/vb-consulting/pg_function_load_tests).
+- **High Performance**. Blazing fast native executable. See [Performance Benchmarks](https://github.com/NpgsqlRest/pg_function_load_tests).
 - **Connection Pooling**. Built-in connection pooler, courtesy of [Npgsql](https://www.npgsql.org/doc/connection-string-parameters.html#pooling).
 - **KeepAlive, Auto-prepare, Buffer Size**. Other performance tweaks and settings courtesy of [Npgsql](https://www.npgsql.org/doc/connection-string-parameters.html#performance).
 - **Failover, Load Balancing**. Set multiple hosts in connection string for failover and balancing.
@@ -130,7 +130,7 @@ You have a choice to do the best approach that suits you. Either one of these th
 
 #### Download Executable 
 
-Download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page. You can use manual download, wget, or anything you want. Just remember to assign appropriate executable permissions after the download.
+Download the appropriate executable for your target OS from [Releases](https://github.com/NpgsqlRest/NpgsqlRest/releases) page. You can use manual download, wget, or anything you want. Just remember to assign appropriate executable permissions after the download.
 
 #### NPM Install
 
@@ -141,7 +141,7 @@ Download the appropriate executable for your target OS from [Releases](https://g
 added 1 package in 31s
 ```
 
-Note: NPM package will do the same thing on install automatically: Download the appropriate executable for your target OS from [Releases](https://github.com/vb-consulting/NpgsqlRest/releases) page.
+Note: NPM package will do the same thing on install automatically: Download the appropriate executable for your target OS from [Releases](https://github.com/NpgsqlRest/NpgsqlRest/releases) page.
 
 #### Docker Pull
 
@@ -303,7 +303,7 @@ export async function publicHelloWorld() : Promise<{status: number, response: st
     };
 }
 ```
-For a full list of configuration options, see the [default configuration file](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json). Any settings your configuration file will override these defaults.
+For a full list of configuration options, see the [default configuration file](https://github.com/NpgsqlRest/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json). Any settings your configuration file will override these defaults.
 
 Also, you can override these settings with console parameters. For example,e to enable Debug Level for NpgsqlRest run:
 
@@ -320,7 +320,7 @@ And finally, to see all command line options, use `-h` or `--help`:
 ❯ ./npgsqlrest --help
 Usage:
 npgsqlrest                               Run with the optional default configuration files: appsettings.json and appsettings.Development.json. If these file are not found, default configuration setting is used (see
-                                         https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json).
+                                         https://github.com/NpgsqlRest/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json).
 npgsqlrest [files...]                    Run with the custom configuration files. All configuration files are required. Any configuration values will override default values in order of appearance.
 npgsqlrest [file1 -o file2...]           Use the -o switch to mark the next configuration file as optional. The first file after the -o switch is optional.
 npgsqlrest [file1 --optional file2...]   Use --optional switch to mark the next configuration file as optional. The first file after the --optional switch is optional.
@@ -350,7 +350,7 @@ For integrating into existing .NET applications:
 dotnet add package NpgsqlRest
 ```
 
-Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/vb-consulting/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
+Note: PostgreSQL 13 minimal version is required to run the initial query to get the list of functions. The source code of this query can be found [here](https://github.com/NpgsqlRest/NpgsqlRest/blob/master/NpgsqlRest/RoutineQuery.cs). For versions prior to version 13, this query can be replaced with a custom query that can run on older versions.
 
 ## Contributing
 

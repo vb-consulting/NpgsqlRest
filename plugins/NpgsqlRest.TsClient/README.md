@@ -417,7 +417,7 @@ export async function getLatestCustomer() : Promise<ICustomersGetResponse> {
 
 ## Options
 
-See the [`TsClientOptions.cs` source file](https://github.com/vb-consulting/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient/TsClientOptions.cs).
+See the [`TsClientOptions.cs` source file](https://github.com/NpgsqlRest/NpgsqlRest/blob/master/plugins/NpgsqlRest.TsClient/TsClientOptions.cs).
 
 ```csharp
 namespace NpgsqlRest.TsClient;
