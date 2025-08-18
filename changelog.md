@@ -4,6 +4,21 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+## Version [2.31.0](https://github.com/NpgsqlRest/NpgsqlRest/tree/2.31.0) (2025-08-18)
+
+[Full Changelog](https://github.com/NpgsqlRest/NpgsqlRest/compare/2.30.0...2.31.0)
+
+- Simplified Claims mappings. See `ParameterNameClaimsMapping` and `ContextKeyClaimsMapping`. Exact claim names used.
+- Support for Connection Open Retry logic with identical behavior to EF Core. See `ConnectionSettings:RetryOptions` for more details.
+- Support for conenction string format parser using enviorment varaibles. See `ConnectionSettings:ParseConnectionStringWithEnvVars` for more details.
+- Support for Apple Silicon ARM64 builds.
+- Added Log MinimalLevels configuration for NpgsqlRest. See `Log:MinimalLevels:NpgsqlRest`.
+- Changed all NpgsqlRest informational logging to debug level.
+- Added trace logging for routine provider queries. This is very useful for debugging. Verbose level needs to be set.
+- Removed all links from comments, and recrated new readme pages.
+- Moved project from vb-consulting to NpgsqlRest.
+- Fixed typos in couple of options: `Languagues` -> `Languages`.
+
 ## Version [2.30.0](https://github.com/NpgsqlRest/NpgsqlRest/tree/2.30.0) (2025-08-09)
 
 [Full Changelog](https://github.com/NpgsqlRest/NpgsqlRest/compare/2.29.0...2.30.0)
