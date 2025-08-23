@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 env:
-  CLIENT_VERSION: v2.26.0
-  LIBRARY_VERSION: v2.31.0
+  CLIENT_VERSION: v2.27.0
+  LIBRARY_VERSION: v2.32.0
 
 # Add workflow-level permissions
 permissions:

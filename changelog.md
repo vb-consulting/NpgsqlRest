@@ -4,6 +4,23 @@ Note: The changelog for the older version can be found here: [Changelog Archive]
 
 ---
 
+## Version [2.32.0](https://github.com/NpgsqlRest/NpgsqlRest/tree/2.32.0) (2025-08-23)
+
+[Full Changelog](https://github.com/NpgsqlRest/NpgsqlRest/compare/2.31.0...2.32.0)
+
+- Added support for Basic Authentication. See `NpgsqlRest:AuthenticationOptions:BasicAuth` for more details.
+- Simplified data protection configuration. See `NpgsqlRest:DataProtection` for more details.
+- Simplified external authentication code.
+- Improved logging for authentication and data protection (verbose level).
+- Added new command line commands:
+
+```
+npgsqlrest hash [value]                               Hash value with default hasher and print to console.
+npgsqlrest basic_auth [username] [password]           Print out basic basic auth header value in format 'Authorization: Basic base64(username:password)'.
+npgsqlrest encrypt [value]                            Encrypt string using default data protection and print to console.
+npgsqlrest encrypted_basic_auth [username] [password] Print out basic basic auth header value in format 'Authorization: Basic base64(username:password)' where password is encrypted with default data protection.
+```
+
 ## Version [2.31.0](https://github.com/NpgsqlRest/NpgsqlRest/tree/2.31.0) (2025-08-18)
 
 [Full Changelog](https://github.com/NpgsqlRest/NpgsqlRest/compare/2.30.0...2.31.0)

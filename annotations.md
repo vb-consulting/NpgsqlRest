@@ -29,6 +29,45 @@ Require authorization for this endpoint.
 - If the user is not authorized and authorization is required, the endpoint will return the status code `401 Unauthorized`.
 - If the user is authorized but not in any of the roles required by the authorization, the endpoint will return the status code `403 Forbidden`.
 
+
+## BasicAuthentication
+
+```console
+basic_authentication [ [ username ] [ password ] ]
+basic_auth [ [ username ] [ password ] ]
+```
+
+Enable Basic Authentication for this endpoint. Optionally, set the expected password or username and password. If no username or password is set, default will be used from configuration.
+
+## BasicAuthenticationCommand
+
+```console
+basic_authentication_command [ command ]
+basic_auth_command [ command ]
+challenge_command [ command ]
+```
+
+Set Basic Authentication challenge command for this endpoint. Note: basic authentication must be enabled for this to take effect.
+
+This command will always be executed regardless if endpoint has set password and username in configuration. This command will always perform validation if it is present. Same rules will apply when using login command and it can return valid claims if necessary.
+
+It takes 4 optional parameters:
+
+- `$1`: Unnamed, positional and optional parameter containing username from basic authentication header.
+- `$2`: Unnamed, positional and optional parameter containing password from basic authentication header.
+- `$3`: Unnamed, positional and optional parameter containing basic authentication realm.
+- `$4`: Unnamed, positional and optional parameter containing endpoint path.
+
+## BasicAuthenticationRealm
+
+```console
+basic_authentication_realm [ realm ]
+basic_auth_realm [ realm ]
+realm [ realm ]
+```
+
+Set Basic Authentication Realm for this endpoint. Note: basic authentication must be enabled for this to take effect.
+
 ## BodyParameterName
 
 ```console
@@ -196,9 +235,17 @@ login
 signin
 ```
 
-This annotation will transform the routine into the authentication endpoint that performs the sign-in operation.
+This annotation will transform the routine into the authentication endpoint that performs the sign-in operation. Endpoint will be used for the login endpoint. If NULL, the login endpoint will not be created.
 
-See more information on how the login endpoints work on the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/login-endpoints).
+Login endpoint expects a PostgreSQL command that will be executed to authenticate the user that follow this convention:
+ 
+- Must return at least one record when authentication is successful. If no records are returned endpoint will return 401 Unauthorized.
+- If record is returned, the authentication is successful, if not set in StatusColumnName column otherwise.
+- All records will be added to user principal claim collection where column name is claim type and column value is claim value, except for three special columns defined in StatusColumnName, SchemeColumnName and MessageColumnName options:
+
+- If "StatusColumnName" is present in the returned record, it must be either boolean (true for success, false for failure) or numeric (HTTP Status Code, 200 for success, anything else for failure). If not present, the success is when the endpoint returns any records.
+- If "SchemeColumnName" is present in the returned record, it must be text value that defines the authentication scheme to use for the login.
+- If "MessageColumnName" is present in the returned record, it must be text value that defines the message to return to the client. This only works for authentication that doesn't write response body (cookie authentication).
 
 ## Logout
 
@@ -207,11 +254,11 @@ logout
 signout
 ```
 
-This annotation will transform the routine into the endpoint that performs the logout or the sign-out operation.
+This annotation will transform the routine into the endpoint that performs the logout or the sign-out operation. Endpoint will be used for the logout endpoint. If NULL, the logout endpoint will not be created. 
 
-If the routine doesn't return any data, the default authorization scheme is signed out. Any values returned will be interpreted as scheme names (converted to string) to sign out.
+Login endpoint expects a PostgreSQL command that performs the logout or the sign-out operation. If the routine doesn't return any data, the default authorization scheme is signed out. 
 
-For more information on the login and the logout see the [login endpoints documentation page](https://vb-consulting.github.io/npgsqlrest/login-endpoints).
+Any values returned will be interpreted as scheme names (converted to string) to sign out.
 
 ## NewLine
 

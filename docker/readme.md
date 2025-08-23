@@ -174,7 +174,7 @@ Type executable name:
 ```console
 ~/dev
 ❯ ./npgsqlrest
-[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
 ```
 
 Or, run as NPX command for NPM distributions:
@@ -182,7 +182,7 @@ Or, run as NPX command for NPM distributions:
 ```console
 ~/dev
 ❯ npx npgsqlrest
-[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
 ```
 
 Or, run the appropriate Docker command (expose the 8080 default port and bind the default configuration):
@@ -190,7 +190,7 @@ Or, run the appropriate Docker command (expose the 8080 default port and bind th
 ```bash
 ~/dev
 ❯ docker run -p 8080:8080 -v ./appsettings.json:/app/appsettings.json --network host vbilopav/npgsqlrest:latest
-[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+[11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
 ```
 
 Congratulations, your High Speed Web Server is running with `/hello` endpoint exposed.  
@@ -245,7 +245,7 @@ After running with this configuration, we will see much more information in the 
 [12:46:05.332 DBG] Created HTTP file: ./src/http/todo_public.http [NpgsqlRest.HttpFiles]
 [12:46:05.340 DBG] Created Typescript type file: ./src/app/api/publicApiTypes.d.ts [NpgsqlRest.TsClient]
 [12:46:05.340 DBG] Created Typescript file: ./src/app/api/publicApi.ts [NpgsqlRest.TsClient]
-[12:46:05.358 INF] Started in 00:00:00.2759846, listening on ["http://localhost:8080"], version 2.26.0.0 [NpgsqlRest]
+[12:46:05.358 INF] Started in 00:00:00.2759846, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
 ```
 
 Also, two more files will be generated on startup:
