@@ -57,7 +57,7 @@ jobs:
       with:
         tag_name: ${{ env.LIBRARY_VERSION }}-client-${{ env.CLIENT_VERSION }}
         release_name: "AOT Client ${{ env.CLIENT_VERSION }} NpgsqlRest ${{ env.LIBRARY_VERSION }}"
-        draft: true
+        draft: false
         prerelease: false
 
   upload-assets:
