@@ -1,10 +1,6 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Data;
-using System.Data.Common;
 using System.Net;
-using System.Reflection.Metadata;
-using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -200,6 +196,20 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                     }
                 };
             }
+            
+            if (Options.AuthenticationOptions.BasicAuth.Enabled is true || endpoint.BasicAuth?.Enabled is true)
+            {
+                if (Options.AuthenticationOptions.BasicAuth.ChallengeCommand is not null || endpoint.BasicAuth?.ChallengeCommand is not null)
+                {
+                    await OpenConnectionAsync(connection, context, endpoint);
+                }
+                await AuthHandler.HandleBasicAuthAsync(context, endpoint, Options, connection, logger);
+                if (context.Response.HasStarted is true)
+                {
+                    return;
+                }
+            }
+            
             await using var command = NpgsqlRestCommand.Create(connection);
 
             var shouldLog = Options.LogCommands && logger != null;
@@ -211,7 +221,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             {
                 commandText = routine.Expression;
             }
-
+            
             // paramsList
             bool hasNulls = false;
             int paramIndex = 0;
@@ -223,7 +233,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             uploadHandler = endpoint.Upload is true ? Options.CreateUploadHandler(endpoint, logger) : null;
             int uploadMetaParamIndex = -1;
             Dictionary<string, object>? claimsDict = null;
-
+            
             if (endpoint.Cached is true)
             {
                 cacheKeys = new(endpoint.CachedParams?.Count ?? 0 + 1);
@@ -1217,15 +1227,25 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 }
                 await batch.ExecuteNonQueryAsync();
             }
-
+            
             if (endpoint.Login is true)
             {
                 if (await PrepareCommand(connection, command, commandText, context, endpoint, false) is false)
                 {
                     return;
                 }
-                await AuthHandler.HandleLoginAsync(command, context, routine, Options, logger);
-                if (context.Response.HasStarted is true || Options.AuthenticationOptions.SerializeAuthEndpointsResponse is false)
+
+                await AuthHandler.HandleLoginAsync(
+                    command,
+                    context,
+                    Options,
+                    logger,
+                    tracePath: path,
+                    performHashVerification: true,
+                    assignUserPrincipalToContext: false);
+                
+                if (context.Response.HasStarted is true ||
+                    Options.AuthenticationOptions.SerializeAuthEndpointsResponse is false)
                 {
                     return;
                 }
@@ -1237,10 +1257,11 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
                 {
                     return;
                 }
-                await AuthHandler.HandleLogoutAsync(command, routine, context);
+
+                await AuthHandler.HandleLogoutAsync(command, endpoint, context, logger);
                 return;
             }
-
+            
             if (routine.IsVoid)
             {
                 if (await PrepareCommand(connection, command, commandText, context, endpoint, true) is false)
@@ -1679,7 +1700,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         await _next(context);
         return;
     }
-
+    
     private static async Task<bool> PrepareCommand(
         NpgsqlConnection connection,
         NpgsqlCommand command,
@@ -1688,14 +1709,7 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
         RoutineEndpoint endpoint,
         bool unknownResults)
     {
-        if (connection.State != ConnectionState.Open)
-        {
-            if (Options.BeforeConnectionOpen is not null)
-            {
-                Options.BeforeConnectionOpen(connection, endpoint, context);
-            }
-            await NpgsqlConnectionRetryOpener.OpenAsync(connection, Options.ConnectionRetryOptions, logger, context.RequestAborted);
-        }
+        await OpenConnectionAsync(connection, context, endpoint);
         command.CommandText = commandText;
         
         if (endpoint.CommandTimeout.HasValue)
@@ -1727,6 +1741,18 @@ public class NpgsqlRestMiddleware(RequestDelegate next)
             command.AllResultTypesAreUnknown = false;
         }
         return true;
+    }
+    
+    private static async Task OpenConnectionAsync(NpgsqlConnection connection, HttpContext context, RoutineEndpoint endpoint)
+    {
+        if (connection.State != ConnectionState.Open)
+        {
+            if (Options.BeforeConnectionOpen is not null)
+            {
+                Options.BeforeConnectionOpen(connection, endpoint, context);
+            }
+            await NpgsqlConnectionRetryOpener.OpenAsync(connection, Options.ConnectionRetryOptions, logger, context.RequestAborted);
+        }
     }
 
     private static void SearializeHeader(NpgsqlRestOptions options, HttpContext context, ref string? headers)

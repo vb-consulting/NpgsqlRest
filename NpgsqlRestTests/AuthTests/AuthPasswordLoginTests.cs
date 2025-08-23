@@ -1,4 +1,5 @@
 using Npgsql;
+using NpgsqlRest.Auth;
 
 namespace NpgsqlRestTests;
 

@@ -36,7 +36,8 @@ public class RoutineEndpoint(
     bool userParameters = false,
     string? infoEventsStreamingPath = null,
     InfoEventsScope infoEventsScope = InfoEventsScope.Self,
-    HashSet<string>? infoEventsRoles = null)
+    HashSet<string>? infoEventsRoles = null,
+    Auth.EndpointBasicAuthOptions? basicAuth = null)
 {
     private string? _bodyParameterName = bodyParameterName;
 
@@ -89,4 +90,5 @@ public class RoutineEndpoint(
     public string? InfoEventsStreamingPath { get; set; } = infoEventsStreamingPath;
     public InfoEventsScope InfoEventsScope { get; set; } = infoEventsScope;
     public HashSet<string>? InfoEventsRoles { get; set; } = infoEventsRoles;
+    public Auth.EndpointBasicAuthOptions? BasicAuth { get; set; } = basicAuth;
 }

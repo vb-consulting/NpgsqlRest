@@ -1,4 +1,6 @@
 ﻿
+using Microsoft.AspNetCore.DataProtection;
+
 namespace NpgsqlRest.Auth;
 
 /// <summary>
@@ -165,4 +167,14 @@ public class NpgsqlRestAuthenticationOptions
     /// When this option is not null, the IP address will be set to the parameter when <see cref="UseUserContext"/> is enabled and even when user is not authenticated.
     /// </summary>
     public string? IpAddressParameterName { get; set; } = "_ip_address";
+
+    /// <summary>
+    /// Default options for Basic Authentication.
+    /// </summary>
+    public BasicAuthOptions BasicAuth { get; set; } = new();
+    
+    /// <summary>
+    /// Default data protector used to encrypt and decrypt data.
+    /// </summary>
+    public IDataProtector? DefaultDataProtector { get; set; } = null;
 }

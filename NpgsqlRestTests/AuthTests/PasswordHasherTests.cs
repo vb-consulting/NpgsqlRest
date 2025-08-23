@@ -1,3 +1,5 @@
+using NpgsqlRest.Auth;
+
 namespace NpgsqlRestTests.AuthTests;
 
 public class PasswordHasherTests

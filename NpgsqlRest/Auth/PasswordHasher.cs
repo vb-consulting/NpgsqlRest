@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace NpgsqlRest;
+namespace NpgsqlRest.Auth;
 
 public interface IPasswordHasher
 {

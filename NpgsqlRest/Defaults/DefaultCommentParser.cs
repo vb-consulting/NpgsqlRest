@@ -5,36 +5,36 @@ namespace NpgsqlRest.Defaults;
 
 internal static class DefaultCommentParser
 {
-    private static readonly char[] newlineSeparator = ['\r', '\n'];
-    private static readonly char[] wordSeparators = [Consts.Space, Consts.Comma];
+    private static readonly char[] NewlineSeparator = ['\r', '\n'];
+    private static readonly char[] WordSeparators = [Consts.Space, Consts.Comma];
 
     private const string HttpKey = "http";
     private const string PathKey = "path";
 
-    private static readonly string[] paramTypeKey = [
+    private static readonly string[] ParamTypeKey = [
         "request_param_type",
         "param_type",
     ];
-    private static readonly string[] queryKey = [
+    private static readonly string[] QueryKey = [
         "query_string",
         "query"
     ];
-    private static readonly string[] jsonKey = [
+    private static readonly string[] JsonKey = [
         "body_json",
         "body"
     ];
-    private static readonly string[] authorizeKey = [
+    private static readonly string[] AuthorizeKey = [
         "authorize",
         "authorized",
         "requires_authorization",
     ];
-    private static readonly string[] allowAnonymousKey = [
+    private static readonly string[] AllowAnonymousKey = [
         "allow_anonymous",
         "anonymous",
         "allow_anon",
         "anon"
     ];
-    private static readonly string[] timeoutKey = [
+    private static readonly string[] TimeoutKey = [
         "command_timeout",
         "timeout"
     ];
@@ -43,7 +43,7 @@ internal static class DefaultCommentParser
         "content_type",
     ];
 
-    private static readonly string[] requestHeadersModeKey = [
+    private static readonly string[] RequestHeadersModeKey = [
         "request_headers_mode",
         "request_headers",
     ];
@@ -52,42 +52,42 @@ internal static class DefaultCommentParser
     private const string RequestHeaderModeContextKey = "context";
     private const string RequestHeaderModeParameterKey = "parameter";
 
-    private static readonly string[] requestHeadersParameterNameKey = [
+    private static readonly string[] RequestHeadersParameterNameKey = [
         "request_headers_parameter_name",
         "request_headers_param_name",
         "request-headers-param-name",
     ];
-    private static readonly string[] bodyParameterNameKey = [
+    private static readonly string[] BodyParameterNameKey = [
         "body_parameter_name",
         "body_param_name"
     ];
-    private static readonly string[] tagsKey = ["for", "tags", "tag"];
+    private static readonly string[] TagsKey = ["for", "tags", "tag"];
 
     private const string DisabledKey = "disabled";
     private const string EnabledKey = "enabled";
 
-    private static readonly string[] textResponseNullHandlingKey = [
+    private static readonly string[] TextResponseNullHandlingKey = [
         "response_null_handling",
         "response_null",
     ];
 
-    private static readonly string[] emptyStringKey = [
+    private static readonly string[] EmptyStringKey = [
         "empty",
         "empty_string"
     ];
 
-    private static readonly string[] nullLiteral = [
+    private static readonly string[] NullLiteral = [
         "null_literal",
         "null"
     ];
 
-    private static readonly string[] noContentKey = [
+    private static readonly string[] NoContentKey = [
         "204",
         "204_no_content",
         "no_content",
     ];
 
-    private static readonly string[] queryStringNullHandlingKey = [
+    private static readonly string[] QueryStringNullHandlingKey = [
         "query_string_null_handling",
         "query_null_handling",
         "query_string_null",
@@ -104,28 +104,28 @@ internal static class DefaultCommentParser
         "signout",
     ];
 
-    private static readonly string[] bufferRowsKey = [
+    private static readonly string[] BufferRowsKey = [
         "buffer_rows",
         "buffer"
     ];
 
-    private static readonly string[] rawKey = [
+    private static readonly string[] RawKey = [
         "raw",
         "raw_mode",
         "raw_results",
     ];
 
-    private static readonly string[] separatorKey = [
+    private static readonly string[] SeparatorKey = [
         "separator",
         "raw_separator",
     ];
 
-    private static readonly string[] newLineKey = [
+    private static readonly string[] NewLineKey = [
         "new_line",
         "raw_new_line",
     ];
 
-    private static readonly string[] columnNamesKey = [
+    private static readonly string[] ColumnNamesKey = [
         "columns",
         "names",
         "column_names",
@@ -133,48 +133,65 @@ internal static class DefaultCommentParser
 
     private const string CacheKey = "cached";
 
-    private static readonly string[] cacheExpiresInKey = [
+    private static readonly string[] CacheExpiresInKey = [
         "cache_expires",
         "cache_expires_in",
     ];
 
-    private static readonly string[] connectionNameKey = [
+    private static readonly string[] ConnectionNameKey = [
         "connection",
         "connection_name",
     ];
 
-    private static readonly string[] securitySensitiveKey = [
+    private static readonly string[] SecuritySensitiveKey = [
         "sensitive",
         "security",
         "security_sensitive",
     ];
 
-    private static readonly string[] userContextKey = [
+    private static readonly string[] UserContextKey = [
         "user_context"
     ];
 
-    private static readonly string[] userParemetersKey = [
+    private static readonly string[] UserParemetersKey = [
         "user_parameters",
         "user_params",
     ];
 
     private const string UploadKey = "upload";
 
-    private static readonly string[] parameterKey = [
+    private static readonly string[] ParameterKey = [
         "parameter",
         "param",
     ];
 
-    private static readonly string[] infoEventsStreamingPathKey = [
+    private static readonly string[] InfoEventsStreamingPathKey = [
         "info_path",
         "info_events_path",
         "info_streaming_path"
     ];
 
-    private static readonly string[] infoEventsStreamingScopeKey = [
+    private static readonly string[] InfoEventsStreamingScopeKey = [
         "info_scope",
         "info_events_scope",
         "info_streaming_scope",
+    ];
+    
+    private static readonly string[] BasicAuthKey = [
+        "basic_authentication",
+        "basic_auth",
+    ];
+    
+    private static readonly string[] BasicAuthRealmKey = [
+        "basic_authentication_realm",
+        "basic_auth_realm",
+        "realm",
+    ];
+    
+    private static readonly string[] BasicAuthCommandKey = [
+        "basic_authentication_command",
+        "basic_auth_command",
+        "challenge_command",
     ];
 
     public static RoutineEndpoint? Parse(
@@ -209,15 +226,17 @@ internal static class DefaultCommentParser
             var urlDescription = string.Concat(routineEndpoint.Method.ToString(), " ", routineEndpoint.Url);
             var description = string.Concat(routineDescription, " mapped to ", urlDescription);
 
-            string[] lines = comment.Split(newlineSeparator, StringSplitOptions.RemoveEmptyEntries);
+            string[] lines = comment.Split(NewlineSeparator, StringSplitOptions.RemoveEmptyEntries);
             routineEndpoint.CommentWordLines = new string[lines.Length][];
             bool hasHttpTag = false;
             for (var i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
+                string[] wordsLower = line.SplitWordsLower();
                 string[] words = line.SplitWords();
-                routineEndpoint.CommentWordLines[i] = words;
-                var len = words.Length;
+                
+                routineEndpoint.CommentWordLines[i] = wordsLower;
+                var len = wordsLower.Length;
                 if (len == 0)
                 {
                     continue;
@@ -226,9 +245,9 @@ internal static class DefaultCommentParser
                 // for tag1, tag2, tag3 [, ...]
                 // tag tag1, tag2, tag3 [, ...]
                 // tags tag1, tag2, tag3 [, ...]
-                if (routine.Tags is not null && routine.Tags.Length > 0 && StrEqualsToArray(words[0], tagsKey))
+                if (routine.Tags is not null && routine.Tags.Length > 0 && StrEqualsToArray(wordsLower[0], TagsKey))
                 {
-                    string[] arr = words[1..];
+                    string[] arr = wordsLower[1..];
                     bool found = false;
                     for (var j = 0; j < routine.Tags.Length; j++)
                     {
@@ -309,7 +328,7 @@ internal static class DefaultCommentParser
 
                 // disabled
                 // disabled tag1, tag2, tag3 [, ...]
-                else if (haveTag is true && StrEquals(words[0], DisabledKey))
+                else if (haveTag is true && StrEquals(wordsLower[0], DisabledKey))
                 {
                     if (len == 1)
                     {
@@ -317,7 +336,7 @@ internal static class DefaultCommentParser
                     }
                     else if (routine.Tags is not null && routine.Tags.Length > 0)
                     {
-                        string[] arr = words[1..];
+                        string[] arr = wordsLower[1..];
                         for (var j = 0; j < routine.Tags.Length; j++)
                         {
                             var tag = routine.Tags[j];
@@ -332,7 +351,7 @@ internal static class DefaultCommentParser
 
                 // enabled
                 // enabled [ tag1, tag2, tag3 [, ...] ]
-                else if (haveTag is true && StrEquals(words[0], EnabledKey))
+                else if (haveTag is true && StrEquals(wordsLower[0], EnabledKey))
                 {
                     if (len == 1)
                     {
@@ -340,7 +359,7 @@ internal static class DefaultCommentParser
                     }
                     else if (routine.Tags is not null && routine.Tags.Length > 0)
                     {
-                        string[] arr = words[1..];
+                        string[] arr = wordsLower[1..];
                         for (var j = 0; j < routine.Tags.Length; j++)
                         {
                             var tag = routine.Tags[j];
@@ -357,26 +376,26 @@ internal static class DefaultCommentParser
                 // HTTP [ GET | POST | PUT | DELETE ]
                 // HTTP [ GET | POST | PUT | DELETE ] path
                 // HTTP path
-                else if (haveTag is true && StrEquals(words[0], HttpKey))
+                else if (haveTag is true && StrEquals(wordsLower[0], HttpKey))
                 {
                     hasHttpTag = true;
                     string? urlPathSegment = null;
                     if (len == 2 || len == 3)
                     {
-                        if (Enum.TryParse<Method>(words[1], true, out var parsedMethod))
+                        if (Enum.TryParse<Method>(wordsLower[1], true, out var parsedMethod))
                         {
                             routineEndpoint.Method = parsedMethod;
                             routineEndpoint.RequestParamType = routineEndpoint.Method == Method.GET ? RequestParamType.QueryString : RequestParamType.BodyJson;
                         }
                         else
                         {
-                            urlPathSegment = words[1];
+                            urlPathSegment = wordsLower[1];
                             //logger?.InvalidHttpMethodComment(words[1], description, routineEndpoint.Method);
                         }
                     }
                     if (len == 3)
                     {
-                        urlPathSegment = words[2];
+                        urlPathSegment = wordsLower[2];
                     }
                     if (urlPathSegment is not null)
                     {
@@ -405,11 +424,11 @@ internal static class DefaultCommentParser
                 }
 
                 // PATH path
-                else if (haveTag is true && StrEquals(words[0], PathKey))
+                else if (haveTag is true && StrEquals(wordsLower[0], PathKey))
                 {
                     if (len == 2)
                     {
-                        string? urlPathSegment = words[1];
+                        string? urlPathSegment = wordsLower[1];
                         if (!Uri.TryCreate(urlPathSegment, UriKind.Relative, out Uri? uri))
                         {
                             logger?.InvalidUrlPathSegmentComment(urlPathSegment, description, routineEndpoint.Url);
@@ -434,19 +453,19 @@ internal static class DefaultCommentParser
 
                 // request_param_type  [ [ query_string | query ] | [ body_json |  body ] ]
                 // param_type  [ [ query_string | query ] | [ body_json | body ] ]
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], paramTypeKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], ParamTypeKey))
                 {
-                    if (StrEqualsToArray(words[1], queryKey))
+                    if (StrEqualsToArray(wordsLower[1], QueryKey))
                     {
                         routineEndpoint.RequestParamType = RequestParamType.QueryString;
                     }
-                    else if (StrEqualsToArray(words[1], jsonKey))
+                    else if (StrEqualsToArray(wordsLower[1], JsonKey))
                     {
                         routineEndpoint.RequestParamType = RequestParamType.BodyJson;
                     }
                     else
                     {
-                        logger?.InvalidParameterTypeComment(words[1], description, routineEndpoint.RequestParamType);
+                        logger?.InvalidParameterTypeComment(wordsLower[1], description, routineEndpoint.RequestParamType);
                     }
 
                     if (originalParamType != routineEndpoint.RequestParamType)
@@ -462,12 +481,12 @@ internal static class DefaultCommentParser
                 // requires_authorization
                 // authorize [ role1, role2, role3 [, ...] ]
                 // requires_authorization [ role1, role2, role3 [, ...] ]
-                else if (haveTag is true && StrEqualsToArray(words[0], authorizeKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], AuthorizeKey))
                 {
                     routineEndpoint.RequiresAuthorization = true;
-                    if (words.Length > 1)
+                    if (wordsLower.Length > 1)
                     {
-                        routineEndpoint.AuthorizeRoles = [.. words[1..]];
+                        routineEndpoint.AuthorizeRoles = [.. wordsLower[1..]];
                         if (options.LogAnnotationSetInfo)
                         {
                             logger?.CommentSetAuthRoles(description, routineEndpoint.AuthorizeRoles);
@@ -486,7 +505,7 @@ internal static class DefaultCommentParser
                 // anonymous
                 // allow_anon
                 // anon
-                else if (haveTag is true && StrEqualsToArray(words[0], allowAnonymousKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], AllowAnonymousKey))
                 {
                     routineEndpoint.RequiresAuthorization = false;
                     if (options.LogAnnotationSetInfo)
@@ -497,113 +516,113 @@ internal static class DefaultCommentParser
 
                 // command_timeout seconds
                 // timeout seconds
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], timeoutKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], TimeoutKey))
                 {
-                    if (int.TryParse(words[1], out var parsedTimeout))
+                    if (int.TryParse(wordsLower[1], out var parsedTimeout))
                     {
                         if (routineEndpoint.CommandTimeout != parsedTimeout)
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentSetTimeout(description, words[1]);
+                                logger?.CommentSetTimeout(description, wordsLower[1]);
                             }
                         }
                         routineEndpoint.CommandTimeout = parsedTimeout;
                     }
                     else
                     {
-                        logger?.InvalidTimeoutComment(words[1], description, routineEndpoint.CommandTimeout);
+                        logger?.InvalidTimeoutComment(wordsLower[1], description, routineEndpoint.CommandTimeout);
                     }
                 }
 
                 // request_headers_mode [ ignore | context | parameter ]
                 // request_headers [ ignore | context | parameter ]
-                else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersModeKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], RequestHeadersModeKey))
                 {
-                    if (StrEquals(words[1], RequestHeaderModeIgnoreKey))
+                    if (StrEquals(wordsLower[1], RequestHeaderModeIgnoreKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Ignore;
                     }
-                    else if (StrEquals(words[1], RequestHeaderModeContextKey))
+                    else if (StrEquals(wordsLower[1], RequestHeaderModeContextKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Context;
                     }
-                    else if (StrEquals(words[1], RequestHeaderModeParameterKey))
+                    else if (StrEquals(wordsLower[1], RequestHeaderModeParameterKey))
                     {
                         routineEndpoint.RequestHeadersMode = RequestHeadersMode.Parameter;
                     }
                     else
                     {
-                        logger?.InvalidRequestHeadersModeComment(words[1], description, routineEndpoint.RequestHeadersMode);
+                        logger?.InvalidRequestHeadersModeComment(wordsLower[1], description, routineEndpoint.RequestHeadersMode);
                     }
                     if (routineEndpoint.RequestHeadersMode != options.RequestHeadersMode)
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetRequestHeadersMode(description, words[1]);
+                            logger?.CommentSetRequestHeadersMode(description, wordsLower[1]);
                         }
                     }
                 }
 
                 // request_headers_parameter_name name
                 // request_headers_param_name name
-                else if (haveTag is true && StrEqualsToArray(words[0], requestHeadersParameterNameKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], RequestHeadersParameterNameKey))
                 {
                     if (len == 2)
                     {
-                        if (!string.Equals(routineEndpoint.RequestHeadersParameterName, words[1]))
+                        if (!string.Equals(routineEndpoint.RequestHeadersParameterName, wordsLower[1]))
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentSetRequestHeadersParamName(description, words[1]);
+                                logger?.CommentSetRequestHeadersParamName(description, wordsLower[1]);
                             }
                         }
-                        routineEndpoint.RequestHeadersParameterName = words[1];
+                        routineEndpoint.RequestHeadersParameterName = wordsLower[1];
                     }
                 }
 
                 // body_parameter_name name
                 // body_param_name name
-                else if (haveTag is true && StrEqualsToArray(words[0], bodyParameterNameKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], BodyParameterNameKey))
                 {
                     if (len == 2)
                     {
-                        if (!string.Equals(routineEndpoint.BodyParameterName, words[1]))
+                        if (!string.Equals(routineEndpoint.BodyParameterName, wordsLower[1]))
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentSetBodyParamName(description, words[1]);
+                                logger?.CommentSetBodyParamName(description, wordsLower[1]);
                             }
                         }
-                        routineEndpoint.BodyParameterName = words[1];
+                        routineEndpoint.BodyParameterName = wordsLower[1];
                     }
                 }
 
                 // response_null_handling [ empty_string | empty | null_literal | null | no_content | 204 | 204_no_content ]
                 // response_null [ empty_string | empty | null_literal | null |  no_content | 204 | 204_no_content ]
-                else if (haveTag is true && StrEqualsToArray(words[0], textResponseNullHandlingKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], TextResponseNullHandlingKey))
                 {
-                    if (StrEqualsToArray(words[1], emptyStringKey))
+                    if (StrEqualsToArray(wordsLower[1], EmptyStringKey))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.EmptyString;
                     }
-                    else if (StrEqualsToArray(words[1], nullLiteral))
+                    else if (StrEqualsToArray(wordsLower[1], NullLiteral))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NullLiteral;
                     }
-                    else if (StrEqualsToArray(words[1], noContentKey))
+                    else if (StrEqualsToArray(wordsLower[1], NoContentKey))
                     {
                         routineEndpoint.TextResponseNullHandling = TextResponseNullHandling.NoContent;
                     }
                     else
                     {
-                        logger?.InvalidResponseNullHandlingModeComment(words[1], description, routineEndpoint.TextResponseNullHandling);
+                        logger?.InvalidResponseNullHandlingModeComment(wordsLower[1], description, routineEndpoint.TextResponseNullHandling);
                     }
                     if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
                     {
                         if (options.LogAnnotationSetInfo)
                         {
-                            logger?.CommentSetTextResponseNullHandling(description, words[1]);
+                            logger?.CommentSetTextResponseNullHandling(description, wordsLower[1]);
                         }
                     }
                 }
@@ -612,23 +631,23 @@ internal static class DefaultCommentParser
                 // query_null_handling [ empty_string | empty |null_literal | null |  ignore ]
                 // query_string_null [ empty_string | empty |null_literal | null |  ignore ]
                 // query_null [ empty_string | empty | null_literal | null |  ignore ]
-                else if (haveTag is true && StrEqualsToArray(words[0], queryStringNullHandlingKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], QueryStringNullHandlingKey))
                 {
-                    if (StrEqualsToArray(words[1], emptyStringKey))
+                    if (StrEqualsToArray(wordsLower[1], EmptyStringKey))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.EmptyString;
                     }
-                    else if (StrEqualsToArray(words[1], nullLiteral))
+                    else if (StrEqualsToArray(wordsLower[1], NullLiteral))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.NullLiteral;
                     }
-                    else if (StrEquals(words[1], RequestHeaderModeIgnoreKey))
+                    else if (StrEquals(wordsLower[1], RequestHeaderModeIgnoreKey))
                     {
                         routineEndpoint.QueryStringNullHandling = QueryStringNullHandling.Ignore;
                     }
                     else
                     {
-                        logger?.InvalidQueryStringNullHandlingComment(words[1], description, routineEndpoint.QueryStringNullHandling);
+                        logger?.InvalidQueryStringNullHandlingComment(wordsLower[1], description, routineEndpoint.QueryStringNullHandling);
                     }
                     if (routineEndpoint.TextResponseNullHandling != options.TextResponseNullHandling)
                     {
@@ -641,7 +660,7 @@ internal static class DefaultCommentParser
 
                 // login
                 // signin
-                else if (haveTag is true && StrEqualsToArray(words[0], LoginKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], LoginKey))
                 {
                     routineEndpoint.Login = true;
                     if (options.LogAnnotationSetInfo)
@@ -652,7 +671,7 @@ internal static class DefaultCommentParser
 
                 // logout
                 // signout
-                else if (haveTag is true && StrEqualsToArray(words[0], LogoutKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], LogoutKey))
                 {
                     routineEndpoint.Logout = true;
                     if (options.LogAnnotationSetInfo)
@@ -663,29 +682,29 @@ internal static class DefaultCommentParser
 
                 // buffer_rows number
                 // buffer number
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], bufferRowsKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], BufferRowsKey))
                 {
-                    if (ulong.TryParse(words[1], out var parsedBuffer))
+                    if (ulong.TryParse(wordsLower[1], out var parsedBuffer))
                     {
                         if (routineEndpoint.BufferRows != parsedBuffer)
                         {
                             if (options.LogAnnotationSetInfo)
                             {
-                                logger?.CommentBufferRows(description, words[1]);
+                                logger?.CommentBufferRows(description, wordsLower[1]);
                             }
                         }
                         routineEndpoint.BufferRows = parsedBuffer;
                     }
                     else
                     {
-                        logger?.InvalidBufferRows(words[1], description, options.BufferRows);
+                        logger?.InvalidBufferRows(wordsLower[1], description, options.BufferRows);
                     }
                 }
 
                 // raw
                 // raw_mode
                 // raw_results
-                else if (haveTag is true && StrEqualsToArray(words[0], rawKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], RawKey))
                 {
                     logger?.CommentSetRawMode(description);
                     routineEndpoint.Raw = true;
@@ -693,20 +712,20 @@ internal static class DefaultCommentParser
 
                 // separator [ value ]
                 // raw_separator [ value ]
-                else if (haveTag is true && line.StartsWith(string.Concat(separatorKey[0], " ")))
+                else if (haveTag is true && line.StartsWith(string.Concat(SeparatorKey[0], " ")))
                 //else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], separatorKey))
                 {
-                    var sep = line[(words[0].Length + 1)..];
+                    var sep = line[(wordsLower[0].Length + 1)..];
                     logger?.CommentSetRawValueSeparator(description, sep);
                     routineEndpoint.RawValueSeparator = Regex.Unescape(sep);
                 }
 
                 // new_line [ value ]
                 // raw_new_line [ value ]
-                else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(newLineKey[0], " ")))
+                else if (haveTag is true && len >= 2 && line.StartsWith(string.Concat(NewLineKey[0], " ")))
                 //else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], newLineKey))
                 {
-                    var nl = line[(words[0].Length + 1)..];
+                    var nl = line[(wordsLower[0].Length + 1)..];
                     logger?.CommentSetRawNewLineSeparator(description, nl);
                     routineEndpoint.RawNewLineSeparator = Regex.Unescape(nl);
                 }
@@ -714,7 +733,7 @@ internal static class DefaultCommentParser
                 // columns
                 // names
                 // column_names
-                else if (haveTag is true && StrEqualsToArray(words[0], columnNamesKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], ColumnNamesKey))
                 {
                     routineEndpoint.RawColumnNames = true;
                     if (options.LogAnnotationSetInfo)
@@ -725,7 +744,7 @@ internal static class DefaultCommentParser
 
                 // sensitive
                 // security_sensitive
-                else if (haveTag is true && StrEqualsToArray(words[0], securitySensitiveKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], SecuritySensitiveKey))
                 {
                     routineEndpoint.SecuritySensitive = true;
                     if (options.LogAnnotationSetInfo)
@@ -735,7 +754,7 @@ internal static class DefaultCommentParser
                 }
 
                 // user_context
-                else if (haveTag is true && StrEqualsToArray(words[0], userContextKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], UserContextKey))
                 {
                     routineEndpoint.UserContext = true;
                     if (options.LogAnnotationSetInfo)
@@ -746,7 +765,7 @@ internal static class DefaultCommentParser
 
                 // user_parameters
                 // user_params
-                else if (haveTag is true && StrEqualsToArray(words[0], userParemetersKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], UserParemetersKey))
                 {
                     routineEndpoint.UseUserParameters = true;
                     if (options.LogAnnotationSetInfo)
@@ -757,7 +776,7 @@ internal static class DefaultCommentParser
 
                 // cached
                 // cached [ param1, param2, param3 [, ...] ]
-                else if (haveTag is true && StrEquals(words[0], CacheKey))
+                else if (haveTag is true && StrEquals(wordsLower[0], CacheKey))
                 {
                     if (!(routine.ReturnsSet == false && routine.ColumnCount == 1 && routine.ReturnsRecordType is false))
                     {
@@ -766,7 +785,7 @@ internal static class DefaultCommentParser
                     routineEndpoint.Cached = true;
                     if (len > 1)
                     {
-                        var names = words[1..];
+                        var names = wordsLower[1..];
                         HashSet<string> result = new(names.Length);
                         for (int j = 0; j < names.Length; j++)
                         {
@@ -791,9 +810,9 @@ internal static class DefaultCommentParser
 
                 // cache_expires
                 // cache_expires_in
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], cacheExpiresInKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], CacheExpiresInKey))
                 {
-                    var value = Parser.ParsePostgresInterval(string.Join(Consts.Space, words[1..]));
+                    var value = Parser.ParsePostgresInterval(string.Join(Consts.Space, wordsLower[1..]));
                     if (value is not null)
                     {
                         routineEndpoint.CacheExpiresIn = value.Value;
@@ -804,15 +823,15 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        logger?.InvalidCacheExpiresIn(description, string.Join(Consts.Space, words[1..]));
+                        logger?.InvalidCacheExpiresIn(description, string.Join(Consts.Space, wordsLower[1..]));
                     }
                 }
 
                 // connection
                 // connection_name
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], connectionNameKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], ConnectionNameKey))
                 {
-                    var name = string.Join(Consts.Space, words[1..]);
+                    var name = string.Join(Consts.Space, wordsLower[1..]);
                     if (string.IsNullOrEmpty(name) is false)
                     {
                         if (options.ConnectionStrings is null || options.ConnectionStrings.ContainsKey(name) is false)
@@ -834,7 +853,7 @@ internal static class DefaultCommentParser
                 // upload
                 // upload for handler_name1, handler_name2 [, ...]
                 // upload param_name as metadata
-                else if (haveTag is true && StrEquals(words[0], UploadKey))
+                else if (haveTag is true && StrEquals(wordsLower[0], UploadKey))
                 {
                     if (options.UploadOptions.UploadHandlers is null || options.UploadOptions.UploadHandlers.Count == 0)
                     {
@@ -858,10 +877,10 @@ internal static class DefaultCommentParser
                         {
                             routineEndpoint.Method = Method.POST;
                         }
-                        if (len >= 3 && StrEquals(words[1], "for"))
+                        if (len >= 3 && StrEquals(wordsLower[1], "for"))
                         {
                             HashSet<string> existingHandlers = options.UploadOptions.UploadHandlers?.Keys.ToHashSet() ?? [];
-                            var handlers = words[2..]
+                            var handlers = wordsLower[2..]
                                 .Select(w =>
                                 {
                                     var handler = w.TrimEnd(',');
@@ -896,9 +915,9 @@ internal static class DefaultCommentParser
                             }
                         }
 
-                        else if (len >= 4 && StrEquals(words[2], "as") && StrEquals(words[3], "metadata"))
+                        else if (len >= 4 && StrEquals(wordsLower[2], "as") && StrEquals(wordsLower[3], "metadata"))
                         {
-                            var paramName = words[1];
+                            var paramName = wordsLower[1];
                             NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
                                     string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
                                     string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
@@ -920,13 +939,13 @@ internal static class DefaultCommentParser
 
                 // param param_name1 is hash of param_name2
                 // param param_name is upload metadata
-                else if (haveTag is true && StrEqualsToArray(words[0], parameterKey))
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], ParameterKey))
                 {
                     // param param_name1 is hash of param_name2
-                    if (len >= 6 && StrEquals(words[2], "is") && StrEquals(words[3], "hash") && StrEquals(words[4], "of"))
+                    if (len >= 6 && StrEquals(wordsLower[2], "is") && StrEquals(wordsLower[3], "hash") && StrEquals(wordsLower[4], "of"))
                     {
-                        var paramName1 = words[1];
-                        var paramName2 = words[5];
+                        var paramName1 = wordsLower[1];
+                        var paramName2 = wordsLower[5];
 
                         var found = true;
                         NpgsqlRestParameter? param = null;
@@ -977,7 +996,7 @@ internal static class DefaultCommentParser
 
                     // param param_name1 is upload metadata
                     if (len >= 5 && (
-                        StrEquals(words[2], "is") && StrEquals(words[3], "upload") && StrEquals(words[4], "metadata")
+                        StrEquals(wordsLower[2], "is") && StrEquals(wordsLower[3], "upload") && StrEquals(wordsLower[4], "metadata")
                         ))
                     {
                         if (routineEndpoint.Upload is false)
@@ -997,7 +1016,7 @@ internal static class DefaultCommentParser
                             routineEndpoint.Method = Method.POST;
                         }
 
-                        var paramName = words[1];
+                        var paramName = wordsLower[1];
                         NpgsqlRestParameter? param = routine.Parameters.FirstOrDefault(x =>
                                 string.Equals(x.ActualName, paramName, StringComparison.Ordinal) ||
                                 string.Equals(x.ConvertedName, paramName, StringComparison.Ordinal));
@@ -1019,9 +1038,9 @@ internal static class DefaultCommentParser
                 // info_path [ true | false | path ]
                 // info_events_path [ true | false | path ]
                 // info_streaming_path [ true |false | path ]
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], infoEventsStreamingPathKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], InfoEventsStreamingPathKey))
                 {
-                    if (bool.TryParse(words[1], out var parseredStreamingPath))
+                    if (bool.TryParse(wordsLower[1], out var parseredStreamingPath))
                     {
                         if (parseredStreamingPath is true)
                         {
@@ -1030,7 +1049,7 @@ internal static class DefaultCommentParser
                     }
                     else
                     {
-                        routineEndpoint.InfoEventsStreamingPath = words[1];
+                        routineEndpoint.InfoEventsStreamingPath = wordsLower[1];
                     }
                     logger?.CommentInfoStreamingPath(description, routineEndpoint.InfoEventsStreamingPath);
                 }
@@ -1038,15 +1057,15 @@ internal static class DefaultCommentParser
                 // info_scope [ [ self | matching | authorize | all ] | [ authorize [ role1, role2, role3 [, ...] ] ] ] 
                 // info_events_scope [ [ self | matching | authorize | all ] | [ authorize [ role1, role2, role3 [, ...] ] ] ] 
                 // info_streaming_scope [ [ self | matching | authorize | all ] | [ authorize [ role1, role2, role3 [, ...] ] ] ] 
-                else if (haveTag is true && len >= 2 && StrEqualsToArray(words[0], infoEventsStreamingScopeKey))
+                else if (haveTag is true && len >= 2 && StrEqualsToArray(wordsLower[0], InfoEventsStreamingScopeKey))
                 {
-                    if (words.Length > 1 && Enum.TryParse<InfoEventsScope>(words[1], true, out var parsedScope))
+                    if (wordsLower.Length > 1 && Enum.TryParse<InfoEventsScope>(wordsLower[1], true, out var parsedScope))
                     {
                         routineEndpoint.InfoEventsScope = parsedScope;
-                        if (parsedScope == InfoEventsScope.Authorize && words.Length > 2)
+                        if (parsedScope == InfoEventsScope.Authorize && wordsLower.Length > 2)
                         {
                             routineEndpoint.InfoEventsRoles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                            foreach (var word in words[2..])
+                            foreach (var word in wordsLower[2..])
                             {
                                 if (string.IsNullOrWhiteSpace(word) is false)
                                 {
@@ -1063,8 +1082,51 @@ internal static class DefaultCommentParser
                     else
                     {
                         logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.",
-                            words[0], string.Join(", ", Enum.GetNames<InfoEventsScope>()), line);
+                            wordsLower[0], string.Join(", ", Enum.GetNames<InfoEventsScope>()), line);
                     }
+                }
+
+                // basic_authentication [ [ username ] [ password ] ]
+                // basic_auth [ [ username ] [ password ] ]
+                else if (haveTag is true && StrEqualsToArray(wordsLower[0], BasicAuthKey))
+                {
+                    routineEndpoint.BasicAuth = new() { Enabled = true };
+                    if (len == 2)
+                    {
+                        routineEndpoint.BasicAuth.Password = words[1];
+                    }
+                    else if (len == 3)
+                    {
+                        routineEndpoint.BasicAuth.Username = words[1];
+                        routineEndpoint.BasicAuth.Password = words[2];
+                    }
+                    logger?.BasicAuthEnabled(description);
+                }
+                
+                // basic_authentication_realm [ realm ]
+                // basic_auth_realm [ realm ]
+                // realm [ realm ]
+                else if (haveTag is true && len > 1 && StrEqualsToArray(wordsLower[0], BasicAuthRealmKey))
+                {
+                    if (routineEndpoint.BasicAuth is null)
+                    {
+                        routineEndpoint.BasicAuth = new();
+                    }
+                    routineEndpoint.BasicAuth.Realm = words[1];
+                    logger?.BasicAuthRealmSet(description, routineEndpoint.BasicAuth.Realm);
+                }
+
+                // basic_authentication_command [ command ]
+                // basic_auth_command [ command ]
+                // challenge_command [ command ]
+                else if (haveTag is true && len > 1 && StrEqualsToArray(wordsLower[0], BasicAuthCommandKey))
+                {
+                    if (routineEndpoint.BasicAuth is null)
+                    {
+                        routineEndpoint.BasicAuth = new();
+                    }
+                    routineEndpoint.BasicAuth.ChallengeCommand = line[(wordsLower[0].Length + 1)..];
+                    logger?.BasicAuthChallengeCommandSet(description, routineEndpoint.BasicAuth.ChallengeCommand);
                 }
             }
             if (disabled)
@@ -1088,36 +1150,36 @@ internal static class DefaultCommentParser
     {
         value = Regex.Unescape(value);
 
-        if (StrEqualsToArray(name, bufferRowsKey))
+        if (StrEqualsToArray(name, BufferRowsKey))
         {
             if (ulong.TryParse(value, out var parsedBuffer))
             {
                 endpoint.BufferRows = parsedBuffer;
             }
         }
-        else if (StrEqualsToArray(name, rawKey))
+        else if (StrEqualsToArray(name, RawKey))
         {
             if (bool.TryParse(value, out var parsedRaw))
             {
                 endpoint.Raw = parsedRaw;
             }
         }
-        else if (StrEqualsToArray(name, separatorKey))
+        else if (StrEqualsToArray(name, SeparatorKey))
         {
             endpoint.RawValueSeparator = value;
         }
-        else if (StrEqualsToArray(name, newLineKey))
+        else if (StrEqualsToArray(name, NewLineKey))
         {
             endpoint.RawNewLineSeparator = value;
         }
-        else if (StrEqualsToArray(name, columnNamesKey))
+        else if (StrEqualsToArray(name, ColumnNamesKey))
         {
             if (bool.TryParse(value, out var parsedRawColumnNames))
             {
                 endpoint.RawColumnNames = parsedRawColumnNames;
             }
         }
-        else if (StrEqualsToArray(name, connectionNameKey))
+        else if (StrEqualsToArray(name, ConnectionNameKey))
         {
             //if (options.ConnectionStrings is not null && options.ConnectionStrings.ContainsKey(value) is true)
             //{
@@ -1125,14 +1187,14 @@ internal static class DefaultCommentParser
             //}
             endpoint.ConnectionName = value;
         }
-        else if (StrEqualsToArray(name, userContextKey))
+        else if (StrEqualsToArray(name, UserContextKey))
         {
             if (bool.TryParse(value, out var parserUserContext))
             {
                 endpoint.UserContext = parserUserContext;
             }
         }
-        else if (StrEqualsToArray(name, userParemetersKey))
+        else if (StrEqualsToArray(name, UserParemetersKey))
         {
             if (bool.TryParse(value, out var parserUserParameters))
             {
@@ -1140,7 +1202,7 @@ internal static class DefaultCommentParser
             }
         }
 
-        else if (StrEqualsToArray(name, infoEventsStreamingPathKey))
+        else if (StrEqualsToArray(name, InfoEventsStreamingPathKey))
         {
             if (bool.TryParse(value, out var parseredStreamingPath))
             {
@@ -1155,7 +1217,7 @@ internal static class DefaultCommentParser
             }
         }
 
-        else if (StrEqualsToArray(name, infoEventsStreamingScopeKey))
+        else if (StrEqualsToArray(name, InfoEventsStreamingScopeKey))
         {
             var words = value.SplitWords();
             if (words.Length > 0 && Enum.TryParse<InfoEventsScope>(words[0], true, out var parsedScope))
@@ -1173,11 +1235,21 @@ internal static class DefaultCommentParser
                     }
                 }
             }
+
             else
             {
                 logger?.LogError("Could not recognize valid value for parameter key {key}. Valid values are: {values}. Provided value is {provided}.", 
                     name, string.Join(", ", Enum.GetNames<InfoEventsScope>()), value);
             }
+        }
+        
+        else if (StrEqualsToArray(name, BasicAuthCommandKey))
+        {
+            if (endpoint.BasicAuth is null)
+            {
+                endpoint.BasicAuth = new();
+            }
+            endpoint.BasicAuth.ChallengeCommand = value;
         }
 
         else
@@ -1210,6 +1282,18 @@ internal static class DefaultCommentParser
         return false;
     }
 
+    public static string[] SplitWordsLower(this string str)
+    {
+        if (str is null)
+        {
+            return [];
+        }
+        return [.. str
+            .Split(WordSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim().ToLowerInvariant())
+        ];
+    }
+    
     public static string[] SplitWords(this string str)
     {
         if (str is null)
@@ -1217,8 +1301,8 @@ internal static class DefaultCommentParser
             return [];
         }
         return [.. str
-            .Split(wordSeparators, StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Trim().ToLowerInvariant())
+            .Split(WordSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
         ];
     }
 

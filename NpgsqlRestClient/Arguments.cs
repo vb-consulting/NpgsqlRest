@@ -5,12 +5,32 @@ using NpgsqlRest.CrudSource;
 using NpgsqlRest.HttpFiles;
 using NpgsqlRest.TsClient;
 
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace NpgsqlRestClient;
 
 public class Arguments
 {
     public bool Parse(string[] args)
     {
+        if (args.Length == 2 && string.Equals(args[0], "hash", StringComparison.CurrentCultureIgnoreCase))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            var hasher = new NpgsqlRest.Auth.PasswordHasher();
+            Console.WriteLine(hasher.HashPassword(args[1]));
+            Console.ResetColor();
+            return false;
+        }
+        
+        if (args.Length == 3 && string.Equals(args[0], "basic_auth", StringComparison.CurrentCultureIgnoreCase))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(string.Concat("Authorization: Basic ", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{args[1]}:{args[2]}"))));
+            Console.ResetColor();
+            return false;
+        }
+
         if (args.Any(a => a.ToLowerInvariant() is "-v" or "--version" or "-h" or "--help") is false)
         {
             return true;
@@ -30,6 +50,10 @@ public class Arguments
                 (" ", " "),
                 ("npgsqlrest -v, --version", "Show version information."),
                 ("npgsqlrest -h, --help", "Show command line help."),
+                ("npgsqlrest hash [value]", "Hash value with default hasher and print to console."),
+                ("npgsqlrest basic_auth [username] [password]", "Print out basic basic auth header value in format 'Authorization: Basic base64(username:password)'."),
+                ("npgsqlrest encrypt [value]", "Encrypt string using default data protection and print to console."),
+                ("npgsqlrest encrypted_basic_auth [username] [password]", "Print out basic basic auth header value in format 'Authorization: Basic base64(username:password)' where password is encrypted with default data protection."),
                 (" ", " "),
                 (" ", " "),
                 ("Examples:", " "),

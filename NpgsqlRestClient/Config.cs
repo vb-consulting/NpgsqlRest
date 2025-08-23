@@ -15,6 +15,13 @@ public class Config
     
     public void Build(string[] args)
     {
+        // dump encrypted text and exit
+        if ( (args.Length == 2 && string.Equals(args[0], "encrypt", StringComparison.CurrentCultureIgnoreCase)) ||
+             (args.Length == 3 && string.Equals(args[0], "encrypted_basic_auth", StringComparison.CurrentCultureIgnoreCase)) )
+        {
+            args = [];
+        }
+
         var tempBuilder = new ConfigurationBuilder();
         IConfigurationRoot tempCfg;
 

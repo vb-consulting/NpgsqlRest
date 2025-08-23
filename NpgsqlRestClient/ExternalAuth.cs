@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Npgsql;
 using NpgsqlRest;
+using NpgsqlRest.Auth;
 using Serilog.Events;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -348,7 +349,7 @@ public class ExternalAuth
         }
 
         var middlewareLogger = NpgsqlRestMiddleware.Logger;
-        using var connection = new NpgsqlConnection(connectionString);
+        await using var connection = new NpgsqlConnection(connectionString);
         if (options.LogConnectionNoticeEvents && middlewareLogger != null)
         {
             connection.Notice += (sender, args) =>
@@ -359,7 +360,7 @@ public class ExternalAuth
 
         await NpgsqlConnectionRetryOpener.OpenAsync(connection, options.ConnectionRetryOptions, middlewareLogger, context.RequestAborted);
 
-        using var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText = externalAuthConfig!.LoginCommand;
 
         var paramCount = command.CommandText.PgCountParams();
@@ -403,140 +404,17 @@ public class ExternalAuth
                 }
             }
         }
-
-        if (middlewareLogger?.IsEnabled(LogLevel.Information) is true && options.LogCommands)
-        {
-            var commandToLog = command.CommandText;
-            if (options.LogCommandParameters)
-            {
-                StringBuilder paramsToLog = new();
-                for (var i = 0; i < command.Parameters.Count; i++)
-                {
-                    var p = command.Parameters[i];
-                    paramsToLog!.AppendLine(string.Concat(
-                        "-- $",
-                        (i + 1).ToString(),
-                        " ", p.DataTypeName,
-                        " = ",
-                        p.Value));
-                }
-                middlewareLogger?.Log(LogLevel.Information, "{paramsToLog}{commandToLog}", paramsToLog, commandToLog);
-            }
-            else
-            {
-                middlewareLogger?.Log(LogLevel.Information, "{commandToLog}", commandToLog);
-            }
-        }
-
-        await using NpgsqlDataReader reader = await command.ExecuteReaderAsync();
-
-        if (await reader.ReadAsync() is false || reader.FieldCount == 0)
-        {
-            await CompleteWithErrorAsync("Login command did not return any data.", HttpStatusCode.NotFound, LogLevel.Warning, context, logger);
-            return;
-        }
-
-        var authenticationType = options.AuthenticationOptions.DefaultAuthenticationType;
-        string? scheme = null;
-        string? message = null;
-        var claims = new List<Claim>(10);
-        context.Response.StatusCode = (int)HttpStatusCode.OK;
-
-        for (int i = 0; i < reader?.FieldCount; i++)
-        {
-            string colName = reader.GetName(i);
-            var descriptor = new TypeDescriptor(reader.GetDataTypeName(i));
-
-            if (options.AuthenticationOptions.StatusColumnName is not null)
-            {
-                if (string.Equals(colName, options.AuthenticationOptions.StatusColumnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (descriptor.IsBoolean)
-                    {
-                        var ok = reader?.GetBoolean(i);
-                        if (ok is false)
-                        {
-                            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                        }
-                    }
-                    else if (descriptor.IsNumeric)
-                    {
-                        var status = reader?.GetInt32(i) ?? 200;
-                        if (status != (int)HttpStatusCode.OK)
-                        {
-                            context.Response.StatusCode = status;
-                        }
-                    }
-                    else
-                    {
-                        await CompleteWithErrorAsync("External login command returns a status field that is not either boolean or numeric.",
-                            HttpStatusCode.InternalServerError, LogLevel.Error, context, logger);
-                        return;
-                    }
-                    continue;
-                }
-            }
-
-            if (options.AuthenticationOptions.SchemeColumnName is not null)
-            {
-                if (string.Equals(colName, options.AuthenticationOptions.SchemeColumnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    scheme = reader?.GetValue(i).ToString();
-                    continue;
-                }
-            }
-
-            if (options.AuthenticationOptions.MessageColumnName is not null)
-            {
-                if (string.Equals(colName, options.AuthenticationOptions.MessageColumnName, StringComparison.OrdinalIgnoreCase))
-                {
-                    message = reader?.GetValue(i).ToString();
-                    continue;
-                }
-            }
-            NpgsqlRest.Auth.AuthHandler.AddClaimFromReader(options.AuthenticationOptions, i, descriptor, reader!, claims, colName);
-        }
-
-        if (context.Response.StatusCode == (int)HttpStatusCode.OK)
-        {
-            var principal = new ClaimsPrincipal(new ClaimsIdentity(
-                claims, scheme ?? authenticationType,
-                nameType: options.AuthenticationOptions.DefaultNameClaimType,
-                roleType: options.AuthenticationOptions.DefaultRoleClaimType));
-
-            if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
-            {
-                await CompleteWithErrorAsync("Failed in constructing user identity for authentication.",
-                    HttpStatusCode.InternalServerError, LogLevel.Error, context, logger);
-                return;
-            }
-            await result.ExecuteAsync(context);
-        }
-
-        if (message is not null)
-        {
-            await context.Response.WriteAsync(message);
-        }
-        await context.Response.CompleteAsync();
+        
+        await AuthHandler.HandleLoginAsync(
+            command, 
+            context, 
+            options, 
+            logger, 
+            tracePath: "ExternalAuth.ProcessAsync",
+            performHashVerification: false, 
+            assignUserPrincipalToContext: false);
     }
-
-    private static async Task CompleteWithErrorAsync(
-        string text, 
-        HttpStatusCode code, 
-        LogLevel? logLevel, 
-        HttpContext context,
-        ILogger? logger)
-    {
-        if (logLevel.HasValue)
-        {
-            //logger?.Write(logLevel.Value, text);
-            logger?.Log(logLevel.Value, text);
-        }
-        context.Response.StatusCode = (int)code;
-        await context.Response.WriteAsync(text);
-        await context.Response.CompleteAsync();
-    }
-
+    
     private static string BuildHtmlTemplate(ExternalAuthClientConfig config, HttpRequest request, ExternalAuthConfig externalAuthConfig)
     {
         string redirectUrl = GetRedirectUrl(config, request, externalAuthConfig);

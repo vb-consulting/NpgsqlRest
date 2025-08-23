@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Net;
 using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.DataProtection;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace NpgsqlRest.Auth;
 
@@ -11,9 +14,11 @@ public static class AuthHandler
     public static async Task HandleLoginAsync(
         NpgsqlCommand command,
         HttpContext context,
-        Routine routine,
         NpgsqlRestOptions options,
-        ILogger? logger)
+        ILogger? logger,
+        string tracePath = "HandleLoginAsync",
+        bool performHashVerification = true,
+        bool assignUserPrincipalToContext = false)
     {
         var connection = command.Connection;
         string? scheme = null;
@@ -24,7 +29,8 @@ public static class AuthHandler
         List<Claim> claims = new(10);
         var verificationPerformed = false;
         var verificationFailed = false;
-
+        
+        logger?.TraceCommand(command, tracePath);
         await using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
         {
             if (await reader.ReadAsync() is false)
@@ -38,17 +44,18 @@ public static class AuthHandler
                 return;
             }
 
-            for (int i = 0; i < routine.ColumnCount; i++)
+            var schema = await reader.GetColumnSchemaAsync();
+            for (int i = 0; i < reader?.FieldCount; i++)
             {
-                var colName = routine.OriginalColumnNames[i];
-                
-                TypeDescriptor descriptor = routine.ColumnsTypeDescriptor[i];
-
+                var column = schema[i];
+                var colName = column.ColumnName;
+                var isArray = column.NpgsqlDbType.HasValue && 
+                              (column.NpgsqlDbType.Value & NpgsqlDbType.Array) == NpgsqlDbType.Array;
                 if (opts.StatusColumnName is not null)
                 {
                     if (string.Equals(colName, opts.StatusColumnName, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (descriptor.IsBoolean)
+                        if (column.NpgsqlDbType == NpgsqlDbType.Boolean)
                         {
                             var ok = reader?.GetBoolean(i);
                             if (ok is false)
@@ -56,7 +63,7 @@ public static class AuthHandler
                                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                             }
                         }
-                        else if (descriptor.IsNumeric)
+                        else if (column.NpgsqlDbType is NpgsqlDbType.Integer or NpgsqlDbType.Smallint or NpgsqlDbType.Bigint)
                         {
                             var status = reader?.GetInt32(i) ?? 200;
                             if (status != (int)HttpStatusCode.OK)
@@ -66,7 +73,7 @@ public static class AuthHandler
                         }
                         else
                         {
-                            logger?.WrongStatusType(string.Concat(routine.Type, " ", routine.Schema, ".", routine.Name));
+                            logger?.WrongStatusType(command.CommandText);
                             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                             await context.Response.CompleteAsync();
                             return;
@@ -92,7 +99,7 @@ public static class AuthHandler
                         continue;
                     }
                 }
-                var (userNameCurrent, userIdCurrent) = AddClaimFromReader(opts, i, descriptor, reader!, claims, colName);
+                var (userNameCurrent, userIdCurrent) = AddClaimFromReader(opts, i, isArray, reader!, claims, colName);
                 if (userNameCurrent is not null)
                 {
                     userName = userNameCurrent;
@@ -102,52 +109,54 @@ public static class AuthHandler
                     userId = userIdCurrent;
                 }
             }
-
+            
             // hash verification last
-            if (opts.HashColumnName is not null &&
-                opts.PasswordHasher is not null &&
-                opts.PasswordParameterNameContains is not null)
+            if (performHashVerification is true)
             {
-                for (int i = 0; i < routine.ColumnCount; i++)
+                if (opts?.HashColumnName is not null &&
+                    opts.PasswordHasher is not null &&
+                    opts?.PasswordParameterNameContains is not null)
                 {
-                    if (string.Equals(routine.OriginalColumnNames[i], opts.HashColumnName, StringComparison.OrdinalIgnoreCase))
+                    for (int i = 0; i < reader!.FieldCount; i++)
                     {
-                        if (reader?.IsDBNull(i) is false)
+                        if (string.Equals(reader.GetName(i), opts.HashColumnName, StringComparison.OrdinalIgnoreCase))
                         {
-                            var hash = reader?.GetValue(i).ToString();
-                            if (hash is not null)
+                            if (reader?.IsDBNull(i) is false)
                             {
-                                var endpoint = string.Concat(context.Request.Method.ToString(), " ", context.Request.Path.ToString());
-                                // find the password parameter
-                                var foundPasswordParameter = false;
-                                for (var j = 0; j < command.Parameters.Count; j++)
+                                var hash = reader?.GetValue(i).ToString();
+                                if (hash is not null)
                                 {
-                                    var parameter = command.Parameters[j];
-                                    var name = (parameter as NpgsqlRestParameter)?.ActualName;
-                                    if (name is not null && name.Contains(opts.PasswordParameterNameContains, // found password parameter
-                                        StringComparison.OrdinalIgnoreCase))
+                                    // find the password parameter
+                                    var foundPasswordParameter = false;
+                                    for (var j = 0; j < command.Parameters.Count; j++)
                                     {
-                                        foundPasswordParameter = true;
-                                        var pass = parameter?.Value?.ToString();
-                                        if (pass is not null && parameter?.Value != DBNull.Value)
+                                        var parameter = command.Parameters[j];
+                                        var name = (parameter as NpgsqlRestParameter)?.ActualName;
+                                        if (name is not null && name.Contains(opts.PasswordParameterNameContains, // found password parameter
+                                            StringComparison.OrdinalIgnoreCase))
                                         {
-                                            verificationPerformed = true;
-                                            if (opts.PasswordHasher?.VerifyHashedPassword(hash, pass) is false)
+                                            foundPasswordParameter = true;
+                                            var pass = parameter?.Value?.ToString();
+                                            if (pass is not null && parameter?.Value != DBNull.Value)
                                             {
-                                                logger?.VerifyPasswordFailed(endpoint, userId, userName);
-                                                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                                                await context.Response.CompleteAsync();
-                                                verificationFailed = true;
+                                                verificationPerformed = true;
+                                                if (opts.PasswordHasher?.VerifyHashedPassword(hash, pass) is false)
+                                                {
+                                                    logger?.VerifyPasswordFailed(tracePath, userId, userName);
+                                                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                                                    await context.Response.CompleteAsync();
+                                                    verificationFailed = true;
+                                                }
                                             }
+                                            break;
                                         }
-                                        break;
                                     }
-                                }
-                                if (foundPasswordParameter is false)
-                                {
-                                    logger?.CantFindPasswordParameter(endpoint,
-                                        command.Parameters.Select(p => (p as NpgsqlRestParameter)?.ActualName)?.ToArray(),
-                                        opts.PasswordParameterNameContains);
+                                    if (foundPasswordParameter is false)
+                                    {
+                                        logger?.CantFindPasswordParameter(tracePath,
+                                            command.Parameters.Select(p => (p as NpgsqlRestParameter)?.ActualName)?.ToArray(),
+                                            opts.PasswordParameterNameContains);
+                                    }
                                 }
                             }
                         }
@@ -160,9 +169,9 @@ public static class AuthHandler
         {
             if (verificationFailed is true)
             {
-                if (string.IsNullOrEmpty(opts.PasswordVerificationFailedCommand) is false)
+                if (string.IsNullOrEmpty(opts?.PasswordVerificationFailedCommand) is false)
                 {
-                    using var failedCommand = connection?.CreateCommand();
+                    await using var failedCommand = connection?.CreateCommand();
                     if (failedCommand is not null)
                     {
                         failedCommand.CommandText = opts.PasswordVerificationFailedCommand;
@@ -179,6 +188,7 @@ public static class AuthHandler
                         {
                             failedCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(userName));
                         }
+                        logger?.TraceCommand(failedCommand, tracePath);
                         await failedCommand.ExecuteNonQueryAsync();
                     }
                 }
@@ -186,9 +196,9 @@ public static class AuthHandler
             }
             else
             {
-                if (string.IsNullOrEmpty(opts.PasswordVerificationSucceededCommand) is false)
+                if (string.IsNullOrEmpty(opts?.PasswordVerificationSucceededCommand) is false)
                 {
-                    using var succeededCommand = connection?.CreateCommand();
+                    await using var succeededCommand = connection?.CreateCommand();
                     if (succeededCommand is not null)
                     {
                         succeededCommand.CommandText = opts.PasswordVerificationSucceededCommand;
@@ -206,6 +216,7 @@ public static class AuthHandler
                         {
                             succeededCommand.Parameters.Add(NpgsqlRestParameter.CreateTextParam(userName));
                         }
+                        logger?.TraceCommand(succeededCommand, tracePath);
                         await succeededCommand.ExecuteNonQueryAsync();
                     }
                 }
@@ -216,28 +227,40 @@ public static class AuthHandler
         {
             var principal = new ClaimsPrincipal(new ClaimsIdentity(
                 claims, 
-                scheme ?? opts.DefaultAuthenticationType,
-                nameType: opts.DefaultNameClaimType,
-                roleType: opts.DefaultRoleClaimType));
+                scheme ?? opts?.DefaultAuthenticationType,
+                nameType: opts?.DefaultNameClaimType,
+                roleType: opts?.DefaultRoleClaimType));
 
-            if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
+            if (assignUserPrincipalToContext is false)
             {
-                logger?.LogError("Failed in constructing user identity for authentication.");
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                return;
+                if (Results.SignIn(principal: principal, authenticationScheme: scheme) is not SignInHttpResult result)
+                {
+                    logger?.LogError("Failed in constructing user identity for authentication.");
+                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    return;
+                }
+                await result.ExecuteAsync(context);
             }
-            await result.ExecuteAsync(context);
+            else
+            {
+                context.User = principal;
+            }
         }
-        if (message is not null)
+
+        if (assignUserPrincipalToContext is false)
         {
-            await context.Response.WriteAsync(message);
+            if (message is not null)
+            {
+                await context.Response.WriteAsync(message);
+            }
         }
     }
 
     public static (string? userName, string? userId) AddClaimFromReader(
         NpgsqlRestAuthenticationOptions options,
         int i,
-        TypeDescriptor descriptor,
+        //TypeDescriptor descriptor,
+        bool isArray,
         NpgsqlDataReader reader,
         List<Claim> claims, 
         string colName)
@@ -266,7 +289,7 @@ public static class AuthHandler
                 userId = null;
             }
         }
-        else if (descriptor.IsArray)
+        else if (isArray)
         {
             object[]? values = reader?.GetValue(i) as object[];
             for (int j = 0; j < values?.Length; j++)
@@ -291,9 +314,12 @@ public static class AuthHandler
         return (userName, userId);
     }
 
-    public static async Task HandleLogoutAsync(NpgsqlCommand command, Routine routine, HttpContext context)
+    public static async Task HandleLogoutAsync(NpgsqlCommand command, RoutineEndpoint endpoint, HttpContext context, ILogger? logger)
     {
-        if (routine.IsVoid)
+        var path = string.Concat(endpoint.Method.ToString(), " ", endpoint.Url);
+        logger?.TraceCommand(command, path);
+        
+        if (endpoint.Routine.IsVoid)
         {
             await command.ExecuteNonQueryAsync();
             await Results.SignOut().ExecuteAsync(context);
@@ -313,7 +339,7 @@ public static class AuthHandler
                     continue;
                 }
 
-                var descriptor = routine.ColumnsTypeDescriptor[i];
+                var descriptor = endpoint.Routine.ColumnsTypeDescriptor[i];
                 if (descriptor.IsArray)
                 {
                     object[]? values = reader?.GetValue(i) as object[];
@@ -340,5 +366,253 @@ public static class AuthHandler
 
         await Results.SignOut(authenticationSchemes: schemes.Count == 0 ? null : schemes).ExecuteAsync(context);
         await context.Response.CompleteAsync();
+    }
+
+    public static async Task HandleBasicAuthAsync(
+        HttpContext context, 
+        RoutineEndpoint endpoint,
+        NpgsqlRestOptions options, 
+        NpgsqlConnection connection,
+        ILogger? logger)
+    {
+        string realm =
+            (string.IsNullOrEmpty(endpoint.BasicAuth?.Realm) ? 
+                (string.IsNullOrEmpty(options.AuthenticationOptions.BasicAuth.Realm) ? "NpgsqlRest" : options.AuthenticationOptions.BasicAuth.Realm!) : 
+                endpoint.BasicAuth.Realm!);
+        
+        if (context.Request.Headers.TryGetValue("Authorization", out var authHeader) is false)
+        {
+            logger?.LogWarning("No Authorization header found in request with Basic Authentication Realm {realm}. Request: {Path}",
+                realm,
+                string.Concat(endpoint.Method.ToString(), endpoint.Url));
+            await Challenge(context, realm);
+            return;
+        }
+
+        var authValue = authHeader.FirstOrDefault();
+        if (string.IsNullOrEmpty(authValue) || !authValue.StartsWith("Basic "))
+        {
+            logger?.LogWarning("Authorization header value missing or malformed found in request with Basic Authentication Realm {realm}. Request: {Path}",
+                realm,
+                string.Concat(endpoint.Method.ToString(), endpoint.Url));
+            await Challenge(context, realm);
+            return;
+        }
+
+        ReadOnlySpan<char> decodedCredentials;
+        try
+        {
+            decodedCredentials = Encoding.UTF8.GetString(Convert.FromBase64String(authValue["Basic ".Length..]))
+                .AsSpan();
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Failed to decode Basic Authentication credentials in request with Basic Authentication Realm {realm}. Request: {Path}",
+                realm,
+                string.Concat(endpoint.Method.ToString(), endpoint.Url));
+            await Challenge(context, realm);
+            return;
+        }
+
+        var colonIndex = decodedCredentials.IndexOf(':');
+        if (colonIndex == -1)
+        {
+            logger?.LogWarning("Authorization header value malformed found in request with Basic Authentication Realm {realm}. Request: {Path}",
+                realm,
+                string.Concat(endpoint.Method.ToString(), endpoint.Url));
+            await Challenge(context, realm);
+            return;
+        }
+        var username = decodedCredentials[..colonIndex].ToString();
+        var password = decodedCredentials[(colonIndex + 1)..].ToString();
+        
+        if (string.IsNullOrEmpty(username) is true || string.IsNullOrEmpty(password) is true)
+        {
+            logger?.LogWarning("Username or password missing in request with Basic Authentication Realm {realm}. Request: {Path}",
+                realm,
+                string.Concat(endpoint.Method.ToString(), endpoint.Url));
+            await Challenge(context, realm);
+            return;
+        }
+
+        if (options.AuthenticationOptions.BasicAuth.UseDefaultPasswordEncryptionOnServer is true || 
+            options.AuthenticationOptions.BasicAuth.UseDefaultPasswordEncryptionOnClient is true)
+        {
+            if (options.AuthenticationOptions.DefaultDataProtector is null)
+            {
+                logger?.LogError(
+                    "DefaultDataProtector not configured for Basic Authentication Realm {realm}. Request: {Path}",
+                    realm,
+                    string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                await context.Response.CompleteAsync();
+                return;
+            }
+        }
+
+        if (options.AuthenticationOptions.BasicAuth.UseDefaultPasswordEncryptionOnClient is true)
+        {
+            try
+            {
+                password = options.AuthenticationOptions.DefaultDataProtector!.Unprotect(password);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed in decrypting Basic Authentication password in request with Basic Authentication Realm {realm}. Request: {Path}",
+                    realm,
+                    string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                await Challenge(context, realm);
+                return;
+            }
+        }
+        
+        string basicAuthUsername = (string.IsNullOrEmpty(endpoint.BasicAuth?.Username) ? 
+            (string.IsNullOrEmpty(options.AuthenticationOptions.BasicAuth.Username) ? realm : options.AuthenticationOptions.BasicAuth.Username!) : 
+            endpoint.BasicAuth.Username!);
+        string? basicAuthPassword = (string.IsNullOrEmpty(endpoint.BasicAuth?.Password) ? 
+            (string.IsNullOrEmpty(options.AuthenticationOptions.BasicAuth.Password) ? null : options.AuthenticationOptions.BasicAuth.Password) : 
+            endpoint.BasicAuth.Password);
+        string? challengeCommand = endpoint.BasicAuth?.ChallengeCommand ?? options.AuthenticationOptions.BasicAuth.ChallengeCommand;
+        
+        if (options.AuthenticationOptions.BasicAuth.UseDefaultPasswordEncryptionOnServer is true && basicAuthPassword is not null)
+        {
+            try
+            {
+                basicAuthPassword = options.AuthenticationOptions.DefaultDataProtector!.Unprotect(basicAuthPassword);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed in decrypting Basic Authentication password in request with Basic Authentication Realm {realm}. Request: {Path}",
+                    realm,
+                    string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                await Challenge(context, realm);
+                return;
+            }
+        }
+        
+        if (basicAuthPassword is not null)
+        {
+            if (string.Equals(basicAuthUsername, username, StringComparison.Ordinal) is false)
+            {
+                logger?.LogWarning("Basic Authentication failed for user {username} in request with Basic Authentication Realm {realm}. Request: {Path}",
+                    username,
+                    realm,
+                    string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                await Challenge(context, realm);
+                return;
+            }
+            
+            if (options.AuthenticationOptions.BasicAuth.UseDefaultPasswordHasher is true)
+            {
+                if (options.AuthenticationOptions.PasswordHasher is null)
+                {
+                    logger?.LogError("PasswordHasher not configured for Basic Authentication Realm {realm}. Request: {Path}",
+                        realm,
+                        string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                    await Challenge(context, realm);
+                    return;
+                }
+                if (
+                    (options.AuthenticationOptions.BasicAuth.PasswordHashLocation == Location.Server && 
+                     options.AuthenticationOptions.PasswordHasher?.VerifyHashedPassword(basicAuthPassword, password) is false)
+                    ||
+                    (options.AuthenticationOptions.BasicAuth.PasswordHashLocation == Location.Client && 
+                     options.AuthenticationOptions.PasswordHasher?.VerifyHashedPassword(password, basicAuthPassword) is false)
+                    )
+                {
+                    logger?.LogWarning("Basic Authentication failed for user {username} in request with Basic Authentication Realm {realm}. Request: {Path}",
+                        username,
+                        realm,
+                        string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                    await Challenge(context, realm);
+                    return;
+                }
+            }
+            else
+            {
+                if (string.Equals(basicAuthPassword, password, StringComparison.Ordinal) is false)
+                {
+                    logger?.LogWarning("Basic Authentication failed for user {username} in request with Basic Authentication Realm {realm}. Request: {Path}",
+                        username,
+                        realm,
+                        string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                    await Challenge(context, realm);
+                    return;
+                }
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(challengeCommand) is true)
+            {
+                // misconfigured: no password configured and no challenge command
+                logger?.LogError("No Basic Authentication password configured for user {username} in request with Basic Authentication Realm {realm}. Request: {Path}",
+                    username,
+                    realm,
+                    string.Concat(endpoint.Method.ToString(), endpoint.Url));
+                await Challenge(context, realm);
+                return;
+            }
+        }
+        
+        if (string.IsNullOrEmpty(challengeCommand) is false)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = challengeCommand;
+            var paramCount = command.CommandText.PgCountParams();
+            if (paramCount >= 1)
+            {
+                command.Parameters.Add(NpgsqlRestParameter.CreateTextParam(username));
+            }
+            if (paramCount >= 2)
+            {
+                command.Parameters.Add(NpgsqlRestParameter.CreateTextParam(password));
+            }
+            if (paramCount >= 3)
+            {
+                command.Parameters.Add(NpgsqlRestParameter.CreateTextParam(realm));
+            }
+            if (paramCount >= 4)
+            {
+                command.Parameters.Add(NpgsqlRestParameter.CreateTextParam(endpoint.Url));
+            }
+
+            await HandleLoginAsync(
+                command, 
+                context, 
+                options, 
+                logger, 
+                tracePath: string.Concat(endpoint.Method.ToString(), " ", endpoint.Url),
+                performHashVerification: false, 
+                assignUserPrincipalToContext: true);
+
+            if (context.Response.StatusCode == (int)HttpStatusCode.OK)
+            {
+                return;
+            }
+
+            logger?.LogError("ChallengeCommand denied user {username} in request with Basic Authentication Realm {realm}. Request: {Path}",
+                username,
+                realm,
+                string.Concat(endpoint.Method.ToString(), endpoint.Url));
+            await Challenge(context, realm);
+            return;
+        }
+        
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(options.AuthenticationOptions.DefaultNameClaimType, username)
+            ], 
+            options.AuthenticationOptions.DefaultAuthenticationType,
+            nameType: options.AuthenticationOptions.DefaultNameClaimType,
+            roleType: options.AuthenticationOptions.DefaultRoleClaimType));
+        context.User = principal;
+    }
+
+    private static async Task Challenge(HttpContext context, string realm)
+    {
+        context.Response.StatusCode = 401;
+        context.Response.Headers.Append("WWW-Authenticate", string.Concat("Basic realm=\"", realm, "\""));
+        await context.Response.WriteAsync("Unauthorized");
     }
 }

@@ -9,6 +9,7 @@ using Serilog;
 using Microsoft.Extensions.Primitives;
 using NpgsqlRest.CrudSource;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.DataProtection;
 using NpgsqlRest.UploadHandlers;
 using NpgsqlRest.Auth;
 
@@ -116,13 +117,32 @@ public class App
             routine.Name.Trim(Consts.DoubleQuote).Trim('/'),
             "/");
 
-    public (NpgsqlRestAuthenticationOptions options, IConfigurationSection authCfg) CreateNpgsqlRestAuthenticationOptions()
+    public (NpgsqlRestAuthenticationOptions options, IConfigurationSection authCfg) CreateNpgsqlRestAuthenticationOptions(
+        WebApplication app,
+        string? dataProtectionName)
     {
         var authCfg = _config.NpgsqlRestCfg.GetSection("AuthenticationOptions");
         if (_config.Exists(authCfg) is false)
         {
             return (new NpgsqlRestAuthenticationOptions(), authCfg);
         }
+        
+        var basicAuthCfg = authCfg.GetSection("BasicAuth");
+        BasicAuthOptions basicAuth = new()
+        {
+            Enabled = _config.GetConfigBool("Enabled", basicAuthCfg, false),
+            Realm = _config.GetConfigStr("Realm", basicAuthCfg),
+            Username = _config.GetConfigStr("Username", basicAuthCfg),
+            Password = _config.GetConfigStr("PlainTextPassword", basicAuthCfg),
+            ChallengeCommand = _config.GetConfigStr("ChallengeCommand", basicAuthCfg),
+            UseDefaultPasswordHasher = _config.GetConfigBool("UseDefaultPasswordHasher", basicAuthCfg, false),
+            PasswordHashLocation = _config.GetConfigEnum<Location?>("PasswordHashLocation", basicAuthCfg) ?? Location.Server,
+            UseDefaultPasswordEncryptionOnClient = _config.GetConfigBool("UseDefaultPasswordEncryptionOnClient", basicAuthCfg, false),
+            UseDefaultPasswordEncryptionOnServer = _config.GetConfigBool("UseDefaultPasswordEncryptionOnServer", basicAuthCfg, false),
+        };
+        
+        var provider = app.Services.GetService<IDataProtectionProvider>();
+        IDataProtector? protector = dataProtectionName is null ? null : provider?.CreateProtector(dataProtectionName);
 
         return (new()
         {
@@ -161,7 +181,9 @@ public class App
             },
             ClaimsJsonParameterName = _config.GetConfigStr("ClaimsJsonParameterName", authCfg) ?? "_user_claims",
             IpAddressParameterName = _config.GetConfigStr("IpAddressParameterName", authCfg) ?? "_ip_address",
-
+            
+            BasicAuth = basicAuth,
+            DefaultDataProtector = protector
         }, authCfg);
     }
 

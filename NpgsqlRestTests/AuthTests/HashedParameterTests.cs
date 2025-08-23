@@ -1,3 +1,5 @@
+using NpgsqlRest.Auth;
+
 namespace NpgsqlRestTests;
 
 public static partial class Database

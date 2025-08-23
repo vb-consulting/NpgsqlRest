@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Text;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
 using NpgsqlRest;
 using NpgsqlRest.Defaults;
 using NpgsqlRestClient;
@@ -29,14 +32,47 @@ if (connectionString is null)
 }
 var connectionStrings = config.GetConfigBool("UseMultipleConnections", config.NpgsqlRestCfg, true) ? builder.BuildConnectionStringDict() : null;
 
-builder.BuildDataProtection();
+var dataProtectionName = builder.BuildDataProtection();
 builder.BuildAuthentication();
 var usingCors = builder.BuildCors();
 var compressionEnabled = builder.ConfigureResponseCompression();
-
-var antiforgerUsed = builder.ConfigureAntiForgery();
+var antiForgeryUsed = builder.ConfigureAntiForgery();
 
 WebApplication app = builder.Build();
+
+// dump encrypted text and exit
+if (args.Length == 2 && string.Equals(args[0], "encrypt", StringComparison.CurrentCultureIgnoreCase))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    if (dataProtectionName is null)
+    {
+        Console.WriteLine("Data protection is not configured, cannot encrypt.");
+        Console.ResetColor();
+        return;
+    }
+    var provider = app.Services.GetRequiredService<IDataProtectionProvider>();
+    var protector = provider.CreateProtector(dataProtectionName);
+    Console.WriteLine(protector.Protect(args[1]));
+    return;
+}
+
+if (args.Length == 3 && string.Equals(args[0], "encrypted_basic_auth", StringComparison.CurrentCultureIgnoreCase))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    if (dataProtectionName is null)
+    {
+        Console.WriteLine("Data protection is not configured, cannot encrypt.");
+        Console.ResetColor();
+        return;
+    }
+    var provider = app.Services.GetRequiredService<IDataProtectionProvider>();
+    var protector = provider.CreateProtector(dataProtectionName);
+    Console.WriteLine(string.Concat("Authorization: Basic ", 
+        Convert.ToBase64String(Encoding.UTF8.GetBytes($"{args[1]}:{protector.Protect(args[2])}"))));
+    Console.ResetColor();
+    return;
+}
+
 appInstance.Configure(app, () =>
 {
     sw.Stop();
@@ -52,7 +88,7 @@ appInstance.Configure(app, () =>
     }
 });
 
-var (authenticationOptions, authCfg) = appInstance.CreateNpgsqlRestAuthenticationOptions();
+var (authenticationOptions, authCfg) = appInstance.CreateNpgsqlRestAuthenticationOptions(app, dataProtectionName);
 
 if (usingCors)
 {
@@ -62,7 +98,7 @@ if (compressionEnabled)
 {
     app.UseResponseCompression();
 }
-if (antiforgerUsed)
+if (antiForgeryUsed)
 {
     app.UseAntiforgery();
 }

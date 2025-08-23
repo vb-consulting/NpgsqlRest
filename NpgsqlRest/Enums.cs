@@ -8,6 +8,7 @@ public enum ParamType { QueryString, BodyJson, BodyParam, HeaderParam }
 public enum CommentHeader { None, Simple, Full }
 public enum TextResponseNullHandling { EmptyString, NullLiteral, NoContent }
 public enum QueryStringNullHandling { EmptyString, NullLiteral, Ignore }
+public enum Location { Client, Server }
 
 public enum ServiceProviderObject
 {

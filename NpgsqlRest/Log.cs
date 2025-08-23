@@ -196,4 +196,13 @@ public static partial class Log
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "{description} has set INFO EVENTS STREAMING SCOPE to AUTHENTICATED with roles {roles} by the comment annotation.")]
     public static partial void CommentInfoStreamingScopeRoles(this ILogger logger, string description, HashSet<string> roles);
+    
+    [LoggerMessage(Level = LogLevel.Debug, Message = "{description} has BASIC AUTH enabled by the comment annotation.")]
+    public static partial void BasicAuthEnabled(this ILogger logger, string description);
+    
+    [LoggerMessage(Level = LogLevel.Debug, Message = "{description} has ser BASIC AUTH REALM to {realm} by the comment annotation.")]
+    public static partial void BasicAuthRealmSet(this ILogger logger, string description, string realm);
+    
+    [LoggerMessage(Level = LogLevel.Debug, Message = "{description} has ser BASIC AUTH CHALLENGE COMMAND set to {command} by the comment annotation.")]
+    public static partial void BasicAuthChallengeCommandSet(this ILogger logger, string description, string command);
 }

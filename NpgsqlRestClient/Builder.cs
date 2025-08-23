@@ -216,25 +216,27 @@ public class Builder
         Database
     }
 
-    public void BuildDataProtection()
+    public string? BuildDataProtection()
     {
         var dataProtectionCfg = _config.Cfg.GetSection("DataProtection");
         if (_config.Exists(dataProtectionCfg) is false || _config.GetConfigBool("Enabled", dataProtectionCfg) is false)
         {
-            return;
+            return null;
         }
         var dataProtectionBuilder = Instance.Services.AddDataProtection();
-
-        var encryptionCfg = dataProtectionCfg.GetSection("UseCryptographicAlgorithms");
-        if (_config.Exists(encryptionCfg) is true && _config.GetConfigBool("Enabled", encryptionCfg) is true)
+        
+        var encryptionAlgorithm = _config.GetConfigEnum<EncryptionAlgorithm?>("EncryptionAlgorithm", dataProtectionCfg);
+        var validationAlgorithm = _config.GetConfigEnum<ValidationAlgorithm?>("ValidationAlgorithm", dataProtectionCfg);
+        
+        if (encryptionAlgorithm is not null || validationAlgorithm is not null)
         {
             dataProtectionBuilder.UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration
             {
-                EncryptionAlgorithm = _config.GetConfigEnum<EncryptionAlgorithm?>("EncryptionAlgorithm", encryptionCfg) ?? EncryptionAlgorithm.AES_256_CBC,
-                ValidationAlgorithm = _config.GetConfigEnum<ValidationAlgorithm?>("ValidationAlgorithm", encryptionCfg) ?? ValidationAlgorithm.HMACSHA256
+                EncryptionAlgorithm = encryptionAlgorithm ?? EncryptionAlgorithm.AES_256_CBC,
+                ValidationAlgorithm = validationAlgorithm ?? ValidationAlgorithm.HMACSHA256
             });
         }
-
+        
         DirectoryInfo? dirInfo = null;
         var storage = _config.GetConfigEnum<DataProtectionStorage?>("Storage", dataProtectionCfg) ?? DataProtectionStorage.Default;
         if (storage == DataProtectionStorage.FileSystem)
@@ -283,6 +285,8 @@ public class Builder
                 dirInfo?.FullName ?? "database",
                 expiresInDays);
         }
+
+        return customAppName;
     }
 
     public void BuildAuthentication()
