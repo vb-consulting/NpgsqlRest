@@ -8,18 +8,30 @@
 **Automatic PostgreSQL Web Server**
 
 >
-> Transform your PostgreSQL database into a **production-ready, blazing-fast REST API Standalone Web Server**. 
+> Transform Your PostgreSQL Database into a Production-Ready, Blazing-Fast **Standalone REST API Web Server** With **Static Type Checking** and **Automatic Code Generation.**
 >
-> Generate code, build entire applications and more.
->
-
-## Enterprise-Grade PostgreSQL REST API Server
-
-NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API solutions, offering unmatched performance and advanced enterprise features.
 
 **Download, configure, and run** - your REST API server is live in seconds with comprehensive enterprise features built-in.
 
 ## Core Features
+
+### **Exceptional Performances and Native Executables**
+
+NpgsqlRest is implemented with the latest .NET with Kestrel Web Server and compiled with Ahead Of Time compiler that produces native binaries. They don't require any additional installation to run, have instant startup times and the architecture is itself extremely optimized to achieve exceptional performance while keeping memory efficiency. 
+
+### **Declarative Database Configuration**
+
+NpgsqlRest allows you to configure each Web Endpoint individually and declare them directly in your database, by using a smart comment annotations system. Keep your Web Endpoint configuration declarations together with your data declarations in one, single place. Simply label database object as HTTP and you are good to go.
+
+### **Code Generation and End-to-End Static Type Checking**
+
+Plugin system with code genrators, that can generate frontend code, including TypeScript interfaces and corresponding TypeScript fetch modules. When endpoint definition changes - so will your automatically generated frontend Typescript code and your runtime errors will be reduced thanks to static type checking system.
+
+### **Feature Rich, Enterprise Ready, Open Source and More**
+
+Event streaming, event notifications, advanced security, cookie and token based authentication, role-based authorization, built-in scalability features, connection and command retries, automatic HTTP files structured logging, docker-ready containerization, Excel/CSV processing features, full open-source and free under MIT license, and more.
+
+## Full Features List
 
 ### Endpoints & Configuration 
 - **Instant API Generation**. Automatically creates REST endpoints from PostgreSQL functions, procedures, tables, and views.
@@ -75,9 +87,10 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 - **Containerization**. Docker-ready hub images.
 - **NPM Package**. Additional distribution channel as NPM package.
 - **Environment Configuration**. Flexible environment variable and configuration management.
-- **Data Protection**. Advanced encryption key management and storage options.
+- **Data Protection**. Advanced encryption and data protections with rotating encrypted keys and multiple key storage options.
 - **Structured Logging**. Industry standard Serilog logger for Console, rolling file or PostgreSQL database logging.
 - **Excel Processing**. Upload handler for Excel files that supports Excel content processing.
+- **Free And Open Source**. Fully open-source under the MIT license.
 
 ### Additional Features
 - **Upload Handlers**. Multiple upload handlers implemented: File System, Large Objects, CSV/Excel, etc., with code generation. Make complex upload and processing pipelines in minutes. 
@@ -87,6 +100,7 @@ NpgsqlRest is the superior alternative to existing automatic PostgreSQL REST API
 - **Error Handling**. Advanced PostgreSQL error code mapping to HTTP status codes.
 - **Custom Headers**. Configurable request/response header management in your database declarations.
 - **IP Tracking**. Client IP address parameter or PostgreSQL connection context for tracking.
+- **CRUD Support for Tables and View**. Generate REST Endpoints for tables and views, to insert, update, select with conflict resolutions (on conflict do update or do nothing).
 - **.NET Library Integration**. Version with core features implemented as .NET Nuget library for .NET project integration.
 
 And more!
@@ -104,13 +118,15 @@ Starting is easy:
 
 ### 1) Annotate PostgreSQL Function
 
-Let's create a simple Hello World function and add a simple comment annotation:
+Let's create a simple function, add comment annotation to expose HTTP endpoint that only `admin` role can call:
 
 ```sql
 create function my_todo(_user text)
-returns table (what text, who text)
-language sql
-as $$
+returns table (
+  what text, 
+  who text
+)
+language sql as $$
 select 'Hello World', _user
 $$;
 
@@ -258,7 +274,7 @@ Also, two more files will be generated on startup:
 
 1) `todo_public.http`
 
-HTTP file for testing, debugging, and development (VS Code requires rest-client plugin).
+**Automatically generated** HTTP file for testing and development:
 
 ```console
 @host=http://localhost:8080
@@ -280,10 +296,12 @@ GET {{host}}/hello?user=ABC
 
 2) `publicApi.ts`
 
-TypeScript fetch module that you can import and use in your Frontend project immediately.
+**Automatically generated** TypeScript fetch module with interface declaration that you can import and use in your Frontend project immediately:
 
 ```ts
 // autogenerated at 2025-08-23T11:09:22.4550472+00:00
+import parseQuery from "query";
+const baseUrl = "http://localhost:8080";
 
 interface IPublicMyTodoRequest {
     user: string | null;
@@ -293,10 +311,6 @@ interface IPublicMyTodoResponse {
     what: string | null;
     who: string | null;
 }
-
-// autogenerated at 2025-08-17T11:06:58.6605710+02:00
-import parseQuery from "query";
-const baseUrl = "http://localhost:8080";
 
 export const publicMyTodoUrl = (request: IPublicMyTodoRequest) => baseUrl + "/hello" + parseQuery(request);
 
@@ -334,7 +348,9 @@ export async function publicMyTodo(
 }
 ```
 
-*Static Type Checking for your PostgreSQL database status: ENABLED!*
+> **********************************************************************
+> **Static Type Checking for your PostgreSQL database status: ENABLED!**
+> **********************************************************************
 
 For a full list of configuration options, see the [default configuration file](https://github.com/NpgsqlRest/NpgsqlRest/blob/master/NpgsqlRestClient/appsettings.json). Any settings your configuration file will override these defaults.
 
