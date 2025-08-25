@@ -514,7 +514,7 @@ public class HttpFile(HttpFileOptions httpFileOptions) : IEndpointCreateHandler
             }
         }
         // default, assumed host
-        host ??= "http://localhost:5000";
+        host ??= "http://localhost:8080";
         return host.TrimEnd('/');
     }
 

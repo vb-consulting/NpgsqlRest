@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  CLIENT_VERSION: v2.27.0
+  CLIENT_VERSION: v2.27.1
   LIBRARY_VERSION: v2.32.0
 
 # Add workflow-level permissions
@@ -57,6 +57,7 @@ jobs:
       with:
         tag_name: ${{ env.LIBRARY_VERSION }}-client-${{ env.CLIENT_VERSION }}
         release_name: "AOT Client ${{ env.CLIENT_VERSION }} NpgsqlRest ${{ env.LIBRARY_VERSION }}"
+        body_path: ./VERSION_INFO.md
         draft: false
         prerelease: false
 
@@ -178,3 +179,22 @@ jobs:
         tags: |
           vbilopav/npgsqlrest:${{ env.CLIENT_VERSION }}
           vbilopav/npgsqlrest:latest
+
+  npm-publish:
+    needs: build-docker
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://registry.npmjs.org'
+    - name: Change to npm directory and publish
+      working-directory: ./npm
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

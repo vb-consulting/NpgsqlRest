@@ -82,7 +82,7 @@ public class Builder
         }
         else
         {
-           Instance.WebHost.UseUrls("http://localhost:5000", "http://localhost:5001");
+           Instance.WebHost.UseUrls("http://localhost:8080");
         }
 
         var ssqlCfg = _config.Cfg.GetSection("Ssl");
@@ -758,7 +758,9 @@ public class Builder
         else
         {
             var section = _config.Cfg.GetSection("ConnectionStrings");
-            connectionString = section.GetChildren().FirstOrDefault()?.Value;
+            var item = section.GetChildren().FirstOrDefault();
+            connectionName = item?.Key;
+            connectionString = item?.Value;
         }
 
         var (result, retryOpts) = BuildConnection(connectionName, connectionString!, isMain: true, skipRetryOpts: false);
@@ -777,6 +779,11 @@ public class Builder
         foreach (var section in _config.Cfg.GetSection("ConnectionStrings").GetChildren())
         {
             if (section?.Key is null)
+            {
+                continue;
+            }
+
+            if (string.Equals(ConnectionName, section.Key, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }

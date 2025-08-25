@@ -30,7 +30,10 @@ if (connectionString is null)
 {
     return;
 }
-var connectionStrings = config.GetConfigBool("UseMultipleConnections", config.NpgsqlRestCfg, true) ? builder.BuildConnectionStringDict() : null;
+var connectionStrings = 
+    config.GetConfigBool("UseMultipleConnections", config.NpgsqlRestCfg, false) ? 
+        builder.BuildConnectionStringDict() : 
+        null;
 
 var dataProtectionName = builder.BuildDataProtection();
 builder.BuildAuthentication();

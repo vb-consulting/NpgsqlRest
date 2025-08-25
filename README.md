@@ -161,18 +161,7 @@ added 1 package in 31s
 
 Note: NPM package will do the same thing on install automatically: Download the appropriate executable for your target OS from [Releases](https://github.com/NpgsqlRest/NpgsqlRest/releases) page.
 
-#### Docker Pull
-
-```console
-~/dev
-❯ docker pull vbilopav/npgsqlrest:latest
-latest: Pulling from vbilopav/npgsqlrest
-Digest: sha256:70b4057343457e019657dca303acbed8a1acd5f83075ea996b8e6ea20dac4b48
-Status: Image is up to date for vbilopav/npgsqlrest:latest
-docker.io/vbilopav/npgsqlrest:latest
-
-~/dev
-```
+For Docker you can simply use docker run command below with the configuration file in volume.
 
 ### 3) Add Minimal Configuration
 
@@ -211,7 +200,7 @@ Or, run the appropriate Docker command (expose the 8080 default port and bind th
 
 ```bash
 ~/dev
-❯ docker run -p 8080:8080 -v ./appsettings.json:/app/appsettings.json --network host vbilopav/npgsqlrest:latest
+❯ docker run --name my_postgres_api -it -p 8080 --volume ./appsettings.json:/app/appsettings.json vbilopav/npgsqlrest:latest
 [11:33:35.440 INF] Started in 00:00:00.0940095, listening on ["http://localhost:8080"], version 2.27.0.0 [NpgsqlRest]
 ```
 
